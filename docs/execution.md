@@ -68,7 +68,7 @@ Model selection per role:
 | Role | Model | Rationale |
 |------|-------|-----------|
 | Researcher | sonnet | Needs reasoning for context gathering, not raw power |
-| Executor | sonnet | Implementation needs good coding, sonnet sufficient |
+| Executor | opus | Writing production code is the highest-stakes task — quality here reduces downstream review/test failures and retry loops |
 | Code Reviewer | sonnet | Pattern matching, quality analysis |
 | Tester | sonnet | Per-task test execution + final full test suite gate |
 
@@ -151,7 +151,7 @@ Lead (main session -- user interacts here)
 |   - When list empty: writes IDLE to shared/researcher.md, notifies Lead
 |
 +-- Executor teammate(s) (1-3)
-|   Model: sonnet | Tools: Read, Write, Edit, Glob, Grep, Bash
+|   Model: opus | Tools: Read, Write, Edit, Glob, Grep, Bash
 |   - Re-reads all files in shared/ + per-task research file before each task
 |   - Self-claims from implementation task list
 |   - Implements code conforming to plan + architecture docs

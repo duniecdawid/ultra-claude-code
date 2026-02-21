@@ -51,7 +51,7 @@ project/
 │   │   ├── description/           # Vision, discovery outputs, market research
 │   │   └── requirements/          # Formal requirements (FR-xxx, NFR-xxx)
 │   ├── plans/
-│   │   └── {feature-name}/
+│   │   └── {plan-name}/
 │   │       ├── README.md          # Plan document (includes task list)
 │   │       ├── shared/            # Per-role shared memory (execution)
 │   │       └── research/          # Researcher findings per task
