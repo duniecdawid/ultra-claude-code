@@ -1,0 +1,202 @@
+# Architecture
+
+Ultra Claude enhances Claude Code with specification-driven development. This document describes the system design: philosophy, layers, agent coordination, and governance.
+
+## Specification-Driven Development
+
+Code is a derived artifact. The specification is the source of truth.
+
+This does NOT mean:
+- Documenting every function (implementation details belong in code)
+- Rigid locks that prevent all change (specs evolve)
+- Bureaucratic overhead that slows you down
+
+This DOES mean:
+- Architecture documentation is kept current and reflects all decisions
+- Product requirements exist before code is written
+- When code diverges from specs, you fix the spec first, then re-plan
+- AI agents read specs before coding and are constrained by them
+- Documentation that is wrong produces broken implementations (forcing function)
+
+## Governance Model
+
+Documentation acts like zoning laws — you can build freely within the constraints, but the constraints control the direction of growth. Three levels of enforcement:
+
+| Level | Mechanism | Enforcement |
+|-------|-----------|-------------|
+| **Soft** | CLAUDE.md rules, architecture docs | Advisory — Claude reads them, may drift under context pressure |
+| **Medium** | Skills that load architecture docs before planning | Workflow-enforced — can't skip the step |
+| **Hard** | Hooks (PreToolUse, Stop, TaskCompleted) | Deterministic — cannot be overridden by the AI |
+
+## Change Classification
+
+Not every change needs the same scrutiny:
+
+- **Additive** (new feature within existing patterns) → flows freely
+- **Compatible** (extends existing architecture) → lightweight review
+- **Breaking** (violates existing architecture) → must update the architecture doc first, then re-plan
+
+## Two Layers: Planning and Execution
+
+Instead of a rigid multi-phase pipeline, there are **three specialized planning modes** that each optimize plan mode for a specific use case, and **one execution engine** that runs any plan.
+
+### Planning Layer
+
+All planning modes trigger Claude Code's plan mode automatically, enhanced by **Plan Enhancer** — a shared skill that:
+- Redirects the plan from Claude's default location to a plan directory
+- Ensures task granularity is right for agentic execution
+- Creates a task list compatible with Claude's task system
+- Standardizes the output structure so all plans look the same regardless of entry point
+
+#### Feature Plan Mode
+
+For new features. Uses Researcher + Docs Manager to gather context about the codebase, existing architecture, and product requirements before planning.
+
+- Challenges scope, pushes for clarity, asks "why?"
+- Considers product requirements, architecture, and implementation in one pass
+- When architecture decisions are ambiguous or high-risk, suggests **RFC mode** for structured review (AI personas: Devil's Advocate, Pragmatist, Security/Reliability, Cost-conscious — and/or human reviewers)
+- Produces a plan in `documentation/plans/{name}/`
+
+#### Debug Mode
+
+For fixing things. The mode skill itself handles planning — it analyzes the issue, proposes hypotheses, and spawns Researcher + System Tester to investigate.
+
+- Analyzes the issue, proposes hypotheses
+- Collects logs, reproduces the bug
+- Produces a plan focused on the fix + verification
+
+#### Doc & Code Verification Mode
+
+For periodic sync. Uses surveyors/checkers to find discrepancies between documentation and code, then produces a plan of things to fix.
+
+- Reviews system structure, spawns verificators to look for issues
+- Generates a list of discrepancies with severity
+- Produces a plan to resolve them (update docs or update code)
+
+### Discovery Mode (Optional Pre-Step)
+
+Research only — coding is disabled. Focused on building product vision, exploring competitors, researching technology options. Uses Researcher + Market Analyzer agents.
+
+Discovery feeds into planning but does not produce a plan itself. Output goes to `documentation/product/{topic}.md`.
+
+### Execution Layer
+
+**Execute Plan** — a single execution engine that takes any plan produced by any mode and runs it through the agent team. It doesn't care how the plan was created — Feature Plan, Debugging, or Verification all produce the same standardized structure.
+
+The execution engine:
+- Reads the plan and task list from the plan directory
+- Spawns agents: Researcher, Task Executor, Task Tester, System Tester
+- Is aware of already-performed research (doesn't repeat work)
+- Runs tasks without requiring user approval between every task
+- Saves progress via checkpoints for session recovery
+
+## Agent Teams Architecture
+
+Ultra Claude uses Claude Code's experimental agent teams as its PRIMARY coordination mechanism.
+
+### Why Agent Teams (Not Subagents)
+
+| Feature | Subagents | Agent Teams |
+|---------|-----------|-------------|
+| Communication | Report back to parent only | Teammates message each other directly |
+| Coordination | Parent manages everything | Shared task list, self-claiming |
+| Context | Results summarized back | Each has full independent context |
+| Best for | Focused tasks | Complex work requiring collaboration |
+
+Agent teams enable patterns that subagents cannot:
+- Researcher shares findings directly with Task Executor (no parent relay)
+- Task Tester challenges Task Executor's work directly
+- Multiple teammates self-claim from shared task list
+- Plan approval workflow gates implementation
+
+### Team Structures
+
+See [Workflows](workflows.md) for how these teams operate end-to-end.
+
+#### Execute Plan Team
+
+```
+Lead (main session — user interacts here)
+├── Researcher teammate
+│   - Gathers context from architecture docs + code
+│   - Checks for existing research (doesn't repeat work)
+│   - Writes findings to plans/NAME/research/
+│   - Sends findings to Task Executor via SendMessage
+│
+├── Task Executor teammate
+│   - Reads research context
+│   - Implements one task at a time
+│   - Works in own files (no conflicts)
+│   - Sends completion to Task Tester via SendMessage
+│
+├── Task Tester teammate
+│   - Runs tests, checks success criteria pass/fail
+│   - Read-only — cannot modify code
+│   - Reports pass/fail to Lead
+│   - If fail: sends specific feedback to Task Executor
+│
+└── System Tester teammate (spawned as needed)
+    - Runs full test suite after changes
+    - Reports results to Lead
+```
+
+#### Debug Mode Team
+
+```
+Lead (main session — Debug Mode skill handles planning)
+├── Researcher teammate(s)
+│   - Each investigates a different hypothesis in parallel
+│   - Sends evidence to Lead
+│
+└── System Tester teammate
+    - Reproduces the bug
+    - Validates the fix
+```
+
+#### Doc & Code Verification Team
+
+```
+Lead (main session)
+├── Code Surveyor teammate(s)
+│   - Survey code packages/modules
+│   - Report structure and patterns
+│
+├── Doc Surveyor teammate(s)
+│   - Survey documentation sections
+│   - Report what's documented
+│
+└── Checker teammate(s)
+    - Compare code structure vs doc claims
+    - Report discrepancies with severity
+```
+
+#### Discovery Mode Team
+
+```
+Lead (main session — coding DISABLED)
+├── Researcher teammate
+│   - Deep code/docs research
+│   - Uses Ref.tools for external library docs
+│
+└── Market Analyzer teammate
+    - Uses Perplexity/web for market research
+    - Competitor analysis, technology trends
+```
+
+### Agent Team Constraints We Accept
+
+- **No session resume for teammates**: If session breaks, teammates are lost. Mitigated by checkpoint skill saving state to plan files.
+- **One team per session**: Each workflow gets its own session.
+- **No nested teams**: Teammates cannot spawn sub-teams. Mitigated by teammates using Task (subagent) for focused sub-tasks.
+- **Cost**: Each teammate is ~200K tokens. We minimize by spawning only what's needed, shutting down when done.
+- **Permissions**: All teammates inherit lead's permission mode. Pre-approve common operations in settings.
+
+## The Forge Meta-Skill
+
+Forge is unique — it has awareness of the ENTIRE Ultra Claude system. Its purpose:
+
+1. **"How do I accomplish X with this system?"** — Advises which skills, agents, and workflows to use
+2. **"Extend the system with Y capability"** — Guides creating new skills/agents that fit the architecture
+3. **"What's the most efficient path?"** — Suggests workflow optimizations based on the task
+
+Forge achieves this by having a comprehensive system-overview.md reference that describes all components, their relationships, and usage patterns.
