@@ -22,7 +22,7 @@ Four mechanisms work together:
 | Mechanism | Purpose |
 |-----------|---------|
 | **Role-Separated Task Lists** | Lead creates 4 task groups (research, impl, review, test). Promotes tasks between lists as work completes. Each role only sees their own list. |
-| **Per-Role Shared Directory** (`plans/{name}/shared/`) | Persistent cross-cutting knowledge split by role. Each role writes only to their own file (`researcher.md`, `executor.md`, `reviewer.md`, `lead.md`). All teammates read ALL files before each task claim. Survives session death. |
+| **Per-Role Shared Directory** (`plans/{name}/shared/`) | Persistent cross-cutting knowledge split by role. Each role writes only to their own file (`researcher.md`, `executor.md`, `reviewer.md`, `tester.md`, `lead.md`). All teammates read ALL files before each task claim. Survives session death. |
 | **Plan README.md** | Source of truth for what needs to be done, task ordering, success criteria. |
 | **Per-Task Research Files** (`plans/{name}/research/task-N.md`) | Deep per-task findings from Researcher. Read by Executor before implementing. |
 
@@ -39,6 +39,16 @@ Teammates do NOT inherit the Lead's conversation history. They start with a blan
 | **Tester** | + success criteria from plan, test task list claiming instructions, SendMessage target (Lead) for failure feedback |
 
 Each teammate is told to re-read ALL files in the `shared/` directory before starting each new task claim — other teammates may have updated their files.
+
+**Example spawn prompt (Executor):**
+> "You are an Executor teammate. Read these files for context:
+> - Plan: documentation/plans/user-auth/README.md
+> - Shared context: documentation/plans/user-auth/shared/ (read ALL files)
+> - Architecture: documentation/technology/architecture/
+> - Standards: documentation/technology/standards/
+> - Your task list: implementation tasks (use TaskList to find pending tasks)
+>
+> Self-claim tasks by setting them to in_progress. Write integration notes to shared/executor.md (append-only). When your list is empty, write IDLE to shared/executor.md and notify Lead."
 
 ## Dynamic Team Composition
 
@@ -107,17 +117,19 @@ Testing Tasks:        [pending] -> [in_progress] -> [completed/failed]
 - Code Reviewer self-claims from review list -> passes -> Lead promotes to test list; fails -> Lead re-queues to impl list with feedback
 - Tester self-claims from test list -> passes -> done; fails -> Lead re-queues to impl list with feedback
 
+**Self-claiming:** A teammate calls TaskList to find `pending` tasks in their role's list, picks the first available task, and calls TaskUpdate to set it to `in_progress` with themselves as owner. No coordination with Lead needed — the task list state is the lock.
+
 **Why 4 lists instead of task states:** Claude Code's built-in task states are only `pending/in_progress/completed`. Rather than fighting the system with metadata hacks, we use the built-in states cleanly within each role's list. The Lead handles promotion between lists.
 
 ## Task Classification
 
 Lead classifies each task before creating task lists to avoid 4-stage overhead for simple changes:
 
-| Classification | Criteria | Pipeline |
-|----------------|----------|----------|
-| **Full** | Multi-file, architectural, complex logic | Research -> Implementation -> Review -> Test |
-| **Standard** | Single-component, clear requirements | Implementation -> Review -> Test |
-| **Trivial** | Config change, rename, one-liner | Implementation -> Test |
+| Classification | Criteria | Pipeline | Example |
+|----------------|----------|----------|---------|
+| **Full** | Multi-file, architectural, complex logic | Research -> Implementation -> Review -> Test | Add new API endpoint with auth middleware, DB migration, tests |
+| **Standard** | Single-component, clear requirements | Implementation -> Review -> Test | Add validation to existing form component |
+| **Trivial** | Config change, rename, one-liner | Implementation -> Test | Rename env variable, fix typo in config |
 
 Lead sets classification per task when creating lists. Tasks start in the appropriate first stage. A one-line config change skips research and review; a multi-file architectural change goes through all four stages.
 
@@ -151,6 +163,7 @@ Lead (main session -- user interacts here)
 |   - Re-reads all files in shared/ + coding standards before each task
 |   - Self-claims from review task list
 |   - Checks: code quality, pattern compliance, duplication, architecture conformance
+|   - Pass/fail criteria sourced from `documentation/technology/standards/`. Failures include specific file:line references and actionable feedback for Executor.
 |   - PASS: marks complete -> Lead promotes to test list
 |   - FAIL: marks failed with specific feedback -> Lead re-queues to impl list
 |   - Read-only -- cannot modify code
@@ -211,6 +224,8 @@ Lead does NOT micromanage. Intervenes only at:
 5. **Plan-invalidating discovery** — if Researcher or Executor discovers something that fundamentally changes the plan (e.g., an API doesn't exist, a dependency is incompatible), they SendMessage Lead immediately. Lead pauses promotion, evaluates impact, and either adjusts tasks or escalates to user.
 6. **Completion synthesis** — collects results, produces summary
 7. **Team shutdown** — sends shutdown requests, cleans up shared resources
+
+**Lead behavior:** Acts as a project manager — minimal intervention, data-driven decisions, escalates to user when uncertain. Spawn prompts are direct, structured, and context-rich. Does not micromanage task implementation; trusts teammates to self-coordinate within their role's list.
 
 Between these points, teammates self-coordinate via their role-specific task lists.
 

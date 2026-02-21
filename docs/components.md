@@ -7,13 +7,13 @@ Reference for all Ultra Claude components: skills, agents, commands, hooks, temp
 | Skill | Trigger | Invocation | Purpose |
 |-------|---------|------------|---------|
 | **feature-plan-mode** | "new feature", "plan feature", "start feature" | User | Feature Plan Mode: new features with product + architecture context. Includes optional RFC sub-mode for ambiguous/high-risk architecture decisions (AI persona review). |
-| **debug-mode** | "debug", "fix", "investigate" | User | Debug Mode: issue investigation and fix planning |
+| **debug-mode** | "debug", "fix", "investigate" | User | Debug Mode: issue investigation and fix planning. Spawns investigation team (Researcher + System Tester) during planning phase. Fix execution uses standard execute-plan team. |
 | **doc-code-verification-mode** | "verify docs", "check doc-code gaps", "sync docs" | User | Doc & Code Verification Mode: find and plan fixes for discrepancies |
 | **plan-enhancer** | Auto-loaded by all modes | Auto (internal) | Standardizes plan output: plan directory, README.md with embedded task list, task granularity. Uses Claude Code's plan mode file path override (writes plan to `documentation/plans/{name}/README.md` instead of default `.claude/plan.md`). Ensures task list is embedded in the plan document. |
-| **execute-plan** | `/uc:execute` | User | Execution engine: runs any plan through agent team |
+| **execute-plan** | `/uc:execute` | User | Execution engine: reads plan directory, composes dynamic agent team based on plan size, creates role-separated task lists, spawns teammates, coordinates 5-phase execution (setup, parallel work, checkpoint, failure handling, completion) |
 | **discovery-mode** | "discovery mode", "research only" | User | Discovery Mode: research only, coding disabled |
 | **docs-manager** | Activated by `.claude/docs-format` file | Auto | Guards `documentation/` structure — enforces canonical layout, routes docs to correct directories, prevents structural drift |
-| **checkpoint** | `/uc:checkpoint` | User | Save context to plan files for recovery |
+| **checkpoint** | `/uc:checkpoint` | User | Saves task list states, active teammate assignments, execution decisions, and blockers to `plans/{name}/checkpoint-{timestamp}.md` for session recovery |
 | **context-manager** | "add context", "add external system", "update context" | User | Manages `context/` directory: structures external system knowledge, aggregates docs + code, manages git submodules |
 | **migrate-docs** | `/uc:migrate` | User | One-time migration: surveys existing project docs + code, maps them to canonical structure, produces a migration plan |
 | **help** | "how to accomplish", "extend the system" | User | Meta-skill: understands full system, advises on extensions |
@@ -21,12 +21,14 @@ Reference for all Ultra Claude components: skills, agents, commands, hooks, temp
 
 ## Agents
 
+> **Note:** The Lead is the main Claude Code session itself — not a spawned agent. It runs the execute-plan skill and orchestrates all teammates. See [Execution](execution.md) for Lead behavior.
+
 | Agent | Model | Tools | Purpose | Spawn Context |
 |-------|-------|-------|---------|---------------|
-| **researcher** | sonnet | Read, Grep, Glob, WebFetch, mcp__ref | Generic context-gathering agent. Parameterized by the mode that spawns it — focuses on whatever the mode needs (product context, debug investigation, code patterns, etc.) | Plan README.md, `shared/` directory path, architecture docs path, research task list instructions |
+| **researcher** | sonnet | Read, Grep, Glob, WebFetch, WebSearch, mcp__ref | Generic context-gathering agent. Parameterized by the mode that spawns it — focuses on whatever the mode needs (product context, debug investigation, code patterns, etc.) | Plan README.md, `shared/` directory path, architecture docs path, research task list instructions, tech-research skill (auto-loaded for external library/framework documentation) |
 | **task-executor** | sonnet | Read, Write, Edit, Glob, Grep, Bash | Single-task implementation from research context | Plan README.md, `shared/` directory path, per-task research file, coding standards path, impl task list instructions |
-| **task-tester** | sonnet | Read, Glob, Grep, Bash | Testing gate in execution pipeline. Self-claims from test task list for per-task testing. Also runs full test suite as final gate before team shutdown. Read-only for source code. | Plan README.md, `shared/` directory path, success criteria from plan, test task list instructions, system test instructions (.claude/system-test.md), SendMessage target (Lead) for failures |
-| **system-tester** | sonnet | Read, Glob, Grep, Bash | Bug reproduction and fix validation in Debug Mode. Attempts to reproduce reported issues, validates fixes resolve the original problem. Read-only for source code. | Debug Mode team, system test instructions (`.claude/system-test.md`) |
+| **task-tester** | sonnet | Read, Glob, Grep, Bash | Testing gate in execution pipeline. Self-claims from test task list for per-task testing. Also runs full test suite as final gate before team shutdown. Must not modify source code. Bash restricted to running test commands and build tools. | Plan README.md, `shared/` directory path, success criteria from plan, test task list instructions, system test instructions (.claude/system-test.md), SendMessage target (Lead) for failures |
+| **system-tester** | sonnet | Read, Glob, Grep, Bash | Bug reproduction and fix validation in Debug Mode. Attempts to reproduce reported issues, validates fixes resolve the original problem. Must not modify source code. Bash restricted to bug reproduction and fix validation commands. | Debug Mode team, system test instructions (`.claude/system-test.md`) |
 | **code-review** | sonnet | Read, Glob, Grep | Code review gate in execution pipeline. Self-claims from review task list. Checks code quality, pattern compliance, architecture conformance, duplication. Read-only. PASS promotes to test list, FAIL re-queues to impl list. | Plan README.md, `shared/` directory path, coding standards path, architecture docs path, review task list instructions |
 | **checker** | sonnet | Read, Grep, Glob | Compares specific code against documentation for single topic | — |
 | **code-surveyor** | haiku | Read, Grep, Glob | Quick survey of code package structure | — |

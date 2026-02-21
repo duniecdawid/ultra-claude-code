@@ -26,7 +26,7 @@ User: /uc:feature "Add user authentication"
      → Mode re-enters planning with feedback as additional context
      → Revised plan generated and re-presented
    → If user partially rejects:
-     → User marks specific tasks to remove/modify
+     → User specifies in chat which tasks to remove or modify
      → Plan updated in place, task list adjusted
      → Re-presented for final approval
 
@@ -93,7 +93,7 @@ User: /uc:verify
      → Mode re-enters planning with feedback as additional context
      → Revised plan generated and re-presented
    → If user partially rejects:
-     → User marks specific tasks to remove/modify
+     → User specifies in chat which tasks to remove or modify
      → Plan updated in place, task list adjusted
      → Re-presented for final approval
 
@@ -129,7 +129,7 @@ User: /uc:debug "Login fails intermittently on staging"
      → Mode re-enters planning with feedback as additional context
      → Revised plan generated and re-presented
    → If user partially rejects:
-     → User marks specific tasks to remove/modify
+     → User specifies in chat which tasks to remove or modify
      → Plan updated in place, task list adjusted
      → Re-presented for final approval
 
