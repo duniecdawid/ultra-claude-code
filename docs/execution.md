@@ -6,7 +6,7 @@ For architecture context, see [Architecture](architecture.md). For component ref
 
 ## Overview
 
-**Execute Plan** reads the entire plan directory (`documentation/plans/{name}/`) and runs it through a dynamically composed agent team. On trigger, the Lead reads ALL files in the plan directory — README.md, any existing `research/` files, `shared-context.md` (if resuming), checkpoint files — to build complete context before spawning teammates.
+**Execute Plan** reads the entire plan directory (`documentation/plans/{name}/`) and runs it through a dynamically composed agent team. On trigger, the Lead reads ALL files in the plan directory — README.md, any existing `research/` files, `shared/` directory (if resuming), checkpoint files — to build complete context before spawning teammates.
 
 **Prerequisites:**
 - `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS: "1"` in settings.json
@@ -22,7 +22,7 @@ Four mechanisms work together:
 | Mechanism | Purpose |
 |-----------|---------|
 | **Role-Separated Task Lists** | Lead creates 4 task groups (research, impl, review, test). Promotes tasks between lists as work completes. Each role only sees their own list. |
-| **Shared Memory File** (`plans/{name}/shared-context.md`) | Persistent cross-cutting knowledge: patterns discovered, integration points, gotchas, runtime decisions. Survives session death. |
+| **Per-Role Shared Directory** (`plans/{name}/shared/`) | Persistent cross-cutting knowledge split by role. Each role writes only to their own file (`researcher.md`, `executor.md`, `reviewer.md`, `lead.md`). All teammates read ALL files before each task claim. Survives session death. |
 | **Plan README.md** | Source of truth for what needs to be done, task ordering, success criteria. |
 | **Per-Task Research Files** (`plans/{name}/research/task-N.md`) | Deep per-task findings from Researcher. Read by Executor before implementing. |
 
@@ -32,13 +32,13 @@ Teammates do NOT inherit the Lead's conversation history. They start with a blan
 
 | Teammate | Receives in Spawn Prompt |
 |----------|-------------------------|
-| **All teammates** | Plan README.md path, shared-context.md path, architecture docs path (`documentation/technology/architecture/`) |
+| **All teammates** | Plan README.md path, `shared/` directory path, architecture docs path (`documentation/technology/architecture/`) |
 | **Researcher** | + research task list claiming instructions |
 | **Executor** | + per-task research file path, impl task list claiming instructions, coding standards path (`documentation/technology/standards/`) |
 | **Code Reviewer** | + review task list claiming instructions, coding standards path, architecture docs path |
 | **Tester** | + success criteria from plan, test task list claiming instructions, SendMessage target (Lead) for failure feedback |
 
-Each teammate is told to re-read `shared-context.md` before starting each new task claim — other teammates may have updated it.
+Each teammate is told to re-read ALL files in the `shared/` directory before starting each new task claim — other teammates may have updated their files.
 
 ## Dynamic Team Composition
 
@@ -61,6 +61,30 @@ Model selection per role:
 | Executor | sonnet | Implementation needs good coding, sonnet sufficient |
 | Code Reviewer | sonnet | Pattern matching, quality analysis |
 | Tester | sonnet | Per-task test execution + final full test suite gate |
+
+### Cost Awareness
+
+Before spawning teammates, Lead estimates token cost and presents to user:
+
+| Team Size | Estimated Cost |
+|-----------|---------------|
+| Minimal (3 teammates) | ~600K tokens |
+| Medium (4 teammates) | ~800K tokens |
+| Full (5-6 teammates) | ~1M-1.2M tokens |
+
+Lead shows: "This plan has N tasks. Recommended team: [composition]. Estimated ~Xk tokens. Proceed?"
+User confirms before any teammates are spawned.
+
+### Required Permissions
+
+Teammates inherit Lead's permission mode. For unattended execution, pre-approve in settings:
+
+- **Bash**: test runners, build commands, linters
+- **Write/Edit**: source files, test files, documentation
+- **Read/Glob/Grep**: always allowed (read-only)
+
+Tester and Researcher are read-only for source code — they should NOT have Write/Edit on `src/`.
+Code Reviewer is fully read-only.
 
 ## Role-Separated Task Lists
 
@@ -85,49 +109,61 @@ Testing Tasks:        [pending] -> [in_progress] -> [completed/failed]
 
 **Why 4 lists instead of task states:** Claude Code's built-in task states are only `pending/in_progress/completed`. Rather than fighting the system with metadata hacks, we use the built-in states cleanly within each role's list. The Lead handles promotion between lists.
 
+## Task Classification
+
+Lead classifies each task before creating task lists to avoid 4-stage overhead for simple changes:
+
+| Classification | Criteria | Pipeline |
+|----------------|----------|----------|
+| **Full** | Multi-file, architectural, complex logic | Research -> Implementation -> Review -> Test |
+| **Standard** | Single-component, clear requirements | Implementation -> Review -> Test |
+| **Trivial** | Config change, rename, one-liner | Implementation -> Test |
+
+Lead sets classification per task when creating lists. Tasks start in the appropriate first stage. A one-line config change skips research and review; a multi-file architectural change goes through all four stages.
+
 ## The Execute Plan Team Structure
 
 ```
 Lead (main session -- user interacts here)
 |
 +-- Creates 4 role-separated task lists from plan README.md
-+-- Creates shared-context.md with initial context
++-- Creates shared/ directory with per-role files and initial context in lead.md
 +-- Decides team composition based on plan size/complexity
 |
 +-- Researcher teammate (0-1)
 |   Model: sonnet | Tools: Read, Grep, Glob, WebFetch, mcp__ref
-|   - Reads plan README.md + shared-context.md at start
+|   - Reads plan README.md + all files in shared/ at start
 |   - Self-claims from research task list
 |   - Writes per-task findings to plans/NAME/research/task-N.md
-|   - Writes cross-cutting discoveries to shared-context.md
-|   - Goes idle when research list empty -> Lead notified
+|   - Writes cross-cutting discoveries to shared/researcher.md (append-only)
+|   - When list empty: writes IDLE to shared/researcher.md, notifies Lead
 |
 +-- Executor teammate(s) (1-3)
 |   Model: sonnet | Tools: Read, Write, Edit, Glob, Grep, Bash
-|   - Reads plan README.md + shared-context.md + per-task research file
+|   - Re-reads all files in shared/ + per-task research file before each task
 |   - Self-claims from implementation task list
 |   - Implements code conforming to plan + architecture docs
-|   - Writes integration notes to shared-context.md (append-only)
-|   - Goes idle when impl list empty -> Lead notified
+|   - Writes integration notes to shared/executor.md (append-only)
+|   - When list empty: writes IDLE to shared/executor.md, notifies Lead
 |
 +-- Code Reviewer teammate (0-1)
 |   Model: sonnet | Tools: Read, Glob, Grep
-|   - Reads plan README.md + shared-context.md + coding standards
+|   - Re-reads all files in shared/ + coding standards before each task
 |   - Self-claims from review task list
 |   - Checks: code quality, pattern compliance, duplication, architecture conformance
 |   - PASS: marks complete -> Lead promotes to test list
 |   - FAIL: marks failed with specific feedback -> Lead re-queues to impl list
 |   - Read-only -- cannot modify code
-|   - Goes idle when review list empty -> Lead notified
+|   - When list empty: writes IDLE to shared/reviewer.md, notifies Lead
 |
 +-- Tester teammate (0-1)
     Model: sonnet | Tools: Read, Glob, Grep, Bash
-    - Reads plan README.md + shared-context.md + success criteria
+    - Re-reads all files in shared/ + success criteria before each task
     - Self-claims from testing task list
     - Per-task: runs relevant tests, checks success criteria from plan
     - PASS: marks complete | FAIL: SendMessage feedback to Lead -> re-queue
     - Read-only -- cannot modify source code
-    - Goes idle when test list empty -> Lead notified
+    - When list empty: writes IDLE to shared/tester.md, notifies Lead
     - FINAL GATE: when all tasks done, Lead asks Tester to run full test suite
       (not per-task -- the entire suite as regression check)
     - Reports final gate results to Lead before team shutdown
@@ -135,35 +171,46 @@ Lead (main session -- user interacts here)
 
 ## Shared Memory Pattern
 
-`plans/{name}/shared-context.md` — the persistent shared memory between all teammates:
+`plans/{name}/shared/` — a directory of per-role files forming persistent shared memory between all teammates:
 
-**What goes in:**
+```
+plans/{name}/shared/
+  researcher.md      # Researcher writes here
+  executor.md        # Executor(s) write here
+  reviewer.md        # Code Reviewer writes here
+  tester.md          # Tester writes here
+  lead.md            # Lead writes here
+```
+
+**Read rule:** All teammates read ALL files in `shared/` before each task claim.
+**Write rule:** Each role writes ONLY to their own file. Append-only. No teammate ever edits another role's file.
+
+**What goes in per-role files:**
 - Cross-cutting architecture decisions made during execution
 - Dependency info between tasks ("Task 3 created UserService -- Task 5 should import from `src/services/user.ts`")
 - Gotchas discovered ("The API returns snake_case, not camelCase as docs say")
 - Integration points between teammates' work
 - Code Review findings that affect multiple tasks (pattern violations)
+- IDLE status when a teammate's task list is empty
 
 **What does NOT go in:**
 - Per-task research (goes to `plans/{name}/research/task-N.md`)
 - Task status (managed by task lists)
 - Full code snippets (reference file paths instead)
 
-**Write rules (avoid contention):**
-- Each role appends to its own labeled section: `## Researcher Findings`, `## Executor Notes`, `## Review Findings`
-- Never edit another role's section — append-only
-- Lead writes to `## Lead Decisions`
+**Why per-role files instead of one shared file:** Concurrent writes to a single `shared-context.md` will clobber each other. Per-role files eliminate write conflicts — each teammate owns exactly one file.
 
 ## Lead Intervention Points
 
 Lead does NOT micromanage. Intervenes only at:
 
-1. **Team creation** — decides roster, writes spawn prompts, creates task lists + shared-context.md
+1. **Team creation** — decides roster, writes spawn prompts, creates task lists + `shared/` directory with initial `lead.md`
 2. **Task promotion** — monitors all 4 lists, promotes completed tasks to the next role's list
 3. **Failure handling** — receives failure feedback from Reviewer/Tester, re-queues to impl list with context (max 2 retries per task, then escalates to user)
 4. **Checkpoint** — periodic state save (see below)
-5. **Completion synthesis** — collects results, produces summary
-6. **Team shutdown** — sends shutdown requests, cleans up shared resources
+5. **Plan-invalidating discovery** — if Researcher or Executor discovers something that fundamentally changes the plan (e.g., an API doesn't exist, a dependency is incompatible), they SendMessage Lead immediately. Lead pauses promotion, evaluates impact, and either adjusts tasks or escalates to user.
+6. **Completion synthesis** — collects results, produces summary
+7. **Team shutdown** — sends shutdown requests, cleans up shared resources
 
 Between these points, teammates self-coordinate via their role-specific task lists.
 
@@ -173,8 +220,8 @@ Progress saved to plan directory at three levels:
 
 | What | Where | When |
 |------|-------|------|
-| Task list snapshots (all 4 role-lists) | `plans/{name}/checkpoint-{timestamp}.md` | Every N completed tasks (default 3), on TeammateIdle, on user request, on session end |
-| Cross-cutting knowledge | `plans/{name}/shared-context.md` | Written continuously by teammates (already on disk) |
+| Task list snapshots (all 4 role-lists) | `plans/{name}/checkpoint-{timestamp}.md` | Every N completed tasks (default 3), on teammate idle, on user request, on session end |
+| Cross-cutting knowledge | `plans/{name}/shared/*.md` | Written continuously by teammates to per-role files (already on disk) |
 | Per-task research | `plans/{name}/research/task-N.md` | Written by Researcher per task (already on disk) |
 
 **Checkpoint file contains:**
@@ -184,24 +231,56 @@ Progress saved to plan directory at three levels:
 - Blockers encountered
 - Files modified so far
 
-**On resume:** Lead reads plan README.md + latest checkpoint + shared-context.md -> knows exactly what's done vs pending -> rebuilds team -> skips completed work.
+**On resume:** Lead reads plan README.md + latest checkpoint + all files in `shared/` -> knows exactly what's done vs pending -> rebuilds team -> skips completed work.
 
 ## Error Recovery
 
 | Failure Class | Detection | Recovery |
 |---------------|-----------|---------|
 | **Task failure** (review/test fails) | Reviewer or Tester feedback to Lead | Lead re-queues to impl list with feedback (max 2 retries). After 2 failures: Lead escalates to user with full context. |
-| **Teammate crash** (session crash, context overflow) | TeammateIdle fires unexpectedly / Lead notices stalled progress | Lead re-queues their in-progress task to previous state. Spawns replacement teammate with same role prompt + "continue from shared-context.md". |
-| **Session death** (everything dies) | User reruns `/uc:execute {plan-name}` | Lead finds latest checkpoint, shows resume prompt. Team rebuilt from scratch, but task states + shared-context.md + research files preserve all progress. |
+| **Teammate crash** (session crash, context overflow) | Lead detects stalled progress via periodic polling of task lists and shared files | Lead re-queues their in-progress task to previous state. Spawns replacement teammate with same role prompt + "continue from shared/ directory". |
+| **Session death** (everything dies) | User reruns `/uc:execute {plan-name}` | Lead finds latest checkpoint, shows resume prompt. Team rebuilt from scratch, but task states + `shared/` directory + research files preserve all progress. |
+
+## Mid-Execution Plan Changes
+
+When a discovery invalidates part of the plan:
+
+1. **Teammate sends urgent message to Lead** with evidence of the invalidation
+2. **Lead pauses task promotion** — no new tasks move between lists
+3. **Lead evaluates scope of impact:**
+   - **Single task affected** — Lead updates task description, re-queues if needed
+   - **Multiple tasks affected** — Lead adds amendment to `plans/{name}/shared/lead.md`, updates affected task descriptions, may cancel pending tasks
+   - **Plan fundamentally wrong** — Lead escalates to user with evidence. User decides: amend plan or abort and re-plan.
+4. **Lead resumes promotion** after resolution
+5. All teammates re-read `shared/` directory on next task claim (existing rule)
 
 ## Hook Integration
 
 | Hook | Execution Layer Behavior |
 |------|------------------------|
-| **TeammateIdle** | When a teammate goes idle, checks if their role-list still has claimable tasks. If tasks remain, notifies Lead that teammate stopped prematurely. For Code Reviewer: also checks that all reviewed tasks have written feedback. |
-| **TaskCompleted** | Validates task meets success criteria from plan README.md. If criteria unmet, blocks completion and provides feedback. |
 | **PreToolUse (Write/Edit)** | Checks if file changes align with architecture docs. Unchanged from planning layer. |
+| **PostToolUse (TaskUpdate)** | When any agent calls TaskUpdate with `status: "completed"`, reads plan README.md success criteria and validates. Blocks completion if criteria unmet. |
 | **Stop** | Triggers checkpoint save if execution is in progress. Writes final checkpoint before session closes. |
+
+### Teammate Completion Protocol
+
+When a teammate's role-specific task list is empty, the teammate:
+1. Writes `## [Role] IDLE` to their per-role shared file (e.g., `shared/executor.md`)
+2. Sends a message to Lead indicating idle status
+3. Lead checks if other lists have work that could be promoted to the idle role's list
+4. If no more work: Lead acknowledges and teammate shuts down
+
+For Code Reviewer specifically: before going idle, must verify all reviewed tasks have written feedback.
+
+### Session Resume
+
+When `/uc:execute` fires for a plan that has existing checkpoint files, the execute-plan skill handles resume as its first action:
+1. Reads latest `checkpoint-{timestamp}.md` file in the plan directory
+2. Reads all per-role shared files in `shared/` directory
+3. Shows user a resume prompt with progress summary
+4. Skips completed work and rebuilds team from current state
+
+This is skill startup behavior, not a hook.
 
 ## Workflow: Step-by-Step
 
@@ -212,7 +291,7 @@ PHASE 1: SETUP (Lead actions)
   a. Read ENTIRE plan directory:
      - documentation/plans/user-auth/README.md (plan + tasks)
      - documentation/plans/user-auth/research/*.md (existing)
-     - documentation/plans/user-auth/shared-context.md (if resuming)
+     - documentation/plans/user-auth/shared/*.md (if resuming)
      - documentation/plans/user-auth/checkpoint-*.md (if any)
      Lead now has full picture of plan state.
   b. Check for checkpoint:
@@ -223,7 +302,7 @@ PHASE 1: SETUP (Lead actions)
      - Tasks without research -> start in research list
   d. Decide team composition (sizing heuristic)
   e. Create 4 role-separated task lists
-  f. Create/load shared-context.md with initial context
+  f. Create/load shared/ directory with initial context in lead.md
   g. Spawn teammates with role-specific prompts:
      - Each prompt includes: role instructions, file paths,
        task claiming rules, communication rules
@@ -233,33 +312,37 @@ PHASE 2: PARALLEL WORK (self-coordinating)
 
   Researcher:
     claim research task -> read codebase + docs ->
-    write research/task-N.md -> update shared-context.md ->
-    mark complete -> claim next (loop until idle)
+    write research/task-N.md -> update shared/researcher.md ->
+    mark complete -> claim next
+    (when list empty: write IDLE to shared/researcher.md, notify Lead)
 
   Executor(s):
-    claim impl task -> read research +      Lead monitors:
-    shared-context -> implement code ->     - Promotes tasks
+    claim impl task -> re-read shared/ ->   Lead monitors:
+    read research -> implement code ->      - Promotes tasks
     append integration notes to               between lists
-    shared-context -> mark complete ->      - Handles fails
-    claim next (loop until idle)            - Checkpoints
+    shared/executor.md -> mark complete ->  - Handles fails
+    claim next                              - Checkpoints
+    (when list empty: write IDLE to shared/executor.md, notify Lead)
 
   Code Reviewer:
-    claim review task -> read standards + shared-context ->
+    claim review task -> re-read shared/ + standards ->
     check quality, patterns, duplication ->
     PASS: mark complete | FAIL: mark failed with feedback ->
-    claim next (loop until idle)
+    claim next
+    (when list empty: write IDLE to shared/reviewer.md, notify Lead)
 
   Tester:
-    claim test task -> read success criteria ->
+    claim test task -> re-read shared/ + success criteria ->
     run tests -> PASS: mark complete |
     FAIL: SendMessage feedback to Lead ->
-    claim next (loop until idle)
+    claim next
+    (when list empty: write IDLE to shared/tester.md, notify Lead)
 
 PHASE 3: CHECKPOINT (triggered periodically by Lead)
-  Triggers: every 3 completed tasks, TeammateIdle,
+  Triggers: every 3 completed tasks, teammate idle,
             user /uc:checkpoint, Stop hook (session ending)
   Saves: 4 task list states, checkpoint file, decisions
-  shared-context.md + research files already on disk
+  shared/ files + research files already on disk
 
 PHASE 4: FAILURE HANDLING (Lead manages)
   Review failure: Lead re-queues to impl list + feedback

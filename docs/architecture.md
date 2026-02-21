@@ -26,7 +26,7 @@ Documentation acts like zoning laws — you can build freely within the constrai
 |-------|-----------|-------------|
 | **Soft** | CLAUDE.md rules, architecture docs | Advisory — Claude reads them, may drift under context pressure |
 | **Medium** | Skills that load architecture docs before planning | Workflow-enforced — can't skip the step |
-| **Hard** | Hooks (PreToolUse, Stop, TaskCompleted) | Deterministic — cannot be overridden by the AI |
+| **Hard** | Hooks (PreToolUse, PostToolUse, Stop) | Deterministic — cannot be overridden by the AI |
 
 ## Change Classification
 
@@ -53,6 +53,7 @@ project/
 │   ├── plans/
 │   │   └── {feature-name}/
 │   │       ├── README.md          # Plan document (includes task list)
+│   │       ├── shared/            # Per-role shared memory (execution)
 │   │       └── research/          # Researcher findings per task
 │   └── dependencies/              # Blocking questions, external dependencies
 │
@@ -186,7 +187,7 @@ Discovery feeds into planning but does not produce a plan itself. Output goes to
 
 The execution engine is documented in detail in [Execution](execution.md).
 
-In summary: Execute Plan reads any plan README.md and runs it through a dynamically composed agent team. The Lead creates four role-separated task lists (research -> implementation -> review -> testing), spawns teammates with role-specific prompts that bridge the context gap, and coordinates via a shared memory file. Teammates self-claim tasks from their role's list and work in parallel.
+In summary: Execute Plan reads any plan README.md and runs it through a dynamically composed agent team. The Lead creates four role-separated task lists (research -> implementation -> review -> testing), spawns teammates with role-specific prompts that bridge the context gap, and coordinates via per-role shared files. Teammates self-claim tasks from their role's list and work in parallel.
 
 ## Agent Teams Architecture
 
@@ -213,30 +214,11 @@ See [Workflows](workflows.md) for how these teams operate end-to-end.
 
 #### Execute Plan Team
 
-```
-Lead (main session -- user interacts here)
-+-- Researcher teammate (0-1)
-|   - Self-claims from research task list
-|   - Writes findings to plans/NAME/research/task-N.md
-|   - Updates shared-context.md with cross-cutting discoveries
-|
-+-- Executor teammate(s) (1-3)
-|   - Self-claims from implementation task list
-|   - Reads per-task research + shared-context.md
-|   - Implements code conforming to plan + architecture docs
-|
-+-- Code Reviewer teammate (0-1)
-|   - Self-claims from review task list
-|   - Checks quality, patterns, architecture conformance
-|   - Read-only -- PASS promotes to test, FAIL re-queues to impl
-|
-+-- Tester teammate (0-1)
-    - Self-claims from test task list
-    - Per-task testing + final full suite gate
-    - Read-only -- PASS completes, FAIL re-queues to impl
-```
+Lead + up to 5 teammates across 4 roles: Researcher, Executor, Code Reviewer, Tester.
+Tasks flow through role-separated lists: research -> implementation -> review -> testing.
+Teammates self-claim work and coordinate via per-role shared files.
 
-See [Execution](execution.md) for full details: context bridge, shared memory, checkpoints, error recovery.
+See [Execution](execution.md) for full team structure, context bridge, shared memory, checkpoints, and error recovery.
 
 #### Debug Mode Team
 
