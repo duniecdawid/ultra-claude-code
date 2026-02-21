@@ -12,7 +12,7 @@ User: /uc:feature "Add user authentication"
    → Researcher + Docs Manager gather context (codebase, architecture, product docs)
    → Claude challenges scope, pushes for clarity
    → If architecture decision is ambiguous: suggests RFC mode
-     → Creates documentation/rfcs/auth-strategy.md
+     → Creates documentation/technology/rfcs/auth-strategy.md
      → Runs AI persona review (Devil's Advocate, Pragmatist, etc.)
      → Outcome integrated into architecture doc, RFC archived
    → Plan created in documentation/plans/user-auth/README.md
@@ -74,7 +74,7 @@ User: /uc:discover "Research how competitors handle rate limiting"
    → Researcher: Explores internal codebase, reads docs, uses Ref.tools
    → Market Analyzer: Web searches, competitor analysis
 
-2. Findings compiled to documentation/product/{topic}.md
+2. Findings compiled to documentation/product/description/{topic}.md
 3. No code changes. No plan. Pure investigation output.
 4. Feeds into future planning sessions as context.
 ```

@@ -12,7 +12,7 @@ Reference for all Ultra Claude components: skills, agents, commands, hooks, temp
 | **plan-enhancer** | Auto-loaded by all modes | Auto (internal) | Standardizes plan output: plan directory, task granularity, task list |
 | **execute-plan** | `/uc:execute` | User | Execution engine: runs any plan through agent team |
 | **discovery-mode** | "discovery mode", "research only" | User | Discovery Mode: research only, coding disabled |
-| **docs-manager** | Activated by `.docs-format` file | Auto | Documentation structure management |
+| **docs-manager** | Activated by `.docs-format` file | Auto | Guards `documentation/` structure — enforces canonical layout, routes docs to correct directories, prevents structural drift |
 | **checkpoint** | `/uc:checkpoint` | User | Save context to plan files for recovery |
 | **forge** | "how to accomplish", "extend the system" | User | Meta-skill: understands full system, advises on extensions |
 | **tech-research** | "how does X work", "research library", "check docs" | User/Auto | External library/framework documentation via Ref.tools |

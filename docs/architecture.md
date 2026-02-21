@@ -36,6 +36,52 @@ Not every change needs the same scrutiny:
 - **Compatible** (extends existing architecture) → lightweight review
 - **Breaking** (violates existing architecture) → must update the architecture doc first, then re-plan
 
+## Documentation Structure
+
+Every project using Ultra Claude follows this canonical layout. The structure is non-negotiable — it's how specs govern code.
+
+```
+documentation/
+├── technology/
+│   ├── architecture/              # System design, components, data flow, tech stack
+│   ├── standards/                 # Coding conventions, patterns, quality bars, security rules
+│   └── rfcs/                      # Structured reviews for ambiguous/high-risk decisions
+├── product/
+│   ├── description/               # Vision, discovery outputs, market research
+│   └── requirements/              # Formal requirements (FR-xxx, NFR-xxx)
+├── plans/
+│   └── {feature-name}/
+│       ├── README.md              # Plan document
+│       ├── task_list.md           # Task breakdown for agentic execution
+│       └── research/              # Researcher findings per task
+│           └── task-N.md
+├── context/                       # External system documentation
+└── dependencies/                  # Blocking questions, external dependencies
+```
+
+### Docs Manager as Guardian
+
+The **docs-manager** skill (activated by `.docs-format` in the project root) guards this structure:
+
+- **Routing**: When any mode or agent creates documentation, docs-manager ensures it lands in the correct directory. Architecture decisions go to `technology/architecture/`, not floating in the root. Discovery outputs go to `product/description/`, not a random location.
+- **Structure enforcement**: Docs-manager knows the canonical layout and rejects writes that violate it. If an agent tries to create `documentation/auth-notes.md` (wrong — no top-level files), docs-manager routes it to the correct subdirectory.
+- **Initialization**: On first use (`init-docs.sh`), the full directory tree is scaffolded with README placeholders so the structure is visible from day one.
+- **Format awareness**: The `.docs-format` file tells docs-manager the output format (Confluence, GitBook, plain Markdown). Docs-manager ensures all generated documentation conforms to the chosen format.
+- **Index generation**: Docs-manager generates and maintains `documentation/README.md` — a navigable index of the entire documentation tree. The README lists every section with descriptions and links, so a newcomer (human or agent) can orient themselves instantly. The index is regenerated automatically whenever documentation is added or restructured.
+
+### What Goes Where
+
+| Content | Directory | Created By |
+|---------|-----------|------------|
+| System design, component diagrams, data flow | `technology/architecture/` | Feature Plan Mode |
+| Coding conventions, API standards, error handling patterns | `technology/standards/` | Manual or Feature Plan Mode |
+| Decision reviews (problem, options, outcome) | `technology/rfcs/` | Feature Plan Mode (optional) |
+| Product vision, competitor analysis, market research | `product/description/` | Discovery Mode |
+| Formal requirements (FR-xxx, NFR-xxx) | `product/requirements/` | Feature Plan Mode |
+| Plans, task lists, research per initiative | `plans/{name}/` | All planning modes via Plan Enhancer |
+| External API docs, third-party system descriptions | `context/` | Manual / as needed |
+| Blocking questions, external dependencies | `dependencies/` | Manual / as needed |
+
 ## Two Layers: Planning and Execution
 
 Instead of a rigid multi-phase pipeline, there are **three specialized planning modes** that each optimize plan mode for a specific use case, and **one execution engine** that runs any plan.
@@ -56,6 +102,8 @@ For new features. Uses Researcher + Docs Manager to gather context about the cod
 - Considers product requirements, architecture, and implementation in one pass
 - When architecture decisions are ambiguous or high-risk, suggests **RFC mode** for structured review (AI personas: Devil's Advocate, Pragmatist, Security/Reliability, Cost-conscious — and/or human reviewers)
 - Produces a plan in `documentation/plans/{name}/`
+- Architecture decisions go to `documentation/technology/architecture/`
+- If RFC mode is triggered, RFC goes to `documentation/technology/rfcs/`
 
 #### Debug Mode
 
@@ -77,7 +125,7 @@ For periodic sync. Uses surveyors/checkers to find discrepancies between documen
 
 Research only — coding is disabled. Focused on building product vision, exploring competitors, researching technology options. Uses Researcher + Market Analyzer agents.
 
-Discovery feeds into planning but does not produce a plan itself. Output goes to `documentation/product/{topic}.md`.
+Discovery feeds into planning but does not produce a plan itself. Output goes to `documentation/product/description/{topic}.md`.
 
 ### Execution Layer
 
