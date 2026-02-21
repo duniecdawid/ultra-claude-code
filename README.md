@@ -27,7 +27,7 @@ It is NOT a framework, library, or runtime. It is a collection of **skills**, **
 
 ## Plugin Directory Structure
 
-> Skills with `user-invocable: true` become slash commands, namespaced as `/uc:{skill-name}` (e.g., `/uc:feature-plan-mode`). The `uc` prefix comes from the `name` field in `.claude-plugin/plugin.json`.
+> Skills with `user-invocable: true` become slash commands, namespaced as `/uc:{skill-name}` (e.g., `/uc:feature-mode`). The `uc` prefix comes from the `name` field in `.claude-plugin/plugin.json`.
 
 ```
 ultra-claude/
@@ -45,7 +45,7 @@ ultra-claude/
 │   ├── doc-surveyor.md
 │   └── market-analyzer.md
 ├── skills/                            # Skills (SKILL.md with YAML frontmatter)
-│   ├── feature-plan-mode/
+│   ├── feature-mode/
 │   │   └── SKILL.md
 │   ├── debug-mode/
 │   │   └── SKILL.md
@@ -53,15 +53,15 @@ ultra-claude/
 │   │   └── SKILL.md
 │   ├── plan-enhancer/
 │   │   └── SKILL.md
-│   ├── execute-plan/
+│   ├── plan-execution/
 │   │   └── SKILL.md
 │   ├── discovery-mode/
 │   │   └── SKILL.md
 │   ├── docs-manager/
 │   │   └── SKILL.md
-│   ├── context-manager/
+│   ├── context-management/
 │   │   └── SKILL.md
-│   ├── migrate-docs/
+│   ├── docs-migration/
 │   │   └── SKILL.md
 │   ├── checkpoint/
 │   │   └── SKILL.md

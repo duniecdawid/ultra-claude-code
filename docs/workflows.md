@@ -2,17 +2,17 @@
 
 Step-by-step flows showing how each mode operates end-to-end. For the architecture behind these flows, see [Architecture](architecture.md).
 
-> **Invocation:** All skills are namespaced under the plugin name `uc` (from `plugin.json`). Full invocation names are `/uc:feature-plan-mode`, `/uc:debug-mode`, `/uc:doc-code-verification-mode`, `/uc:discovery-mode`, `/uc:execute-plan`. See [Components](components.md) for the complete skill table.
+> **Invocation:** All skills are namespaced under the plugin name `uc` (from `plugin.json`). Full invocation names are `/uc:feature-mode`, `/uc:debug-mode`, `/uc:doc-code-verification-mode`, `/uc:discovery-mode`, `/uc:plan-execution`. See [Components](components.md) for the complete skill table.
 
-## Feature Plan Mode
+## Feature Mode
 
 **Entry condition:** User has a feature idea or requirement to implement.
 **Exit condition:** Plan approved and ready for execution, or user decides not to proceed.
 
 ```
-User: /uc:feature "Add user authentication"
+User: /uc:feature-mode "Add user authentication"
 
-1. PLANNING — Feature Plan Mode activates
+1. PLANNING — Feature Mode activates
    → Plan Enhancer triggers plan mode, configures plan directory
    → Researcher subagent + Docs Manager skill gather context (codebase, architecture, product docs)
    → Claude challenges scope, pushes for clarity
@@ -33,20 +33,20 @@ User: /uc:feature "Add user authentication"
      → Re-presented for final approval
 
 2. EXECUTION
-   → /uc:execute user-auth
-   → Agent team runs tasks from the plan (see Execute Plan below)
+   → /uc:plan-execution user-auth
+   → Agent team runs tasks from the plan (see Plan Execution below)
 ```
 
 **Edge cases:**
 - **RFC mode disagreement** — If AI personas reach no consensus, Lead presents all perspectives and user decides.
 - **Scope creep during planning** — If research reveals the feature is much larger than expected, Claude flags this and suggests splitting into multiple plans.
-- **Missing architecture docs** — If architecture docs don't exist yet, Feature Plan Mode creates them as part of planning.
+- **Missing architecture docs** — If architecture docs don't exist yet, Feature Mode creates them as part of planning.
 
-## Execute Plan
+## Plan Execution
 
 See [Execution](execution.md) for the complete 5-phase workflow.
 
-**Summary:** `/uc:execute {plan-name}` -> Lead reads plan -> creates 4 role-separated task lists -> spawns dynamic team -> teammates self-claim and work in parallel -> Lead promotes tasks between lists -> checkpoints periodically -> Tester runs final gate -> summary report.
+**Summary:** `/uc:plan-execution {plan-name}` -> Lead reads plan -> creates 4 role-separated task lists -> spawns dynamic team -> teammates self-claim and work in parallel -> Lead promotes tasks between lists -> checkpoints periodically -> Tester runs final gate -> summary report.
 
 ## Discovery Mode
 
@@ -54,7 +54,7 @@ See [Execution](execution.md) for the complete 5-phase workflow.
 **Exit condition:** Research findings written to documentation, available as context for future planning.
 
 ```
-User: /uc:discover "Research how competitors handle rate limiting"
+User: /uc:discovery-mode "Research how competitors handle rate limiting"
 
 1. Discovery Mode skill activates
    → Coding is DISABLED
@@ -78,7 +78,7 @@ User: /uc:discover "Research how competitors handle rate limiting"
 **Exit condition:** Discrepancy plan approved and ready for execution, or no discrepancies found.
 
 ```
-User: /uc:verify
+User: /uc:doc-code-verification-mode
 
 1. PLANNING — Doc & Code Verification Mode activates
    → Plan Enhancer triggers plan mode
@@ -100,14 +100,14 @@ User: /uc:verify
      → Re-presented for final approval
 
 2. EXECUTION
-   → /uc:execute {plan-name}
+   → /uc:plan-execution {plan-name}
    → Agent team resolves discrepancies per plan
 ```
 
 **Edge cases:**
 - **No discrepancies found** — Mode reports clean status. No plan created.
 - **Ambiguous discrepancy** — When it's unclear whether code or docs are "correct," the discrepancy is flagged for user decision rather than auto-resolved.
-- **Very large codebase** — Surveyors may hit context limits. Mode supports scoped verification (e.g., `/uc:verify src/auth/` for a specific directory).
+- **Very large codebase** — Surveyors may hit context limits. Mode supports scoped verification (e.g., `/uc:doc-code-verification-mode src/auth/` for a specific directory).
 
 ## Debug Mode
 
@@ -115,7 +115,7 @@ User: /uc:verify
 **Exit condition:** Fix plan approved and ready for execution, or issue determined to be external/not reproducible.
 
 ```
-User: /uc:debug "Login fails intermittently on staging"
+User: /uc:debug-mode "Login fails intermittently on staging"
 
 1. PLANNING — Debug Mode activates
    → Debug Mode skill analyzes the issue description
@@ -136,7 +136,7 @@ User: /uc:debug "Login fails intermittently on staging"
      → Re-presented for final approval
 
 2. EXECUTION
-   → /uc:execute {plan-name}
+   → /uc:plan-execution {plan-name}
    → Agent team implements the fix
    → System Tester validates the fix resolves the original issue
 ```
@@ -144,4 +144,4 @@ User: /uc:debug "Login fails intermittently on staging"
 **Edge cases:**
 - **Bug not reproducible** — System Tester reports inability to reproduce. Lead presents findings and asks user for more context (environment details, logs, steps to reproduce).
 - **Multiple root causes** — Investigation reveals the symptom has multiple contributing causes. Plan includes fixes for all identified causes, ordered by impact.
-- **Fix requires architectural change** — If the fix would violate existing architecture, Debug Mode flags this and suggests running Feature Plan Mode instead for a proper design review.
+- **Fix requires architectural change** — If the fix would violate existing architecture, Debug Mode flags this and suggests running Feature Mode instead for a proper design review.

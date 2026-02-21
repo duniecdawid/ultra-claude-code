@@ -8,16 +8,16 @@ Reference for all Ultra Claude components: skills, agents, hooks, templates, and
 
 | Skill | Trigger | User-Invocable | Purpose |
 |-------|---------|----------------|---------|
-| **feature-plan-mode** | "new feature", "plan feature", "start feature" | Yes — `/uc:feature-plan-mode` | Feature Plan Mode: new features with product + architecture context. Includes optional RFC sub-mode for ambiguous/high-risk architecture decisions (AI persona review). |
-| **debug-mode** | "debug", "fix", "investigate" | Yes — `/uc:debug-mode` | Debug Mode: issue investigation and fix planning. Spawns investigation team (Researcher + System Tester) during planning phase. Fix execution uses standard execute-plan team. |
+| **feature-mode** | "new feature", "plan feature", "start feature" | Yes — `/uc:feature-mode` | Feature Mode: new features with product + architecture context. Includes optional RFC sub-mode for ambiguous/high-risk architecture decisions (AI persona review). |
+| **debug-mode** | "debug", "fix", "investigate" | Yes — `/uc:debug-mode` | Debug Mode: issue investigation and fix planning. Spawns investigation team (Researcher + System Tester) during planning phase. Fix execution uses standard plan-execution team. |
 | **doc-code-verification-mode** | "verify docs", "check doc-code gaps", "sync docs" | Yes — `/uc:doc-code-verification-mode` | Doc & Code Verification Mode: find and plan fixes for discrepancies |
 | **plan-enhancer** | Auto-loaded by all modes | No (internal) | Standardizes plan output: plan directory, README.md with embedded task list, task granularity. Uses Claude Code's plan mode file path override (writes plan to `documentation/plans/{name}/README.md` instead of default `.claude/plan.md`). Ensures task list is embedded in the plan document. |
-| **execute-plan** | `/uc:execute-plan` | Yes — `/uc:execute-plan` | Execution engine: reads plan directory, composes dynamic agent team based on plan size, creates role-separated task lists, spawns teammates, coordinates 5-phase execution (setup, parallel work, checkpoint, failure handling, completion) |
+| **plan-execution** | `/uc:plan-execution` | Yes — `/uc:plan-execution` | Execution engine: reads plan directory, composes dynamic agent team based on plan size, creates role-separated task lists, spawns teammates, coordinates 5-phase execution (setup, parallel work, checkpoint, failure handling, completion) |
 | **discovery-mode** | "discovery mode", "research only" | Yes — `/uc:discovery-mode` | Discovery Mode: research only, coding disabled |
 | **docs-manager** | Activated by `.claude/docs-format` file | No (auto) | Guards `documentation/` structure — enforces canonical layout, routes docs to correct directories, prevents structural drift |
 | **checkpoint** | `/uc:checkpoint` | Yes — `/uc:checkpoint` | Saves task list states, active teammate assignments, execution decisions, and blockers to `plans/{name}/checkpoint-{timestamp}.md` for session recovery |
-| **context-manager** | "add context", "add external system", "update context" | Yes — `/uc:context-manager` | Manages `context/` directory: structures external system knowledge, aggregates docs + code, manages git submodules |
-| **migrate-docs** | `/uc:migrate-docs` | Yes — `/uc:migrate-docs` | One-time migration: surveys existing project docs + code, maps them to canonical structure, produces a migration plan |
+| **context-management** | "add context", "add external system", "update context" | Yes — `/uc:context-management` | Manages `context/` directory: structures external system knowledge, aggregates docs + code, manages git submodules |
+| **docs-migration** | `/uc:docs-migration` | Yes — `/uc:docs-migration` | One-time migration: surveys existing project docs + code, maps them to canonical structure, produces a migration plan |
 | **help** | "how to accomplish", "extend the system" | Yes — `/uc:help` | Meta-skill: understands full system, advises on extensions |
 | **tech-research** | "how does X work", "research library", "check docs" | Yes — `/uc:tech-research` | External library/framework documentation via Ref.tools |
 
@@ -56,7 +56,7 @@ The Markdown body below the frontmatter is the system prompt injected into conte
 
 ```markdown
 ---
-name: Feature Plan Mode
+name: Feature Mode
 description: Plan new features with product, architecture, and implementation context
 argument-hint: "feature description"
 user-invocable: true
@@ -64,7 +64,7 @@ context:
   - ${CLAUDE_PLUGIN_ROOT}/skills/plan-enhancer/SKILL.md
 ---
 
-You are entering Feature Plan Mode for: $ARGUMENTS
+You are entering Feature Mode for: $ARGUMENTS
 
 Read the following architecture docs before planning:
 - documentation/technology/architecture/
@@ -75,7 +75,7 @@ Read the following architecture docs before planning:
 
 ## Agents
 
-> **Note:** The Lead is the main Claude Code session itself — not a spawned agent. It runs the execute-plan skill and orchestrates all teammates. See [Execution](execution.md) for Lead behavior.
+> **Note:** The Lead is the main Claude Code session itself — not a spawned agent. It runs the plan-execution skill and orchestrates all teammates. See [Execution](execution.md) for Lead behavior.
 >
 > **Spawning model:** During planning, agents are spawned as **subagents** via the Task tool (results return to Lead). During execution, agents are spawned as **teammates** in an agent team (self-claiming, shared memory, direct messaging). See [Architecture — Agent Coordination](architecture.md#agent-coordination).
 

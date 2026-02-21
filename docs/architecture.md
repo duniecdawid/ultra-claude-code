@@ -90,11 +90,11 @@ The **docs-manager** skill (activated by `.claude/docs-format` in the project) g
 
 | Content | Directory | Created By |
 |---------|-----------|------------|
-| System design, component diagrams, data flow | `technology/architecture/` | Feature Plan Mode |
-| Coding conventions, API standards, error handling patterns | `technology/standards/` | Manual or Feature Plan Mode |
-| Decision reviews (problem, options, outcome) | `technology/rfcs/` | Feature Plan Mode (optional) |
+| System design, component diagrams, data flow | `technology/architecture/` | Feature Mode |
+| Coding conventions, API standards, error handling patterns | `technology/standards/` | Manual or Feature Mode |
+| Decision reviews (problem, options, outcome) | `technology/rfcs/` | Feature Mode (optional) |
 | Product vision, competitor analysis, market research | `product/description/` | Discovery Mode |
-| Formal requirements (FR-xxx, NFR-xxx) | `product/requirements/` | Feature Plan Mode |
+| Formal requirements (FR-xxx, NFR-xxx) | `product/requirements/` | Feature Mode |
 | Plans, task lists, research per initiative | `plans/{name}/` | All planning modes via Plan Enhancer |
 | Blocking questions, external dependencies | `dependencies/` | Manual / as needed |
 
@@ -117,18 +117,18 @@ context/
 
 **Why top-level?** Context is not specification — it's reference material about the outside world. It can contain code (git submodules, SDKs) which doesn't belong inside `documentation/`. Agents read context during research; it informs the spec but is not the spec.
 
-### Context Manager Skill
+### Context Management Skill
 
-The **context-manager** skill manages the `context/` directory:
+The **context-management** skill manages the `context/` directory:
 
 - **Structuring**: Creates `{system-name}/docs/` and `{system-name}/code/` directories for each external system. Ensures consistent layout across all context entries.
 - **Aggregation**: Collects and organizes information from multiple sources (API docs, specs, code samples) into the appropriate context subdirectory. Deduplicates and keeps context current.
 - **Git submodules**: Manages git submodules in `code/` directories — adding, updating, and tracking external code dependencies that agents need for integration work.
 - **Agent-ready summaries**: Maintains a `context/README.md` index so agents (especially Researcher) can quickly discover what external system knowledge is available before diving into files.
 
-### Migrate Docs Skill
+### Docs Migration Skill
 
-The **migrate-docs** skill (`/uc:migrate`) is a one-time onboarding tool for projects that already have documentation in a non-standard layout. It uses surveyor agents to understand what exists and produces a migration plan.
+The **docs-migration** skill (`/uc:docs-migration`) is a one-time onboarding tool for projects that already have documentation in a non-standard layout. It uses surveyor agents to understand what exists and produces a migration plan.
 
 **How it works:**
 
@@ -145,7 +145,7 @@ The **migrate-docs** skill (`/uc:migrate`) is a one-time onboarding tool for pro
    - Merge duplicates or conflicting docs
    - Create missing structure (directories that don't exist yet)
    - Flag documents that need manual review
-4. **Execute** — The plan can be run via `/uc:execute` like any other plan
+4. **Execute** — The plan can be run via `/uc:plan-execution` like any other plan
 
 **When to use:** Only when onboarding an existing project to Ultra Claude. Not needed for greenfield projects (those use `init-docs.sh`).
 
@@ -161,7 +161,7 @@ All planning modes trigger Claude Code's plan mode automatically, enhanced by **
 - Ensures task granularity is right for agentic execution
 - Standardizes the output structure so all plans look the same regardless of entry point
 
-#### Feature Plan Mode
+#### Feature Mode
 
 For new features. Spawns Researcher subagent + loads Docs Manager skill to gather context about the codebase, existing architecture, and product requirements before planning.
 
@@ -198,7 +198,7 @@ Discovery feeds into planning but does not produce a plan itself. Output goes to
 
 The execution engine is documented in detail in [Execution](execution.md).
 
-In summary: Execute Plan reads any plan README.md and runs it through a dynamically composed agent team. The Lead creates four role-separated task lists (research -> implementation -> review -> testing), spawns teammates with role-specific prompts that bridge the context gap, and coordinates via per-role shared files. Teammates self-claim tasks from their role's list and work in parallel.
+In summary: Plan Execution reads any plan README.md and runs it through a dynamically composed agent team. The Lead creates four role-separated task lists (research -> implementation -> review -> testing), spawns teammates with role-specific prompts that bridge the context gap, and coordinates via per-role shared files. Teammates self-claim tasks from their role's list and work in parallel.
 
 ## Agent Coordination
 
@@ -207,7 +207,7 @@ Ultra Claude uses two coordination mechanisms depending on the stage:
 | Stage | Mechanism | Why |
 |-------|-----------|-----|
 | **Planning** (all modes) | **Subagents** (Task tool) | Planning spawns parallel research jobs that report back to the Lead. No cross-agent coordination needed — the Lead collects results and synthesizes. Subagents are cheaper and simpler. |
-| **Execution** (`/uc:execute-plan`) | **Agent teams** (teammates) | Execution requires cross-role coordination: shared task lists, self-claiming, per-role shared memory, direct messaging between teammates. Only agent teams support these patterns. |
+| **Execution** (`/uc:plan-execution`) | **Agent teams** (teammates) | Execution requires cross-role coordination: shared task lists, self-claiming, per-role shared memory, direct messaging between teammates. Only agent teams support these patterns. |
 
 ### Agent Teams vs Subagents
 
@@ -232,7 +232,7 @@ Planning modes spawn subagents via the Task tool. The Lead (main session) orches
 
 See [Workflows](workflows.md) for how these operate end-to-end.
 
-#### Feature Plan Mode
+#### Feature Mode
 
 ```
 Lead (main session)
@@ -286,7 +286,7 @@ Lead (main session — coding DISABLED)
     - Competitor analysis, technology trends
 ```
 
-### Execute Plan Team Structure
+### Plan Execution Team Structure
 
 The execution engine is the only mode that uses agent teams. See [Execution](execution.md) for the full team structure, context bridge, shared memory, checkpoints, and error recovery.
 

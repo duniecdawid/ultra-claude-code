@@ -6,7 +6,7 @@ For architecture context, see [Architecture](architecture.md). For component ref
 
 ## Overview
 
-**Execute Plan** reads the entire plan directory (`documentation/plans/{name}/`) and runs it through a dynamically composed agent team. On trigger, the Lead reads ALL files in the plan directory — README.md, any existing `research/` files, `shared/` directory (if resuming), checkpoint files — to build complete context before spawning teammates.
+**Plan Execution** reads the entire plan directory (`documentation/plans/{name}/`) and runs it through a dynamically composed agent team. On trigger, the Lead reads ALL files in the plan directory — README.md, any existing `research/` files, `shared/` directory (if resuming), checkpoint files — to build complete context before spawning teammates.
 
 **Prerequisites:**
 - `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS: "1"` in the plugin's `settings.json` (project-level setting applied by Claude Code when the plugin is active — not a plugin.json field)
@@ -135,7 +135,7 @@ Lead classifies each task before creating task lists to avoid 4-stage overhead f
 
 Lead sets classification per task when creating lists. Tasks start in the appropriate first stage. A one-line config change skips research and review; a multi-file architectural change goes through all four stages.
 
-## The Execute Plan Team Structure
+## The Plan Execution Team Structure
 
 ```
 Lead (main session -- user interacts here)
@@ -256,7 +256,7 @@ Progress saved to plan directory at three levels:
 |---------------|-----------|---------|
 | **Task failure** (review/test fails) | Reviewer or Tester feedback to Lead | Lead re-queues to impl list with feedback (max 2 retries). After 2 failures: Lead escalates to user with full context. |
 | **Teammate crash** (session crash, context overflow) | Lead detects stalled progress via periodic polling of task lists and shared files | Lead re-queues their in-progress task to previous state. Spawns replacement teammate with same role prompt + "continue from shared/ directory". |
-| **Session death** (everything dies) | User reruns `/uc:execute {plan-name}` | Lead finds latest checkpoint, shows resume prompt. Team rebuilt from scratch, but task states + `shared/` directory + research files preserve all progress. |
+| **Session death** (everything dies) | User reruns `/uc:plan-execution {plan-name}` | Lead finds latest checkpoint, shows resume prompt. Team rebuilt from scratch, but task states + `shared/` directory + research files preserve all progress. |
 
 ## Mid-Execution Plan Changes
 
@@ -291,7 +291,7 @@ For Code Reviewer specifically: before going idle, must verify all reviewed task
 
 ### Session Resume
 
-When `/uc:execute` fires for a plan that has existing checkpoint files, the execute-plan skill handles resume as its first action:
+When `/uc:plan-execution` fires for a plan that has existing checkpoint files, the plan-execution skill handles resume as its first action:
 1. Reads latest `checkpoint-{timestamp}.md` file in the plan directory
 2. Reads all per-role shared files in `shared/` directory
 3. Shows user a resume prompt with progress summary
@@ -302,7 +302,7 @@ This is skill startup behavior, not a hook.
 ## Workflow: Step-by-Step
 
 ```
-User: /uc:execute user-auth
+User: /uc:plan-execution user-auth
 
 PHASE 1: SETUP (Lead actions)
   a. Read ENTIRE plan directory:
@@ -366,7 +366,7 @@ PHASE 4: FAILURE HANDLING (Lead manages)
   Test failure: Lead re-queues to impl list + feedback
   Max 2 retries per task -> escalate to user
   Teammate crash: re-queue task, spawn replacement
-  Session death: user reruns /uc:execute, reads checkpoint
+  Session death: user reruns /uc:plan-execution, reads checkpoint
 
 PHASE 5: COMPLETION (Lead actions)
   a. All tasks reach done across all 4 lists

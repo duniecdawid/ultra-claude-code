@@ -8,8 +8,8 @@ Old global skills are refactored into the new plugin structure. The mapping is n
 
 | Old Global Skill | Becomes | Destination |
 |-----------------|---------|-------------|
-| `product-design` + `tech-architecture` + `implementation-planning` | Feature Plan Mode | `skills/feature-plan-mode/SKILL.md` |
-| `development` + `execute-initiative` | Execute Plan | `skills/execute-plan/SKILL.md` |
+| `product-design` + `tech-architecture` + `implementation-planning` | Feature Mode | `skills/feature-mode/SKILL.md` |
+| `development` + `execute-initiative` | Plan Execution | `skills/plan-execution/SKILL.md` |
 | `verify-docs` | Doc & Code Verification Mode | `skills/doc-code-verification-mode/SKILL.md` |
 | `docs` | Docs Manager | `skills/docs-manager/SKILL.md` |
 | `checkpoint` | Checkpoint | `skills/checkpoint/SKILL.md` |
@@ -56,14 +56,14 @@ Components that don't exist yet and need to be built from scratch.
 
 | Component | Type | Purpose |
 |-----------|------|---------|
-| Feature Plan Mode skill | Skill | Consolidates old product-design, tech-architecture, implementation-planning |
+| Feature Mode skill | Skill | Consolidates old product-design, tech-architecture, implementation-planning |
 | Debug Mode skill | Skill | Issue investigation and fix planning |
 | Plan Enhancer skill | Skill | Standardizes all plan output: plan directory, README.md with embedded task list, task granularity |
-| Execute Plan skill | Skill | Single execution engine for all plans (consolidates old development + execute-initiative) |
+| Plan Execution skill | Skill | Single execution engine for all plans (consolidates old development + execute-initiative) |
 | Help skill | Skill | Meta-skill with full system awareness |
 | Discovery Mode skill | Skill | Disables coding, enables research-only workflow |
-| Context Manager skill | Skill | Manages top-level context/ — external system docs, code, git submodules |
-| Migrate Docs skill | Skill | One-time onboarding: surveys existing project, maps docs to canonical structure, produces migration plan |
+| Context Management skill | Skill | Manages top-level context/ — external system docs, code, git submodules |
+| Docs Migration skill | Skill | One-time onboarding: surveys existing project, maps docs to canonical structure, produces migration plan |
 | Task Executor agent | Agent | Single-task implementation from research context |
 | Task Tester agent | Agent | Runs tests, checks success criteria pass/fail |
 | Code Review agent | Agent | Static analysis: code quality, compliance, duplication prevention |
