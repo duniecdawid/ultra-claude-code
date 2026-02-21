@@ -10,7 +10,7 @@ It is NOT a framework, library, or runtime. It is a collection of **skills**, **
 
 - A 4-phase development pipeline (Product Design → Architecture → Planning → Development)
 - Agent teams that coordinate research, implementation, and validation in parallel
-- Architectural governance via hooks that enforce ADR conformance
+- Architectural governance via hooks that enforce architecture conformance
 - Documentation-vs-code verification that detects drift
 - Initiative management with checkpoint/recovery across sessions
 - A meta-skill ("Forge") that helps extend the system itself
@@ -27,7 +27,7 @@ This does NOT mean:
 - Bureaucratic overhead that slows you down
 
 This DOES mean:
-- Architecture decisions (ADRs) are documented before implementation
+- Architecture documentation is kept current and reflects all decisions
 - Product requirements exist before code is written
 - When code diverges from specs, you fix the spec first (go back to the right phase)
 - AI agents read specs before coding and are constrained by them
@@ -39,8 +39,8 @@ Documentation acts like zoning laws — you can build freely within the constrai
 
 | Level | Mechanism | Enforcement |
 |-------|-----------|-------------|
-| **Soft** | CLAUDE.md rules, ADR index | Advisory — Claude reads them, may drift under context pressure |
-| **Medium** | Skills that load ADRs before planning | Workflow-enforced — can't skip the step |
+| **Soft** | CLAUDE.md rules, architecture docs | Advisory — Claude reads them, may drift under context pressure |
+| **Medium** | Skills that load architecture docs before planning | Workflow-enforced — can't skip the step |
 | **Hard** | Hooks (PreToolUse, Stop, TaskCompleted) | Deterministic — cannot be overridden by the AI |
 
 ### Change Classification
@@ -49,7 +49,7 @@ Not every change needs the same scrutiny:
 
 - **Additive** (new feature within existing patterns) → flows freely
 - **Compatible** (extends existing architecture) → lightweight review
-- **Breaking** (violates existing ADRs/architecture) → must go back to Phase 2, update the ADR, then proceed
+- **Breaking** (violates existing architecture) → must go back to Phase 2, update the architecture doc, then proceed
 
 ## The 4-Phase Pipeline
 
@@ -66,8 +66,9 @@ Each phase has a persona, produces specific artifacts, and locks its decisions f
 ### Phase 2: Technical Architecture
 
 - **Persona**: Software Architect (20 years experience)
-- **Produces**: ADRs in `documentation/decisions/`, updates to `documentation/architecture/`
-- **Behavior**: Evaluates technology choices, considers trade-offs, documents alternatives considered
+- **Produces**: Updates to `documentation/architecture/` (the living source of truth)
+- **Behavior**: Evaluates technology choices, considers trade-offs, updates architecture doc directly. When decisions are ambiguous or high-risk, suggests RFC mode for structured review.
+- **RFC mode** (optional): Creates `documentation/rfcs/{name}.md` for tough decisions. Supports review by AI personas (Devil's Advocate, Pragmatist, Security/Reliability, Cost-conscious) and/or human reviewers. After resolution, outcome is integrated into architecture doc and RFC is archived.
 - **Lock**: Phase 2 decisions are LOCKED after user approval. Phases 3-4 cannot change architecture without going back here.
 
 ### Phase 3: Implementation Planning
@@ -195,7 +196,7 @@ Lead (main session — coding DISABLED)
 | Skill | Trigger | Invocation | Purpose |
 |-------|---------|------------|---------|
 | **product-design** | "product design", "phase 1", "start feature" | User | Phase 1: Product requirements and feature design |
-| **tech-architecture** | "tech design", "architecture", "phase 2" | User | Phase 2: ADRs, architecture decisions |
+| **tech-architecture** | "tech design", "architecture", "phase 2" | User | Phase 2: Architecture doc updates, optional RFC mode for tough decisions |
 | **implementation-planning** | "implementation planning", "phase 3" | User | Phase 3: Task breakdown with file paths and criteria |
 | **development** | "start development", "phase 4" | User | Phase 4: Manual implementation against plan |
 | **execute-initiative** | `/uc:execute` | User | Phase 4 (automated): Agent team orchestration |
@@ -205,6 +206,7 @@ Lead (main session — coding DISABLED)
 | **forge** | "how to accomplish", "extend the system" | User | Meta-skill: understands full system, advises on extensions |
 | **plan-mode-enhance** | Auto-loaded in planning skills | Auto (internal) | Configures plan mode to save plans in initiative directory |
 | **discovery-mode** | "discovery mode", "research only" | User | Disables coding, focuses on research |
+| **tech-research** | "how does X work", "research library", "check docs" | User/Auto | External library/framework documentation via Ref.tools |
 
 ### Agents (Green)
 
@@ -237,8 +239,8 @@ Lead (main session — coding DISABLED)
 
 | Hook Event | Purpose | Type |
 |------------|---------|------|
-| **PreToolUse (Write/Edit)** | Check if file changes align with active ADRs | prompt |
-| **Stop** | Verify architectural changes have ADR coverage | prompt |
+| **PreToolUse (Write/Edit)** | Check if file changes align with architecture docs | prompt |
+| **Stop** | Verify architectural changes are reflected in architecture docs | prompt |
 | **TaskCompleted** | Validate task meets documented success criteria | agent |
 | **TeammateIdle** | Check if teammate completed all assigned work | prompt |
 | **SessionStart** | Load initiative context if resuming | command |
@@ -248,7 +250,7 @@ Lead (main session — coding DISABLED)
 | Template | Purpose | Created When |
 |----------|---------|-------------|
 | `_templates/architecture.md` | Architecture document template | Phase 2 |
-| `_templates/decision.md` | ADR template (MADR format + AI constraints section) | Phase 2 |
+| `_templates/rfc.md` | RFC template (problem, proposed solution, alternatives, open questions, outcome) | Phase 2 (optional, for tough decisions) |
 | `_templates/requirement.md` | Formal requirement template (FR-xxx, NFR-xxx) | Phase 1 |
 | `_templates/initiative.md` | Initiative tracking file | Phase 3 |
 | `_templates/context.md` | External system documentation | As needed |
@@ -317,17 +319,19 @@ ultra-claude/
 │   │       └── system-overview.md
 │   ├── plan-mode-enhance/
 │   │   └── SKILL.md
-│   └── discovery-mode/
+│   ├── discovery-mode/
+│   │   └── SKILL.md
+│   └── tech-research/
 │       └── SKILL.md
 ├── hooks/
 │   ├── hooks.json                     # Hook configuration
 │   └── scripts/
-│       ├── check-adr-conformance.sh
+│       ├── check-architecture-conformance.sh
 │       ├── load-initiative-context.sh
 │       └── validate-task-completion.sh
 ├── templates/                         # Documentation templates
 │   ├── architecture.md
-│   ├── decision.md
+│   ├── rfc.md
 │   ├── requirement.md
 │   ├── initiative.md
 │   ├── context.md
@@ -353,8 +357,11 @@ User: /uc:feature "Add user authentication"
 
 2. PHASE 2 — Tech Architecture skill activates
    → Claude (Architect persona) evaluates approaches
-   → Creates documentation/decisions/ADR-xxx-auth-strategy.md
-   → Updates documentation/architecture/ as needed
+   → Updates documentation/architecture/ directly
+   → If decision is ambiguous/high-risk: suggests RFC mode
+     → Creates documentation/rfcs/auth-strategy.md
+     → Runs AI persona review (Devil's Advocate, Pragmatist, etc.)
+     → Outcome integrated into architecture doc, RFC archived
    → User approves → Phase 2 LOCKED
 
 3. PHASE 3 — Implementation Planning skill activates
@@ -382,7 +389,7 @@ User: /uc:execute user-auth
 
 2. TASK LOOP (for each task in priority order)
    → Researcher claims task research
-     - Reads relevant ADRs, architecture docs, existing code
+     - Reads architecture docs, existing code
      - Writes findings to initiatives/user-auth/research/task-N.md
      - Sends "research complete" to Implementer
    → Implementer claims task implementation
@@ -435,7 +442,7 @@ User: /uc:verify
 
 2. Surveying phase (parallel)
    → Code Surveyors scan codebase structure, patterns, APIs
-   → Doc Surveyors scan documentation claims, specs, ADRs
+   → Doc Surveyors scan documentation claims, specs, architecture docs
 
 3. Checking phase
    → Lead creates comparison tasks from survey results
@@ -473,6 +480,7 @@ Forge achieves this by having a comprehensive system-overview.md reference that 
 | `~/.claude/skills/docs/` | Docs skill | `ultra-claude/skills/docs/` |
 | `~/.claude/skills/checkpoint/` | Checkpoint skill | `ultra-claude/skills/checkpoint/` |
 | `~/.claude/skills/skill-agent-creator/` | Skill/Agent Creator | `ultra-claude/skills/forge/` (evolved into Forge) |
+| `~/.claude/skills/tech-research/` | Tech Research skill | `ultra-claude/skills/tech-research/` |
 | `~/.claude/agents/verify-checker.md` | Verify Checker agent | `ultra-claude/agents/verify-checker.md` |
 | `~/.claude/agents/verify-code-surveyor.md` | Code Surveyor agent | `ultra-claude/agents/verify-code-surveyor.md` |
 | `~/.claude/agents/verify-doc-surveyor.md` | Doc Surveyor agent | `ultra-claude/agents/verify-doc-surveyor.md` |
@@ -481,11 +489,30 @@ Forge achieves this by having a comprehensive system-overview.md reference that 
 
 | Component | Why |
 |-----------|-----|
-| `tech-research` | Generic utility, used everywhere, depends on Ref.tools MCP |
 | `ha-nodered-knowledge` | Domain-specific, unrelated to development pipeline |
 | `prompt-architect` | Generic utility, useful outside Ultra Claude |
+| `skill-agent-creator` | Generic utility, useful outside Ultra Claude |
 | `rebuild-old-website` | One-off project skill |
 | `image-content-extractor` | Generic utility agent |
+
+### Global Skills Archived After Migration
+
+When plugin versions are ready, the originals move to `~/.claude/archive/` rather than being deleted.
+
+| Component | Archived From |
+|-----------|--------------|
+| `tech-research` | `~/.claude/skills/tech-research/` |
+| `product-design` | `~/.claude/skills/product-design/` |
+| `tech-architecture` | `~/.claude/skills/tech-architecture/` |
+| `implementation-planning` | `~/.claude/skills/implementation-planning/` |
+| `development` | `~/.claude/skills/development/` |
+| `execute-initiative` | `~/.claude/skills/execute-initiative/` |
+| `verify-docs` | `~/.claude/skills/verify-docs/` |
+| `docs` | `~/.claude/skills/docs/` |
+| `checkpoint` | `~/.claude/skills/checkpoint/` |
+| `verify-checker` | `~/.claude/agents/verify-checker.md` |
+| `verify-code-surveyor` | `~/.claude/agents/verify-code-surveyor.md` |
+| `verify-doc-surveyor` | `~/.claude/agents/verify-doc-surveyor.md` |
 
 ### What's NEW (doesn't exist yet)
 
@@ -497,7 +524,8 @@ Forge achieves this by having a comprehensive system-overview.md reference that 
 | Market Analyzer agent | Agent | Web/market research via Perplexity |
 | Debugging Planner agent | Agent | Hypothesis-driven debugging coordination |
 | Full System Tester agent | Agent | Test suite execution (deliberately simple) |
-| All hooks | Hooks | ADR conformance, task validation, initiative context loading |
+| RFC review personas | Config | Built-in: Devil's Advocate, Pragmatist, Security/Reliability, Cost-conscious. User-extensible. |
+| All hooks | Hooks | Architecture conformance, task validation, initiative context loading |
 | All commands | Commands | `/uc:*` namespace |
 | All templates | Templates | Documentation scaffolding |
 | Plugin manifest | Config | plugin.json |
@@ -507,23 +535,21 @@ Forge achieves this by having a comprehensive system-overview.md reference that 
 
 1. **Agent teams will stabilize**. We're building on an experimental feature. If it breaks, we fall back to subagents (the execute-initiative skill already works this way in AXB_Datalake).
 
-2. **One plugin per project**. Ultra Claude is designed to be the primary development methodology plugin. It doesn't compete with other orchestration plugins.
+2. **Documentation structure is consistent**. Every project using Ultra Claude follows the same `documentation/` layout. This is non-negotiable — it's how specs govern code.
 
-3. **Documentation structure is consistent**. Every project using Ultra Claude follows the same `documentation/` layout. This is non-negotiable — it's how specs govern code.
+3. **CLAUDE.md is the entry point**. The plugin augments but does not replace project CLAUDE.md. Project-specific rules live in CLAUDE.md; Ultra Claude provides the framework.
 
-4. **CLAUDE.md is the entry point**. The plugin augments but does not replace project CLAUDE.md. Project-specific rules live in CLAUDE.md; Ultra Claude provides the framework.
+4. **Phase locking is soft, not rigid**. "Locked" means "going back requires explicit user decision to re-enter that phase." It's governance, not a technical lock.
 
-5. **Phase locking is soft, not rigid**. "Locked" means "going back requires explicit user decision to re-enter that phase." It's governance, not a technical lock.
+5. **Token cost is acceptable**. Agent teams are expensive (~200K tokens per teammate). The user has accepted this trade-off for the coordination benefits.
 
-6. **Token cost is acceptable**. Agent teams are expensive (~200K tokens per teammate). The user has accepted this trade-off for the coordination benefits.
+6. **The plugin is personal**. This is built for one developer's workflow. It may be shared later, but the primary user is the author.
 
-7. **The plugin is personal**. This is built for one developer's workflow. It may be shared later, but the primary user is the author.
+7. **Hooks are the enforcement layer**. CLAUDE.md rules can be forgotten under context pressure. Hooks cannot be overridden. Critical governance rules go in hooks.
 
-8. **Hooks are the enforcement layer**. CLAUDE.md rules can be forgotten under context pressure. Hooks cannot be overridden. Critical governance rules go in hooks.
+8. **Ref.tools MCP is a prerequisite**. The tech-research skill is bundled in the plugin, but it depends on Ref.tools MCP being configured in the environment. The plugin owns the skill; the user owns the MCP server setup.
 
-9. **Ref.tools (tech-research) stays external**. It's a global skill with its own MCP server. Ultra Claude skills can reference it but don't own it.
-
-10. **The init script handles project setup**. When Ultra Claude is installed in a new project, `init-docs.sh` creates the `documentation/` directory structure with templates. The user then fills in project-specific content.
+9. **The init script handles project setup**. When Ultra Claude is installed in a new project, `init-docs.sh` creates the `documentation/` directory structure with templates. The user then fills in project-specific content.
 
 ## Open Questions (To Resolve Before Implementation)
 
