@@ -107,27 +107,27 @@ All skills follow the format in `docs/components.md` → "Skill File Format" (YA
 
 ### 2.1 Plan Enhancer (internal)
 
-- [ ] `skills/plan-enhancer/SKILL.md` — NOT user-invocable. Auto-loaded by all planning modes via `context:` field. The critical bridge between planning modes and the plan directory structure. Behavior described in `docs/architecture.md` → "Planning Layer" and `docs/components.md` → Skills table. Key implementation detail: must override plan mode's default file path to write to `documentation/plans/{name}/README.md`. Task classification rules in `docs/execution.md` → "Task Classification".
+- [x] `skills/plan-enhancer/SKILL.md` — NOT user-invocable. Auto-loaded by all planning modes via `context:` field. The critical bridge between planning modes and the plan directory structure. Behavior described in `docs/architecture.md` → "Planning Layer" and `docs/components.md` → Skills table. Key implementation detail: must override plan mode's default file path to write to `documentation/plans/{name}/README.md`. Task classification rules in `docs/execution.md` → "Task Classification".
 
 ### 2.2 Docs Manager (auto-activated)
 
-- [ ] `skills/docs-manager/SKILL.md` — Activated by `.claude/docs-format` file. Full behavior described in `docs/architecture.md` → "Docs Manager as Guardian" (routing rules, structure enforcement, index generation, format awareness). The "What Goes Where" table is the routing reference.
+- [x] `skills/docs-manager/SKILL.md` — Activated by `.claude/docs-format` file. Full behavior described in `docs/architecture.md` → "Docs Manager as Guardian" (routing rules, structure enforcement, index generation, format awareness). The "What Goes Where" table is the routing reference.
 
 ### 2.3 Checkpoint
 
-- [ ] `skills/checkpoint/SKILL.md` — User-invocable. Checkpoint contents and triggers defined in `docs/execution.md` → "Checkpoint Architecture". Format must be parseable by Lead on resume per `docs/execution.md` → "Session Resume".
+- [x] `skills/checkpoint/SKILL.md` — User-invocable. Checkpoint contents and triggers defined in `docs/execution.md` → "Checkpoint Architecture". Format must be parseable by Lead on resume per `docs/execution.md` → "Session Resume".
 
 ### 2.4 Tech Research
 
-- [ ] `skills/tech-research/SKILL.md` — User-invocable. Migrated from global skill per `docs/migration.md`. Depends on Ref.tools MCP (D7). Reads `.claude/app-context-for-research.md` for domain context.
+- [x] `skills/tech-research/SKILL.md` — User-invocable. Migrated from global skill per `docs/migration.md`. Depends on Ref.tools MCP (D7). Reads `.claude/app-context-for-research.md` for domain context.
 
 ### 2.5 Help (meta-skill)
 
-- [ ] `skills/help/SKILL.md` — User-invocable. Described in `docs/architecture.md` → "The Help Meta-Skill". Needs a companion `skills/help/system-overview.md` loaded via `context:` field — a concise reference of all components/workflows (distill from `docs/components.md` and `docs/workflows.md`, don't duplicate).
+- [x] `skills/help/SKILL.md` — User-invocable. Described in `docs/architecture.md` → "The Help Meta-Skill". Loads `docs/components.md` and `docs/workflows.md` directly via `context:` field — references source docs instead of maintaining a separate overview file.
 
 ### 2.6 Context Management
 
-- [ ] `skills/context-management/SKILL.md` — User-invocable. Full behavior in `docs/architecture.md` → "Context Management Skill" (structuring, aggregation, git submodules, agent-ready summaries).
+- [x] `skills/context-management/SKILL.md` — User-invocable. Full behavior in `docs/architecture.md` → "Context Management Skill" (structuring, aggregation, git submodules, agent-ready summaries).
 
 ### Phase 2 Verification
 
