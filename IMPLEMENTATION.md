@@ -45,8 +45,8 @@ Start building the current phase's components in order.
 
 ### 1.1 Plugin Manifest & Config
 
-- [ ] `.claude-plugin/plugin.json` — Exact JSON in `docs/components.md` → "Plugin Manifest"
-- [ ] `settings.json` — Exact JSON in `docs/components.md` → "Settings"
+- [x] `.claude-plugin/plugin.json` — Exact JSON in `docs/components.md` → "Plugin Manifest"
+- [x] `settings.json` — Exact JSON in `docs/components.md` → "Settings"
 
 ### 1.2 Agent Definitions (9 files)
 
@@ -54,36 +54,36 @@ All 9 agents listed in `docs/components.md` → "Agents" table (model, tools, pu
 
 System prompt guidance per agent — what the prompt must teach beyond the frontmatter:
 
-- [ ] `agents/researcher.md` — Dual-use (subagent in planning, teammate in execution). Prompt must handle both modes: when spawned as subagent, follow spawn prompt instructions for output paths; when spawned as teammate, follow shared memory protocol from `docs/execution.md` → "Shared Memory Pattern" (read all shared/ before each claim, write to shared/researcher.md append-only, write IDLE when done).
-- [ ] `agents/task-executor.md` — Teammate only. Prompt must implement the full shared memory read/write cycle from `docs/execution.md` → "Shared Memory Pattern" + per-task research file consumption. Key constraint: never modify files outside task scope.
-- [ ] `agents/task-tester.md` — Teammate only. Prompt must enforce: read-only for source code, Bash restricted to test/build commands. Final gate behavior from `docs/execution.md` → "Completion" phase. Reads `.claude/system-test.md` if present.
-- [ ] `agents/code-review.md` — Teammate only. Completely read-only. Pass/fail criteria sourced from `documentation/technology/standards/`. Failures must include specific file:line references per `docs/execution.md` → "Plan Execution Team Structure".
-- [ ] `agents/system-tester.md` — Subagent only (Debug Mode). Must NOT modify source. Reads `.claude/system-test.md`. See `docs/architecture.md` → "Debug Mode".
-- [ ] `agents/checker.md` — Subagent only (Verification Mode). Returns discrepancies with severity levels. See `docs/architecture.md` → "Doc & Code Verification Mode".
-- [ ] `agents/code-surveyor.md` — Subagent only. Returns structure overview. See `docs/components.md` → "Agents" table.
-- [ ] `agents/doc-surveyor.md` — Subagent only. Returns what's documented. See `docs/components.md` → "Agents" table.
-- [ ] `agents/market-analyzer.md` — Subagent only (Discovery Mode). See `docs/architecture.md` → "Discovery Mode".
+- [x] `agents/researcher.md` — Dual-use (subagent in planning, teammate in execution). Prompt must handle both modes: when spawned as subagent, follow spawn prompt instructions for output paths; when spawned as teammate, follow shared memory protocol from `docs/execution.md` → "Shared Memory Pattern" (read all shared/ before each claim, write to shared/researcher.md append-only, write IDLE when done).
+- [x] `agents/task-executor.md` — Teammate only. Prompt must implement the full shared memory read/write cycle from `docs/execution.md` → "Shared Memory Pattern" + per-task research file consumption. Key constraint: never modify files outside task scope.
+- [x] `agents/task-tester.md` — Teammate only. Prompt must enforce: read-only for source code, Bash restricted to test/build commands. Final gate behavior from `docs/execution.md` → "Completion" phase. Reads `.claude/system-test.md` if present.
+- [x] `agents/code-review.md` — Teammate only. Completely read-only. Pass/fail criteria sourced from `documentation/technology/standards/`. Failures must include specific file:line references per `docs/execution.md` → "Plan Execution Team Structure".
+- [x] `agents/system-tester.md` — Subagent only (Debug Mode). Must NOT modify source. Reads `.claude/system-test.md`. See `docs/architecture.md` → "Debug Mode".
+- [x] `agents/checker.md` — Subagent only (Verification Mode). Returns discrepancies with severity levels. See `docs/architecture.md` → "Doc & Code Verification Mode".
+- [x] `agents/code-surveyor.md` — Subagent only. Returns structure overview. See `docs/components.md` → "Agents" table.
+- [x] `agents/doc-surveyor.md` — Subagent only. Returns what's documented. See `docs/components.md` → "Agents" table.
+- [x] `agents/market-analyzer.md` — Subagent only (Discovery Mode). See `docs/architecture.md` → "Discovery Mode".
 
 ### 1.3 Hooks
 
-- [ ] `hooks/hooks.json` — Three prompt-type hooks. Exact JSON structure in `docs/components.md` → "hooks.json Structure". Hook purposes in `docs/components.md` → "Hook Events" and "Hooks in Execution Context".
-- [ ] `hooks/scripts/` — Create empty directory (all hooks are prompt-type currently).
+- [x] `hooks/hooks.json` — Three prompt-type hooks. Exact JSON structure in `docs/components.md` → "hooks.json Structure". Hook purposes in `docs/components.md` → "Hook Events" and "Hooks in Execution Context".
+- [x] `hooks/scripts/` — Create empty directory (all hooks are prompt-type currently).
 
 ### 1.4 Templates (7 files)
 
 All 7 templates listed in `docs/components.md` → "Templates" table (purpose, when created). Content structure for each should match the document types described in `docs/architecture.md` → "What Goes Where" table.
 
-- [ ] `templates/architecture.md`
-- [ ] `templates/rfc.md`
-- [ ] `templates/requirement.md`
-- [ ] `templates/plan.md` — This is the base structure Plan Enhancer will use. Must include embedded task list format.
-- [ ] `templates/context.md`
-- [ ] `templates/dependency.md`
-- [ ] `templates/task.md`
+- [x] `templates/architecture.md`
+- [x] `templates/rfc.md`
+- [x] `templates/requirement.md`
+- [x] `templates/plan.md` — This is the base structure Plan Enhancer will use. Must include embedded task list format.
+- [x] `templates/context.md`
+- [x] `templates/dependency.md`
+- [x] `templates/task.md`
 
 ### 1.5 Init Script
 
-- [ ] `scripts/init-docs.sh` — Scaffolds `documentation/` + `context/` + `.claude/` config files in a target project. Directory tree defined in `docs/architecture.md` → "Documentation Structure". Config files listed in `docs/components.md` → "Project-Level Configuration". Must be idempotent (don't overwrite existing files). Copies templates as placeholders.
+- [x] `scripts/init-docs.sh` — Scaffolds `documentation/` + `context/` + `.claude/` config files in a target project. Directory tree defined in `docs/architecture.md` → "Documentation Structure". Config files listed in `docs/components.md` → "Project-Level Configuration". Must be idempotent (don't overwrite existing files). Copies templates as placeholders.
 
 ### Phase 1 Verification
 

@@ -1,0 +1,11 @@
+{
+  "name": "uc",
+  "version": "0.1.0",
+  "description": "Specification-driven development platform for Claude Code",
+  "author": "Dawid Duniec",
+  "keywords": ["development", "specification-driven", "agent-teams"],
+  "skills": "skills/",
+  "agents": "agents/",
+  "hooks": "hooks/hooks.json",
+  "templates": "templates/"
+}

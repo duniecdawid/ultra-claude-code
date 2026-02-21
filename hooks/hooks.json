@@ -1,0 +1,21 @@
+{
+  "hooks": [
+    {
+      "event": "PreToolUse",
+      "match": { "tool": ["Write", "Edit"] },
+      "type": "prompt",
+      "prompt": "Check if the file being written/edited aligns with architecture docs in documentation/technology/architecture/. If the change contradicts documented architecture, BLOCK the operation and explain why."
+    },
+    {
+      "event": "PostToolUse",
+      "match": { "tool": ["TaskUpdate"] },
+      "type": "prompt",
+      "prompt": "If the task status is being set to 'completed', read the plan README.md success criteria and validate this task meets them. Block completion if criteria are unmet."
+    },
+    {
+      "event": "Stop",
+      "type": "prompt",
+      "prompt": "If execution is in progress, save a checkpoint to the plan directory before stopping."
+    }
+  ]
+}
