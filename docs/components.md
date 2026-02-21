@@ -1,23 +1,77 @@
 # Components
 
-Reference for all Ultra Claude components: skills, agents, commands, hooks, templates, and configuration files.
+Reference for all Ultra Claude components: skills, agents, hooks, templates, and configuration files.
 
 ## Skills
 
-| Skill | Trigger | Invocation | Purpose |
-|-------|---------|------------|---------|
-| **feature-plan-mode** | "new feature", "plan feature", "start feature" | User | Feature Plan Mode: new features with product + architecture context. Includes optional RFC sub-mode for ambiguous/high-risk architecture decisions (AI persona review). |
-| **debug-mode** | "debug", "fix", "investigate" | User | Debug Mode: issue investigation and fix planning. Spawns investigation team (Researcher + System Tester) during planning phase. Fix execution uses standard execute-plan team. |
-| **doc-code-verification-mode** | "verify docs", "check doc-code gaps", "sync docs" | User | Doc & Code Verification Mode: find and plan fixes for discrepancies |
-| **plan-enhancer** | Auto-loaded by all modes | Auto (internal) | Standardizes plan output: plan directory, README.md with embedded task list, task granularity. Uses Claude Code's plan mode file path override (writes plan to `documentation/plans/{name}/README.md` instead of default `.claude/plan.md`). Ensures task list is embedded in the plan document. |
-| **execute-plan** | `/uc:execute` | User | Execution engine: reads plan directory, composes dynamic agent team based on plan size, creates role-separated task lists, spawns teammates, coordinates 5-phase execution (setup, parallel work, checkpoint, failure handling, completion) |
-| **discovery-mode** | "discovery mode", "research only" | User | Discovery Mode: research only, coding disabled |
-| **docs-manager** | Activated by `.claude/docs-format` file | Auto | Guards `documentation/` structure — enforces canonical layout, routes docs to correct directories, prevents structural drift |
-| **checkpoint** | `/uc:checkpoint` | User | Saves task list states, active teammate assignments, execution decisions, and blockers to `plans/{name}/checkpoint-{timestamp}.md` for session recovery |
-| **context-manager** | "add context", "add external system", "update context" | User | Manages `context/` directory: structures external system knowledge, aggregates docs + code, manages git submodules |
-| **migrate-docs** | `/uc:migrate` | User | One-time migration: surveys existing project docs + code, maps them to canonical structure, produces a migration plan |
-| **help** | "how to accomplish", "extend the system" | User | Meta-skill: understands full system, advises on extensions |
-| **tech-research** | "how does X work", "research library", "check docs" | User/Auto | External library/framework documentation via Ref.tools |
+> **Note:** Per [D15](decisions.md), there is no separate "commands" concept. Skills with `user-invocable: true` in their SKILL.md frontmatter become slash commands, invoked as `/uc:{skill-name}`.
+
+| Skill | Trigger | User-Invocable | Purpose |
+|-------|---------|----------------|---------|
+| **feature-plan-mode** | "new feature", "plan feature", "start feature" | Yes — `/uc:feature-plan-mode` | Feature Plan Mode: new features with product + architecture context. Includes optional RFC sub-mode for ambiguous/high-risk architecture decisions (AI persona review). |
+| **debug-mode** | "debug", "fix", "investigate" | Yes — `/uc:debug-mode` | Debug Mode: issue investigation and fix planning. Spawns investigation team (Researcher + System Tester) during planning phase. Fix execution uses standard execute-plan team. |
+| **doc-code-verification-mode** | "verify docs", "check doc-code gaps", "sync docs" | Yes — `/uc:doc-code-verification-mode` | Doc & Code Verification Mode: find and plan fixes for discrepancies |
+| **plan-enhancer** | Auto-loaded by all modes | No (internal) | Standardizes plan output: plan directory, README.md with embedded task list, task granularity. Uses Claude Code's plan mode file path override (writes plan to `documentation/plans/{name}/README.md` instead of default `.claude/plan.md`). Ensures task list is embedded in the plan document. |
+| **execute-plan** | `/uc:execute-plan` | Yes — `/uc:execute-plan` | Execution engine: reads plan directory, composes dynamic agent team based on plan size, creates role-separated task lists, spawns teammates, coordinates 5-phase execution (setup, parallel work, checkpoint, failure handling, completion) |
+| **discovery-mode** | "discovery mode", "research only" | Yes — `/uc:discovery-mode` | Discovery Mode: research only, coding disabled |
+| **docs-manager** | Activated by `.claude/docs-format` file | No (auto) | Guards `documentation/` structure — enforces canonical layout, routes docs to correct directories, prevents structural drift |
+| **checkpoint** | `/uc:checkpoint` | Yes — `/uc:checkpoint` | Saves task list states, active teammate assignments, execution decisions, and blockers to `plans/{name}/checkpoint-{timestamp}.md` for session recovery |
+| **context-manager** | "add context", "add external system", "update context" | Yes — `/uc:context-manager` | Manages `context/` directory: structures external system knowledge, aggregates docs + code, manages git submodules |
+| **migrate-docs** | `/uc:migrate-docs` | Yes — `/uc:migrate-docs` | One-time migration: surveys existing project docs + code, maps them to canonical structure, produces a migration plan |
+| **help** | "how to accomplish", "extend the system" | Yes — `/uc:help` | Meta-skill: understands full system, advises on extensions |
+| **tech-research** | "how does X work", "research library", "check docs" | Yes — `/uc:tech-research` | External library/framework documentation via Ref.tools |
+
+### Skill File Format
+
+Each skill is a directory under `skills/` containing a `SKILL.md` file (per [D16](decisions.md)). The `SKILL.md` uses YAML frontmatter for metadata and a Markdown body for the system prompt.
+
+```
+skills/{skill-name}/SKILL.md
+```
+
+**YAML frontmatter fields:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | Yes | Human-readable skill name |
+| `description` | string | Yes | One-line description (shown in help/listings) |
+| `argument-hint` | string | No | Placeholder text for user arguments (e.g., `"feature description"`) |
+| `user-invocable` | boolean | No | If `true`, skill becomes a slash command (`/uc:{skill-name}`). Default: `false`. |
+| `disable-model-invocation` | boolean | No | If `true`, Claude cannot auto-activate this skill. Default: `false`. |
+| `allowed-tools` | list | No | Restrict which tools the skill can use |
+| `model` | string | No | Override model for this skill (`opus`, `sonnet`, `haiku`) |
+| `context` | list | No | Paths to load into context when skill activates (supports `${CLAUDE_PLUGIN_ROOT}`) |
+| `agent` | string | No | Agent to delegate execution to (path to agent `.md` file) |
+| `hooks` | object | No | Skill-scoped hooks (same format as `hooks.json`) |
+
+**Body format:**
+
+The Markdown body below the frontmatter is the system prompt injected into context when the skill activates.
+
+- `$ARGUMENTS` — replaced with the user's input after the slash command
+- `` !`shell-command` `` — preprocessing: runs a shell command and injects stdout into the prompt
+- `${CLAUDE_PLUGIN_ROOT}` — resolves to the plugin's root directory (portable paths)
+
+**Example SKILL.md:**
+
+```markdown
+---
+name: Feature Plan Mode
+description: Plan new features with product, architecture, and implementation context
+argument-hint: "feature description"
+user-invocable: true
+context:
+  - ${CLAUDE_PLUGIN_ROOT}/skills/plan-enhancer/SKILL.md
+---
+
+You are entering Feature Plan Mode for: $ARGUMENTS
+
+Read the following architecture docs before planning:
+- documentation/technology/architecture/
+- documentation/product/requirements/
+
+[... rest of system prompt ...]
+```
 
 ## Agents
 
@@ -35,27 +89,120 @@ Reference for all Ultra Claude components: skills, agents, commands, hooks, temp
 | **doc-surveyor** | haiku | Read, Grep, Glob | Quick survey of documentation section structure | — |
 | **market-analyzer** | sonnet | WebSearch, WebFetch, mcp__ref | Market research, competitor analysis, technology trends | — |
 
-## Commands
+### Agent File Format
 
-| Command | Purpose |
-|---------|---------|
-| `/uc:feature` | Enter Feature Plan Mode |
-| `/uc:debug` | Enter Debug Mode |
-| `/uc:verify` | Enter Doc & Code Verification Mode |
-| `/uc:execute` | Execute a plan through agent team |
-| `/uc:discover` | Enter Discovery Mode (research only, no coding) |
-| `/uc:checkpoint` | Save current progress for session recovery |
-| `/uc:migrate` | Survey existing project and migrate docs to canonical structure |
-| `/uc:help` | Ask the meta-skill how to accomplish something |
-| `/uc:status` | Show plan status, task progress |
+Each agent is a flat `.md` file under `agents/` (per [D17](decisions.md)). YAML frontmatter declares runtime configuration; the body is the agent system prompt.
+
+```
+agents/{agent-name}.md
+```
+
+**YAML frontmatter fields:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | Yes | Human-readable agent name |
+| `description` | string | Yes | One-line description |
+| `tools` | list | No | Allowed tools (e.g., `[Read, Grep, Glob, Bash]`) |
+| `disallowedTools` | list | No | Explicitly blocked tools |
+| `model` | string | No | Model override (`opus`, `sonnet`, `haiku`) |
+| `permissionMode` | string | No | Permission mode for the agent |
+| `maxTurns` | number | No | Maximum agentic turns before stopping |
+| `skills` | list | No | Skills the agent can invoke |
+| `mcpServers` | list | No | MCP servers available to the agent |
+| `hooks` | object | No | Agent-scoped hooks |
+| `memory` | string | No | Path to persistent memory file |
+| `background` | boolean | No | If `true`, agent runs in background |
+| `isolation` | string | No | Isolation mode (e.g., `"worktree"`) |
+
+**Body format:**
+
+The Markdown body is the system prompt given to the agent when spawned. Spawn prompts from the Lead or skill provide additional runtime context on top of this base prompt.
+
+**Example agent file:**
+
+```markdown
+---
+name: Researcher
+description: Generic context-gathering agent, parameterized by spawning mode
+model: sonnet
+tools:
+  - Read
+  - Grep
+  - Glob
+  - WebFetch
+  - WebSearch
+  - mcp__ref
+---
+
+You are a Researcher agent. Your job is to gather context from the codebase,
+documentation, and external sources as directed by your spawn prompt.
+
+[... rest of system prompt ...]
+```
 
 ## Hooks
 
-| Hook Event | Purpose | Type | Agent Team Behavior |
-|------------|---------|------|---------------------|
-| **PreToolUse (Write/Edit)** | Check if file changes align with architecture docs | prompt | Unchanged from planning layer |
-| **PostToolUse (TaskUpdate)** | Validate task meets documented success criteria | prompt | When any agent calls TaskUpdate with `status: "completed"`, reads plan README.md success criteria and validates. Blocks completion if unmet. |
-| **Stop** | Verify architectural changes are reflected in architecture docs | prompt | Triggers checkpoint save if execution is in progress |
+Hooks are the hard enforcement layer ([D6](decisions.md)) — they cannot be overridden by the AI.
+
+### hooks.json Structure
+
+All hooks are defined in `hooks/hooks.json`. Each hook binds to an event and specifies a handler type.
+
+```json
+{
+  "hooks": [
+    {
+      "event": "PreToolUse",
+      "match": { "tool": ["Write", "Edit"] },
+      "type": "prompt",
+      "prompt": "Check if the file being written/edited aligns with architecture docs in documentation/technology/architecture/. If the change contradicts documented architecture, BLOCK the operation and explain why."
+    },
+    {
+      "event": "PostToolUse",
+      "match": { "tool": ["TaskUpdate"] },
+      "type": "prompt",
+      "prompt": "If the task status is being set to 'completed', read the plan README.md success criteria and validate this task meets them. Block completion if criteria are unmet."
+    },
+    {
+      "event": "Stop",
+      "type": "prompt",
+      "prompt": "If execution is in progress, save a checkpoint to the plan directory before stopping."
+    }
+  ]
+}
+```
+
+### Hook Events
+
+| Event | When It Fires | Ultra Claude Usage |
+|-------|---------------|-------------------|
+| **PreToolUse** | Before a tool call executes | Architecture conformance check on Write/Edit |
+| **PostToolUse** | After a tool call completes | Task completion validation on TaskUpdate |
+| **Stop** | Session is ending | Checkpoint save during execution |
+| **SessionStart** | Session begins | Available but unused |
+| **TaskCompleted** | A task is marked complete | Available but unused (covered by PostToolUse) |
+| **TeammateIdle** | A teammate has no more work | Available but unused |
+| **SubagentStart** | A subagent is spawned | Available but unused |
+| **SubagentStop** | A subagent finishes | Available but unused |
+
+### Hook Types
+
+| Type | Description | Example Use |
+|------|-------------|-------------|
+| **command** | Runs a shell command. Exit code 0 = pass, non-zero = block. | Run a linter before allowing a Write |
+| **prompt** | Injects a prompt into the model context for evaluation. Model decides pass/block. | Check architecture conformance |
+| **agent** | Spawns an agent to evaluate the action. Agent decides pass/block. | Complex multi-file validation |
+
+Ultra Claude currently uses only `prompt`-type hooks. `command` and `agent` types are available for future use.
+
+### Hooks in Execution Context
+
+| Hook Event | Purpose | Agent Team Behavior |
+|------------|---------|---------------------|
+| **PreToolUse (Write/Edit)** | Check if file changes align with architecture docs | Unchanged from planning layer |
+| **PostToolUse (TaskUpdate)** | Validate task meets documented success criteria | When any agent calls TaskUpdate with `status: "completed"`, reads plan README.md success criteria and validates. Blocks completion if unmet. |
+| **Stop** | Verify architectural changes are reflected in architecture docs | Triggers checkpoint save if execution is in progress |
 
 ## Templates
 
@@ -72,6 +219,46 @@ Shipped with the plugin. Copied into target projects by `init-docs.sh`.
 | `templates/task.md` | Individual task template (used within plan README.md) | Planning |
 
 ## Configuration Files
+
+### Plugin Manifest (`plugin.json`)
+
+Located at `.claude-plugin/plugin.json`. This is the plugin's identity file.
+
+```json
+{
+  "name": "uc",
+  "version": "0.1.0",
+  "description": "Specification-driven development platform for Claude Code",
+  "author": "Dawid Duniec",
+  "keywords": ["development", "specification-driven", "agent-teams"],
+  "skills": "skills/",
+  "agents": "agents/",
+  "hooks": "hooks/hooks.json",
+  "templates": "templates/"
+}
+```
+
+The `name` field determines the command prefix — all user-invocable skills are namespaced as `/uc:{skill-name}`.
+
+### Settings (`settings.json`)
+
+Located at the plugin root. Currently the only key supported by Claude Code is `agent`:
+
+```json
+{
+  "agent": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  }
+}
+```
+
+> **Note:** `.mcp.json` and `.lsp.json` exist in the plugin spec but Ultra Claude does not bundle MCP or LSP servers — it relies on globally configured servers (Ref.tools, Atlassian) per [D7](decisions.md).
+
+### Environment Variable
+
+`${CLAUDE_PLUGIN_ROOT}` resolves to the plugin's root directory at runtime. Use it in SKILL.md `context` paths and agent prompts for portable references to plugin files.
+
+### Project-Level Configuration
 
 | File | Purpose | Scope |
 |------|---------|-------|

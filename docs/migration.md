@@ -8,16 +8,18 @@ Old global skills are refactored into the new plugin structure. The mapping is n
 
 | Old Global Skill | Becomes | Destination |
 |-----------------|---------|-------------|
-| `product-design` + `tech-architecture` + `implementation-planning` | Feature Plan Mode | `skills/feature-plan-mode/` |
-| `development` + `execute-initiative` | Execute Plan | `skills/execute-plan/` |
-| `verify-docs` | Doc & Code Verification Mode | `skills/doc-code-verification-mode/` |
-| `docs` | Docs Manager | `skills/docs-manager/` |
-| `checkpoint` | Checkpoint | `skills/checkpoint/` |
-| `skill-agent-creator` | Help (evolved) | `skills/help/` |
-| `tech-research` | Tech Research | `skills/tech-research/` |
+| `product-design` + `tech-architecture` + `implementation-planning` | Feature Plan Mode | `skills/feature-plan-mode/SKILL.md` |
+| `development` + `execute-initiative` | Execute Plan | `skills/execute-plan/SKILL.md` |
+| `verify-docs` | Doc & Code Verification Mode | `skills/doc-code-verification-mode/SKILL.md` |
+| `docs` | Docs Manager | `skills/docs-manager/SKILL.md` |
+| `checkpoint` | Checkpoint | `skills/checkpoint/SKILL.md` |
+| `skill-agent-creator` | Help (evolved) | `skills/help/SKILL.md` |
+| `tech-research` | Tech Research | `skills/tech-research/SKILL.md` |
 | `verify-checker` | Checker agent | `agents/checker.md` |
 | `verify-code-surveyor` | Code Surveyor agent | `agents/code-surveyor.md` |
 | `verify-doc-surveyor` | Doc Surveyor agent | `agents/doc-surveyor.md` |
+
+> **Note:** Each migrated skill needs proper YAML frontmatter in its `SKILL.md` (name, description, user-invocable, etc.). See [Components — Skill File Format](components.md#skill-file-format) for the full field reference.
 
 ## What Stays Global (NOT in Plugin)
 
@@ -69,7 +71,6 @@ Components that don't exist yet and need to be built from scratch.
 | Market Analyzer agent | Agent | Web/market research via Perplexity |
 | RFC review personas | Config | Built-in: Devil's Advocate, Pragmatist, Security/Reliability, Cost-conscious. User-extensible. |
 | All hooks | Hooks | Architecture conformance, task validation, plan context loading |
-| All commands | Commands | `/uc:*` namespace |
 | All templates | Templates | Documentation scaffolding |
 | Plugin manifest | Config | plugin.json |
 | Init script | Script | Sets up documentation/ in a new project |

@@ -9,7 +9,7 @@ For architecture context, see [Architecture](architecture.md). For component ref
 **Execute Plan** reads the entire plan directory (`documentation/plans/{name}/`) and runs it through a dynamically composed agent team. On trigger, the Lead reads ALL files in the plan directory — README.md, any existing `research/` files, `shared/` directory (if resuming), checkpoint files — to build complete context before spawning teammates.
 
 **Prerequisites:**
-- `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS: "1"` in settings.json
+- `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS: "1"` in the plugin's `settings.json` (project-level setting applied by Claude Code when the plugin is active — not a plugin.json field)
 - tmux installed
 - Plan exists in `documentation/plans/{name}/README.md`
 
@@ -63,7 +63,7 @@ The Lead decides team composition based on plan characteristics:
 
 Max ~5-6 concurrent teammates. Lead always reserves the right to override.
 
-Model selection per role:
+Model selection per role (these values correspond to the `model:` field in each agent's `.md` frontmatter — see [Components](components.md#agent-file-format)):
 
 | Role | Model | Rationale |
 |------|-------|-----------|
@@ -71,6 +71,8 @@ Model selection per role:
 | Executor | opus | Writing production code is the highest-stakes task — quality here reduces downstream review/test failures and retry loops |
 | Code Reviewer | sonnet | Pattern matching, quality analysis |
 | Tester | sonnet | Per-task test execution + final full test suite gate |
+
+> **Note:** Agent model and tools are declared in each agent's `.md` frontmatter. Spawn prompts from the Lead provide additional runtime context (plan paths, task list instructions, shared directory) on top of the base agent definition.
 
 ### Cost Awareness
 

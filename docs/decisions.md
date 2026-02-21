@@ -22,6 +22,9 @@ Key assumptions the design is built on. If any of these prove wrong, the affecte
 | D12 | **SendMessage for urgent only, files for persistent.** | SendMessage interrupts teammates (costs tokens). Per-role files in `shared/` are read-at-own-pace. Reserve SendMessage for: (1) test/review failure feedback to Lead, (2) Researcher discovering plan-invalidating information, (3) any teammate hitting a blocker that affects other roles. |
 | D13 | **Agent teams only, no subagent fallback.** | Execution layer designed purely for agent teams per D1. No dual-path complexity. |
 | D14 | **Code Review as pipeline stage between Executor and Tester.** | Catches quality/pattern issues before functional testing. Read-only, uses its own task list. Prevents compounding failures where bad patterns pass tests but violate architecture. |
+| D15 | **Skills replace commands as the invocation mechanism.** | The official Claude Code plugin spec has no `commands/` concept. User-invocable skills (with `user-invocable: true` in YAML frontmatter) ARE slash commands. The `commands/` directory is legacy and removed. |
+| D16 | **`SKILL.md` with YAML frontmatter is the canonical skill format.** | Each skill lives in `skills/{name}/SKILL.md`. YAML frontmatter declares metadata (name, description, tools, model, agent, hooks). The body is the system prompt, injected into context when the skill activates. |
+| D17 | **Agent definitions use flat `.md` files with YAML frontmatter.** | Each agent is `agents/{name}.md`. YAML frontmatter declares model, tools, constraints, permissions. The body is the agent system prompt. This replaces any programmatic agent config. |
 
 ## Open Questions
 
@@ -29,10 +32,10 @@ To resolve before implementation begins.
 
 | # | Question | Options / Notes |
 |---|----------|-----------------|
-| Q1 | **Command prefix**: Is `/uc:` the right namespace? | Alternatives: `/ultra:`, no prefix (just `/execute`, `/verify`, etc.) |
+| Q1 | ~~**Command prefix**: Is `/uc:` the right namespace?~~ | **Resolved** — Plugin name is `uc` (set in `plugin.json` `name` field). All user-invocable skills are namespaced as `/uc:skill-name` (e.g., `/uc:feature-plan-mode`, `/uc:execute-plan`). See [Components](components.md) and D15. |
 | Q2 | ~~**Team persistence**: When a plan spans multiple sessions, how do we handle team recreation?~~ | **Resolved** — checkpoint architecture (D9-D11). Lead saves 4 task list states + `shared/` directory + research files. On resume, Lead reads latest checkpoint, rebuilds team from scratch, skips completed work. See [Execution](execution.md). |
 | Q3 | **Discovery mode enforcement**: Should coding be disabled via hooks (hard) or CLAUDE.md instructions (soft)? | Hook is more reliable but requires careful implementation. |
 | Q4 | ~~**Docs format flexibility**: Should the plugin mandate a specific documentation format (Confluence-style, GitBook-style) or be format-agnostic?~~ | **Resolved** — `.claude/docs-format` file controls output format. Docs-manager skill adapts to the specified format. See [Components](components.md). |
 | Q5 | ~~**Existing documentation**: How does the plugin interact with projects that already have documentation?~~ | **Resolved** — migrate-docs skill (`/uc:migrate`) handles existing projects. Surveys current docs, maps to canonical structure, produces migration plan. See [Architecture](architecture.md#migrate-docs-skill). |
-| Q6 | **Help: skill or command?** | Skills auto-activate based on triggers; commands require explicit invocation. Help might benefit from explicit invocation to avoid unwanted activation. |
+| Q6 | ~~**Help: skill or command?**~~ | **Resolved** — Help is a skill with `user-invocable: true` in its SKILL.md frontmatter. Per D15, there is no separate "command" concept — user-invocable skills ARE slash commands. Invoked as `/uc:help`. |
 | Q7 | **Bundled MCP servers**: Should the plugin bundle any MCP servers? | Current thinking: no — rely on globally configured MCP servers (Ref.tools, Atlassian). |

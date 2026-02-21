@@ -2,6 +2,8 @@
 
 Step-by-step flows showing how each mode operates end-to-end. For the architecture behind these flows, see [Architecture](architecture.md).
 
+> **Invocation:** All skills are namespaced under the plugin name `uc` (from `plugin.json`). Full invocation names are `/uc:feature-plan-mode`, `/uc:debug-mode`, `/uc:doc-code-verification-mode`, `/uc:discovery-mode`, `/uc:execute-plan`. See [Components](components.md) for the complete skill table.
+
 ## Feature Plan Mode
 
 **Entry condition:** User has a feature idea or requirement to implement.

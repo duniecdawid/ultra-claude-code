@@ -6,7 +6,7 @@ A Claude Code plugin that implements a spec-driven development platform. Documen
 
 Ultra Claude is a portable, reusable Claude Code plugin that turns any project into a structured, specification-driven development environment. You install it, it establishes a documentation layer, and from that point forward — documentation controls how the codebase grows.
 
-It is NOT a framework, library, or runtime. It is a collection of **skills**, **agents**, **commands**, and **hooks** packaged as a Claude Code plugin. When installed in a project, Claude Code gains:
+It is NOT a framework, library, or runtime. It is a collection of **skills**, **agents**, and **hooks** packaged as a Claude Code plugin. When installed in a project, Claude Code gains:
 
 - Three specialized planning modes (Feature, Debugging, Verification) + one execution engine
 - Agent teams that coordinate research, implementation, and validation in parallel
@@ -27,21 +27,14 @@ It is NOT a framework, library, or runtime. It is a collection of **skills**, **
 
 ## Plugin Directory Structure
 
+> Skills with `user-invocable: true` become slash commands, namespaced as `/uc:{skill-name}` (e.g., `/uc:feature-plan-mode`). The `uc` prefix comes from the `name` field in `.claude-plugin/plugin.json`.
+
 ```
 ultra-claude/
 ├── .claude-plugin/
-│   └── plugin.json                    # Plugin manifest
-├── commands/                          # /uc:* slash commands
-│   ├── feature.md
-│   ├── debug.md
-│   ├── verify.md
-│   ├── execute.md
-│   ├── discover.md
-│   ├── checkpoint.md
-│   ├── migrate.md
-│   ├── help.md
-│   └── status.md
-├── agents/                            # Agent definitions
+│   └── plugin.json                    # Plugin manifest (name, version, paths)
+├── settings.json                      # Plugin settings (agent teams flag)
+├── agents/                            # Agent definitions (flat .md with YAML frontmatter)
 │   ├── researcher.md
 │   ├── task-executor.md
 │   ├── task-tester.md
@@ -51,19 +44,31 @@ ultra-claude/
 │   ├── code-surveyor.md
 │   ├── doc-surveyor.md
 │   └── market-analyzer.md
-├── skills/                            # Skills (extend main context)
+├── skills/                            # Skills (SKILL.md with YAML frontmatter)
 │   ├── feature-plan-mode/
+│   │   └── SKILL.md
 │   ├── debug-mode/
+│   │   └── SKILL.md
 │   ├── doc-code-verification-mode/
+│   │   └── SKILL.md
 │   ├── plan-enhancer/
+│   │   └── SKILL.md
 │   ├── execute-plan/
+│   │   └── SKILL.md
 │   ├── discovery-mode/
+│   │   └── SKILL.md
 │   ├── docs-manager/
+│   │   └── SKILL.md
 │   ├── context-manager/
+│   │   └── SKILL.md
 │   ├── migrate-docs/
+│   │   └── SKILL.md
 │   ├── checkpoint/
+│   │   └── SKILL.md
 │   ├── help/
+│   │   └── SKILL.md
 │   └── tech-research/
+│       └── SKILL.md
 ├── hooks/                             # Deterministic enforcement
 │   ├── hooks.json
 │   └── scripts/

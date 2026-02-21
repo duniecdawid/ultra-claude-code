@@ -28,6 +28,17 @@ Documentation acts like zoning laws — you can build freely within the constrai
 | **Medium** | Skills that load architecture docs before planning | Workflow-enforced — can't skip the step |
 | **Hard** | Hooks (PreToolUse, PostToolUse, Stop) | Deterministic — cannot be overridden by the AI |
 
+## Plugin Structure
+
+Ultra Claude is packaged as a Claude Code plugin — a directory with `.claude-plugin/plugin.json` as its manifest.
+
+- **Skills** = subdirectories under `skills/`, each containing a `SKILL.md` with YAML frontmatter + system prompt body. Skills with `user-invocable: true` become slash commands namespaced as `/uc:{skill-name}`.
+- **Agents** = flat `.md` files under `agents/`, each with YAML frontmatter declaring model, tools, and constraints. The body is the agent system prompt.
+- **Hooks** = defined in `hooks/hooks.json`. Each hook binds to an event (PreToolUse, PostToolUse, Stop) and specifies a handler type (command, prompt, or agent).
+- **`${CLAUDE_PLUGIN_ROOT}`** = environment variable that resolves to the plugin's root directory at runtime. Used in SKILL.md `context` paths for portable file references.
+
+See [Components](components.md) for full format specifications (D15, D16, D17).
+
 ## Change Classification
 
 Not every change needs the same scrutiny:
