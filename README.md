@@ -8,11 +8,11 @@ Ultra Claude is a portable, reusable Claude Code plugin that turns any project i
 
 It is NOT a framework, library, or runtime. It is a collection of **skills**, **agents**, **commands**, and **hooks** packaged as a Claude Code plugin. When installed in a project, Claude Code gains:
 
-- A 4-phase development pipeline (Product Design → Architecture → Planning → Development)
+- Three specialized planning modes (Feature, Debugging, Verification) + one execution engine
 - Agent teams that coordinate research, implementation, and validation in parallel
 - Architectural governance via hooks that enforce architecture conformance
 - Documentation-vs-code verification that detects drift
-- Initiative management with checkpoint/recovery across sessions
+- Plan management with checkpoint/recovery across sessions
 - A meta-skill ("Forge") that helps extend the system itself
 
 ## The Core Philosophy
@@ -29,7 +29,7 @@ This does NOT mean:
 This DOES mean:
 - Architecture documentation is kept current and reflects all decisions
 - Product requirements exist before code is written
-- When code diverges from specs, you fix the spec first (go back to the right phase)
+- When code diverges from specs, you fix the spec first, then re-plan
 - AI agents read specs before coding and are constrained by them
 - Documentation that is wrong produces broken implementations (forcing function)
 
@@ -49,43 +49,61 @@ Not every change needs the same scrutiny:
 
 - **Additive** (new feature within existing patterns) → flows freely
 - **Compatible** (extends existing architecture) → lightweight review
-- **Breaking** (violates existing architecture) → must go back to Phase 2, update the architecture doc, then proceed
+- **Breaking** (violates existing architecture) → must update the architecture doc first, then re-plan
 
-## The 4-Phase Pipeline
+## Two Layers: Planning and Execution
 
-Each phase has a persona, produces specific artifacts, and locks its decisions for downstream phases.
+Ultra Claude enhances Claude Code's built-in plan mode. Instead of a rigid multi-phase pipeline, there are **three specialized planning modes** that each optimize plan mode for a specific use case, and **one execution engine** that runs any plan.
 
-### Phase 1: Product Design
+### Planning Layer
 
-- **Persona**: Head of Product (20 years experience)
-- **Produces**: Product requirements, feature specs, user flows, success metrics
-- **Location**: `documentation/product/features/{name}.md` + `documentation/initiatives/{name}.md`
-- **Behavior**: Challenges scope, pushes for clarity, asks "why?", demands measurable outcomes
-- **Lock**: Phase 1 decisions are LOCKED after user approval. Phases 2-4 cannot change product scope without going back here.
+All planning modes trigger Claude Code's plan mode automatically, enhanced by **Plan Mode Enhance** — a shared skill that:
+- Redirects the plan from Claude's default location to a plan directory
+- Ensures task granularity is right for agentic execution
+- Creates a task list compatible with Claude's task system
+- Standardizes the output structure so all plans look the same regardless of entry point
 
-### Phase 2: Technical Architecture
+#### Feature Plan Mode
 
-- **Persona**: Software Architect (20 years experience)
-- **Produces**: Updates to `documentation/architecture/` (the living source of truth)
-- **Behavior**: Evaluates technology choices, considers trade-offs, updates architecture doc directly. When decisions are ambiguous or high-risk, suggests RFC mode for structured review.
-- **RFC mode** (optional): Creates `documentation/rfcs/{name}.md` for tough decisions. Supports review by AI personas (Devil's Advocate, Pragmatist, Security/Reliability, Cost-conscious) and/or human reviewers. After resolution, outcome is integrated into architecture doc and RFC is archived.
-- **Lock**: Phase 2 decisions are LOCKED after user approval. Phases 3-4 cannot change architecture without going back here.
+For new features. Uses Researcher + Docs agents to gather context about the codebase, existing architecture, and product requirements before planning.
 
-### Phase 3: Implementation Planning
+- Challenges scope, pushes for clarity, asks "why?"
+- Considers product requirements, architecture, and implementation in one pass
+- When architecture decisions are ambiguous or high-risk, suggests **RFC mode** for structured review (AI personas: Devil's Advocate, Pragmatist, Security/Reliability, Cost-conscious — and/or human reviewers)
+- Produces a plan in `documentation/plans/{name}/`
 
-- **Persona**: Senior Engineering Manager / Tech Lead (15 years experience)
-- **Produces**: Detailed task breakdown in initiative file with file paths, dependencies, verification criteria
-- **Behavior**: Sizes tasks (min 20 min, grouped by shared context), identifies dependencies, defines acceptance criteria
-- **Constraint**: Must respect Phase 1 and Phase 2 locked decisions as immutable constraints
+#### Debugging Mode
 
-### Phase 4: Development
+For fixing things. Uses Debugging Planner + Researcher + Full System Tester to investigate before planning.
 
-- **Persona**: Senior Software Engineer / Tech Lead (12 years experience)
-- **Produces**: Code that conforms to Phases 1-2
-- **Behavior**: Reads all prior documentation before writing code. If Phase 1-2 decisions are broken, STOPS and escalates.
-- **Execution modes**:
-  - **Manual**: Interactive development via `/uc:develop` command
-  - **Automated**: Agent team execution via `/uc:execute-initiative` command
+- Analyzes the issue, proposes hypotheses
+- Collects logs, reproduces the bug
+- Produces a plan focused on the fix + verification
+
+#### Doc & Code Verification Mode
+
+For periodic sync. Uses surveyors/checkers to find discrepancies between documentation and code, then produces a plan of things to fix.
+
+- Reviews system structure, spawns verificators to look for issues
+- Generates a list of discrepancies with severity
+- Produces a plan to resolve them (update docs or update code)
+
+### Discovery Mode (Optional Pre-Step)
+
+Research only — coding is disabled. Focused on building product vision, exploring competitors, researching technology options. Uses Researcher + Market Analyzer agents.
+
+Discovery feeds into planning but does not produce a plan itself. Output goes to `documentation/research/{topic}.md`.
+
+### Execution Layer
+
+**Execute Plan** — a single execution engine that takes any plan produced by any mode and runs it through the agent team. It doesn't care how the plan was created — Feature Plan, Debugging, or Verification all produce the same standardized structure.
+
+The execution engine:
+- Reads the plan and task list from the plan directory
+- Spawns agents: Researcher, Task Executor, Validator, Full System Tester
+- Is aware of already-performed research (doesn't repeat work)
+- Runs tasks without requiring user approval between every task
+- Saves progress via checkpoints for session recovery
 
 ## Agent Teams Architecture
 
@@ -101,22 +119,22 @@ Ultra Claude uses Claude Code's experimental agent teams as its PRIMARY coordina
 | Best for | Focused tasks | Complex work requiring collaboration |
 
 Agent teams enable patterns that subagents cannot:
-- Researcher shares findings directly with Implementer (no parent relay)
-- Validator challenges Implementer's work directly
+- Researcher shares findings directly with Task Executor (no parent relay)
+- Validator challenges Task Executor's work directly
 - Multiple teammates self-claim from shared task list
 - Plan approval workflow gates implementation
 
-### Team Structure for Execute Initiative
+### Team Structure for Execute Plan
 
 ```
 Lead (main session — user interacts here)
 ├── Researcher teammate
-│   - Gathers context from docs + code
-│   - Dual perspective: Product + Technology
-│   - Writes research to initiative/NAME/research/
-│   - Sends findings to Implementer via SendMessage
+│   - Gathers context from architecture docs + code
+│   - Checks for existing research (doesn't repeat work)
+│   - Writes findings to plans/NAME/research/
+│   - Sends findings to Task Executor via SendMessage
 │
-├── Implementer teammate
+├── Task Executor teammate
 │   - Reads research context
 │   - Implements one task at a time
 │   - Works in own files (no conflicts)
@@ -126,14 +144,14 @@ Lead (main session — user interacts here)
 │   - Checks implementation against success criteria
 │   - Read-only — cannot modify code
 │   - Reports pass/fail to Lead
-│   - If fail: sends specific feedback to Implementer
+│   - If fail: sends specific feedback to Task Executor
 │
 └── Full System Tester teammate (spawned as needed)
     - Runs test suite after changes
     - Reports results to Lead
 ```
 
-### Team Structure for Debugging
+### Team Structure for Debugging Mode
 
 ```
 Lead (main session)
@@ -151,7 +169,7 @@ Lead (main session)
     - Validates the fix
 ```
 
-### Team Structure for Docs vs Code Verification
+### Team Structure for Doc & Code Verification Mode
 
 ```
 Lead (main session)
@@ -183,7 +201,7 @@ Lead (main session — coding DISABLED)
 
 ### Agent Team Constraints We Accept
 
-- **No session resume for teammates**: If session breaks, teammates are lost. Mitigated by checkpoint skill saving state to initiative files.
+- **No session resume for teammates**: If session breaks, teammates are lost. Mitigated by checkpoint skill saving state to plan files.
 - **One team per session**: Each workflow gets its own session.
 - **No nested teams**: Teammates cannot spawn sub-teams. Mitigated by teammates using Task (subagent) for focused sub-tasks.
 - **Cost**: Each teammate is ~200K tokens. We minimize by spawning only what's needed, shutting down when done.
@@ -195,26 +213,25 @@ Lead (main session — coding DISABLED)
 
 | Skill | Trigger | Invocation | Purpose |
 |-------|---------|------------|---------|
-| **product-design** | "product design", "phase 1", "start feature" | User | Phase 1: Product requirements and feature design |
-| **tech-architecture** | "tech design", "architecture", "phase 2" | User | Phase 2: Architecture doc updates, optional RFC mode for tough decisions |
-| **implementation-planning** | "implementation planning", "phase 3" | User | Phase 3: Task breakdown with file paths and criteria |
-| **development** | "start development", "phase 4" | User | Phase 4: Manual implementation against plan |
-| **execute-initiative** | `/uc:execute` | User | Phase 4 (automated): Agent team orchestration |
-| **verify-docs** | "verify docs", "check doc-code gaps" | User/Auto | Documentation-vs-code verification |
+| **feature-plan-mode** | "new feature", "plan feature", "start feature" | User | Feature Plan Mode: new features with product + architecture context |
+| **debugging-mode** | "debug", "fix", "investigate" | User | Debugging Mode: issue investigation and fix planning |
+| **doc-code-verification-mode** | "verify docs", "check doc-code gaps", "sync docs" | User | Doc & Code Verification Mode: find and plan fixes for discrepancies |
+| **plan-mode-enhance** | Auto-loaded by all modes | Auto (internal) | Standardizes plan output: plan directory, task granularity, task list |
+| **execute-plan** | `/uc:execute` | User | Execution engine: runs any plan through agent team |
+| **discovery-mode** | "discovery mode", "research only" | User | Discovery Mode: research only, coding disabled |
 | **docs** | Activated by `.docs-format` file | Auto | Documentation structure management |
-| **checkpoint** | `/uc:checkpoint` | User | Save context to initiative files for recovery |
+| **checkpoint** | `/uc:checkpoint` | User | Save context to plan files for recovery |
 | **forge** | "how to accomplish", "extend the system" | User | Meta-skill: understands full system, advises on extensions |
-| **plan-mode-enhance** | Auto-loaded in planning skills | Auto (internal) | Configures plan mode to save plans in initiative directory |
-| **discovery-mode** | "discovery mode", "research only" | User | Disables coding, focuses on research |
 | **tech-research** | "how does X work", "research library", "check docs" | User/Auto | External library/framework documentation via Ref.tools |
 
 ### Agents (Green)
 
 | Agent | Model | Tools | Purpose |
 |-------|-------|-------|---------|
-| **researcher** | sonnet | Read, Grep, Glob, WebFetch, mcp__ref | Dual-perspective (Product + Tech) research with discrepancy detection |
-| **task-implementer** | sonnet | Read, Write, Edit, Glob, Grep, Bash | Single-task implementation from research context |
+| **researcher** | sonnet | Read, Grep, Glob, WebFetch, mcp__ref | Context gathering: codebase, architecture, product docs |
+| **task-executor** | sonnet | Read, Write, Edit, Glob, Grep, Bash | Single-task implementation from research context |
 | **task-validator** | sonnet | Read, Glob, Grep, Bash | Validates implementation against success criteria (read-only for code, can run tests) |
+| **code-review** | sonnet | Read, Glob, Grep | Checks code compliance with existing patterns, prevents duplication |
 | **full-system-tester** | haiku | Read, Glob, Grep, Bash | Runs test suite, reports results. Deliberately "dumb" — refuses diagnostic requests |
 | **debugging-planner** | sonnet | Read, Glob, Grep | Analyzes issues, proposes hypotheses, creates investigation tasks |
 | **verify-checker** | sonnet | Read, Grep, Glob | Compares specific code against documentation for single topic |
@@ -226,14 +243,14 @@ Lead (main session — coding DISABLED)
 
 | Command | Purpose |
 |---------|---------|
-| `/uc:feature` | Start Phase 1 → 2 → 3 pipeline for a new feature |
-| `/uc:execute` | Launch agent team to execute an initiative |
-| `/uc:debug` | Start debugging workflow with agent team |
-| `/uc:verify` | Run docs-vs-code verification |
-| `/uc:discover` | Enter discovery mode (research only) |
+| `/uc:feature` | Enter Feature Plan Mode |
+| `/uc:debug` | Enter Debugging Mode |
+| `/uc:verify` | Enter Doc & Code Verification Mode |
+| `/uc:execute` | Execute a plan through agent team |
+| `/uc:discover` | Enter Discovery Mode (research only, no coding) |
 | `/uc:checkpoint` | Save current progress for session recovery |
 | `/uc:forge` | Ask the meta-skill how to accomplish something |
-| `/uc:status` | Show initiative status, task progress |
+| `/uc:status` | Show plan status, task progress |
 
 ### Hooks (Deterministic Enforcement)
 
@@ -243,26 +260,26 @@ Lead (main session — coding DISABLED)
 | **Stop** | Verify architectural changes are reflected in architecture docs | prompt |
 | **TaskCompleted** | Validate task meets documented success criteria | agent |
 | **TeammateIdle** | Check if teammate completed all assigned work | prompt |
-| **SessionStart** | Load initiative context if resuming | command |
+| **SessionStart** | Load plan context if resuming | command |
 
 ### Documents (Yellow — Templates shipped with plugin)
 
 | Template | Purpose | Created When |
 |----------|---------|-------------|
-| `_templates/architecture.md` | Architecture document template | Phase 2 |
-| `_templates/rfc.md` | RFC template (problem, proposed solution, alternatives, open questions, outcome) | Phase 2 (optional, for tough decisions) |
-| `_templates/requirement.md` | Formal requirement template (FR-xxx, NFR-xxx) | Phase 1 |
-| `_templates/initiative.md` | Initiative tracking file | Phase 3 |
+| `_templates/architecture.md` | Architecture document template | Planning (any mode) |
+| `_templates/rfc.md` | RFC template (problem, proposed solution, alternatives, open questions, outcome) | Planning (optional, for tough decisions) |
+| `_templates/requirement.md` | Formal requirement template (FR-xxx, NFR-xxx) | Planning |
+| `_templates/plan.md` | Plan tracking file | Planning |
 | `_templates/context.md` | External system documentation | As needed |
 | `_templates/dependency.md` | Blocking questions/dependencies | As needed |
-| `_templates/task.md` | Task template within initiative | Phase 3 |
+| `_templates/task.md` | Task template within plan | Planning |
 
 ### Configuration Files
 
 | File | Purpose | Scope |
 |------|---------|-------|
 | `.docs-format` | Activates docs skill, sets output format (confluence/gitbook) | Project |
-| `.claude/ultra-claude.local.md` | Plugin settings: active initiative, team config, feature flags | Project (gitignored) |
+| `.claude/ultra-claude.local.md` | Plugin settings: active plan, team config, feature flags | Project (gitignored) |
 | `.claude/environments-info` | How to access dev/staging/prod environments | Project |
 | `.claude/app-context-for-research.md` | Domain context for researcher agents | Project |
 | `.claude/full-system-test.md` | Instructions for full system test agent | Project |
@@ -274,18 +291,19 @@ ultra-claude/
 ├── .claude-plugin/
 │   └── plugin.json                    # Plugin manifest
 ├── commands/
-│   ├── feature.md                     # /uc:feature
-│   ├── execute.md                     # /uc:execute
-│   ├── debug.md                       # /uc:debug
-│   ├── verify.md                      # /uc:verify
-│   ├── discover.md                    # /uc:discover
+│   ├── feature.md                     # /uc:feature (plan a new feature)
+│   ├── debug.md                       # /uc:debug (plan a fix)
+│   ├── verify.md                      # /uc:verify (plan doc-code sync)
+│   ├── execute.md                     # /uc:execute (run a plan)
+│   ├── discover.md                    # /uc:discover (research only)
 │   ├── checkpoint.md                  # /uc:checkpoint
 │   ├── forge.md                       # /uc:forge
 │   └── status.md                      # /uc:status
 ├── agents/
 │   ├── researcher.md
-│   ├── task-implementer.md
+│   ├── task-executor.md
 │   ├── task-validator.md
+│   ├── code-review.md
 │   ├── full-system-tester.md
 │   ├── debugging-planner.md
 │   ├── verify-checker.md
@@ -293,19 +311,19 @@ ultra-claude/
 │   ├── verify-doc-surveyor.md
 │   └── market-analyzer.md
 ├── skills/
-│   ├── product-design/
+│   ├── feature-plan-mode/
 │   │   └── SKILL.md
-│   ├── tech-architecture/
+│   ├── debugging-mode/
 │   │   └── SKILL.md
-│   ├── implementation-planning/
+│   ├── doc-code-verification-mode/
 │   │   └── SKILL.md
-│   ├── development/
+│   ├── plan-mode-enhance/
 │   │   └── SKILL.md
-│   ├── execute-initiative/
+│   ├── execute-plan/
 │   │   ├── SKILL.md
 │   │   └── references/
 │   │       └── orchestration-pattern.md
-│   ├── verify-docs/
+│   ├── discovery-mode/
 │   │   └── SKILL.md
 │   ├── docs/
 │   │   ├── SKILL.md
@@ -317,23 +335,19 @@ ultra-claude/
 │   │   ├── SKILL.md
 │   │   └── references/
 │   │       └── system-overview.md
-│   ├── plan-mode-enhance/
-│   │   └── SKILL.md
-│   ├── discovery-mode/
-│   │   └── SKILL.md
 │   └── tech-research/
 │       └── SKILL.md
 ├── hooks/
 │   ├── hooks.json                     # Hook configuration
 │   └── scripts/
 │       ├── check-architecture-conformance.sh
-│       ├── load-initiative-context.sh
+│       ├── load-plan-context.sh
 │       └── validate-task-completion.sh
 ├── templates/                         # Documentation templates
 │   ├── architecture.md
 │   ├── rfc.md
 │   ├── requirement.md
-│   ├── initiative.md
+│   ├── plan.md
 │   ├── context.md
 │   ├── dependency.md
 │   └── task.md
@@ -344,74 +358,64 @@ ultra-claude/
 
 ## Workflow: How It All Connects
 
-### Starting a New Feature (Full Pipeline)
+### Feature Plan Mode
 
 ```
 User: /uc:feature "Add user authentication"
 
-1. PHASE 1 — Product Design skill activates
-   → Claude (Head of Product persona) challenges scope
-   → Creates documentation/product/features/user-auth.md
-   → Creates documentation/initiatives/user-auth.md (stub)
-   → User approves → Phase 1 LOCKED
-
-2. PHASE 2 — Tech Architecture skill activates
-   → Claude (Architect persona) evaluates approaches
-   → Updates documentation/architecture/ directly
-   → If decision is ambiguous/high-risk: suggests RFC mode
+1. PLANNING — Feature Plan Mode activates
+   → Plan Mode Enhance triggers plan mode, configures plan directory
+   → Researcher + Docs agents gather context (codebase, architecture, product docs)
+   → Claude challenges scope, pushes for clarity
+   → If architecture decision is ambiguous: suggests RFC mode
      → Creates documentation/rfcs/auth-strategy.md
      → Runs AI persona review (Devil's Advocate, Pragmatist, etc.)
      → Outcome integrated into architecture doc, RFC archived
-   → User approves → Phase 2 LOCKED
+   → Plan created in documentation/plans/user-auth/plan.md
+   → Task list created in documentation/plans/user-auth/task_list.md
+   → User reviews and approves plan
 
-3. PHASE 3 — Implementation Planning skill activates
-   → Plan Mode Enhance configures plan output location
-   → Claude (Engineering Manager persona) creates task breakdown
-   → Tasks written to documentation/initiatives/user-auth.md
-   → Each task has: file paths, dependencies, success criteria, estimated size
-   → User reviews task list
-
-4. PHASE 4 — User chooses execution mode:
-   a) /uc:execute user-auth → Agent team (automated)
-   b) Manual development → /development skill (interactive)
+2. EXECUTION
+   → /uc:execute user-auth
+   → Agent team runs tasks from the plan
 ```
 
-### Executing an Initiative (Agent Team)
+### Executing a Plan (Agent Team)
 
 ```
 User: /uc:execute user-auth
 
 1. SETUP
-   → Lead reads documentation/initiatives/user-auth.md
+   → Lead reads documentation/plans/user-auth/plan.md + task_list.md
    → Lead creates agent team
-   → Lead creates shared task list from initiative tasks
-   → Lead spawns: Researcher + Implementer + Validator teammates
+   → Lead spawns: Researcher + Task Executor + Validator teammates
+   → Lead checks for existing research (doesn't repeat work)
 
 2. TASK LOOP (for each task in priority order)
-   → Researcher claims task research
+   → Researcher gathers context for the task
      - Reads architecture docs, existing code
-     - Writes findings to initiatives/user-auth/research/task-N.md
-     - Sends "research complete" to Implementer
-   → Implementer claims task implementation
+     - Writes findings to plans/user-auth/research/task-N.md
+     - Sends "research complete" to Task Executor
+   → Task Executor implements the task
      - Reads research findings
-     - Implements code conforming to Phase 1-2 specs
+     - Implements code conforming to plan and architecture
      - Sends "implementation complete" to Validator
-   → Validator claims task validation
+   → Validator checks the implementation
      - Checks code against success criteria
      - Runs relevant tests
-     - If PASS: sends "validated" to Lead, task marked complete
-     - If FAIL: sends specific feedback to Implementer, task re-queued
+     - If PASS: task marked complete
+     - If FAIL: sends specific feedback to Task Executor, task re-queued
+   → No user approval required between tasks
 
 3. CHECKPOINT (every N tasks or on demand)
-   → Lead saves progress to initiatives/user-auth/checkpoint.md
-   → Includes: completed tasks, current state, remaining work
-   → If session dies, /uc:execute user-auth resumes from checkpoint
+   → Saves progress to plan directory
+   → Task list + plan can be used to recover if session dies
+   → /uc:execute user-auth resumes from checkpoint
 
 4. COMPLETION
    → All tasks done
-   → Lead spawns Full System Tester for final verification
-   → Lead produces summary report
-   → Team cleanup
+   → Full System Tester runs final verification
+   → Summary report produced
 ```
 
 ### Discovery Mode
@@ -420,39 +424,34 @@ User: /uc:execute user-auth
 User: /uc:discover "Research how competitors handle rate limiting"
 
 1. Discovery Mode skill activates
-   → Coding is DISABLED (all Write/Edit tools blocked via hook)
-   → Lead creates agent team with Researcher + Market Analyzer
-
-2. Research teammates work in parallel
+   → Coding is DISABLED
+   → Researcher + Market Analyzer agents work in parallel
    → Researcher: Explores internal codebase, reads docs, uses Ref.tools
    → Market Analyzer: Web searches, competitor analysis
 
-3. Findings compiled to documentation/research/{topic}.md
-4. No code changes. Pure investigation output.
+2. Findings compiled to documentation/research/{topic}.md
+3. No code changes. No plan. Pure investigation output.
+4. Feeds into future planning sessions as context.
 ```
 
-### Docs vs Code Verification
+### Doc & Code Verification Mode
 
 ```
 User: /uc:verify
 
-1. Verify-docs skill activates
-   → Lead creates agent team
-   → Spawns Code Surveyor + Doc Surveyor teammates
-
-2. Surveying phase (parallel)
+1. PLANNING — Doc & Code Verification Mode activates
+   → Plan Mode Enhance triggers plan mode
+   → Spawns Code Surveyor + Doc Surveyor agents in parallel
    → Code Surveyors scan codebase structure, patterns, APIs
    → Doc Surveyors scan documentation claims, specs, architecture docs
-
-3. Checking phase
-   → Lead creates comparison tasks from survey results
-   → Spawns Checker teammates for each comparison topic
-   → Each Checker: compares doc claim vs code reality
-
-4. Report
+   → Checker agents compare doc claims vs code reality
    → Discrepancies listed with severity (HIGH/MEDIUM/LOW)
-   → Suggestions for fixes (update doc or update code)
-   → Lead presents to user
+   → Plan created with fix tasks (update doc or update code)
+   → User reviews and approves plan
+
+2. EXECUTION
+   → /uc:execute {plan-name}
+   → Agent team resolves discrepancies per plan
 ```
 
 ## The Forge Meta-Skill
@@ -469,21 +468,20 @@ Forge achieves this by having a comprehensive system-overview.md reference that 
 
 ### What Moves Into the Plugin
 
-| Current Location | Component | Destination |
-|-----------------|-----------|-------------|
-| `~/.claude/skills/product-design/` | Product Design skill | `ultra-claude/skills/product-design/` |
-| `~/.claude/skills/tech-architecture/` | Tech Architecture skill | `ultra-claude/skills/tech-architecture/` |
-| `~/.claude/skills/implementation-planning/` | Implementation Planning skill | `ultra-claude/skills/implementation-planning/` |
-| `~/.claude/skills/development/` | Development skill | `ultra-claude/skills/development/` |
-| `~/.claude/skills/execute-initiative/` | Execute Initiative skill | `ultra-claude/skills/execute-initiative/` |
-| `~/.claude/skills/verify-docs/` | Verify Docs skill | `ultra-claude/skills/verify-docs/` |
-| `~/.claude/skills/docs/` | Docs skill | `ultra-claude/skills/docs/` |
-| `~/.claude/skills/checkpoint/` | Checkpoint skill | `ultra-claude/skills/checkpoint/` |
-| `~/.claude/skills/skill-agent-creator/` | Skill/Agent Creator | `ultra-claude/skills/forge/` (evolved into Forge) |
-| `~/.claude/skills/tech-research/` | Tech Research skill | `ultra-claude/skills/tech-research/` |
-| `~/.claude/agents/verify-checker.md` | Verify Checker agent | `ultra-claude/agents/verify-checker.md` |
-| `~/.claude/agents/verify-code-surveyor.md` | Code Surveyor agent | `ultra-claude/agents/verify-code-surveyor.md` |
-| `~/.claude/agents/verify-doc-surveyor.md` | Doc Surveyor agent | `ultra-claude/agents/verify-doc-surveyor.md` |
+Old global skills are refactored into the new plugin structure. The mapping is not 1:1 — old phase-based skills are consolidated into planning modes.
+
+| Old Global Skill | Becomes | Destination |
+|-----------------|---------|-------------|
+| `product-design` + `tech-architecture` + `implementation-planning` | Feature Plan Mode | `ultra-claude/skills/feature-plan-mode/` |
+| `development` + `execute-initiative` | Execute Plan | `ultra-claude/skills/execute-plan/` |
+| `verify-docs` | Doc & Code Verification Mode | `ultra-claude/skills/doc-code-verification-mode/` |
+| `docs` | Docs | `ultra-claude/skills/docs/` |
+| `checkpoint` | Checkpoint | `ultra-claude/skills/checkpoint/` |
+| `skill-agent-creator` | Forge (evolved) | `ultra-claude/skills/forge/` |
+| `tech-research` | Tech Research | `ultra-claude/skills/tech-research/` |
+| `verify-checker` | Verify Checker agent | `ultra-claude/agents/verify-checker.md` |
+| `verify-code-surveyor` | Code Surveyor agent | `ultra-claude/agents/verify-code-surveyor.md` |
+| `verify-doc-surveyor` | Doc Surveyor agent | `ultra-claude/agents/verify-doc-surveyor.md` |
 
 ### What Stays Global (NOT in plugin)
 
@@ -518,14 +516,19 @@ When plugin versions are ready, the originals move to `~/.claude/archive/` rathe
 
 | Component | Type | Purpose |
 |-----------|------|---------|
+| Feature Plan Mode skill | Skill | Feature Plan Mode (consolidates old product-design, tech-architecture, implementation-planning) |
+| Debugging Mode skill | Skill | Debugging Mode for issue investigation and fixes |
+| Plan Mode Enhance skill | Skill | Standardizes all plan output: plan directory, task granularity, task list |
+| Execute Plan skill | Skill | Single execution engine for all plans (consolidates old development + execute-initiative) |
 | Forge skill | Skill | Meta-skill with full system awareness |
-| Plan Mode Enhance skill | Skill | Redirects plan output to initiative directory |
 | Discovery Mode skill | Skill | Disables coding, enables research-only workflow |
-| Market Analyzer agent | Agent | Web/market research via Perplexity |
 | Debugging Planner agent | Agent | Hypothesis-driven debugging coordination |
+| Market Analyzer agent | Agent | Web/market research via Perplexity |
+| Task Executor agent | Agent | Single-task implementation from research context |
 | Full System Tester agent | Agent | Test suite execution (deliberately simple) |
+| Code Review agent | Agent | Checks code compliance, prevents duplication |
 | RFC review personas | Config | Built-in: Devil's Advocate, Pragmatist, Security/Reliability, Cost-conscious. User-extensible. |
-| All hooks | Hooks | Architecture conformance, task validation, initiative context loading |
+| All hooks | Hooks | Architecture conformance, task validation, plan context loading |
 | All commands | Commands | `/uc:*` namespace |
 | All templates | Templates | Documentation scaffolding |
 | Plugin manifest | Config | plugin.json |
@@ -533,29 +536,27 @@ When plugin versions are ready, the originals move to `~/.claude/archive/` rathe
 
 ## Key Assumptions
 
-1. **Agent teams will stabilize**. We're building on an experimental feature. If it breaks, we fall back to subagents (the execute-initiative skill already works this way in AXB_Datalake).
+1. **Agent teams will stabilize**. We're building on an experimental feature. If it breaks, we fall back to subagents (the execute-plan skill already works this way via Task tool).
 
 2. **Documentation structure is consistent**. Every project using Ultra Claude follows the same `documentation/` layout. This is non-negotiable — it's how specs govern code.
 
 3. **CLAUDE.md is the entry point**. The plugin augments but does not replace project CLAUDE.md. Project-specific rules live in CLAUDE.md; Ultra Claude provides the framework.
 
-4. **Phase locking is soft, not rigid**. "Locked" means "going back requires explicit user decision to re-enter that phase." It's governance, not a technical lock.
+4. **Token cost is acceptable**. Agent teams are expensive (~200K tokens per teammate). The user has accepted this trade-off for the coordination benefits.
 
-5. **Token cost is acceptable**. Agent teams are expensive (~200K tokens per teammate). The user has accepted this trade-off for the coordination benefits.
+5. **The plugin is personal**. This is built for one developer's workflow. It may be shared later, but the primary user is the author.
 
-6. **The plugin is personal**. This is built for one developer's workflow. It may be shared later, but the primary user is the author.
+6. **Hooks are the enforcement layer**. CLAUDE.md rules can be forgotten under context pressure. Hooks cannot be overridden. Critical governance rules go in hooks.
 
-7. **Hooks are the enforcement layer**. CLAUDE.md rules can be forgotten under context pressure. Hooks cannot be overridden. Critical governance rules go in hooks.
+7. **Ref.tools MCP is a prerequisite**. The tech-research skill is bundled in the plugin, but it depends on Ref.tools MCP being configured in the environment. The plugin owns the skill; the user owns the MCP server setup.
 
-8. **Ref.tools MCP is a prerequisite**. The tech-research skill is bundled in the plugin, but it depends on Ref.tools MCP being configured in the environment. The plugin owns the skill; the user owns the MCP server setup.
-
-9. **The init script handles project setup**. When Ultra Claude is installed in a new project, `init-docs.sh` creates the `documentation/` directory structure with templates. The user then fills in project-specific content.
+8. **The init script handles project setup**. When Ultra Claude is installed in a new project, `init-docs.sh` creates the `documentation/` directory structure with templates. The user then fills in project-specific content.
 
 ## Open Questions (To Resolve Before Implementation)
 
 1. **Command prefix**: Is `/uc:` the right namespace? Alternatives: `/ultra:`, `/forge:`, no prefix (just `/execute`, `/verify`, etc.)?
 
-2. **Team persistence**: When an initiative spans multiple sessions, how do we handle team recreation? Current plan: checkpoint everything to files, recreate team on resume.
+2. **Team persistence**: When a plan spans multiple sessions, how do we handle team recreation? Current approach: checkpoint everything to files, recreate team on resume.
 
 3. **Discovery mode enforcement**: Should coding be disabled via hooks (hard) or CLAUDE.md instructions (soft)? Hook is more reliable but requires careful implementation.
 
