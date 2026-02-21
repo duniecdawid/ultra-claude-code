@@ -154,23 +154,23 @@ All modes except Discovery load plan-enhancer via `context:` field.
 
 ### 3.1 Feature Mode
 
-- [ ] `skills/feature-mode/SKILL.md` — User-invocable. Full flow: `docs/workflows.md` → "Feature Mode". Agent structure: `docs/architecture.md` → "Feature Mode" (under Planning Mode Structures). The most complex planning mode — includes optional RFC sub-mode with AI persona review. Key: loads both plan-enhancer (via context) and Docs Manager, spawns Researcher as subagent.
+- [x] `skills/feature-mode/SKILL.md` — User-invocable. Full flow: `docs/workflows.md` → "Feature Mode". Agent structure: `docs/architecture.md` → "Feature Mode" (under Planning Mode Structures). The most complex planning mode — includes optional RFC sub-mode with AI persona review. Key: loads both plan-enhancer (via context) and Docs Manager, spawns Researcher as subagent.
 
 ### 3.2 Debug Mode
 
-- [ ] `skills/debug-mode/SKILL.md` — User-invocable. Full flow: `docs/workflows.md` → "Debug Mode". Agent structure: `docs/architecture.md` → "Debug Mode". Key: spawns multiple Researcher subagents (one per hypothesis) + System Tester subagent in parallel.
+- [x] `skills/debug-mode/SKILL.md` — User-invocable. Full flow: `docs/workflows.md` → "Debug Mode". Agent structure: `docs/architecture.md` → "Debug Mode". Key: spawns multiple Researcher subagents (one per hypothesis) + System Tester subagent in parallel.
 
 ### 3.3 Doc & Code Verification Mode
 
-- [ ] `skills/doc-code-verification-mode/SKILL.md` — User-invocable. Full flow: `docs/workflows.md` → "Doc & Code Verification Mode". Agent structure: `docs/architecture.md` → "Doc & Code Verification Mode". Key: spawns Code Surveyor + Doc Surveyor + Checker subagents. Supports scoped verification.
+- [x] `skills/doc-code-verification-mode/SKILL.md` — User-invocable. Full flow: `docs/workflows.md` → "Doc & Code Verification Mode". Agent structure: `docs/architecture.md` → "Doc & Code Verification Mode". Key: spawns Code Surveyor + Doc Surveyor + Checker subagents. Supports scoped verification.
 
 ### 3.4 Discovery Mode
 
-- [ ] `skills/discovery-mode/SKILL.md` — User-invocable. Full flow: `docs/workflows.md` → "Discovery Mode". Agent structure: `docs/architecture.md` → "Discovery Mode". Key differences from other modes: coding DISABLED (Q3 — implement via prompt for now), does NOT produce a plan, does NOT enter plan mode, does NOT load plan-enhancer. Output goes to `documentation/product/description/`.
+- [x] `skills/discovery-mode/SKILL.md` — User-invocable. Full flow: `docs/workflows.md` → "Discovery Mode". Agent structure: `docs/architecture.md` → "Discovery Mode". Key differences from other modes: coding DISABLED (Q3 — implement via prompt for now), does NOT produce a plan, does NOT enter plan mode, does NOT load plan-enhancer. Output goes to `documentation/product/description/`.
 
 ### 3.5 Docs Migration
 
-- [ ] `skills/docs-migration/SKILL.md` — User-invocable. One-time tool. Full description: `docs/architecture.md` → "Docs Migration Skill" (4-step process: survey, map, plan, execute). Spawns Code Surveyor + Doc Surveyor subagents. Produces plan executable via `/uc:plan-execution`.
+- [x] `skills/docs-migration/SKILL.md` — User-invocable. One-time tool. Full description: `docs/architecture.md` → "Docs Migration Skill" (4-step process: survey, map, plan, execute). Spawns Code Surveyor + Doc Surveyor subagents. Produces plan executable via `/uc:plan-execution`.
 
 ### Phase 3 Verification
 
