@@ -50,7 +50,7 @@
     color: var(--gray-800);
     line-height: 1.5;
     padding: 32px;
-    min-width: 1100px;
+    min-width: 1280px;
   }
 
   /* ── Header ── */
@@ -95,9 +95,9 @@
   /* ── Main Layout ── */
   .main-layout {
     display: grid;
-    grid-template-columns: 1fr 200px;
+    grid-template-columns: 1fr 220px;
     gap: 24px;
-    max-width: 1200px;
+    max-width: 1400px;
     margin: 0 auto;
   }
   .flow-column { display: flex; flex-direction: column; gap: 0; }
@@ -283,8 +283,8 @@
     background: var(--gray-100);
     border: 2px solid var(--gray-300);
     border-radius: var(--radius-sm);
-    padding: 16px;
-    min-width: 140px;
+    padding: 14px;
+    width: 160px;
     text-align: center;
     flex-shrink: 0;
   }
@@ -315,8 +315,9 @@
     background: var(--green-light);
     border: 1px solid var(--green-border);
     border-radius: var(--radius-sm);
-    padding: 12px 14px;
+    padding: 10px 10px;
     flex: 1;
+    min-width: 0;
     text-align: center;
     transition: transform 0.15s, box-shadow 0.15s;
     cursor: default;
@@ -347,10 +348,11 @@
     line-height: 1.3;
   }
   .agent-card .tools {
-    font-size: 10px;
+    font-size: 9px;
     color: var(--gray-400);
     margin-top: 6px;
     font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    word-break: break-word;
   }
 
   /* flow connector between agent cards */
@@ -422,6 +424,7 @@
     font-size: 10px;
     margin-top: 2px;
     line-height: 1.3;
+    word-break: break-word;
   }
 
   /* hook items */
@@ -452,32 +455,50 @@
   .output-section {
     border-left: 3px solid var(--yellow);
   }
-  .outputs-grid {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
-  .output-card {
-    background: var(--yellow-light);
-    border: 1px solid var(--yellow-border);
-    border-radius: var(--radius-sm);
-    padding: 12px 16px;
-    flex: 1;
-    min-width: 160px;
-    transition: transform 0.15s;
-    cursor: default;
-  }
-  .output-card:hover { transform: translateY(-1px); }
-  .output-card .path {
+  .file-tree {
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
     font-size: 12px;
+    line-height: 1.8;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 48px;
+  }
+  .file-tree .tree-group {
+    padding: 10px 14px;
+    background: var(--gray-50);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--gray-200);
+    margin-bottom: 10px;
+  }
+  .file-tree .tree-line {
+    white-space: nowrap;
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+  }
+  .file-tree .tree-prefix {
+    color: var(--gray-300);
+    user-select: none;
+  }
+  .file-tree .tree-dir {
     font-weight: 700;
     color: var(--yellow);
-    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
   }
-  .output-card .desc {
-    font-size: 11px;
-    color: var(--gray-500);
-    margin-top: 2px;
+  .file-tree .tree-dir.blue {
+    color: var(--blue);
+  }
+  .file-tree .tree-dir.gray {
+    color: var(--gray-600);
+  }
+  .file-tree .tree-file {
+    color: var(--gray-600);
+  }
+  .file-tree .tree-comment {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    font-size: 10px;
+    color: var(--gray-400);
+    font-weight: 400;
+    margin-left: 4px;
   }
 
   /* ── Tooltip ── */
@@ -620,10 +641,10 @@
 
       <div class="modes-grid">
         <!-- Feature Plan Mode -->
-        <div class="mode-card" data-tip="Challenges scope, considers product + architecture + implementation in one pass. Suggests RFC mode for tough decisions.">
+        <div class="mode-card" data-tip="Challenges scope, considers product + architecture + implementation in one pass. Suggests RFC sub-mode for tough architecture decisions.">
           <div class="icon">&#9881;</div>
           <div class="name">Feature Plan Mode</div>
-          <div class="desc">New features</div>
+          <div class="desc">Plan new features with product, architecture, and implementation context. Optional RFC sub-mode for tough architecture decisions.</div>
           <div class="agents-used">
             <span class="agent-badge">Researcher</span>
             <span class="agent-badge">Docs Mgr</span>
@@ -631,10 +652,10 @@
         </div>
 
         <!-- Debug Mode -->
-        <div class="mode-card" data-tip="Analyzes the issue, proposes hypotheses, spawns researchers to investigate each one in parallel.">
+        <div class="mode-card" data-tip="Analyzes the issue, proposes hypotheses, spawns Researcher + System Tester to investigate each one in parallel.">
           <div class="icon">&#128270;</div>
           <div class="name">Debug Mode</div>
-          <div class="desc">Fix issues</div>
+          <div class="desc">Investigate issues and plan fixes. Spawns Researcher + System Tester to test hypotheses in parallel.</div>
           <div class="agents-used">
             <span class="agent-badge">Researcher</span>
             <span class="agent-badge">Sys Tester</span>
@@ -645,7 +666,7 @@
         <div class="mode-card" data-tip="Spawns surveyors + checkers to find discrepancies between docs and code, produces a fix plan.">
           <div class="icon">&#9989;</div>
           <div class="name">Verification Mode</div>
-          <div class="desc">Sync docs & code</div>
+          <div class="desc">Find discrepancies between documentation and code. Produces a fix plan.</div>
           <div class="agents-used">
             <span class="agent-badge">Code Surv.</span>
             <span class="agent-badge">Doc Surv.</span>
@@ -657,7 +678,7 @@
         <div class="mode-card" style="border-style: dashed;" data-tip="Research only — coding is DISABLED. Outputs go to documentation/product/description/. Does not produce a plan.">
           <div class="icon">&#127758;</div>
           <div class="name">Discovery Mode</div>
-          <div class="desc">Research only</div>
+          <div class="desc">Research only — coding disabled. Outputs go to docs, not a plan.</div>
           <div class="agents-used">
             <span class="agent-badge">Researcher</span>
             <span class="agent-badge">Market Anlz.</span>
@@ -676,9 +697,9 @@
 
       <!-- Plan Enhancer -->
       <div class="enhancer-row">
-        <div class="enhancer-box" data-tip="Shared skill loaded by all planning modes. Redirects plan to plan directory, generates README.md with embedded task list, ensures task granularity, standardizes output.">
+        <div class="enhancer-box" data-tip="Loaded by all planning modes. Routes plan output to plans/{name}/README.md with embedded task list.">
           <div class="name">Plan Enhancer</div>
-          <div class="desc">Standardizes all plan output</div>
+          <div class="desc">Routes plan output to plans/{name}/README.md with embedded task list</div>
         </div>
         <svg width="32" height="16" viewBox="0 0 32 16"><path d="M2 8 L24 8 M18 2 L26 8 L18 14" fill="none" stroke="var(--purple)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <div class="enhancer-outputs">
@@ -703,78 +724,84 @@
       <div class="governance-bar">
         <div class="label">Hooks enforce:</div>
         <div class="hooks">
-          <span class="hook-chip" data-tip="PreToolUse on Write/Edit — checks if file changes align with architecture docs">PreToolUse</span>
-          <span class="hook-chip" data-tip="Stop — verifies architectural changes are reflected in docs">Stop</span>
-          <span class="hook-chip" data-tip="TaskCompleted — validates task meets documented success criteria">TaskCompleted</span>
-          <span class="hook-chip" data-tip="TeammateIdle — checks if teammate completed all assigned work">TeammateIdle</span>
+          <span class="hook-chip" data-tip="PreToolUse on Write/Edit — checks file changes align with architecture docs">PreToolUse (Write/Edit)</span>
+          <span class="hook-chip" data-tip="PostToolUse on TaskUpdate — validates task meets plan success criteria before allowing completion">PostToolUse (TaskUpdate)</span>
+          <span class="hook-chip" data-tip="Stop — saves checkpoint if execution in progress; checks architecture docs updated">Stop</span>
         </div>
       </div>
 
       <div class="exec-engine">
         <!-- Lead -->
-        <div class="lead-box" data-tip="Main session — user interacts here. Reads plan, creates team, coordinates.">
+        <div class="lead-box" data-tip="Main session. Creates 4 task lists from plan, spawns teammates, promotes tasks between lists, handles failures, checkpoints.">
           <div class="icon">&#128101;</div>
           <div class="name">Lead</div>
           <div class="desc">/uc:execute</div>
-          <div class="desc" style="margin-top:8px; font-size:10px; color:var(--gray-400);">Reads plan<br>Creates team<br>Reports to user</div>
+          <div class="desc" style="margin-top:8px; font-size:10px; color:var(--gray-400);">Creates 4 task lists from plan<br>Spawns teammates<br>Promotes tasks between lists<br>Handles failures &amp; checkpoints<br>Reports to user</div>
         </div>
 
         <!-- Agent Team -->
         <div class="team-container">
           <!-- Agent flow row -->
           <div class="team-flow">
-            <div class="agent-card" data-tip="Gathers context from architecture docs + code. Checks for existing research. Writes findings to plans/NAME/research/. Sends findings to Task Executor.">
+            <div class="agent-card" data-tip="Investigates codebase and docs per research task. Writes per-task findings to research/task-N.md, cross-cutting discoveries to shared/researcher.md.">
               <div class="icon">&#128218;</div>
               <div class="name">Researcher</div>
               <div class="model">sonnet</div>
-              <div class="desc">Gathers context</div>
-              <div class="tools">Read, Grep, Glob, Ref</div>
+              <div class="desc">Investigates codebase &amp; docs. Writes to research/ and shared/.</div>
+              <div class="tools">Read, Grep, Glob, WebFetch, WebSearch, Ref</div>
             </div>
 
             <div class="flow-connector">
               <svg width="36" height="24" viewBox="0 0 36 24"><path d="M2 12 L28 12 M22 6 L30 12 L22 18" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
 
-            <div class="agent-card" data-tip="Reads research findings. Implements one task at a time. Works in own files (no conflicts). Sends completion to Task Tester.">
+            <div class="agent-card" data-tip="Implements one task at a time from research context. Writes integration notes to shared/executor.md.">
               <div class="icon">&#128736;</div>
-              <div class="name">Task Executor</div>
+              <div class="name">Executor</div>
               <div class="model">sonnet</div>
-              <div class="desc">Implements tasks</div>
-              <div class="tools">Read, Write, Edit, Bash</div>
+              <div class="desc">Implements one task at a time. Writes notes to shared/.</div>
+              <div class="tools">Read, Write, Edit, Glob, Grep, Bash</div>
             </div>
 
             <div class="flow-connector">
               <svg width="36" height="24" viewBox="0 0 36 24"><path d="M2 12 L28 12 M22 6 L30 12 L22 18" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
 
-            <div class="agent-card" data-tip="Runs tests, checks success criteria. Read-only — cannot modify code. Reports pass/fail. If fail: sends feedback to Task Executor.">
-              <div class="icon">&#9889;</div>
-              <div class="name">Task Tester</div>
+            <div class="agent-card" data-tip="Reviews implementation against standards and architecture. PASS promotes to test; FAIL re-queues to impl with feedback.">
+              <div class="icon">&#128269;</div>
+              <div class="name">Code Reviewer</div>
               <div class="model">sonnet</div>
-              <div class="desc">Validates work</div>
+              <div class="desc">Reviews against standards. PASS → test; FAIL → impl.</div>
+              <div class="tools">Read, Glob, Grep</div>
+            </div>
+
+            <div class="flow-connector">
+              <svg width="36" height="24" viewBox="0 0 36 24"><path d="M2 12 L28 12 M22 6 L30 12 L22 18" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+
+            <div class="agent-card" data-tip="Runs per-task tests + final full suite gate. Cannot modify source code. FAIL re-queues to impl.">
+              <div class="icon">&#9889;</div>
+              <div class="name">Tester</div>
+              <div class="model">sonnet</div>
+              <div class="desc">Runs tests + full suite gate. Cannot modify source.</div>
               <div class="tools">Read, Glob, Grep, Bash</div>
             </div>
+          </div>
 
-            <div class="flow-connector">
-              <svg width="36" height="24" viewBox="0 0 36 24"><path d="M2 12 L28 12 M22 6 L30 12 L22 18" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </div>
-
-            <div class="agent-card" style="border-style: dashed;" data-tip="Spawned as needed. Runs full test suite. Deliberately simple — refuses diagnostic requests. Reports results to Lead.">
-              <div class="icon">&#128300;</div>
-              <div class="name">System Tester</div>
-              <div class="model">haiku</div>
-              <div class="desc">Full test suite</div>
-              <div class="tools">Read, Glob, Bash</div>
-            </div>
+          <!-- Shared Memory indicator -->
+          <div style="display:flex; align-items:center; gap:8px; padding:6px 12px; background:var(--yellow-light); border:1px solid var(--yellow-border); border-radius:var(--radius-sm); margin-top:6px;">
+            <span style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:var(--yellow); white-space:nowrap;">Shared Memory</span>
+            <span style="font-size:11px; color:var(--gray-500); font-family:'SF Mono','Fira Code','Cascadia Code',monospace;">shared/</span>
+            <span style="font-size:10px; color:var(--gray-400);">— per-role files read by all teammates before each task claim</span>
           </div>
 
           <!-- Communication row -->
           <div class="comm-row">
             <div class="comm-arrows">
-              <span class="comm-path">Researcher &#8594; Task Executor &#8594; Task Tester &#8594; Lead</span>
+              <span class="comm-path">Lead promotes: Research &#8594; Impl &#8594; Review &#8594; Test</span>
             </div>
             <div class="comm-arrows" style="border: 1px dashed var(--red-border);">
-              <span class="comm-path" style="color: var(--red);">Fail &#8594; feedback &#8594; Task Executor (re-queue)</span>
+              <span class="comm-path" style="color: var(--red);">FAIL &#8594; re-queue to Impl (max 2 retries)</span>
             </div>
           </div>
         </div>
@@ -788,31 +815,46 @@
 
     <!-- ── Output Layer ── -->
     <div class="section output-section">
-      <div class="section-label">Outputs</div>
-      <div class="outputs-grid">
-        <div class="output-card" data-tip="System design, coding standards, RFC reviews — the technical specification layer">
-          <div class="path">documentation/technology/</div>
-          <div class="desc">architecture/ &middot; standards/ &middot; rfcs/</div>
+      <div class="section-label">Repo Structure</div>
+      <div class="file-tree">
+        <!-- Left column: documentation/ -->
+        <div class="tree-group">
+          <div class="tree-line"><span class="tree-dir">documentation/</span></div>
+          <div class="tree-line"><span class="tree-prefix">├── </span><span class="tree-dir">technology/</span><span class="tree-comment">technical specs</span></div>
+          <div class="tree-line"><span class="tree-prefix">│   ├── </span><span class="tree-file">architecture/</span></div>
+          <div class="tree-line"><span class="tree-prefix">│   ├── </span><span class="tree-file">standards/</span></div>
+          <div class="tree-line"><span class="tree-prefix">│   └── </span><span class="tree-file">rfcs/</span></div>
+          <div class="tree-line"><span class="tree-prefix">├── </span><span class="tree-dir">product/</span><span class="tree-comment">vision &amp; requirements</span></div>
+          <div class="tree-line"><span class="tree-prefix">│   ├── </span><span class="tree-file">description/</span></div>
+          <div class="tree-line"><span class="tree-prefix">│   └── </span><span class="tree-file">requirements/</span></div>
+          <div class="tree-line"><span class="tree-prefix">├── </span><span class="tree-dir">plans/</span><span class="tree-comment">one dir per initiative</span></div>
+          <div class="tree-line"><span class="tree-prefix">│   ├── </span><span class="tree-file">README.md</span><span class="tree-comment">plan + task list</span></div>
+          <div class="tree-line"><span class="tree-prefix">│   ├── </span><span class="tree-file">research/</span></div>
+          <div class="tree-line"><span class="tree-prefix">│   └── </span><span class="tree-file">shared/</span><span class="tree-comment">per-role memory</span></div>
+          <div class="tree-line"><span class="tree-prefix">└── </span><span class="tree-dir">dependencies/</span><span class="tree-comment">blockers &amp; open questions</span></div>
         </div>
-        <div class="output-card" data-tip="Product vision, discovery outputs, formal requirements (FR-xxx, NFR-xxx)">
-          <div class="path">documentation/product/</div>
-          <div class="desc">description/ &middot; requirements/</div>
-        </div>
-        <div class="output-card" data-tip="One directory per initiative. README.md contains plan + task list. research/ holds agent findings.">
-          <div class="path">documentation/plans/</div>
-          <div class="desc">README.md (plan + tasks) &middot; research/</div>
-        </div>
-        <div class="output-card" data-tip="Blocking questions, external dependencies tracking">
-          <div class="path">documentation/dependencies/</div>
-          <div class="desc">Blockers, open questions</div>
-        </div>
-        <div class="output-card" style="background: var(--blue-light); border-color: var(--blue-border);" data-tip="Top-level directory for external system integration knowledge. Contains docs/ (API specs, guides) and code/ (git submodules, SDKs) per system. Managed by context-manager skill.">
-          <div class="path" style="color: var(--blue);">context/</div>
-          <div class="desc">{system}/docs/ &middot; {system}/code/</div>
-        </div>
-        <div class="output-card" style="background: white; border-color: var(--gray-300);">
-          <div class="path" style="color: var(--gray-600);">src/ (code)</div>
-          <div class="desc">The derived artifact — governed by specs</div>
+
+        <!-- Right column: .claude/ + context/ + src/ -->
+        <div>
+          <div class="tree-group">
+            <div class="tree-line"><span class="tree-dir blue">.claude/</span><span class="tree-comment">configuration &amp; governance</span></div>
+            <div class="tree-line"><span class="tree-prefix">├── </span><span class="tree-file">hooks/</span><span class="tree-comment">PreToolUse, PostToolUse, Stop</span></div>
+            <div class="tree-line"><span class="tree-prefix">├── </span><span class="tree-file">skills/</span><span class="tree-comment">modes, execution, support</span></div>
+            <div class="tree-line"><span class="tree-prefix">├── </span><span class="tree-file">docs-format</span></div>
+            <div class="tree-line"><span class="tree-prefix">├── </span><span class="tree-file">ultra-claude.local.md</span></div>
+            <div class="tree-line"><span class="tree-prefix">├── </span><span class="tree-file">environments-info</span></div>
+            <div class="tree-line"><span class="tree-prefix">├── </span><span class="tree-file">app-context-for-research.md</span></div>
+            <div class="tree-line"><span class="tree-prefix">└── </span><span class="tree-file">system-test.md</span></div>
+          </div>
+          <div class="tree-group">
+            <div class="tree-line"><span class="tree-dir blue">context/</span><span class="tree-comment">external system knowledge</span></div>
+            <div class="tree-line"><span class="tree-prefix">└── </span><span class="tree-file">{system}/</span></div>
+            <div class="tree-line"><span class="tree-prefix">    ├── </span><span class="tree-file">docs/</span><span class="tree-comment">API specs, guides</span></div>
+            <div class="tree-line"><span class="tree-prefix">    └── </span><span class="tree-file">code/</span><span class="tree-comment">git submodules, SDKs</span></div>
+          </div>
+          <div class="tree-group">
+            <div class="tree-line"><span class="tree-dir gray">src/</span><span class="tree-comment">derived artifact — governed by specs</span></div>
+          </div>
         </div>
       </div>
     </div>
@@ -825,21 +867,17 @@
     <!-- Governance -->
     <div class="side-panel">
       <div class="section-label">Governance</div>
-      <div class="side-item hook-item" data-tip="Deterministic — cannot be overridden by the AI. Checks architecture conformance on every Write/Edit.">
-        <div class="name">PreToolUse</div>
-        <div class="desc">Intercepts Write/Edit</div>
+      <div class="side-item hook-item" data-tip="Deterministic — cannot be overridden by the AI. Checks file changes align with architecture docs on every Write/Edit.">
+        <div class="name">PreToolUse (Write/Edit)</div>
+        <div class="desc">Architecture conformance on file changes</div>
       </div>
-      <div class="side-item hook-item" data-tip="Verifies architectural changes are documented before session ends.">
+      <div class="side-item hook-item" data-tip="Validates task meets plan success criteria before allowing completion.">
+        <div class="name">PostToolUse (TaskUpdate)</div>
+        <div class="desc">Validates task vs plan criteria</div>
+      </div>
+      <div class="side-item hook-item" data-tip="Saves checkpoint if execution in progress; checks architecture docs updated before session ends.">
         <div class="name">Stop</div>
-        <div class="desc">Check docs updated</div>
-      </div>
-      <div class="side-item hook-item" data-tip="Validates each task meets its documented success criteria.">
-        <div class="name">TaskCompleted</div>
-        <div class="desc">Validate criteria</div>
-      </div>
-      <div class="side-item hook-item" data-tip="Loads plan context when resuming a session.">
-        <div class="name">SessionStart</div>
-        <div class="desc">Load plan context</div>
+        <div class="desc">Checkpoint + docs-updated check</div>
       </div>
     </div>
 
@@ -850,9 +888,9 @@
         <div class="name">Help</div>
         <div class="desc">System advisor</div>
       </div>
-      <div class="side-item support-item" data-tip="Save context to plan files for session recovery. Mitigates agent team session loss.">
+      <div class="side-item support-item" data-tip="Saves task lists, teammate assignments, decisions, and blockers to checkpoint file for session recovery.">
         <div class="name">Checkpoint</div>
-        <div class="desc">Session recovery</div>
+        <div class="desc">Saves state to file for recovery</div>
       </div>
       <div class="side-item support-item" data-tip="External library documentation via Ref.tools MCP. Focused ~500 token responses.">
         <div class="name">Tech Research</div>
@@ -868,30 +906,6 @@
       </div>
     </div>
 
-    <!-- Config Files -->
-    <div class="side-panel">
-      <div class="section-label">Configuration &mdash; .claude/</div>
-      <div class="side-item config-item">
-        <div class="name">docs-format</div>
-        <div class="desc">Output format</div>
-      </div>
-      <div class="side-item config-item">
-        <div class="name">ultra-claude.local.md</div>
-        <div class="desc">Plugin settings</div>
-      </div>
-      <div class="side-item config-item">
-        <div class="name">environments-info</div>
-        <div class="desc">Dev/staging/prod access</div>
-      </div>
-      <div class="side-item config-item">
-        <div class="name">app-context-for-research.md</div>
-        <div class="desc">Domain context</div>
-      </div>
-      <div class="side-item config-item">
-        <div class="name">system-test.md</div>
-        <div class="desc">Test instructions</div>
-      </div>
-    </div>
 
   </div>
 
