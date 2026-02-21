@@ -789,23 +789,27 @@
 
     <!-- ── Output Layer ── -->
     <div class="section output-section">
-      <div class="section-label">Outputs &mdash; documentation/</div>
+      <div class="section-label">Outputs</div>
       <div class="outputs-grid">
         <div class="output-card" data-tip="System design, coding standards, RFC reviews — the technical specification layer">
-          <div class="path">technology/</div>
+          <div class="path">documentation/technology/</div>
           <div class="desc">architecture/ &middot; standards/ &middot; rfcs/</div>
         </div>
         <div class="output-card" data-tip="Product vision, discovery outputs, formal requirements (FR-xxx, NFR-xxx)">
-          <div class="path">product/</div>
+          <div class="path">documentation/product/</div>
           <div class="desc">description/ &middot; requirements/</div>
         </div>
         <div class="output-card" data-tip="Plan files, task lists, research findings — one directory per initiative">
-          <div class="path">plans/</div>
+          <div class="path">documentation/plans/</div>
           <div class="desc">Plans, tasks, research per feature</div>
         </div>
-        <div class="output-card" data-tip="External system docs and blocking questions">
-          <div class="path">context/ &middot; dependencies/</div>
-          <div class="desc">External systems, blockers</div>
+        <div class="output-card" data-tip="Blocking questions, external dependencies tracking">
+          <div class="path">documentation/dependencies/</div>
+          <div class="desc">Blockers, open questions</div>
+        </div>
+        <div class="output-card" style="background: var(--blue-light); border-color: var(--blue-border);" data-tip="Top-level directory for external system integration knowledge. Contains docs/ (API specs, guides) and code/ (git submodules, SDKs) per system. Managed by context-manager skill.">
+          <div class="path" style="color: var(--blue);">context/</div>
+          <div class="desc">{system}/docs/ &middot; {system}/code/</div>
         </div>
         <div class="output-card" style="background: white; border-color: var(--gray-300);">
           <div class="path" style="color: var(--gray-600);">src/ (code)</div>
@@ -858,6 +862,10 @@
       <div class="side-item support-item" data-tip="Activated by .docs-format file. Guards the canonical documentation/ structure — routes docs to correct directories, enforces layout, prevents structural drift.">
         <div class="name">Docs Manager</div>
         <div class="desc">Guards doc structure</div>
+      </div>
+      <div class="side-item support-item" data-tip="Manages top-level context/ directory. Structures external system knowledge (docs + code), aggregates integration info, manages git submodules.">
+        <div class="name">Context Manager</div>
+        <div class="desc">External system context</div>
       </div>
     </div>
 

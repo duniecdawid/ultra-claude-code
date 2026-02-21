@@ -41,22 +41,28 @@ Not every change needs the same scrutiny:
 Every project using Ultra Claude follows this canonical layout. The structure is non-negotiable — it's how specs govern code.
 
 ```
-documentation/
-├── technology/
-│   ├── architecture/              # System design, components, data flow, tech stack
-│   ├── standards/                 # Coding conventions, patterns, quality bars, security rules
-│   └── rfcs/                      # Structured reviews for ambiguous/high-risk decisions
-├── product/
-│   ├── description/               # Vision, discovery outputs, market research
-│   └── requirements/              # Formal requirements (FR-xxx, NFR-xxx)
-├── plans/
-│   └── {feature-name}/
-│       ├── README.md              # Plan document
-│       ├── task_list.md           # Task breakdown for agentic execution
-│       └── research/              # Researcher findings per task
-│           └── task-N.md
-├── context/                       # External system documentation
-└── dependencies/                  # Blocking questions, external dependencies
+project/
+├── documentation/
+│   ├── technology/
+│   │   ├── architecture/          # System design, components, data flow, tech stack
+│   │   ├── standards/             # Coding conventions, patterns, quality bars, security rules
+│   │   └── rfcs/                  # Structured reviews for ambiguous/high-risk decisions
+│   ├── product/
+│   │   ├── description/           # Vision, discovery outputs, market research
+│   │   └── requirements/          # Formal requirements (FR-xxx, NFR-xxx)
+│   ├── plans/
+│   │   └── {feature-name}/
+│   │       ├── README.md          # Plan document
+│   │       ├── task_list.md       # Task breakdown for agentic execution
+│   │       └── research/          # Researcher findings per task
+│   └── dependencies/              # Blocking questions, external dependencies
+│
+├── context/                       # External systems — integration knowledge
+│   └── {system-name}/
+│       ├── docs/                  # API docs, specs, guides, protocols
+│       └── code/                  # Git submodules, SDKs, code samples
+│
+└── src/                           # The derived artifact — governed by specs
 ```
 
 ### Docs Manager as Guardian
@@ -79,8 +85,35 @@ The **docs-manager** skill (activated by `.docs-format` in the project root) gua
 | Product vision, competitor analysis, market research | `product/description/` | Discovery Mode |
 | Formal requirements (FR-xxx, NFR-xxx) | `product/requirements/` | Feature Plan Mode |
 | Plans, task lists, research per initiative | `plans/{name}/` | All planning modes via Plan Enhancer |
-| External API docs, third-party system descriptions | `context/` | Manual / as needed |
 | Blocking questions, external dependencies | `dependencies/` | Manual / as needed |
+
+### Context Directory (Top-Level)
+
+`context/` lives at the project root, **not** inside `documentation/`. It contains integration knowledge about external systems — both documentation and code. Each external system gets its own subdirectory:
+
+```
+context/
+├── stripe/
+│   ├── docs/                      # API reference, webhook specs, migration guides
+│   └── code/                      # Git submodule → stripe SDK or example repo
+├── auth0/
+│   ├── docs/                      # OIDC flows, tenant config, rule patterns
+│   └── code/                      # Git submodule → auth0 samples
+└── internal-api/
+    ├── docs/                      # OpenAPI spec, data model, rate limits
+    └── code/                      # Git submodule → shared proto definitions
+```
+
+**Why top-level?** Context is not specification — it's reference material about the outside world. It can contain code (git submodules, SDKs) which doesn't belong inside `documentation/`. Agents read context during research; it informs the spec but is not the spec.
+
+### Context Manager Skill
+
+The **context-manager** skill manages the `context/` directory:
+
+- **Structuring**: Creates `{system-name}/docs/` and `{system-name}/code/` directories for each external system. Ensures consistent layout across all context entries.
+- **Aggregation**: Collects and organizes information from multiple sources (API docs, specs, code samples) into the appropriate context subdirectory. Deduplicates and keeps context current.
+- **Git submodules**: Manages git submodules in `code/` directories — adding, updating, and tracking external code dependencies that agents need for integration work.
+- **Agent-ready summaries**: Maintains a `context/README.md` index so agents (especially Researcher) can quickly discover what external system knowledge is available before diving into files.
 
 ## Two Layers: Planning and Execution
 

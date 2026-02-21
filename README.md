@@ -58,6 +58,7 @@ ultra-claude/
 │   ├── execute-plan/
 │   ├── discovery-mode/
 │   ├── docs-manager/
+│   ├── context-manager/
 │   ├── checkpoint/
 │   ├── help/
 │   └── tech-research/

@@ -14,6 +14,7 @@ Reference for all Ultra Claude components: skills, agents, commands, hooks, temp
 | **discovery-mode** | "discovery mode", "research only" | User | Discovery Mode: research only, coding disabled |
 | **docs-manager** | Activated by `.docs-format` file | Auto | Guards `documentation/` structure — enforces canonical layout, routes docs to correct directories, prevents structural drift |
 | **checkpoint** | `/uc:checkpoint` | User | Save context to plan files for recovery |
+| **context-manager** | "add context", "add external system", "update context" | User | Manages `context/` directory: structures external system knowledge, aggregates docs + code, manages git submodules |
 | **help** | "how to accomplish", "extend the system" | User | Meta-skill: understands full system, advises on extensions |
 | **tech-research** | "how does X work", "research library", "check docs" | User/Auto | External library/framework documentation via Ref.tools |
 
@@ -64,7 +65,7 @@ Shipped with the plugin. Copied into target projects by `init-docs.sh`.
 | `templates/rfc.md` | RFC template (problem, proposed solution, alternatives, open questions, outcome) | Planning (optional, for tough decisions) |
 | `templates/requirement.md` | Formal requirement template (FR-xxx, NFR-xxx) | Planning |
 | `templates/plan.md` | Plan tracking file | Planning |
-| `templates/context.md` | External system documentation | As needed |
+| `templates/context.md` | External system context template (docs + code layout) | As needed |
 | `templates/dependency.md` | Blocking questions/dependencies | As needed |
 | `templates/task.md` | Task template within plan | Planning |
 

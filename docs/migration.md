@@ -60,6 +60,7 @@ Components that don't exist yet and need to be built from scratch.
 | Execute Plan skill | Skill | Single execution engine for all plans (consolidates old development + execute-initiative) |
 | Help skill | Skill | Meta-skill with full system awareness |
 | Discovery Mode skill | Skill | Disables coding, enables research-only workflow |
+| Context Manager skill | Skill | Manages top-level context/ — external system docs, code, git submodules |
 | Task Executor agent | Agent | Single-task implementation from research context |
 | Task Tester agent | Agent | Runs tests, checks success criteria pass/fail |
 | Code Review agent | Agent | Static analysis: code quality, compliance, duplication prevention |
