@@ -13,7 +13,7 @@ It is NOT a framework, library, or runtime. It is a collection of **skills**, **
 - Architectural governance via hooks that enforce architecture conformance
 - Documentation-vs-code verification that detects drift
 - Plan management with checkpoint/recovery across sessions
-- A meta-skill ("Help") that helps extend the system itself
+- A meta-skill ("Help") that teaches how to use the system
 
 ## Core Philosophy
 

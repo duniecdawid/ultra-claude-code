@@ -8,7 +8,7 @@ Key assumptions the design is built on. If any of these prove wrong, the affecte
 
 | # | Decision | Rationale |
 |---|----------|-----------|
-| D1 | **Agent teams are the primary coordination mechanism.** | Enables direct teammate communication, shared task lists, and self-claiming. This is the foundational coordination choice — all execution patterns are designed for agent teams. |
+| D1 | **Agent teams are the coordination mechanism for execution.** | Enables direct teammate communication, shared task lists, and self-claiming during plan execution. Planning modes use subagents (Task tool) for parallel research — they don't need cross-agent coordination. |
 | D2 | **Documentation structure is consistent across all projects.** | Every project using Ultra Claude follows the same `documentation/` layout. This is non-negotiable — it's how specs govern code. |
 | D3 | **CLAUDE.md is the entry point, not a replacement target.** | The plugin augments but does not replace project CLAUDE.md. Project-specific rules live in CLAUDE.md; Ultra Claude provides the framework. |
 | D4 | **Token cost is acceptable.** | Agent teams are expensive (~200K tokens per teammate). The user has accepted this trade-off for the coordination benefits. |
@@ -20,7 +20,7 @@ Key assumptions the design is built on. If any of these prove wrong, the affecte
 | D10 | **Per-role shared files as persistent memory.** | Teammates don't get conversation history. Per-role files in `shared/` directory bridge the context gap and survive session death. Each role writes only to their own file — no write conflicts. |
 | D11 | **Role-separated task lists (4 lists).** | Lead manages 4 task lists (research, impl, review, test) and promotes between them. Leverages Claude Code's 3 built-in states cleanly within each list rather than fighting the system with metadata hacks. |
 | D12 | **SendMessage for urgent only, files for persistent.** | SendMessage interrupts teammates (costs tokens). Per-role files in `shared/` are read-at-own-pace. Reserve SendMessage for: (1) test/review failure feedback to Lead, (2) Researcher discovering plan-invalidating information, (3) any teammate hitting a blocker that affects other roles. |
-| D13 | **Agent teams only, no subagent fallback.** | Execution layer designed purely for agent teams per D1. No dual-path complexity. |
+| D13 | **Agent teams for execution, subagents for planning.** | Execution layer uses agent teams per D1 (shared task lists, self-claiming, shared memory). Planning modes use subagents via Task tool for parallel research jobs — simpler, cheaper, and sufficient since results just flow back to the Lead. |
 | D14 | **Code Review as pipeline stage between Executor and Tester.** | Catches quality/pattern issues before functional testing. Read-only, uses its own task list. Prevents compounding failures where bad patterns pass tests but violate architecture. |
 | D15 | **Skills replace commands as the invocation mechanism.** | The official Claude Code plugin spec has no `commands/` concept. User-invocable skills (with `user-invocable: true` in YAML frontmatter) ARE slash commands. The `commands/` directory is legacy and removed. |
 | D16 | **`SKILL.md` with YAML frontmatter is the canonical skill format.** | Each skill lives in `skills/{name}/SKILL.md`. YAML frontmatter declares metadata (name, description, tools, model, agent, hooks). The body is the system prompt, injected into context when the skill activates. |

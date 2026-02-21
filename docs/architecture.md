@@ -163,7 +163,7 @@ All planning modes trigger Claude Code's plan mode automatically, enhanced by **
 
 #### Feature Plan Mode
 
-For new features. Uses Researcher + Docs Manager to gather context about the codebase, existing architecture, and product requirements before planning.
+For new features. Spawns Researcher subagent + loads Docs Manager skill to gather context about the codebase, existing architecture, and product requirements before planning.
 
 - Challenges scope, pushes for clarity, asks "why?"
 - Considers product requirements, architecture, and implementation in one pass
@@ -174,7 +174,7 @@ For new features. Uses Researcher + Docs Manager to gather context about the cod
 
 #### Debug Mode
 
-For fixing things. The mode skill itself handles planning — it analyzes the issue, proposes hypotheses, and spawns Researcher + System Tester to investigate.
+For fixing things. The mode skill itself handles planning — it analyzes the issue, proposes hypotheses, and spawns Researcher + System Tester subagents to investigate.
 
 - Analyzes the issue, proposes hypotheses
 - Collects logs, reproduces the bug
@@ -182,15 +182,15 @@ For fixing things. The mode skill itself handles planning — it analyzes the is
 
 #### Doc & Code Verification Mode
 
-For periodic sync. Uses surveyors/checkers to find discrepancies between documentation and code, then produces a plan of things to fix.
+For periodic sync. Spawns surveyor/checker subagents to find discrepancies between documentation and code, then produces a plan of things to fix.
 
-- Reviews system structure, spawns verificators to look for issues
+- Reviews system structure, spawns surveyor and checker subagents to look for issues
 - Generates a list of discrepancies with severity
 - Produces a plan to resolve them (update docs or update code)
 
 ### Discovery Mode (Optional Pre-Step)
 
-Research only — coding is disabled. Focused on building product vision, exploring competitors, researching technology options. Uses Researcher + Market Analyzer agents.
+Research only — coding is disabled. Focused on building product vision, exploring competitors, researching technology options. Spawns Researcher + Market Analyzer subagents.
 
 Discovery feeds into planning but does not produce a plan itself. Output goes to `documentation/product/description/{topic}.md`.
 
@@ -200,18 +200,23 @@ The execution engine is documented in detail in [Execution](execution.md).
 
 In summary: Execute Plan reads any plan README.md and runs it through a dynamically composed agent team. The Lead creates four role-separated task lists (research -> implementation -> review -> testing), spawns teammates with role-specific prompts that bridge the context gap, and coordinates via per-role shared files. Teammates self-claim tasks from their role's list and work in parallel.
 
-## Agent Teams Architecture
+## Agent Coordination
 
-Ultra Claude uses Claude Code's experimental agent teams as its PRIMARY coordination mechanism.
+Ultra Claude uses two coordination mechanisms depending on the stage:
 
-### Why Agent Teams (Not Subagents)
+| Stage | Mechanism | Why |
+|-------|-----------|-----|
+| **Planning** (all modes) | **Subagents** (Task tool) | Planning spawns parallel research jobs that report back to the Lead. No cross-agent coordination needed — the Lead collects results and synthesizes. Subagents are cheaper and simpler. |
+| **Execution** (`/uc:execute-plan`) | **Agent teams** (teammates) | Execution requires cross-role coordination: shared task lists, self-claiming, per-role shared memory, direct messaging between teammates. Only agent teams support these patterns. |
+
+### Agent Teams vs Subagents
 
 | Feature | Subagents | Agent Teams |
 |---------|-----------|-------------|
 | Communication | Report back to parent only | Teammates message each other directly |
 | Coordination | Parent manages everything | Shared task list, self-claiming |
 | Context | Results summarized back | Each has full independent context |
-| Best for | Focused tasks | Complex work requiring collaboration |
+| Best for | Focused tasks (research, surveying) | Complex work requiring collaboration |
 
 Agent teams enable patterns that subagents cannot:
 - Researcher shares findings directly with Task Executor (no parent relay)
@@ -219,62 +224,79 @@ Agent teams enable patterns that subagents cannot:
 - Multiple teammates self-claim from shared task list
 - Plan approval workflow gates implementation
 
-### Team Structures
+These patterns are needed during execution but not during planning.
 
-See [Workflows](workflows.md) for how these teams operate end-to-end.
+### Planning Mode Structures
 
-#### Execute Plan Team
+Planning modes spawn subagents via the Task tool. The Lead (main session) orchestrates: spawns agents in parallel, collects results, synthesizes into a plan.
+
+See [Workflows](workflows.md) for how these operate end-to-end.
+
+#### Feature Plan Mode
+
+```
+Lead (main session)
+├── Researcher subagent
+│   - Gathers codebase + architecture + product context
+│   - Returns findings to Lead
+│
+└── Docs Manager skill (loaded in main context, not a subagent)
+```
+
+#### Debug Mode
+
+```
+Lead (main session — Debug Mode skill handles planning)
+├── Researcher subagent(s)
+│   - Each investigates a different hypothesis in parallel
+│   - Returns evidence to Lead
+│
+└── System Tester subagent
+    - Reproduces the bug
+    - Returns reproduction results to Lead
+```
+
+#### Doc & Code Verification Mode
+
+```
+Lead (main session)
+├── Code Surveyor subagent(s)
+│   - Survey code packages/modules
+│   - Return structure and patterns
+│
+├── Doc Surveyor subagent(s)
+│   - Survey documentation sections
+│   - Return what's documented
+│
+└── Checker subagent(s)
+    - Compare code structure vs doc claims
+    - Return discrepancies with severity
+```
+
+#### Discovery Mode
+
+```
+Lead (main session — coding DISABLED)
+├── Researcher subagent
+│   - Deep code/docs research
+│   - Uses Ref.tools for external library docs
+│
+└── Market Analyzer subagent
+    - Uses Perplexity/web for market research
+    - Competitor analysis, technology trends
+```
+
+### Execute Plan Team Structure
+
+The execution engine is the only mode that uses agent teams. See [Execution](execution.md) for the full team structure, context bridge, shared memory, checkpoints, and error recovery.
 
 Lead + up to 5 teammates across 4 roles: Researcher, Executor, Code Reviewer, Tester.
 Tasks flow through role-separated lists: research -> implementation -> review -> testing.
 Teammates self-claim work and coordinate via per-role shared files.
 
-See [Execution](execution.md) for full team structure, context bridge, shared memory, checkpoints, and error recovery.
-
-#### Debug Mode Team
-
-```
-Lead (main session — Debug Mode skill handles planning)
-├── Researcher teammate(s)
-│   - Each investigates a different hypothesis in parallel
-│   - Sends evidence to Lead
-│
-└── System Tester teammate
-    - Reproduces the bug
-    - Validates the fix
-```
-
-#### Doc & Code Verification Team
-
-```
-Lead (main session)
-├── Code Surveyor teammate(s)
-│   - Survey code packages/modules
-│   - Report structure and patterns
-│
-├── Doc Surveyor teammate(s)
-│   - Survey documentation sections
-│   - Report what's documented
-│
-└── Checker teammate(s)
-    - Compare code structure vs doc claims
-    - Report discrepancies with severity
-```
-
-#### Discovery Mode Team
-
-```
-Lead (main session — coding DISABLED)
-├── Researcher teammate
-│   - Deep code/docs research
-│   - Uses Ref.tools for external library docs
-│
-└── Market Analyzer teammate
-    - Uses Perplexity/web for market research
-    - Competitor analysis, technology trends
-```
-
 ### Agent Team Constraints We Accept
+
+These apply to the execution layer only (the only layer using agent teams):
 
 - **No session resume for teammates**: If session breaks, teammates are lost. Mitigated by checkpoint skill saving state to plan files.
 - **One team per session**: Each workflow gets its own session.

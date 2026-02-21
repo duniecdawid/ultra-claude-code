@@ -14,7 +14,7 @@ User: /uc:feature "Add user authentication"
 
 1. PLANNING — Feature Plan Mode activates
    → Plan Enhancer triggers plan mode, configures plan directory
-   → Researcher + Docs Manager gather context (codebase, architecture, product docs)
+   → Researcher subagent + Docs Manager skill gather context (codebase, architecture, product docs)
    → Claude challenges scope, pushes for clarity
    → If architecture decision is ambiguous: suggests RFC mode
      → Creates documentation/technology/rfcs/auth-strategy.md
@@ -58,7 +58,7 @@ User: /uc:discover "Research how competitors handle rate limiting"
 
 1. Discovery Mode skill activates
    → Coding is DISABLED
-   → Researcher + Market Analyzer agents work in parallel
+   → Researcher + Market Analyzer subagents spawned in parallel via Task tool
    → Researcher: Explores internal codebase, reads docs, uses Ref.tools
    → Market Analyzer: Web searches, competitor analysis
 
@@ -82,10 +82,10 @@ User: /uc:verify
 
 1. PLANNING — Doc & Code Verification Mode activates
    → Plan Enhancer triggers plan mode
-   → Spawns Code Surveyor + Doc Surveyor agents in parallel
+   → Spawns Code Surveyor + Doc Surveyor subagents in parallel via Task tool
    → Code Surveyors scan codebase structure, patterns, APIs
    → Doc Surveyors scan documentation claims, specs, architecture docs
-   → Checker agents compare doc claims vs code reality
+   → Checker subagents compare doc claims vs code reality
    → Discrepancies listed with severity (HIGH/MEDIUM/LOW)
    → Plan created with fix tasks (update doc or update code)
    → User reviews and approves plan
@@ -120,8 +120,8 @@ User: /uc:debug "Login fails intermittently on staging"
 1. PLANNING — Debug Mode activates
    → Debug Mode skill analyzes the issue description
    → Proposes hypotheses (e.g., race condition, session expiry, cache stale)
-   → Spawns Researcher teammates — one per hypothesis, investigating in parallel
-   → System Tester attempts to reproduce the bug
+   → Spawns Researcher subagents — one per hypothesis, investigating in parallel via Task tool
+   → System Tester subagent attempts to reproduce the bug
    → Evidence gathered, hypotheses ranked by likelihood
    → Plan created focused on the fix + verification steps
    → User reviews and approves plan

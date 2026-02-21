@@ -76,18 +76,20 @@ Read the following architecture docs before planning:
 ## Agents
 
 > **Note:** The Lead is the main Claude Code session itself — not a spawned agent. It runs the execute-plan skill and orchestrates all teammates. See [Execution](execution.md) for Lead behavior.
+>
+> **Spawning model:** During planning, agents are spawned as **subagents** via the Task tool (results return to Lead). During execution, agents are spawned as **teammates** in an agent team (self-claiming, shared memory, direct messaging). See [Architecture — Agent Coordination](architecture.md#agent-coordination).
 
-| Agent | Model | Tools | Purpose | Spawn Context |
-|-------|-------|-------|---------|---------------|
-| **researcher** | sonnet | Read, Grep, Glob, WebFetch, WebSearch, mcp__ref | Generic context-gathering agent. Parameterized by the mode that spawns it — focuses on whatever the mode needs (product context, debug investigation, code patterns, etc.). Does not decide where to write — the spawning mode must specify output paths in the spawn prompt. | Varies by mode. Spawner always provides: output file paths (where to save findings), architecture docs path, tech-research skill (auto-loaded for external library/framework documentation). Execute-plan adds: plan README.md, `shared/` directory path, research task list instructions. |
-| **task-executor** | opus | Read, Write, Edit, Glob, Grep, Bash | Single-task implementation from research context | Plan README.md, `shared/` directory path, per-task research file, coding standards path, impl task list instructions |
-| **task-tester** | sonnet | Read, Glob, Grep, Bash | Testing gate in execution pipeline. Self-claims from test task list for per-task testing. Also runs full test suite as final gate before team shutdown. Must not modify source code. Bash restricted to running test commands and build tools. | Plan README.md, `shared/` directory path, success criteria from plan, test task list instructions, system test instructions (.claude/system-test.md), SendMessage target (Lead) for failures |
-| **system-tester** | sonnet | Read, Glob, Grep, Bash | Bug reproduction and fix validation in Debug Mode. Attempts to reproduce reported issues, validates fixes resolve the original problem. Must not modify source code. Bash restricted to bug reproduction and fix validation commands. | Debug Mode team, system test instructions (`.claude/system-test.md`) |
-| **code-review** | sonnet | Read, Glob, Grep | Code review gate in execution pipeline. Self-claims from review task list. Checks code quality, pattern compliance, architecture conformance, duplication. Read-only. PASS promotes to test list, FAIL re-queues to impl list. | Plan README.md, `shared/` directory path, coding standards path, architecture docs path, review task list instructions |
-| **checker** | sonnet | Read, Grep, Glob | Compares specific code against documentation for single topic | — |
-| **code-surveyor** | haiku | Read, Grep, Glob | Quick survey of code package structure | — |
-| **doc-surveyor** | haiku | Read, Grep, Glob | Quick survey of documentation section structure | — |
-| **market-analyzer** | sonnet | WebSearch, WebFetch, mcp__ref | Market research, competitor analysis, technology trends | — |
+| Agent | Model | Tools | Purpose | Spawned As | Spawn Context |
+|-------|-------|-------|---------|------------|---------------|
+| **researcher** | sonnet | Read, Grep, Glob, WebFetch, WebSearch, mcp__ref | Generic context-gathering agent. Parameterized by the mode that spawns it — focuses on whatever the mode needs (product context, debug investigation, code patterns, etc.). Does not decide where to write — the spawning mode must specify output paths in the spawn prompt. | Subagent (planning) or Teammate (execution) | **Planning:** output file paths, architecture docs path, tech-research skill. **Execution:** + plan README.md, `shared/` directory path, research task list instructions. |
+| **task-executor** | opus | Read, Write, Edit, Glob, Grep, Bash | Single-task implementation from research context | Teammate (execution only) | Plan README.md, `shared/` directory path, per-task research file, coding standards path, impl task list instructions |
+| **task-tester** | sonnet | Read, Glob, Grep, Bash | Testing gate in execution pipeline. Self-claims from test task list for per-task testing. Also runs full test suite as final gate before team shutdown. Must not modify source code. Bash restricted to running test commands and build tools. | Teammate (execution only) | Plan README.md, `shared/` directory path, success criteria from plan, test task list instructions, system test instructions (.claude/system-test.md), SendMessage target (Lead) for failures |
+| **system-tester** | sonnet | Read, Glob, Grep, Bash | Bug reproduction and fix validation in Debug Mode. Attempts to reproduce reported issues, validates fixes resolve the original problem. Must not modify source code. Bash restricted to bug reproduction and fix validation commands. | Subagent (Debug Mode planning) | System test instructions (`.claude/system-test.md`), bug description, reproduction steps |
+| **code-review** | sonnet | Read, Glob, Grep | Code review gate in execution pipeline. Self-claims from review task list. Checks code quality, pattern compliance, architecture conformance, duplication. Read-only. PASS promotes to test list, FAIL re-queues to impl list. | Teammate (execution only) | Plan README.md, `shared/` directory path, coding standards path, architecture docs path, review task list instructions |
+| **checker** | sonnet | Read, Grep, Glob | Compares specific code against documentation for single topic | Subagent (Verification Mode) | Code path + doc path to compare |
+| **code-surveyor** | haiku | Read, Grep, Glob | Quick survey of code package structure | Subagent (Verification Mode) | Target directory to survey |
+| **doc-surveyor** | haiku | Read, Grep, Glob | Quick survey of documentation section structure | Subagent (Verification Mode) | Documentation section to survey |
+| **market-analyzer** | sonnet | WebSearch, WebFetch, mcp__ref | Market research, competitor analysis, technology trends | Subagent (Discovery Mode) | Research topic, output path |
 
 ### Agent File Format
 
