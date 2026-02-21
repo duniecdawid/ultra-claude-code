@@ -15,8 +15,7 @@ User: /uc:feature "Add user authentication"
      → Creates documentation/technology/rfcs/auth-strategy.md
      → Runs AI persona review (Devil's Advocate, Pragmatist, etc.)
      → Outcome integrated into architecture doc, RFC archived
-   → Plan created in documentation/plans/user-auth/README.md
-   → Task list created in documentation/plans/user-auth/task_list.md
+   → Plan created in documentation/plans/user-auth/README.md (task list embedded)
    → User reviews and approves plan
 
 2. EXECUTION
@@ -32,7 +31,7 @@ The execution engine runs any plan — Feature, Debug, or Verification all use t
 User: /uc:execute user-auth
 
 1. SETUP
-   → Lead reads documentation/plans/user-auth/README.md + task_list.md
+   → Lead reads documentation/plans/user-auth/README.md (plan + task list)
    → Lead creates agent team
    → Lead spawns: Researcher + Task Executor + Task Tester teammates
    → Lead checks for existing research (doesn't repeat work)

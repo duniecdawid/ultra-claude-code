@@ -56,11 +56,12 @@ Components that don't exist yet and need to be built from scratch.
 |-----------|------|---------|
 | Feature Plan Mode skill | Skill | Consolidates old product-design, tech-architecture, implementation-planning |
 | Debug Mode skill | Skill | Issue investigation and fix planning |
-| Plan Enhancer skill | Skill | Standardizes all plan output: plan directory, task granularity, task list |
+| Plan Enhancer skill | Skill | Standardizes all plan output: plan directory, README.md with embedded task list, task granularity |
 | Execute Plan skill | Skill | Single execution engine for all plans (consolidates old development + execute-initiative) |
 | Help skill | Skill | Meta-skill with full system awareness |
 | Discovery Mode skill | Skill | Disables coding, enables research-only workflow |
 | Context Manager skill | Skill | Manages top-level context/ — external system docs, code, git submodules |
+| Migrate Docs skill | Skill | One-time onboarding: surveys existing project, maps docs to canonical structure, produces migration plan |
 | Task Executor agent | Agent | Single-task implementation from research context |
 | Task Tester agent | Agent | Runs tests, checks success criteria pass/fail |
 | Code Review agent | Agent | Static analysis: code quality, compliance, duplication prevention |

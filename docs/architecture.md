@@ -52,8 +52,7 @@ project/
 │   │   └── requirements/          # Formal requirements (FR-xxx, NFR-xxx)
 │   ├── plans/
 │   │   └── {feature-name}/
-│   │       ├── README.md          # Plan document
-│   │       ├── task_list.md       # Task breakdown for agentic execution
+│   │       ├── README.md          # Plan document (includes task list)
 │   │       └── research/          # Researcher findings per task
 │   └── dependencies/              # Blocking questions, external dependencies
 │
@@ -115,6 +114,29 @@ The **context-manager** skill manages the `context/` directory:
 - **Git submodules**: Manages git submodules in `code/` directories — adding, updating, and tracking external code dependencies that agents need for integration work.
 - **Agent-ready summaries**: Maintains a `context/README.md` index so agents (especially Researcher) can quickly discover what external system knowledge is available before diving into files.
 
+### Migrate Docs Skill
+
+The **migrate-docs** skill (`/uc:migrate`) is a one-time onboarding tool for projects that already have documentation in a non-standard layout. It uses surveyor agents to understand what exists and produces a migration plan.
+
+**How it works:**
+
+1. **Survey** — Spawns Code Surveyor and Doc Surveyor agents in parallel to scan the entire project:
+   - Doc Surveyors inventory all existing documentation: READMEs, wikis, markdown files, API docs, ADRs, specs — wherever they live
+   - Code Surveyors scan for inline documentation patterns, doc comments, and code-adjacent docs
+2. **Map** — Classifies each discovered document against the canonical structure:
+   - "This looks like architecture" → `documentation/technology/architecture/`
+   - "This is an API spec for Stripe" → `context/stripe/docs/`
+   - "This is a product requirement" → `documentation/product/requirements/`
+   - "Unknown / doesn't fit" → flagged for user decision
+3. **Plan** — Produces a migration plan (via Plan Enhancer) with tasks to:
+   - Move files to their canonical locations
+   - Merge duplicates or conflicting docs
+   - Create missing structure (directories that don't exist yet)
+   - Flag documents that need manual review
+4. **Execute** — The plan can be run via `/uc:execute` like any other plan
+
+**When to use:** Only when onboarding an existing project to Ultra Claude. Not needed for greenfield projects (those use `init-docs.sh`).
+
 ## Two Layers: Planning and Execution
 
 Instead of a rigid multi-phase pipeline, there are **three specialized planning modes** that each optimize plan mode for a specific use case, and **one execution engine** that runs any plan.
@@ -123,8 +145,8 @@ Instead of a rigid multi-phase pipeline, there are **three specialized planning 
 
 All planning modes trigger Claude Code's plan mode automatically, enhanced by **Plan Enhancer** — a shared skill that:
 - Redirects the plan from Claude's default location to a plan directory
+- Generates the plan as `README.md` (or configured main page name) with the task list embedded — Claude recognizes this as a single coherent plan
 - Ensures task granularity is right for agentic execution
-- Creates a task list compatible with Claude's task system
 - Standardizes the output structure so all plans look the same regardless of entry point
 
 #### Feature Plan Mode
@@ -165,7 +187,7 @@ Discovery feeds into planning but does not produce a plan itself. Output goes to
 **Execute Plan** — a single execution engine that takes any plan produced by any mode and runs it through the agent team. It doesn't care how the plan was created — Feature Plan, Debugging, or Verification all produce the same standardized structure.
 
 The execution engine:
-- Reads the plan and task list from the plan directory
+- Reads the plan (README.md with embedded task list) from the plan directory
 - Spawns agents: Researcher, Task Executor, Task Tester, System Tester
 - Is aware of already-performed research (doesn't repeat work)
 - Runs tasks without requiring user approval between every task

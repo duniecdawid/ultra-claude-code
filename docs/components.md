@@ -9,12 +9,13 @@ Reference for all Ultra Claude components: skills, agents, commands, hooks, temp
 | **feature-plan-mode** | "new feature", "plan feature", "start feature" | User | Feature Plan Mode: new features with product + architecture context |
 | **debug-mode** | "debug", "fix", "investigate" | User | Debug Mode: issue investigation and fix planning |
 | **doc-code-verification-mode** | "verify docs", "check doc-code gaps", "sync docs" | User | Doc & Code Verification Mode: find and plan fixes for discrepancies |
-| **plan-enhancer** | Auto-loaded by all modes | Auto (internal) | Standardizes plan output: plan directory, task granularity, task list |
+| **plan-enhancer** | Auto-loaded by all modes | Auto (internal) | Standardizes plan output: plan directory, README.md with embedded task list, task granularity |
 | **execute-plan** | `/uc:execute` | User | Execution engine: runs any plan through agent team |
 | **discovery-mode** | "discovery mode", "research only" | User | Discovery Mode: research only, coding disabled |
 | **docs-manager** | Activated by `.docs-format` file | Auto | Guards `documentation/` structure — enforces canonical layout, routes docs to correct directories, prevents structural drift |
 | **checkpoint** | `/uc:checkpoint` | User | Save context to plan files for recovery |
 | **context-manager** | "add context", "add external system", "update context" | User | Manages `context/` directory: structures external system knowledge, aggregates docs + code, manages git submodules |
+| **migrate-docs** | `/uc:migrate` | User | One-time migration: surveys existing project docs + code, maps them to canonical structure, produces a migration plan |
 | **help** | "how to accomplish", "extend the system" | User | Meta-skill: understands full system, advises on extensions |
 | **tech-research** | "how does X work", "research library", "check docs" | User/Auto | External library/framework documentation via Ref.tools |
 
@@ -42,6 +43,7 @@ Reference for all Ultra Claude components: skills, agents, commands, hooks, temp
 | `/uc:execute` | Execute a plan through agent team |
 | `/uc:discover` | Enter Discovery Mode (research only, no coding) |
 | `/uc:checkpoint` | Save current progress for session recovery |
+| `/uc:migrate` | Survey existing project and migrate docs to canonical structure |
 | `/uc:help` | Ask the meta-skill how to accomplish something |
 | `/uc:status` | Show plan status, task progress |
 
@@ -64,10 +66,10 @@ Shipped with the plugin. Copied into target projects by `init-docs.sh`.
 | `templates/architecture.md` | Architecture document template | Planning (any mode) |
 | `templates/rfc.md` | RFC template (problem, proposed solution, alternatives, open questions, outcome) | Planning (optional, for tough decisions) |
 | `templates/requirement.md` | Formal requirement template (FR-xxx, NFR-xxx) | Planning |
-| `templates/plan.md` | Plan tracking file | Planning |
+| `templates/plan.md` | Plan template (README.md with embedded task list) | Planning |
 | `templates/context.md` | External system context template (docs + code layout) | As needed |
 | `templates/dependency.md` | Blocking questions/dependencies | As needed |
-| `templates/task.md` | Task template within plan | Planning |
+| `templates/task.md` | Individual task template (used within plan README.md) | Planning |
 
 ## Configuration Files
 

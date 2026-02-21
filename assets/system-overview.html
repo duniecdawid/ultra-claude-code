@@ -676,14 +676,13 @@
 
       <!-- Plan Enhancer -->
       <div class="enhancer-row">
-        <div class="enhancer-box" data-tip="Shared skill loaded by all planning modes. Redirects plan to plan directory, ensures task granularity, creates task list, standardizes output.">
+        <div class="enhancer-box" data-tip="Shared skill loaded by all planning modes. Redirects plan to plan directory, generates README.md with embedded task list, ensures task granularity, standardizes output.">
           <div class="name">Plan Enhancer</div>
           <div class="desc">Standardizes all plan output</div>
         </div>
         <svg width="32" height="16" viewBox="0 0 32 16"><path d="M2 8 L24 8 M18 2 L26 8 L18 14" fill="none" stroke="var(--purple)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <div class="enhancer-outputs">
-          <div class="output-tag" data-tip="plans/{name}/README.md — the plan document">plan.md</div>
-          <div class="output-tag" data-tip="plans/{name}/task_list.md — task breakdown for agentic execution">task_list.md</div>
+          <div class="output-tag" data-tip="plans/{name}/README.md — the plan document with embedded task list. Single file so Claude recognizes it as one coherent plan.">README.md</div>
         </div>
       </div>
 
@@ -799,9 +798,9 @@
           <div class="path">documentation/product/</div>
           <div class="desc">description/ &middot; requirements/</div>
         </div>
-        <div class="output-card" data-tip="Plan files, task lists, research findings — one directory per initiative">
+        <div class="output-card" data-tip="One directory per initiative. README.md contains plan + task list. research/ holds agent findings.">
           <div class="path">documentation/plans/</div>
-          <div class="desc">Plans, tasks, research per feature</div>
+          <div class="desc">README.md (plan + tasks) &middot; research/</div>
         </div>
         <div class="output-card" data-tip="Blocking questions, external dependencies tracking">
           <div class="path">documentation/dependencies/</div>

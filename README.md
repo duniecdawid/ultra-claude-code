@@ -38,6 +38,7 @@ ultra-claude/
 │   ├── execute.md
 │   ├── discover.md
 │   ├── checkpoint.md
+│   ├── migrate.md
 │   ├── help.md
 │   └── status.md
 ├── agents/                            # Agent definitions
@@ -59,6 +60,7 @@ ultra-claude/
 │   ├── discovery-mode/
 │   ├── docs-manager/
 │   ├── context-manager/
+│   ├── migrate-docs/
 │   ├── checkpoint/
 │   ├── help/
 │   └── tech-research/
