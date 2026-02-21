@@ -66,12 +66,12 @@ project/
 
 ### Docs Manager as Guardian
 
-The **docs-manager** skill (activated by `.docs-format` in the project root) guards this structure:
+The **docs-manager** skill (activated by `.claude/docs-format` in the project) guards this structure:
 
 - **Routing**: When any mode or agent creates documentation, docs-manager ensures it lands in the correct directory. Architecture decisions go to `technology/architecture/`, not floating in the root. Discovery outputs go to `product/description/`, not a random location.
 - **Structure enforcement**: Docs-manager knows the canonical layout and rejects writes that violate it. If an agent tries to create `documentation/auth-notes.md` (wrong — no top-level files), docs-manager routes it to the correct subdirectory.
 - **Initialization**: On first use (`init-docs.sh`), the full directory tree is scaffolded with README placeholders so the structure is visible from day one.
-- **Format awareness**: The `.docs-format` file tells docs-manager the output format (Confluence, GitBook, plain Markdown). Docs-manager ensures all generated documentation conforms to the chosen format.
+- **Format awareness**: The `.claude/docs-format` file tells docs-manager the output format (Confluence, GitBook, plain Markdown). Docs-manager ensures all generated documentation conforms to the chosen format.
 - **Index generation**: Docs-manager generates and maintains `documentation/README.md` — a navigable index of the entire documentation tree. The README lists every section with descriptions and links, so a newcomer (human or agent) can orient themselves instantly. The index is regenerated automatically whenever documentation is added or restructured.
 
 ### What Goes Where

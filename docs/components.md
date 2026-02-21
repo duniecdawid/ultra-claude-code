@@ -12,7 +12,7 @@ Reference for all Ultra Claude components: skills, agents, commands, hooks, temp
 | **plan-enhancer** | Auto-loaded by all modes | Auto (internal) | Standardizes plan output: plan directory, README.md with embedded task list, task granularity |
 | **execute-plan** | `/uc:execute` | User | Execution engine: runs any plan through agent team |
 | **discovery-mode** | "discovery mode", "research only" | User | Discovery Mode: research only, coding disabled |
-| **docs-manager** | Activated by `.docs-format` file | Auto | Guards `documentation/` structure — enforces canonical layout, routes docs to correct directories, prevents structural drift |
+| **docs-manager** | Activated by `.claude/docs-format` file | Auto | Guards `documentation/` structure — enforces canonical layout, routes docs to correct directories, prevents structural drift |
 | **checkpoint** | `/uc:checkpoint` | User | Save context to plan files for recovery |
 | **context-manager** | "add context", "add external system", "update context" | User | Manages `context/` directory: structures external system knowledge, aggregates docs + code, manages git submodules |
 | **migrate-docs** | `/uc:migrate` | User | One-time migration: surveys existing project docs + code, maps them to canonical structure, produces a migration plan |
@@ -75,11 +75,13 @@ Shipped with the plugin. Copied into target projects by `init-docs.sh`.
 
 | File | Purpose | Scope |
 |------|---------|-------|
-| `.docs-format` | Activates docs-manager skill, sets output format (confluence/gitbook) | Project |
+| `.claude/docs-format` | Activates docs-manager skill, sets output format (confluence/gitbook) | Project |
 | `.claude/ultra-claude.local.md` | Plugin settings: active plan, team config, feature flags | Project (gitignored) |
 | `.claude/environments-info` | How to access dev/staging/prod environments | Project |
 | `.claude/app-context-for-research.md` | Domain context for researcher agents | Project |
 | `.claude/system-test.md` | Instructions for system tester agent | Project |
+
+All project-level configuration lives in the project's `.claude/` directory. This keeps the project root clean and groups all Claude Code configuration in one place.
 
 ## Color Coding Convention
 
