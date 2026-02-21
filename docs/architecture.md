@@ -239,12 +239,12 @@ Lead (main session — coding DISABLED)
 - **Cost**: Each teammate is ~200K tokens. We minimize by spawning only what's needed, shutting down when done.
 - **Permissions**: All teammates inherit lead's permission mode. Pre-approve common operations in settings.
 
-## The Forge Meta-Skill
+## The Help Meta-Skill
 
-Forge is unique — it has awareness of the ENTIRE Ultra Claude system. Its purpose:
+Help is unique — it has awareness of the ENTIRE Ultra Claude system. Its purpose:
 
 1. **"How do I accomplish X with this system?"** — Advises which skills, agents, and workflows to use
 2. **"Extend the system with Y capability"** — Guides creating new skills/agents that fit the architecture
 3. **"What's the most efficient path?"** — Suggests workflow optimizations based on the task
 
-Forge achieves this by having a comprehensive system-overview.md reference that describes all components, their relationships, and usage patterns.
+Help achieves this by having a comprehensive system-overview.md reference that describes all components, their relationships, and usage patterns.

@@ -13,7 +13,7 @@ It is NOT a framework, library, or runtime. It is a collection of **skills**, **
 - Architectural governance via hooks that enforce architecture conformance
 - Documentation-vs-code verification that detects drift
 - Plan management with checkpoint/recovery across sessions
-- A meta-skill ("Forge") that helps extend the system itself
+- A meta-skill ("Help") that helps extend the system itself
 
 ## Core Philosophy
 
@@ -38,7 +38,7 @@ ultra-claude/
 │   ├── execute.md
 │   ├── discover.md
 │   ├── checkpoint.md
-│   ├── forge.md
+│   ├── help.md
 │   └── status.md
 ├── agents/                            # Agent definitions
 │   ├── researcher.md
@@ -59,7 +59,7 @@ ultra-claude/
 │   ├── discovery-mode/
 │   ├── docs-manager/
 │   ├── checkpoint/
-│   ├── forge/
+│   ├── help/
 │   └── tech-research/
 ├── hooks/                             # Deterministic enforcement
 │   ├── hooks.json

@@ -13,7 +13,7 @@ Old global skills are refactored into the new plugin structure. The mapping is n
 | `verify-docs` | Doc & Code Verification Mode | `skills/doc-code-verification-mode/` |
 | `docs` | Docs Manager | `skills/docs-manager/` |
 | `checkpoint` | Checkpoint | `skills/checkpoint/` |
-| `skill-agent-creator` | Forge (evolved) | `skills/forge/` |
+| `skill-agent-creator` | Help (evolved) | `skills/help/` |
 | `tech-research` | Tech Research | `skills/tech-research/` |
 | `verify-checker` | Checker agent | `agents/checker.md` |
 | `verify-code-surveyor` | Code Surveyor agent | `agents/code-surveyor.md` |
@@ -58,7 +58,7 @@ Components that don't exist yet and need to be built from scratch.
 | Debug Mode skill | Skill | Issue investigation and fix planning |
 | Plan Enhancer skill | Skill | Standardizes all plan output: plan directory, task granularity, task list |
 | Execute Plan skill | Skill | Single execution engine for all plans (consolidates old development + execute-initiative) |
-| Forge skill | Skill | Meta-skill with full system awareness |
+| Help skill | Skill | Meta-skill with full system awareness |
 | Discovery Mode skill | Skill | Disables coding, enables research-only workflow |
 | Task Executor agent | Agent | Single-task implementation from research context |
 | Task Tester agent | Agent | Runs tests, checks success criteria pass/fail |

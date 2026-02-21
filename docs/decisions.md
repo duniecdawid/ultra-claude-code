@@ -23,10 +23,10 @@ To resolve before implementation begins.
 
 | # | Question | Options / Notes |
 |---|----------|-----------------|
-| Q1 | **Command prefix**: Is `/uc:` the right namespace? | Alternatives: `/ultra:`, `/forge:`, no prefix (just `/execute`, `/verify`, etc.) |
+| Q1 | **Command prefix**: Is `/uc:` the right namespace? | Alternatives: `/ultra:`, no prefix (just `/execute`, `/verify`, etc.) |
 | Q2 | **Team persistence**: When a plan spans multiple sessions, how do we handle team recreation? | Current approach: checkpoint everything to files, recreate team on resume. |
 | Q3 | **Discovery mode enforcement**: Should coding be disabled via hooks (hard) or CLAUDE.md instructions (soft)? | Hook is more reliable but requires careful implementation. |
 | Q4 | **Docs format flexibility**: Should the plugin mandate a specific documentation format (Confluence-style, GitBook-style) or be format-agnostic? | — |
 | Q5 | **Existing documentation**: How does the plugin interact with projects that already have documentation? | Does it adapt to existing structure or require migration to the Ultra Claude layout? |
-| Q6 | **Forge: skill or command?** | Skills auto-activate based on triggers; commands require explicit invocation. Forge might benefit from explicit invocation to avoid unwanted activation. |
+| Q6 | **Help: skill or command?** | Skills auto-activate based on triggers; commands require explicit invocation. Help might benefit from explicit invocation to avoid unwanted activation. |
 | Q7 | **Bundled MCP servers**: Should the plugin bundle any MCP servers? | Current thinking: no — rely on globally configured MCP servers (Ref.tools, Atlassian). |
