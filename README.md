@@ -80,6 +80,7 @@ ultra-claude/
 | Document | Purpose |
 |----------|---------|
 | [Architecture](docs/architecture.md) | System design: philosophy, layers, modes, governance, agent teams |
+| [Execution](docs/execution.md) | Execution engine: agent teams, task lists, shared memory, lifecycle |
 | [Components](docs/components.md) | Reference tables: skills, agents, commands, hooks, templates, config |
 | [Workflows](docs/workflows.md) | Step-by-step flows for each mode |
 | [Decisions](docs/decisions.md) | Architectural decisions + open questions |

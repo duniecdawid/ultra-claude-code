@@ -184,14 +184,9 @@ Discovery feeds into planning but does not produce a plan itself. Output goes to
 
 ### Execution Layer
 
-**Execute Plan** — a single execution engine that takes any plan produced by any mode and runs it through the agent team. It doesn't care how the plan was created — Feature Plan, Debugging, or Verification all produce the same standardized structure.
+The execution engine is documented in detail in [Execution](execution.md).
 
-The execution engine:
-- Reads the plan (README.md with embedded task list) from the plan directory
-- Spawns agents: Researcher, Task Executor, Task Tester, System Tester
-- Is aware of already-performed research (doesn't repeat work)
-- Runs tasks without requiring user approval between every task
-- Saves progress via checkpoints for session recovery
+In summary: Execute Plan reads any plan README.md and runs it through a dynamically composed agent team. The Lead creates four role-separated task lists (research -> implementation -> review -> testing), spawns teammates with role-specific prompts that bridge the context gap, and coordinates via a shared memory file. Teammates self-claim tasks from their role's list and work in parallel.
 
 ## Agent Teams Architecture
 
@@ -219,29 +214,29 @@ See [Workflows](workflows.md) for how these teams operate end-to-end.
 #### Execute Plan Team
 
 ```
-Lead (main session — user interacts here)
-├── Researcher teammate
-│   - Gathers context from architecture docs + code
-│   - Checks for existing research (doesn't repeat work)
-│   - Writes findings to plans/NAME/research/
-│   - Sends findings to Task Executor via SendMessage
-│
-├── Task Executor teammate
-│   - Reads research context
-│   - Implements one task at a time
-│   - Works in own files (no conflicts)
-│   - Sends completion to Task Tester via SendMessage
-│
-├── Task Tester teammate
-│   - Runs tests, checks success criteria pass/fail
-│   - Read-only — cannot modify code
-│   - Reports pass/fail to Lead
-│   - If fail: sends specific feedback to Task Executor
-│
-└── System Tester teammate (spawned as needed)
-    - Runs full test suite after changes
-    - Reports results to Lead
+Lead (main session -- user interacts here)
++-- Researcher teammate (0-1)
+|   - Self-claims from research task list
+|   - Writes findings to plans/NAME/research/task-N.md
+|   - Updates shared-context.md with cross-cutting discoveries
+|
++-- Executor teammate(s) (1-3)
+|   - Self-claims from implementation task list
+|   - Reads per-task research + shared-context.md
+|   - Implements code conforming to plan + architecture docs
+|
++-- Code Reviewer teammate (0-1)
+|   - Self-claims from review task list
+|   - Checks quality, patterns, architecture conformance
+|   - Read-only -- PASS promotes to test, FAIL re-queues to impl
+|
++-- Tester teammate (0-1)
+    - Self-claims from test task list
+    - Per-task testing + final full suite gate
+    - Read-only -- PASS completes, FAIL re-queues to impl
 ```
+
+See [Execution](execution.md) for full details: context bridge, shared memory, checkpoints, error recovery.
 
 #### Debug Mode Team
 

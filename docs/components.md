@@ -21,17 +21,16 @@ Reference for all Ultra Claude components: skills, agents, commands, hooks, temp
 
 ## Agents
 
-| Agent | Model | Tools | Purpose |
-|-------|-------|-------|---------|
-| **researcher** | sonnet | Read, Grep, Glob, WebFetch, mcp__ref | Generic context-gathering agent. Parameterized by the mode that spawns it — focuses on whatever the mode needs (product context, debug investigation, code patterns, etc.) |
-| **task-executor** | sonnet | Read, Write, Edit, Glob, Grep, Bash | Single-task implementation from research context |
-| **task-tester** | sonnet | Read, Glob, Grep, Bash | Runs tests, checks success criteria pass/fail (read-only for code) |
-| **code-review** | sonnet | Read, Glob, Grep | Static analysis: code quality, pattern compliance, duplication prevention |
-| **system-tester** | haiku | Read, Glob, Grep, Bash | Runs full test suite, reports results. Deliberately "dumb" — refuses diagnostic requests |
-| **checker** | sonnet | Read, Grep, Glob | Compares specific code against documentation for single topic |
-| **code-surveyor** | haiku | Read, Grep, Glob | Quick survey of code package structure |
-| **doc-surveyor** | haiku | Read, Grep, Glob | Quick survey of documentation section structure |
-| **market-analyzer** | sonnet | WebSearch, WebFetch, mcp__ref | Market research, competitor analysis, technology trends |
+| Agent | Model | Tools | Purpose | Spawn Context |
+|-------|-------|-------|---------|---------------|
+| **researcher** | sonnet | Read, Grep, Glob, WebFetch, mcp__ref | Generic context-gathering agent. Parameterized by the mode that spawns it — focuses on whatever the mode needs (product context, debug investigation, code patterns, etc.) | Plan README.md, shared-context.md, architecture docs path, research task list instructions |
+| **task-executor** | sonnet | Read, Write, Edit, Glob, Grep, Bash | Single-task implementation from research context | Plan README.md, shared-context.md, per-task research file, coding standards path, impl task list instructions |
+| **task-tester** | sonnet | Read, Glob, Grep, Bash | Testing gate in execution pipeline. Self-claims from test task list for per-task testing. Also runs full test suite as final gate before team shutdown. Read-only for source code. | Plan README.md, shared-context.md, success criteria from plan, test task list instructions, system test instructions (.claude/system-test.md), SendMessage target (Lead) for failures |
+| **code-review** | sonnet | Read, Glob, Grep | Code review gate in execution pipeline. Self-claims from review task list. Checks code quality, pattern compliance, architecture conformance, duplication. Read-only. PASS promotes to test list, FAIL re-queues to impl list. | Plan README.md, shared-context.md, coding standards path, architecture docs path, review task list instructions |
+| **checker** | sonnet | Read, Grep, Glob | Compares specific code against documentation for single topic | — |
+| **code-surveyor** | haiku | Read, Grep, Glob | Quick survey of code package structure | — |
+| **doc-surveyor** | haiku | Read, Grep, Glob | Quick survey of documentation section structure | — |
+| **market-analyzer** | sonnet | WebSearch, WebFetch, mcp__ref | Market research, competitor analysis, technology trends | — |
 
 ## Commands
 
@@ -49,13 +48,13 @@ Reference for all Ultra Claude components: skills, agents, commands, hooks, temp
 
 ## Hooks
 
-| Hook Event | Purpose | Type |
-|------------|---------|------|
-| **PreToolUse (Write/Edit)** | Check if file changes align with architecture docs | prompt |
-| **Stop** | Verify architectural changes are reflected in architecture docs | prompt |
-| **TaskCompleted** | Validate task meets documented success criteria | agent |
-| **TeammateIdle** | Check if teammate completed all assigned work | prompt |
-| **SessionStart** | Load plan context if resuming | command |
+| Hook Event | Purpose | Type | Agent Team Behavior |
+|------------|---------|------|---------------------|
+| **PreToolUse (Write/Edit)** | Check if file changes align with architecture docs | prompt | Unchanged from planning layer |
+| **Stop** | Verify architectural changes are reflected in architecture docs | prompt | Triggers checkpoint save if execution is in progress |
+| **TaskCompleted** | Validate task meets documented success criteria | agent | Validates against plan README.md success criteria; blocks completion if unmet |
+| **TeammateIdle** | Check if teammate completed all assigned work | prompt | Checks if role-list still has claimable tasks; notifies Lead if tasks remain. For Code Reviewer: also checks all reviewed tasks have written feedback. |
+| **SessionStart** | Load plan context if resuming | command | — |
 
 ## Templates
 
@@ -80,6 +79,8 @@ Shipped with the plugin. Copied into target projects by `init-docs.sh`.
 | `.claude/environments-info` | How to access dev/staging/prod environments | Project |
 | `.claude/app-context-for-research.md` | Domain context for researcher agents | Project |
 | `.claude/system-test.md` | Instructions for system tester agent | Project |
+| `documentation/plans/{name}/shared-context.md` | Persistent shared memory between teammates during execution | Plan |
+| `documentation/plans/{name}/checkpoint-{timestamp}.md` | Session state snapshot for recovery | Plan |
 
 All project-level configuration lives in the project's `.claude/` directory. This keeps the project root clean and groups all Claude Code configuration in one place.
 

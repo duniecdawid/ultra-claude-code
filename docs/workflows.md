@@ -25,42 +25,9 @@ User: /uc:feature "Add user authentication"
 
 ## Execute Plan
 
-The execution engine runs any plan — Feature, Debug, or Verification all use the same flow.
+See [Execution](execution.md) for the complete 5-phase workflow.
 
-```
-User: /uc:execute user-auth
-
-1. SETUP
-   → Lead reads documentation/plans/user-auth/README.md (plan + task list)
-   → Lead creates agent team
-   → Lead spawns: Researcher + Task Executor + Task Tester teammates
-   → Lead checks for existing research (doesn't repeat work)
-
-2. TASK LOOP (for each task in priority order)
-   → Researcher gathers context for the task
-     - Reads architecture docs, existing code
-     - Writes findings to plans/user-auth/research/task-N.md
-     - Sends "research complete" to Task Executor
-   → Task Executor implements the task
-     - Reads research findings
-     - Implements code conforming to plan and architecture
-     - Sends "implementation complete" to Task Tester
-   → Task Tester checks the implementation
-     - Runs relevant tests, checks success criteria
-     - If PASS: task marked complete
-     - If FAIL: sends specific feedback to Task Executor, task re-queued
-   → No user approval required between tasks
-
-3. CHECKPOINT (every N tasks or on demand)
-   → Saves progress to plan directory
-   → Task list + plan can be used to recover if session dies
-   → /uc:execute user-auth resumes from checkpoint
-
-4. COMPLETION
-   → All tasks done
-   → System Tester runs final verification
-   → Summary report produced
-```
+**Summary:** `/uc:execute {plan-name}` -> Lead reads plan -> creates 4 role-separated task lists -> spawns dynamic team -> teammates self-claim and work in parallel -> Lead promotes tasks between lists -> checkpoints periodically -> Tester runs final gate -> summary report.
 
 ## Discovery Mode
 
