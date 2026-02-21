@@ -192,7 +192,7 @@ All modes except Discovery load plan-enhancer via `context:` field.
 
 ### 4.1 Plan Execution Skill
 
-- [ ] `skills/plan-execution/SKILL.md` — User-invocable. **The primary reference for this skill is `docs/execution.md` — the entire document.** Read it cover to cover before implementing.
+- [x] `skills/plan-execution/SKILL.md` — User-invocable. **The primary reference for this skill is `docs/execution.md` — the entire document.** Read it cover to cover before implementing.
 
 Key sections to translate into the skill prompt:
 
