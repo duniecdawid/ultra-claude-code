@@ -527,18 +527,93 @@
   }
   [data-tip]:hover::after { opacity: 1; }
 
-  /* ── Discovery sidebar callout ── */
-  .discovery-note {
+  /* ── Discovery → Feature Mode row ── */
+  .discovery-to-feature {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+  }
+  .discovery-to-feature .mode-card {
+    flex: 1;
+    min-width: 0;
+  }
+  .discovery-wrapper {
     background: var(--orange-light);
-    border: 1px solid var(--orange-border);
+    border: 1px dashed var(--orange-border);
     border-radius: var(--radius-sm);
     padding: 8px 10px;
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .pair-label {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--orange);
+    margin-bottom: 6px;
+    text-align: center;
+  }
+  .pair-connector {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+    flex-shrink: 0;
+    gap: 2px;
+  }
+  .pair-connector-label {
+    font-size: 8px;
+    font-weight: 600;
+    color: var(--orange);
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    white-space: nowrap;
+  }
+  .discovery-card {
+    background: white;
+    border: 1px dashed var(--orange-border);
+    border-radius: var(--radius-sm);
+    padding: 12px 10px;
+    text-align: center;
+    transition: transform 0.15s, box-shadow 0.15s;
+    cursor: default;
+  }
+  .discovery-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+  .discovery-card .icon { font-size: 22px; margin-bottom: 6px; }
+  .discovery-card .name {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--orange);
+    line-height: 1.3;
+  }
+  .discovery-card .desc {
     font-size: 11px;
-    color: var(--gray-600);
-    margin-top: 8px;
+    color: var(--gray-500);
+    margin-top: 4px;
     line-height: 1.4;
   }
-  .discovery-note strong { color: var(--orange); }
+  .discovery-card .agents-used {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+
+  /* Command chip divider */
+  .chip-divider {
+    width: 1px;
+    height: 20px;
+    background: var(--gray-600);
+    margin: 0 4px;
+    opacity: 0.4;
+  }
 
   /* ── Governance bar across top of execution ── */
   .governance-bar {
@@ -604,7 +679,7 @@
   </div>
   <div class="legend-item">
     <div class="legend-dot" style="background: var(--orange)"></div>
-    Command / Mode
+    Discovery / Command
   </div>
   <div class="legend-item">
     <div class="legend-dot" style="background: var(--red)"></div>
@@ -622,10 +697,11 @@
     <div class="user-entry">
       <div class="user-label">User</div>
       <div class="commands-row">
-        <div class="command-chip" data-tip="Enter Feature Mode — plan new features with product + architecture context">/uc:feature-mode</div>
-        <div class="command-chip" data-tip="Enter Debug Mode — investigate issues and plan fixes">/uc:debug-mode</div>
-        <div class="command-chip" data-tip="Enter Doc & Code Verification Mode — find doc-code discrepancies">/uc:doc-code-verification-mode</div>
-        <div class="command-chip" data-tip="Enter Discovery Mode — research only, coding disabled">/uc:discovery-mode</div>
+        <div class="command-chip" style="background: var(--purple)" data-tip="Enter Feature Mode — design architecture, plan implementation, optional RFC for tough decisions">/uc:feature-mode</div>
+        <div class="command-chip" style="background: var(--purple)" data-tip="Enter Debug Mode — investigate issues and plan fixes">/uc:debug-mode</div>
+        <div class="command-chip" style="background: var(--purple)" data-tip="Enter Doc & Code Verification Mode — find doc-code discrepancies">/uc:doc-code-verification-mode</div>
+        <div class="chip-divider"></div>
+        <div class="command-chip" data-tip="Enter Discovery Mode — research only, coding disabled. Optional pre-step for Feature Mode.">/uc:discovery-mode</div>
         <div class="command-chip" style="background: var(--gray-600)" data-tip="Execute a plan through the agent team">/uc:plan-execution</div>
       </div>
     </div>
@@ -639,18 +715,37 @@
     <div class="section planning-layer">
       <div class="section-label">Planning Layer</div>
 
-      <div class="modes-grid">
-        <!-- Feature Mode -->
-        <div class="mode-card" data-tip="Challenges scope, considers product + architecture + implementation in one pass. Suggests RFC sub-mode for tough architecture decisions.">
+      <!-- Discovery → Feature Mode row -->
+      <div class="discovery-to-feature">
+        <div class="discovery-wrapper">
+          <div class="pair-label">Optional pre-step</div>
+          <div class="discovery-card" data-tip="Research only — coding DISABLED. Does not produce a plan. Output becomes context for Feature Mode planning.">
+            <div class="icon">&#127758;</div>
+            <div class="name">Discovery Mode</div>
+            <div class="desc">Research product vision, competitors, tech options. Coding disabled.</div>
+            <div class="agents-used">
+              <span class="agent-badge">Researcher</span>
+              <span class="agent-badge">Market Anlz.</span>
+            </div>
+          </div>
+        </div>
+        <div class="pair-connector">
+          <svg width="28" height="16" viewBox="0 0 28 16"><path d="M2 8 L20 8 M14 2 L22 8 L14 14" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <div class="pair-connector-label">product/description/</div>
+        </div>
+        <div class="mode-card" data-tip="Challenges scope, designs architecture, plans implementation. Classifies architecture impact (Additive/Compatible/Breaking). Triggers RFC sub-mode for ambiguous decisions. Reads product/description/ from Discovery output.">
           <div class="icon">&#9881;</div>
           <div class="name">Feature Mode</div>
-          <div class="desc">Plan new features with product, architecture, and implementation context. Optional RFC sub-mode for tough architecture decisions.</div>
+          <div class="desc">Design architecture, plan implementation. RFC sub-mode for tough decisions.</div>
           <div class="agents-used">
             <span class="agent-badge">Researcher</span>
             <span class="agent-badge">Docs Mgr</span>
           </div>
         </div>
+      </div>
 
+      <!-- Debug + Verification row -->
+      <div class="modes-grid" style="grid-template-columns: repeat(2, 1fr); margin-top: 12px;">
         <!-- Debug Mode -->
         <div class="mode-card" data-tip="Analyzes the issue, proposes hypotheses, spawns Researcher + System Tester to investigate each one in parallel.">
           <div class="icon">&#128270;</div>
@@ -673,21 +768,6 @@
             <span class="agent-badge">Checker</span>
           </div>
         </div>
-
-        <!-- Discovery Mode -->
-        <div class="mode-card" style="border-style: dashed;" data-tip="Research only — coding is DISABLED. Outputs go to documentation/product/description/. Does not produce a plan.">
-          <div class="icon">&#127758;</div>
-          <div class="name">Discovery Mode</div>
-          <div class="desc">Research only — coding disabled. Outputs go to docs, not a plan.</div>
-          <div class="agents-used">
-            <span class="agent-badge">Researcher</span>
-            <span class="agent-badge">Market Anlz.</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="discovery-note">
-        <strong>Discovery</strong> does not produce a plan — output goes directly to <code>documentation/product/description/</code>. All other modes flow through Plan Enhancer below.
       </div>
 
       <!-- Internal arrow -->
@@ -697,7 +777,7 @@
 
       <!-- Plan Enhancer -->
       <div class="enhancer-row">
-        <div class="enhancer-box" data-tip="Loaded by all planning modes. Routes plan output to plans/{name}/README.md with embedded task list.">
+        <div class="enhancer-box" data-tip="Loaded by planning modes (Feature, Debug, Verification). Routes plan output to plans/{name}/README.md with embedded task list.">
           <div class="name">Plan Enhancer</div>
           <div class="desc">Routes plan output to plans/{name}/README.md with embedded task list</div>
         </div>
