@@ -183,6 +183,8 @@ Spawn prompt:
 >
 > **On PASS:** Mark task completed with a brief review summary.
 > **On FAIL:** Mark task as failed. Include specific file:line references, the violated standard, and an actionable fix suggestion. Append findings to `documentation/plans/$ARGUMENTS/shared/reviewer.md`
+>
+> **When idle:** If no [REVIEW] tasks are pending, report IDLE to Lead via SendMessage. Do NOT shut down until Lead acknowledges — more tasks may be promoted to the review list.
 
 #### Tester Teammate
 
@@ -201,7 +203,11 @@ Spawn prompt:
 > **On PASS:** Mark task completed.
 > **On FAIL:** Send failure feedback to Lead via SendMessage (which tests failed, exact errors, expected vs actual). Mark task as failed.
 >
+> **Success criteria:** For each test task, verify the success criteria listed in the task description. Report pass/fail against each criterion.
+>
 > **Final gate:** When Lead requests, run the FULL test suite (not per-task) as a regression check and report results.
+>
+> **When idle:** If no [TEST] tasks are pending and Lead has not requested the final gate, report IDLE to Lead via SendMessage. Do NOT shut down until Lead acknowledges.
 
 ---
 

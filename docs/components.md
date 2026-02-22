@@ -81,7 +81,7 @@ Read the following architecture docs before planning:
 
 | Agent | Model | Tools | Purpose | Spawned As | Spawn Context |
 |-------|-------|-------|---------|------------|---------------|
-| **researcher** | sonnet | Read, Grep, Glob, WebFetch, WebSearch, mcp__ref | Generic context-gathering agent. Parameterized by the mode that spawns it — focuses on whatever the mode needs (product context, debug investigation, code patterns, etc.). Does not decide where to write — the spawning mode must specify output paths in the spawn prompt. | Subagent (planning) or Teammate (execution) | **Planning:** output file paths, architecture docs path, tech-research skill. **Execution:** + plan README.md, `shared/` directory path, research task list instructions. |
+| **researcher** | sonnet | Read, Write, Grep, Glob, WebFetch, WebSearch, mcp__ref__ref_search_documentation, mcp__ref__ref_read_url | Generic context-gathering agent. Parameterized by the mode that spawns it — focuses on whatever the mode needs (product context, debug investigation, code patterns, etc.). Does not decide where to write — the spawning mode must specify output paths in the spawn prompt. | Subagent (planning) or Teammate (execution) | **Planning:** output file paths, architecture docs path, tech-research skill. **Execution:** + plan README.md, `shared/` directory path, research task list instructions. |
 | **task-executor** | opus | Read, Write, Edit, Glob, Grep, Bash | Single-task implementation from research context | Teammate (execution only) | Plan README.md, `shared/` directory path, per-task research file, coding standards path, impl task list instructions |
 | **task-tester** | sonnet | Read, Glob, Grep, Bash | Testing gate in execution pipeline. Self-claims from test task list for per-task testing. Also runs full test suite as final gate before team shutdown. Must not modify source code. Bash restricted to running test commands and build tools. | Teammate (execution only) | Plan README.md, `shared/` directory path, success criteria from plan, test task list instructions, system test instructions (.claude/system-test.md), SendMessage target (Lead) for failures |
 | **system-tester** | sonnet | Read, Glob, Grep, Bash | Bug reproduction and fix validation in Debug Mode. Attempts to reproduce reported issues, validates fixes resolve the original problem. Must not modify source code. Bash restricted to bug reproduction and fix validation commands. | Subagent (Debug Mode planning) | System test instructions (`.claude/system-test.md`), bug description, reproduction steps |
@@ -89,7 +89,7 @@ Read the following architecture docs before planning:
 | **checker** | sonnet | Read, Grep, Glob | Compares specific code against documentation for single topic | Subagent (Verification Mode) | Code path + doc path to compare |
 | **code-surveyor** | haiku | Read, Grep, Glob | Quick survey of code package structure | Subagent (Verification Mode) | Target directory to survey |
 | **doc-surveyor** | haiku | Read, Grep, Glob | Quick survey of documentation section structure | Subagent (Verification Mode) | Documentation section to survey |
-| **market-analyzer** | sonnet | WebSearch, WebFetch, mcp__ref | Market research, competitor analysis, technology trends | Subagent (Discovery Mode) | Research topic, output path |
+| **market-analyzer** | sonnet | Read, Write, WebSearch, WebFetch, mcp__ref__ref_search_documentation, mcp__ref__ref_read_url | Market research, competitor analysis, technology trends. Subagent in Discovery Mode. | Subagent (Discovery Mode) | Research topic, output path |
 
 ### Agent File Format
 
@@ -265,7 +265,6 @@ Located at the plugin root. Currently the only key supported by Claude Code is `
 | File | Purpose | Scope |
 |------|---------|-------|
 | `.claude/docs-format` | Activates docs-manager skill, sets output format (confluence/gitbook) | Project |
-| `.claude/ultra-claude.local.md` | Plugin settings: active plan, team config, feature flags | Project (gitignored) |
 | `.claude/environments-info` | How to access dev/staging/prod environments | Project |
 | `.claude/app-context-for-research.md` | Domain context for researcher agents | Project |
 | `.claude/system-test.md` | Instructions for system tester agent | Project |

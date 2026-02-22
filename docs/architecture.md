@@ -312,4 +312,4 @@ Help is unique — it has awareness of the ENTIRE Ultra Claude system. Its purpo
 2. **"Extend the system with Y capability"** — Guides creating new skills/agents that fit the architecture
 3. **"What's the most efficient path?"** — Suggests workflow optimizations based on the task
 
-Help achieves this by having a comprehensive system-overview.md reference that describes all components, their relationships, and usage patterns.
+Help achieves this by loading `docs/components.md` and `docs/workflows.md` directly via its `context:` field, giving it access to all component definitions, relationships, and workflow patterns.

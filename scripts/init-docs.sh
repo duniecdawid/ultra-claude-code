@@ -52,10 +52,10 @@ copy_template() {
   if [ ! -f "$dest" ]; then
     if [ -f "$TEMPLATES_DIR/$template" ]; then
       cp "$TEMPLATES_DIR/$template" "$dest"
-      echo "  Copied:  $template -> $(realpath --relative-to="$TARGET_DIR" "$dest" 2>/dev/null || echo "$dest")"
+      echo "  Copied:  $template -> ${dest#$TARGET_DIR/}"
     fi
   else
-    echo "  Exists:  $(realpath --relative-to="$TARGET_DIR" "$dest" 2>/dev/null || echo "$dest")"
+    echo "  Exists:  ${dest#$TARGET_DIR/}"
   fi
 }
 
@@ -63,6 +63,9 @@ copy_template "architecture.md" "$TARGET_DIR/documentation/technology/architectu
 copy_template "requirement.md" "$TARGET_DIR/documentation/product/requirements/README.md"
 copy_template "context.md" "$TARGET_DIR/context/README.md"
 copy_template "dependency.md" "$TARGET_DIR/documentation/dependencies/README.md"
+copy_template "rfc.md" "$TARGET_DIR/documentation/technology/rfcs/README.md"
+copy_template "plan.md" "$TARGET_DIR/documentation/plans/README.md"
+copy_template "task.md" "$TARGET_DIR/documentation/plans/task-template.md"
 
 # ── Generate documentation index ──
 

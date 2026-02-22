@@ -32,11 +32,11 @@ Teammates do NOT inherit the Lead's conversation history. They start with a blan
 
 | Teammate | Receives in Spawn Prompt |
 |----------|-------------------------|
-| **All teammates** | Plan README.md path, `shared/` directory path, architecture docs path (`documentation/technology/architecture/`) |
-| **Researcher** | + research task list claiming instructions |
-| **Executor** | + per-task research file path, impl task list claiming instructions, coding standards path (`documentation/technology/standards/`) |
-| **Code Reviewer** | + review task list claiming instructions, coding standards path, architecture docs path |
-| **Tester** | + success criteria from plan, test task list claiming instructions, SendMessage target (Lead) for failure feedback |
+| **All teammates** | Plan README.md path, `shared/` directory path |
+| **Researcher** | + architecture docs path (`documentation/technology/architecture/`), research task list claiming instructions, `.claude/app-context-for-research.md` (if exists) |
+| **Executor** | + architecture docs path, per-task research file path, impl task list claiming instructions, coding standards path (`documentation/technology/standards/`) |
+| **Code Reviewer** | + architecture docs path, review task list claiming instructions, coding standards path |
+| **Tester** | + success criteria from plan, test task list claiming instructions, `.claude/system-test.md` (if exists), SendMessage target (Lead) for failure feedback |
 
 Each teammate is told to re-read ALL files in the `shared/` directory before starting each new task claim — other teammates may have updated their files.
 
@@ -114,6 +114,7 @@ Testing Tasks:        [pending] -> [in_progress] -> [completed/failed]
 
 **How it flows:**
 - Lead creates all tasks in the research list initially (or impl list if research already exists from planning)
+- Review and test lists start empty — they are populated only when the Lead promotes completed tasks from earlier stages
 - Researcher self-claims from research list -> completes -> Lead promotes to impl list
 - Executor self-claims from impl list -> completes -> Lead promotes to review list
 - Code Reviewer self-claims from review list -> passes -> Lead promotes to test list; fails -> Lead re-queues to impl list with feedback
@@ -237,7 +238,7 @@ Progress saved to plan directory at three levels:
 
 | What | Where | When |
 |------|-------|------|
-| Task list snapshots (all 4 role-lists) | `plans/{name}/checkpoint-{timestamp}.md` | Every N completed tasks (default 3), on teammate idle, on user request, on session end |
+| Task list snapshots (all 4 role-lists) | `plans/{name}/checkpoint-{timestamp}.md` | Every N completed tasks (default 3), on teammate idle, on user request, before risky changes, on session end |
 | Cross-cutting knowledge | `plans/{name}/shared/*.md` | Written continuously by teammates to per-role files (already on disk) |
 | Per-task research | `plans/{name}/research/task-N.md` | Written by Researcher per task (already on disk) |
 

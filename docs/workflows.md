@@ -86,7 +86,7 @@ User: /uc:doc-code-verification-mode
    → Code Surveyors scan codebase structure, patterns, APIs
    → Doc Surveyors scan documentation claims, specs, architecture docs
    → Checker subagents compare doc claims vs code reality
-   → Discrepancies listed with severity (HIGH/MEDIUM/LOW)
+   → Discrepancies listed with severity (Critical/Major/Minor)
    → Plan created with fix tasks (update doc or update code)
    → User reviews and approves plan
 
