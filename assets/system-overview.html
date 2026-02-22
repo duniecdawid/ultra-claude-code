@@ -719,10 +719,10 @@
       <div class="discovery-to-feature">
         <div class="discovery-wrapper">
           <div class="pair-label">Optional pre-step</div>
-          <div class="discovery-card" data-tip="Research only — coding DISABLED. Does not produce a plan. Output becomes context for Feature Mode planning.">
+          <div class="discovery-card" data-tip="Head of Product persona. Research only — coding DISABLED. Produces product descriptions, requirements, and user personas. Output becomes context for Feature Mode planning.">
             <div class="icon">&#127758;</div>
             <div class="name">Discovery Mode</div>
-            <div class="desc">Research product vision, competitors, tech options. Coding disabled.</div>
+            <div class="desc">Product descriptions, requirements, user personas. Head of Product persona. Coding disabled.</div>
             <div class="agents-used">
               <span class="agent-badge">Researcher</span>
               <span class="agent-badge">Market Anlz.</span>
@@ -731,12 +731,12 @@
         </div>
         <div class="pair-connector">
           <svg width="28" height="16" viewBox="0 0 28 16"><path d="M2 8 L20 8 M14 2 L22 8 L14 14" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <div class="pair-connector-label">product/description/</div>
+          <div class="pair-connector-label">product/</div>
         </div>
-        <div class="mode-card" data-tip="Challenges scope, designs architecture, plans implementation. Classifies architecture impact (Additive/Compatible/Breaking). Triggers RFC sub-mode for ambiguous decisions. Reads product/description/ from Discovery output.">
+        <div class="mode-card" data-tip="Head of Technology persona. Challenges scope, designs architecture, plans implementation. Classifies architecture impact (Additive/Compatible/Breaking). Triggers RFC sub-mode for ambiguous decisions. Reads product/ from Discovery output.">
           <div class="icon">&#9881;</div>
           <div class="name">Feature Mode</div>
-          <div class="desc">Design architecture, plan implementation. RFC sub-mode for tough decisions.</div>
+          <div class="desc">Architecture &amp; implementation planning. Head of Technology persona. RFC sub-mode.</div>
           <div class="agents-used">
             <span class="agent-badge">Researcher</span>
             <span class="agent-badge">Docs Mgr</span>
@@ -747,10 +747,10 @@
       <!-- Debug + Verification row -->
       <div class="modes-grid" style="grid-template-columns: repeat(2, 1fr); margin-top: 12px;">
         <!-- Debug Mode -->
-        <div class="mode-card" data-tip="Analyzes the issue, proposes hypotheses, spawns Researcher + System Tester to investigate each one in parallel.">
+        <div class="mode-card" data-tip="Head of Technology persona. Analyzes the issue, proposes hypotheses, spawns Researcher + System Tester to investigate each one in parallel. Treats every bug as a symptom until proven otherwise.">
           <div class="icon">&#128270;</div>
           <div class="name">Debug Mode</div>
-          <div class="desc">Investigate issues and plan fixes. Spawns Researcher + System Tester to test hypotheses in parallel.</div>
+          <div class="desc">Investigate issues, plan fixes. Head of Technology persona. Hypothesis-driven.</div>
           <div class="agents-used">
             <span class="agent-badge">Researcher</span>
             <span class="agent-badge">Sys Tester</span>
@@ -904,9 +904,10 @@
           <div class="tree-line"><span class="tree-prefix">│   ├── </span><span class="tree-file">architecture/</span></div>
           <div class="tree-line"><span class="tree-prefix">│   ├── </span><span class="tree-file">standards/</span></div>
           <div class="tree-line"><span class="tree-prefix">│   └── </span><span class="tree-file">rfcs/</span></div>
-          <div class="tree-line"><span class="tree-prefix">├── </span><span class="tree-dir">product/</span><span class="tree-comment">vision &amp; requirements</span></div>
+          <div class="tree-line"><span class="tree-prefix">├── </span><span class="tree-dir">product/</span><span class="tree-comment">vision, requirements &amp; personas</span></div>
           <div class="tree-line"><span class="tree-prefix">│   ├── </span><span class="tree-file">description/</span></div>
-          <div class="tree-line"><span class="tree-prefix">│   └── </span><span class="tree-file">requirements/</span></div>
+          <div class="tree-line"><span class="tree-prefix">│   ├── </span><span class="tree-file">requirements/</span></div>
+          <div class="tree-line"><span class="tree-prefix">│   └── </span><span class="tree-file">personas/</span></div>
           <div class="tree-line"><span class="tree-prefix">├── </span><span class="tree-dir">plans/</span><span class="tree-comment">one dir per initiative</span></div>
           <div class="tree-line"><span class="tree-prefix">│   ├── </span><span class="tree-file">README.md</span><span class="tree-comment">plan + task list</span></div>
           <div class="tree-line"><span class="tree-prefix">│   ├── </span><span class="tree-file">research/</span></div>

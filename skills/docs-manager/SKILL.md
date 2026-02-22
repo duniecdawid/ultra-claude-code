@@ -37,7 +37,8 @@ documentation/
 │   └── rfcs/                          # Structured reviews for ambiguous/high-risk decisions
 ├── product/
 │   ├── description/                   # Vision, discovery outputs, market research
-│   └── requirements/                  # Formal requirements (FR-xxx, NFR-xxx)
+│   ├── requirements/                  # Formal requirements, user stories, acceptance criteria
+│   └── personas/                      # User personas (evidence-based profiles)
 ├── plans/
 │   └── {plan-name}/
 │       ├── README.md                  # Plan document (task list embedded)
@@ -58,7 +59,8 @@ When any mode, agent, or user creates documentation, route it to the correct loc
 | Coding conventions, API standards, patterns | `technology/standards/` | Contains: convention, standard, pattern, style guide, coding rules |
 | Decision reviews (problem, options, outcome) | `technology/rfcs/` | Contains: RFC, decision review, trade-off analysis, options evaluation |
 | Product vision, competitor analysis, market research | `product/description/` | Contains: vision, competitor, market, discovery, positioning |
-| Formal requirements (FR-xxx, NFR-xxx) | `product/requirements/` | Contains: requirement, FR-, NFR-, acceptance criteria, user story |
+| Formal requirements, user stories | `product/requirements/` | Contains: requirement, FR-, NFR-, acceptance criteria, user story, must have, should have |
+| User personas, audience profiles | `product/personas/` | Contains: persona, user profile, demographics, pain points, user archetype |
 | Plans, task lists, execution context | `plans/{name}/` | Contains: plan, task list, implementation steps |
 | Blocking questions, external deps | `dependencies/` | Contains: blocker, dependency, waiting on, open question |
 
@@ -150,6 +152,9 @@ Maintain `documentation/README.md` as a navigable index of the entire documentat
 
 ### Requirements
 - [Document Name](product/requirements/filename.md) — One-line description
+
+### Personas
+- [Persona Name](product/personas/filename.md) — One-line description
 
 ## Plans
 - [{plan-name}](plans/{plan-name}/README.md) — Plan status and objective

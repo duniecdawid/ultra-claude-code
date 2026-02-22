@@ -56,13 +56,17 @@ See [Execution](execution.md) for the complete 5-phase workflow.
 ```
 User: /uc:discovery-mode "Research how competitors handle rate limiting"
 
-1. Discovery Mode skill activates
+1. Discovery Mode skill activates (Head of Product persona)
    → Coding is DISABLED
+   → Strategic scoping: problem statement, who cares, what decisions, artifact plan
    → Researcher + Market Analyzer subagents spawned in parallel via Task tool
    → Researcher: Explores internal codebase, reads docs, uses Ref.tools
-   → Market Analyzer: Web searches, competitor analysis
+   → Market Analyzer: Web searches, competitor analysis, user insights
 
-2. Findings compiled to documentation/product/description/{topic}.md
+2. Artifacts produced to documentation/product/ as needed:
+   → description/{topic}.md — always produced
+   → requirements/{topic}.md — when building something
+   → personas/{persona-name}.md — when user context matters
 3. No code changes. No plan. Pure investigation output.
 4. Feeds into future planning sessions as context.
 ```

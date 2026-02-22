@@ -94,7 +94,8 @@ The **docs-manager** skill (activated by `.claude/docs-format` in the project) g
 | Coding conventions, API standards, error handling patterns | `technology/standards/` | Manual or Feature Mode |
 | Decision reviews (problem, options, outcome) | `technology/rfcs/` | Feature Mode (optional) |
 | Product vision, competitor analysis, market research | `product/description/` | Discovery Mode |
-| Formal requirements (FR-xxx, NFR-xxx) | `product/requirements/` | Feature Mode |
+| Requirements, user stories, acceptance criteria | `product/requirements/` | Discovery Mode, Feature Mode |
+| User personas, audience profiles | `product/personas/` | Discovery Mode |
 | Plans, task lists, research per initiative | `plans/{name}/` | All planning modes via Plan Enhancer |
 | Blocking questions, external dependencies | `dependencies/` | Manual / as needed |
 
@@ -190,9 +191,9 @@ For periodic sync. Spawns surveyor/checker subagents to find discrepancies betwe
 
 ### Discovery Mode (Optional Pre-Step)
 
-Research only — coding is disabled. Focused on building product vision, exploring competitors, researching technology options. Spawns Researcher + Market Analyzer subagents.
+Research only — coding is disabled. Operates as a Head of Product persona. Focused on building product vision, gathering requirements, defining user personas, exploring competitors, and researching technology options. Spawns Researcher + Market Analyzer subagents.
 
-Discovery feeds into planning but does not produce a plan itself. Output goes to `documentation/product/description/{topic}.md`.
+Discovery feeds into planning but does not produce a plan itself. Output goes to `documentation/product/` — producing descriptions (`description/`), requirements (`requirements/`), and user personas (`personas/`) as the topic demands.
 
 ### Execution Layer
 

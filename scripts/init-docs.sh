@@ -28,6 +28,7 @@ DIRS=(
   "documentation/technology/rfcs"
   "documentation/product/description"
   "documentation/product/requirements"
+  "documentation/product/personas"
   "documentation/plans"
   "documentation/dependencies"
   "context"
@@ -85,7 +86,8 @@ Navigable index of the project documentation tree.
 ## Product
 
 - [Description](product/description/) — Vision, discovery outputs, market research
-- [Requirements](product/requirements/) — Formal requirements (FR-xxx, NFR-xxx)
+- [Requirements](product/requirements/) — Formal requirements, user stories, acceptance criteria
+- [Personas](product/personas/) — User personas, audience profiles
 
 ## Plans
 
