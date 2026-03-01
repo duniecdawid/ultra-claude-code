@@ -25,6 +25,7 @@ When the user has a goal, recommend the right workflow:
 - **Running a plan** -> `/uc:plan-execution {plan-name}`
 - **Saving progress** -> `/uc:checkpoint`
 - **Looking up library docs** -> `/uc:tech-research`
+- **Auditing or reorganizing documentation** -> `/uc:docs-manager`
 - **Adding external system knowledge** -> `/uc:context-management`
 - **Onboarding any project** -> `/uc:init-project`
 

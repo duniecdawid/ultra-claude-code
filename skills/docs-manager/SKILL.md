@@ -1,7 +1,8 @@
 ---
 name: Docs Manager
 description: Guards documentation/ canonical structure. Activated by .claude/docs-format file. Routes documents to correct directories, enforces layout, generates documentation index. Use proactively when any mode or agent creates documentation.
-user-invocable: false
+argument-hint: "audit, reorganize, or regenerate index"
+user-invocable: true
 allowed-tools:
   - Read
   - Write

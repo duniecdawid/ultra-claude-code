@@ -241,21 +241,48 @@
     <div class="phase-number">2</div>
     <h2>Build Your Documentation Foundation</h2>
     <p>The init skill drafts architecture and requirements docs from your codebase. Review and refine them &mdash; these become the source of truth that governs code growth.</p>
+
+    <p><strong>Why this matters:</strong> every planning skill (feature mode, debug mode, verification mode) reads these docs to make informed decisions. Feature mode, for example, reads your architecture and requirements to challenge scope, find conflicts, and classify impact. The more context it has, the better the plans it produces. If docs are missing, planning skills handle it &mdash; but they work best with a solid foundation.</p>
+
+    <p><strong>What gets created:</strong></p>
     <ul>
+      <li><code>documentation/technology/architecture/</code> &mdash; system design, components, data flow, technology stack</li>
+      <li><code>documentation/product/requirements/</code> &mdash; product requirements and acceptance criteria</li>
+      <li>Run <code>/uc:docs-manager</code> to audit your documentation structure, reorganize misplaced docs, and regenerate the index</li>
       <li>Optionally run <code>/uc:discovery-mode</code> for deeper product research, user personas, and competitive analysis</li>
-      <li>Documentation governs code &mdash; agents read these docs, <a href="system-overview.html#components">hooks</a> validate against them</li>
     </ul>
+
+    <div class="info-box">
+      <p><strong>Documentation governs code.</strong> Agents read these docs, <a href="system-overview.html#components">hooks</a> validate against them. When code diverges from specs, you fix the spec first.</p>
+    </div>
   </div>
 
   <!-- Phase 3 -->
   <div class="phase">
     <div class="phase-number">3</div>
     <h2>Plan Your First Feature</h2>
+    <p>Run <code>/uc:feature-mode add user authentication</code> (replace with your feature). Feature mode acts as a senior tech lead &mdash; it challenges your scope, researches your codebase, and produces a structured plan before any code is written.</p>
+
+    <p><strong>What happens when you run it:</strong></p>
     <ul>
-      <li><code>/uc:feature-mode</code> &mdash; challenges scope, researches context, classifies impact, and produces a structured plan</li>
-      <li>For library decisions, run <code>/uc:tech-research</code> first to get focused documentation</li>
-      <li>Review and approve the plan before execution</li>
+      <li><strong>Scope challenge</strong> &mdash; asks "why?", splits vague requests into concrete pieces, and refuses to plan until scope is sharp</li>
+      <li><strong>Context gathering</strong> &mdash; spawns a Researcher agent to explore your codebase and docs in parallel, finding existing patterns and potential conflicts</li>
+      <li><strong>Architecture assessment</strong> &mdash; classifies the feature as additive (fits existing patterns), compatible (extends them), or breaking (requires updating architecture docs first)</li>
+      <li><strong>Structured plan</strong> &mdash; produces a plan with classified tasks, file lists, success criteria, and dependencies in <code>documentation/plans/</code></li>
     </ul>
+
+    <p><strong>When to use feature mode:</strong></p>
+    <ul>
+      <li>Adding new functionality or a significant new capability</li>
+      <li>Changes that touch multiple files or components</li>
+      <li>Work where you're unsure about the right approach &mdash; feature mode will surface trade-offs and suggest an RFC for ambiguous architecture decisions</li>
+    </ul>
+
+    <div class="info-box">
+      <p><strong>Not for small fixes.</strong> For bug fixes, use <code>/uc:debug-mode</code> instead. For library research, run <code>/uc:tech-research</code>. Feature mode is for work that benefits from upfront planning &mdash; scope challenge, research, and structured task breakdown.</p>
+    </div>
+
+    <p>Review and approve the plan, then execute it in Phase 4.</p>
   </div>
 
   <!-- Phase 4 -->
@@ -263,7 +290,7 @@
     <div class="phase-number">4</div>
     <h2>Execute</h2>
     <ul>
-      <li><code>/uc:plan-execution</code> runs the approved plan with dynamically composed <a href="system-overview.html#execution">agent teams</a></li>
+      <li><code>/uc:plan-execution {plan-name}</code> runs the approved plan with dynamically composed <a href="system-overview.html#execution">agent teams</a> &mdash; the plan name matches the directory created in <code>documentation/plans/</code></li>
       <li>Governance hooks enforce architecture conformance automatically</li>
       <li>Checkpoints save progress &mdash; sessions can resume after interruption</li>
     </ul>
