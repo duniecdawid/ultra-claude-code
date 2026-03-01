@@ -86,17 +86,18 @@ Executors MUST use **opus** — they write code and make architectural decisions
 | Code Reviewer | sonnet | Pattern recognition, bug detection, architecture conformance |
 | Tester | sonnet | Test authoring, failure diagnosis, regression analysis |
 
-### Permission Mode — Delegate
+### Permission Modes
 
-**ALL teammates MUST be spawned with `mode: "bypassPermissions"`.**
+| Role | Mode | Rationale |
+|------|------|-----------|
+| Researcher | `bypassPermissions` | Read-only exploration, no approval needed |
+| **Executor** | **`plan`** | **Must submit implementation plan to Lead for approval before writing code** |
+| Code Reviewer | `bypassPermissions` | Read-only analysis, no approval needed |
+| Tester | `bypassPermissions` | Runs tests autonomously, no approval needed |
 
-The Lead operates as a pure delegator. Teammates must be able to work autonomously without permission prompts blocking their progress. This means:
-- Executors can edit files, run builds, and execute commands without asking
-- Researchers can search, read, and explore without interruption
-- Reviewers can read and analyze code freely
-- Testers can run test suites and commands without prompts
+**Executors use `mode: "plan"`** — before making any file changes, the Executor must produce an implementation plan and call ExitPlanMode. This sends a `plan_approval_request` to the Lead. The Lead reviews the plan and responds with `plan_approval_response` (approve or reject with feedback). Only after approval can the Executor proceed with implementation.
 
-Never spawn a teammate with `mode: "default"` or `mode: "plan"` — this would break the delegation model by requiring interactive approval that the Lead cannot provide.
+All other teammates use `mode: "bypassPermissions"` for full autonomy.
 
 ### 1.5 Present Cost Estimate and Get Confirmation
 
@@ -178,7 +179,7 @@ Spawn each teammate using agent definitions from `${CLAUDE_PLUGIN_ROOT}/agents/`
 
 **CRITICAL**: Executors MUST be spawned with `model: "opus"`. All other roles (Researcher, Code Reviewer, Tester) use `model: "sonnet"`. Never use haiku for any role.
 
-**CRITICAL**: ALL teammates MUST be spawned with `mode: "bypassPermissions"` (delegate mode). Teammates need full autonomy to work without permission prompts. The Lead delegates, teammates execute independently.
+**CRITICAL**: Executors MUST be spawned with `mode: "plan"` — they submit implementation plans for Lead approval before writing code. All other teammates use `mode: "bypassPermissions"` for full autonomy.
 
 #### Researcher Teammate
 
@@ -218,14 +219,24 @@ Spawn prompt:
 > - Architecture: `documentation/technology/architecture/`
 > - Standards: `documentation/technology/standards/`
 >
+> **You are in plan mode.** Before making ANY file changes, you must produce an implementation plan and call ExitPlanMode. The Lead will review and approve or reject your plan. Only after approval can you write code.
+>
 > **Task workflow:**
 > 1. Use TaskList to find tasks with `[IMPL]` in the subject that are pending and unblocked
 > 2. Claim by calling TaskUpdate with `status: "in_progress"` and `owner: "executor"` (or "executor-2" for the second)
 > 3. Use TaskGet with the task ID to read the full description, success criteria, and metadata
-> 4. Check `documentation/plans/$ARGUMENTS/research/task-{N}.md` for research findings before implementing
-> 5. Implement the task
-> 6. Mark completed with TaskUpdate `status: "completed"`
-> 7. Check TaskList again for next available task
+> 4. Check `documentation/plans/$ARGUMENTS/research/task-{N}.md` for research findings
+> 5. **Plan phase:** Read relevant source files, understand the codebase context, then write your implementation plan to the plan file. The plan must include:
+>    - Which files you will create/modify (with paths)
+>    - What changes you will make in each file (specific functions, classes, patterns)
+>    - How you will satisfy the success criteria
+>    - Any risks or trade-offs
+> 6. Call ExitPlanMode — this sends your plan to the Lead for approval
+> 7. **Wait for approval** — the Lead will approve or reject with feedback
+> 8. If rejected: revise your plan based on feedback and call ExitPlanMode again
+> 9. If approved: implement the task according to your approved plan
+> 10. Mark completed with TaskUpdate `status: "completed"`
+> 11. Check TaskList again for next available task (you re-enter plan mode for each new task)
 >
 > **Shared memory:** Append integration notes to `documentation/plans/$ARGUMENTS/shared/executor.md`
 
@@ -286,6 +297,24 @@ Spawn prompt:
 
 After spawning teammates, enter the monitoring loop. Do NOT micromanage.
 
+### Executor Plan Approval
+
+Executors operate in `plan` mode. Before writing any code, they submit an implementation plan via ExitPlanMode, which arrives as a `plan_approval_request` message to the Lead.
+
+**When you receive a `plan_approval_request`:**
+
+1. Read the Executor's plan carefully
+2. Evaluate against:
+   - Does the plan align with the task's success criteria?
+   - Are the right files being modified?
+   - Does it follow the project's architecture and standards (from `shared/lead.md`)?
+   - Are there conflicts with other in-progress tasks?
+   - Any obvious risks or missing considerations?
+3. **Approve** — respond with `plan_approval_response` (approve: true). The Executor exits plan mode and implements.
+4. **Reject** — respond with `plan_approval_response` (approve: false, content: "specific feedback"). The Executor revises and resubmits.
+
+**Keep approvals fast.** Executors are blocked until you respond. Review promptly but thoroughly — this is your quality gate before code is written.
+
 ### Task Promotion Rules
 
 When a task completes in one stage, promote it to the next by creating a NEW task with the updated prefix:
@@ -327,6 +356,7 @@ Check task lists:
 
 ### What to Watch For
 
+- **Plan approval requests** — Executors waiting for approval are BLOCKED. Handle these with highest priority.
 - **Stalled tasks** — in_progress for too long with no shared/ file updates. Teammate may have crashed.
 - **IDLE teammates** — Check if other lists have work to promote to the idle role's list. If not, acknowledge and let them shut down.
 - **Urgent messages** — Plan-invalidating discoveries from Researcher or Executor. Handle immediately per Phase 4.
@@ -508,6 +538,7 @@ When a teammate discovers something that invalidates part of the plan:
 
 | Channel | Use For |
 |---------|---------|
+| **Plan approval** (blocking) | Executor submits plan via ExitPlanMode → Lead reviews → approves/rejects via `plan_approval_response`. **Highest priority — Executors are blocked until Lead responds.** |
 | **SendMessage** (urgent) | Test/review failure feedback to Lead. Plan-invalidating discoveries. Blockers affecting other roles. |
 | **Shared files** (persistent) | Integration notes, gotchas, architecture decisions, cross-cutting knowledge. Each role writes ONLY to their own file. Append-only. |
 | **Task lists** (coordination) | Task claiming, status tracking. Self-service — no Lead coordination needed. |
@@ -518,10 +549,11 @@ When a teammate discovers something that invalidates part of the plan:
 
 You are a project manager. You:
 
-- **DO**: Create task lists, spawn teammates, promote tasks, handle failures, checkpoint, synthesize results
-- **DO NOT**: Write code, micromanage task implementation, make implementation decisions for teammates
+- **DO**: Create task lists, spawn teammates, **review and approve Executor plans**, promote tasks, handle failures, checkpoint, synthesize results
+- **DO NOT**: Write code, micromanage task implementation details beyond plan review
 - **TRUST**: Teammates to self-coordinate within their role's list
-- **INTERVENE ONLY AT**: Team creation, task promotion, failure handling, checkpoint, plan changes, completion
+- **PRIORITIZE**: Plan approval requests — Executors are blocked waiting. Review promptly.
+- **INTERVENE ONLY AT**: Team creation, **plan approval**, task promotion, failure handling, checkpoint, plan changes, completion
 - **ESCALATE**: To the user when uncertain rather than guessing
 
 ---

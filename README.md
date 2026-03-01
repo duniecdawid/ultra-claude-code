@@ -2,7 +2,7 @@
 
 A Claude Code plugin that implements a spec-driven development platform. Documentation governs code growth. Agent teams coordinate execution.
 
-[**Documentation**](https://duniecdawid.github.io/ultra-claude-code/docs/)
+[**Documentation**](https://duniecdawid.github.io/ultra-claude-code/index.html)
 
 ## What This Is
 
