@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ultra Claude — System Overview</title>
+<title>Documentation — Ultra Claude</title>
 <style>
   :root {
     --purple: #8B5CF6;
@@ -48,23 +48,22 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
     background: var(--gray-50);
     color: var(--gray-800);
-    line-height: 1.5;
-    padding: 32px;
-    min-width: 1280px;
+    line-height: 1.6;
   }
 
   /* ── Header ── */
   .header {
-    text-align: center;
-    margin-bottom: 32px;
+    max-width: 960px;
+    margin: 0 auto 0;
+    padding: 48px 24px 24px;
   }
   .header h1 {
-    font-size: 28px;
+    font-size: 24px;
     font-weight: 700;
     color: var(--gray-900);
     letter-spacing: -0.5px;
   }
-  .header p {
+  .header .subtitle {
     font-size: 14px;
     color: var(--gray-500);
     margin-top: 4px;
@@ -73,10 +72,13 @@
   /* ── Legend ── */
   .legend {
     display: flex;
-    justify-content: center;
     gap: 24px;
     margin-bottom: 36px;
     flex-wrap: wrap;
+    padding: 0 24px;
+    max-width: 960px;
+    margin-left: auto;
+    margin-right: auto;
   }
   .legend-item {
     display: flex;
@@ -94,14 +96,17 @@
 
   /* ── Main Layout ── */
   .main-layout {
-    display: grid;
-    grid-template-columns: 1fr 220px;
-    gap: 24px;
-    max-width: 1400px;
+    max-width: 960px;
     margin: 0 auto;
+    padding: 0 24px;
   }
   .flow-column { display: flex; flex-direction: column; gap: 0; }
-  .side-column { display: flex; flex-direction: column; gap: 16px; }
+  .side-column {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    margin-top: 32px;
+  }
 
   /* ── Section containers ── */
   .section {
@@ -402,20 +407,25 @@
     background: white;
     border: 1px solid var(--gray-200);
     border-radius: var(--radius);
-    padding: 16px;
+    padding: 20px 24px;
     box-shadow: var(--shadow-sm);
   }
   .side-panel .section-label { margin-bottom: 12px; }
+  .side-panel .items-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
   .side-item {
     padding: 8px 10px;
     border-radius: var(--radius-sm);
-    margin-bottom: 6px;
     font-size: 12px;
     transition: transform 0.1s;
     cursor: default;
+    flex: 0 0 auto;
+    min-width: 140px;
   }
   .side-item:hover { transform: translateX(2px); }
-  .side-item:last-child { margin-bottom: 0; }
   .side-item .name {
     font-weight: 700;
     font-size: 12px;
@@ -649,15 +659,275 @@
     border: 1px solid var(--red-border);
     font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
   }
+
+  /* ── Tab Bar ── */
+  .tab-bar {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    max-width: 960px;
+    margin: 0 auto 32px;
+    padding: 0 24px;
+    border-bottom: 1px solid var(--gray-200);
+  }
+  .tab-btn {
+    padding: 8px 16px;
+    border: none;
+    background: transparent;
+    border-radius: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gray-500);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+    font-family: inherit;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+  }
+  .tab-btn:hover {
+    color: var(--gray-700);
+    background: transparent;
+  }
+  .tab-btn.active {
+    color: var(--purple);
+    background: transparent;
+    border-bottom-color: var(--purple);
+    box-shadow: none;
+  }
+
+  /* ── Tab Panels ── */
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; padding-bottom: 80px; }
+  .tab-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 80px 20px;
+    color: var(--gray-400);
+    font-size: 14px;
+  }
+  .tab-loading::before {
+    content: '';
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--gray-200);
+    border-top-color: var(--purple);
+    border-radius: 50%;
+    margin-right: 12px;
+    animation: spin 0.6s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Doc Content ── */
+  .doc-content {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 24px;
+    line-height: 1.7;
+  }
+  .doc-content h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
+  }
+  .doc-content h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--gray-800);
+    margin-top: 40px;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--gray-200);
+  }
+  .doc-content h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--gray-700);
+    margin-top: 32px;
+    margin-bottom: 12px;
+  }
+  .doc-content h4 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--gray-600);
+    margin-top: 24px;
+    margin-bottom: 8px;
+  }
+  .doc-content p {
+    margin-bottom: 16px;
+    color: var(--gray-700);
+  }
+  .doc-content ul, .doc-content ol {
+    margin-bottom: 16px;
+    padding-left: 24px;
+    color: var(--gray-700);
+  }
+  .doc-content li {
+    margin-bottom: 6px;
+  }
+  .doc-content li > ul, .doc-content li > ol {
+    margin-top: 6px;
+    margin-bottom: 0;
+  }
+  .doc-content strong {
+    font-weight: 700;
+    color: var(--gray-800);
+  }
+  .doc-content a {
+    color: var(--purple);
+    text-decoration: none;
+  }
+  .doc-content a:hover {
+    text-decoration: underline;
+  }
+  .doc-content code {
+    background: var(--purple-light);
+    color: var(--purple);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  }
+  .doc-content pre {
+    background: var(--gray-900);
+    color: #E5E7EB;
+    padding: 16px 20px;
+    border-radius: var(--radius-sm);
+    overflow-x: auto;
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+  .doc-content pre code {
+    background: none;
+    color: inherit;
+    padding: 0;
+    border-radius: 0;
+    font-size: 13px;
+  }
+  .doc-content blockquote {
+    border-left: 3px solid var(--blue);
+    background: var(--blue-light);
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    color: var(--gray-700);
+  }
+  .doc-content blockquote p:last-child {
+    margin-bottom: 0;
+  }
+  .table-wrap {
+    overflow-x: auto;
+    margin-bottom: 16px;
+  }
+  .doc-content table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .doc-content th {
+    text-align: left;
+    padding: 10px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--gray-500);
+    border-bottom: 2px solid var(--gray-200);
+    white-space: nowrap;
+  }
+  .doc-content td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--gray-200);
+    color: var(--gray-700);
+    vertical-align: top;
+  }
+  .doc-content tr:nth-child(even) td {
+    background: var(--gray-50);
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 768px) {
+    .tab-bar {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .doc-content { padding: 0 16px; }
+    #overview {
+      min-width: 1280px;
+      overflow-x: auto;
+    }
+    .side-panel .items-row {
+      flex-wrap: wrap;
+    }
+  }
+
+  /* ── Site Nav ── */
+  .site-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 16px 24px;
+  }
+  .site-nav .logo {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--gray-900);
+    text-decoration: none;
+    letter-spacing: -0.3px;
+  }
+  .site-nav .links {
+    display: flex;
+    gap: 24px;
+  }
+  .site-nav .links a {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gray-500);
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+  .site-nav .links a:hover { color: var(--gray-800); }
+  .site-nav .links a.active { color: var(--purple); }
 </style>
 </head>
 <body>
 
+<nav class="site-nav">
+  <a class="logo" href="index.html">Ultra Claude</a>
+  <div class="links">
+    <a href="index.html">Home</a>
+    <a href="installation.html">Installation</a>
+    <a href="getting-started.html">Getting Started</a>
+    <a href="system-overview.html" class="active">Documentation</a>
+  </div>
+</nav>
+
 <!-- Header -->
 <div class="header">
-  <h1>Ultra Claude — System Overview</h1>
-  <p>Specification-driven development platform for Claude Code</p>
+  <h1>Documentation</h1>
+  <p class="subtitle">Interactive system overview, architecture, workflows, and component reference.</p>
 </div>
+
+<!-- Tab Bar -->
+<nav class="tab-bar" role="tablist">
+  <button class="tab-btn active" data-tab="overview" role="tab" aria-selected="true">Overview</button>
+  <button class="tab-btn" data-tab="architecture" data-src="architecture.html" role="tab">Architecture</button>
+  <button class="tab-btn" data-tab="execution" data-src="execution.html" role="tab">Execution</button>
+  <button class="tab-btn" data-tab="components" data-src="components.html" role="tab">Components</button>
+  <button class="tab-btn" data-tab="workflows" data-src="workflows.html" role="tab">Workflows</button>
+  <button class="tab-btn" data-tab="decisions" data-src="decisions.html" role="tab">Decisions</button>
+  <button class="tab-btn" data-tab="migration" data-src="migration.html" role="tab">Migration</button>
+  <button class="tab-btn" data-tab="research" data-src="research.html" role="tab">Research</button>
+</nav>
+
+<!-- Overview Tab (default, inline) -->
+<div class="tab-panel active" id="overview">
 
 <!-- Legend -->
 <div class="legend">
@@ -948,46 +1218,50 @@
     <!-- Governance -->
     <div class="side-panel">
       <div class="section-label">Governance</div>
-      <div class="side-item hook-item" data-tip="Deterministic — cannot be overridden by the AI. Checks file changes align with architecture docs on every Write/Edit.">
-        <div class="name">PreToolUse (Write/Edit)</div>
-        <div class="desc">Architecture conformance on file changes</div>
-      </div>
-      <div class="side-item hook-item" data-tip="Validates task meets plan success criteria before allowing completion.">
-        <div class="name">PostToolUse (TaskUpdate)</div>
-        <div class="desc">Validates task vs plan criteria</div>
-      </div>
-      <div class="side-item hook-item" data-tip="Saves checkpoint if execution in progress; checks architecture docs updated before session ends.">
-        <div class="name">Stop</div>
-        <div class="desc">Checkpoint + docs-updated check</div>
+      <div class="items-row">
+        <div class="side-item hook-item" data-tip="Deterministic — cannot be overridden by the AI. Checks file changes align with architecture docs on every Write/Edit.">
+          <div class="name">PreToolUse (Write/Edit)</div>
+          <div class="desc">Architecture conformance on file changes</div>
+        </div>
+        <div class="side-item hook-item" data-tip="Validates task meets plan success criteria before allowing completion.">
+          <div class="name">PostToolUse (TaskUpdate)</div>
+          <div class="desc">Validates task vs plan criteria</div>
+        </div>
+        <div class="side-item hook-item" data-tip="Saves checkpoint if execution in progress; checks architecture docs updated before session ends.">
+          <div class="name">Stop</div>
+          <div class="desc">Checkpoint + docs-updated check</div>
+        </div>
       </div>
     </div>
 
     <!-- Support Skills -->
     <div class="side-panel">
       <div class="section-label">Support Skills</div>
-      <div class="side-item support-item" data-tip="Meta-skill with full system awareness. Advises how to accomplish tasks, guides extensions.">
-        <div class="name">Help</div>
-        <div class="desc">System advisor</div>
-      </div>
-      <div class="side-item support-item" data-tip="Saves task lists, teammate assignments, decisions, and blockers to checkpoint file for session recovery.">
-        <div class="name">Checkpoint</div>
-        <div class="desc">Saves state to file for recovery</div>
-      </div>
-      <div class="side-item support-item" data-tip="External library documentation via Ref.tools MCP. Focused ~500 token responses.">
-        <div class="name">Tech Research</div>
-        <div class="desc">Library docs via Ref</div>
-      </div>
-      <div class="side-item support-item" data-tip="Activated by .claude/docs-format. Guards the canonical documentation/ structure — routes docs to correct directories, enforces layout, prevents structural drift.">
-        <div class="name">Docs Manager</div>
-        <div class="desc">Guards doc structure</div>
-      </div>
-      <div class="side-item support-item" data-tip="Manages top-level context/ directory. Structures external system knowledge (docs + code), aggregates integration info, manages git submodules.">
-        <div class="name">Context Management</div>
-        <div class="desc">External system context</div>
-      </div>
-      <div class="side-item support-item" data-tip="One-time onboarding tool. Surveys existing project docs in non-standard layout, maps to canonical documentation/ structure, produces a migration plan.">
-        <div class="name">Docs Migration</div>
-        <div class="desc">Onboard existing projects</div>
+      <div class="items-row">
+        <div class="side-item support-item" data-tip="Meta-skill with full system awareness. Advises how to accomplish tasks, guides extensions.">
+          <div class="name">Help</div>
+          <div class="desc">System advisor</div>
+        </div>
+        <div class="side-item support-item" data-tip="Saves task lists, teammate assignments, decisions, and blockers to checkpoint file for session recovery.">
+          <div class="name">Checkpoint</div>
+          <div class="desc">Saves state to file for recovery</div>
+        </div>
+        <div class="side-item support-item" data-tip="External library documentation via Ref.tools MCP. Focused ~500 token responses.">
+          <div class="name">Tech Research</div>
+          <div class="desc">Library docs via Ref</div>
+        </div>
+        <div class="side-item support-item" data-tip="Activated by .claude/docs-format. Guards the canonical documentation/ structure — routes docs to correct directories, enforces layout, prevents structural drift.">
+          <div class="name">Docs Manager</div>
+          <div class="desc">Guards doc structure</div>
+        </div>
+        <div class="side-item support-item" data-tip="Manages top-level context/ directory. Structures external system knowledge (docs + code), aggregates integration info, manages git submodules.">
+          <div class="name">Context Management</div>
+          <div class="desc">External system context</div>
+        </div>
+        <div class="side-item support-item" data-tip="Universal onboarding skill. Handles any project state: greenfield, existing docs, mixed. Explores codebase, scaffolds canonical structure, derives config, migrates docs — all in one skill.">
+          <div class="name">Init Project</div>
+          <div class="desc">Onboard any project</div>
+        </div>
       </div>
     </div>
 
@@ -995,6 +1269,93 @@
   </div>
 
 </div>
+
+</div><!-- /overview -->
+
+<!-- Doc tabs (loaded on demand) -->
+<div class="tab-panel" id="architecture"></div>
+<div class="tab-panel" id="execution"></div>
+<div class="tab-panel" id="components"></div>
+<div class="tab-panel" id="workflows"></div>
+<div class="tab-panel" id="decisions"></div>
+<div class="tab-panel" id="migration"></div>
+<div class="tab-panel" id="research"></div>
+
+<script>
+(function() {
+  var tabs = document.querySelectorAll('.tab-btn');
+  var panels = document.querySelectorAll('.tab-panel');
+  var cache = {};
+
+  function switchTab(id) {
+    tabs.forEach(function(t) {
+      var isActive = t.dataset.tab === id;
+      t.classList.toggle('active', isActive);
+      t.setAttribute('aria-selected', isActive);
+    });
+    panels.forEach(function(p) { p.classList.toggle('active', p.id === id); });
+
+    var btn = document.querySelector('.tab-btn[data-tab="' + id + '"]');
+    var panel = document.getElementById(id);
+    if (btn && btn.dataset.src && !cache[id]) {
+      panel.innerHTML = '<div class="tab-loading">Loading\u2026</div>';
+      fetch(btn.dataset.src)
+        .then(function(r) { return r.ok ? r.text() : Promise.reject(r.status); })
+        .then(function(html) { panel.innerHTML = html; cache[id] = true; })
+        .catch(function(e) {
+          panel.innerHTML = '<div class="tab-loading" style="color:var(--red)">Failed to load (' + e + ')</div>';
+        });
+    }
+  }
+
+  // Tab click
+  tabs.forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      switchTab(this.dataset.tab);
+      history.pushState(null, '', '#' + this.dataset.tab);
+    });
+  });
+
+  // Hash routing
+  function onHash() {
+    var id = location.hash.slice(1);
+    if (id && document.getElementById(id)) switchTab(id);
+  }
+  window.addEventListener('hashchange', onHash);
+  if (location.hash) onHash();
+
+  // Cross-doc links
+  document.addEventListener('click', function(e) {
+    var link = e.target.closest('.tab-link');
+    if (link) {
+      e.preventDefault();
+      var id = link.getAttribute('href').replace('#', '');
+      switchTab(id);
+      history.pushState(null, '', '#' + id);
+      window.scrollTo(0, 0);
+    }
+  });
+
+  // Keyboard navigation
+  document.querySelector('.tab-bar').addEventListener('keydown', function(e) {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    var arr = Array.from(tabs);
+    var i = arr.indexOf(document.querySelector('.tab-btn.active'));
+    if (e.key === 'ArrowRight') i = (i + 1) % arr.length;
+    else i = (i - 1 + arr.length) % arr.length;
+    arr[i].focus();
+    arr[i].click();
+  });
+
+  // Local file:// detection
+  if (location.protocol === 'file:') {
+    console.log(
+      '%cUltra Claude Docs%c fetch() requires HTTP.\nRun: cd assets && python3 -m http.server 8000\nThen open: http://localhost:8000/system-overview.html',
+      'font-weight:bold;color:#8B5CF6', 'color:inherit'
+    );
+  }
+})();
+</script>
 
 </body>
 </html>

@@ -1,0 +1,352 @@
+<div class="doc-content">
+
+<h1>Components</h1>
+<p>Reference for all Ultra Claude components: skills, agents, hooks, templates, and configuration files.</p>
+
+<h2 id="skills">Skills</h2>
+
+<blockquote>
+<p><strong>Note:</strong> Per <a href="#decisions" class="tab-link">D15</a>, there is no separate &ldquo;commands&rdquo; concept. Skills with <code>user-invocable: true</code> in their SKILL.md frontmatter become slash commands, invoked as <code>/uc:{skill-name}</code>.</p>
+</blockquote>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>Skill</th><th>Trigger</th><th>User-Invocable</th><th>Purpose</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>feature-mode</strong></td><td>&ldquo;new feature&rdquo;, &ldquo;plan feature&rdquo;, &ldquo;start feature&rdquo;</td><td>Yes &mdash; <code>/uc:feature-mode</code></td><td>Feature Mode: new features with product + architecture context. Includes optional RFC sub-mode for ambiguous/high-risk architecture decisions (AI persona review).</td></tr>
+<tr><td><strong>debug-mode</strong></td><td>&ldquo;debug&rdquo;, &ldquo;fix&rdquo;, &ldquo;investigate&rdquo;</td><td>Yes &mdash; <code>/uc:debug-mode</code></td><td>Debug Mode: issue investigation and fix planning. Spawns investigation team (Researcher + System Tester) during planning phase. Fix execution uses standard plan-execution team.</td></tr>
+<tr><td><strong>doc-code-verification-mode</strong></td><td>&ldquo;verify docs&rdquo;, &ldquo;check doc-code gaps&rdquo;, &ldquo;sync docs&rdquo;</td><td>Yes &mdash; <code>/uc:doc-code-verification-mode</code></td><td>Doc &amp; Code Verification Mode: find and plan fixes for discrepancies</td></tr>
+<tr><td><strong>plan-enhancer</strong></td><td>Auto-loaded by all modes</td><td>No (internal)</td><td>Standardizes plan output: plan directory, README.md with embedded task list, task granularity. Uses Claude Code&rsquo;s plan mode file path override (writes plan to <code>documentation/plans/{name}/README.md</code> instead of default <code>.claude/plan.md</code>). Ensures task list is embedded in the plan document.</td></tr>
+<tr><td><strong>plan-execution</strong></td><td><code>/uc:plan-execution</code></td><td>Yes &mdash; <code>/uc:plan-execution</code></td><td>Execution engine: reads plan directory, composes dynamic agent team based on plan size, creates role-separated task lists, spawns teammates, coordinates 5-phase execution (setup, parallel work, checkpoint, failure handling, completion)</td></tr>
+<tr><td><strong>discovery-mode</strong></td><td>&ldquo;discovery mode&rdquo;, &ldquo;research only&rdquo;</td><td>Yes &mdash; <code>/uc:discovery-mode</code></td><td>Discovery Mode: research only, coding disabled</td></tr>
+<tr><td><strong>docs-manager</strong></td><td>Activated by <code>.claude/docs-format</code> file</td><td>No (auto)</td><td>Guards <code>documentation/</code> structure &mdash; enforces canonical layout, routes docs to correct directories, prevents structural drift</td></tr>
+<tr><td><strong>checkpoint</strong></td><td><code>/uc:checkpoint</code></td><td>Yes &mdash; <code>/uc:checkpoint</code></td><td>Saves task list states, active teammate assignments, execution decisions, and blockers to <code>plans/{name}/checkpoint-{timestamp}.md</code> for session recovery</td></tr>
+<tr><td><strong>context-management</strong></td><td>&ldquo;add context&rdquo;, &ldquo;add external system&rdquo;, &ldquo;update context&rdquo;</td><td>Yes &mdash; <code>/uc:context-management</code></td><td>Manages <code>context/</code> directory: structures external system knowledge, aggregates docs + code, manages git submodules</td></tr>
+<tr><td><strong>init-project</strong></td><td>&ldquo;init project&rdquo;, &ldquo;setup project&rdquo;, &ldquo;migrate docs&rdquo;</td><td>Yes &mdash; <code>/uc:init-project</code></td><td>Universal onboarding: explores codebase, scaffolds canonical structure, derives config, migrates existing docs. Handles greenfield, migration, and mixed states in one skill.</td></tr>
+<tr><td><strong>help</strong></td><td>&ldquo;how to accomplish&rdquo;, &ldquo;extend the system&rdquo;</td><td>Yes &mdash; <code>/uc:help</code></td><td>Meta-skill: understands full system, advises on extensions</td></tr>
+<tr><td><strong>tech-research</strong></td><td>&ldquo;how does X work&rdquo;, &ldquo;research library&rdquo;, &ldquo;check docs&rdquo;</td><td>Yes &mdash; <code>/uc:tech-research</code></td><td>External library/framework documentation via Ref.tools</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3 id="skill-file-format">Skill File Format</h3>
+
+<p>Each skill is a directory under <code>skills/</code> containing a <code>SKILL.md</code> file (per <a href="#decisions" class="tab-link">D16</a>). The <code>SKILL.md</code> uses YAML frontmatter for metadata and a Markdown body for the system prompt.</p>
+
+<pre><code>skills/{skill-name}/SKILL.md</code></pre>
+
+<p><strong>YAML frontmatter fields:</strong></p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>name</code></td><td>string</td><td>Yes</td><td>Human-readable skill name</td></tr>
+<tr><td><code>description</code></td><td>string</td><td>Yes</td><td>One-line description (shown in help/listings)</td></tr>
+<tr><td><code>argument-hint</code></td><td>string</td><td>No</td><td>Placeholder text for user arguments (e.g., <code>"feature description"</code>)</td></tr>
+<tr><td><code>user-invocable</code></td><td>boolean</td><td>No</td><td>If <code>true</code>, skill becomes a slash command (<code>/uc:{skill-name}</code>). Default: <code>false</code>.</td></tr>
+<tr><td><code>disable-model-invocation</code></td><td>boolean</td><td>No</td><td>If <code>true</code>, Claude cannot auto-activate this skill. Default: <code>false</code>.</td></tr>
+<tr><td><code>allowed-tools</code></td><td>list</td><td>No</td><td>Restrict which tools the skill can use</td></tr>
+<tr><td><code>model</code></td><td>string</td><td>No</td><td>Override model for this skill (<code>opus</code>, <code>sonnet</code>, <code>haiku</code>)</td></tr>
+<tr><td><code>context</code></td><td>list</td><td>No</td><td>Paths to load into context when skill activates (supports <code>${CLAUDE_PLUGIN_ROOT}</code>)</td></tr>
+<tr><td><code>agent</code></td><td>string</td><td>No</td><td>Agent to delegate execution to (path to agent <code>.md</code> file)</td></tr>
+<tr><td><code>hooks</code></td><td>object</td><td>No</td><td>Skill-scoped hooks (same format as <code>hooks.json</code>)</td></tr>
+</tbody>
+</table>
+</div>
+
+<p><strong>Body format:</strong></p>
+
+<p>The Markdown body below the frontmatter is the system prompt injected into context when the skill activates.</p>
+
+<ul>
+<li><code>$ARGUMENTS</code> &mdash; replaced with the user&rsquo;s input after the slash command</li>
+<li><code>!`shell-command`</code> &mdash; preprocessing: runs a shell command and injects stdout into the prompt</li>
+<li><code>${CLAUDE_PLUGIN_ROOT}</code> &mdash; resolves to the plugin&rsquo;s root directory (portable paths)</li>
+</ul>
+
+<p><strong>Example SKILL.md:</strong></p>
+
+<pre><code>---
+name: Feature Mode
+description: Plan new features with product, architecture, and implementation context
+argument-hint: "feature description"
+user-invocable: true
+context:
+  - ${CLAUDE_PLUGIN_ROOT}/skills/plan-enhancer/SKILL.md
+---
+
+You are entering Feature Mode for: $ARGUMENTS
+
+Read the following architecture docs before planning:
+- documentation/technology/architecture/
+- documentation/product/requirements/
+
+[... rest of system prompt ...]</code></pre>
+
+<h2 id="agents">Agents</h2>
+
+<blockquote>
+<p><strong>Note:</strong> The Lead is the main Claude Code session itself &mdash; not a spawned agent. It runs the plan-execution skill and orchestrates all teammates. See <a href="#execution" class="tab-link">Execution</a> for Lead behavior.</p>
+<p><strong>Spawning model:</strong> During planning, agents are spawned as <strong>subagents</strong> via the Task tool (results return to Lead). During execution, agents are spawned as <strong>teammates</strong> in an agent team (self-claiming, shared memory, direct messaging). See <a href="#architecture" class="tab-link">Architecture &mdash; Agent Coordination</a>.</p>
+</blockquote>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>Agent</th><th>Model</th><th>Tools</th><th>Purpose</th><th>Spawned As</th><th>Spawn Context</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>researcher</strong></td><td>sonnet</td><td>Read, Write, Grep, Glob, WebFetch, WebSearch, mcp__ref__ref_search_documentation, mcp__ref__ref_read_url</td><td>Generic context-gathering agent. Parameterized by the mode that spawns it &mdash; focuses on whatever the mode needs (product context, debug investigation, code patterns, etc.). Does not decide where to write &mdash; the spawning mode must specify output paths in the spawn prompt.</td><td>Subagent (planning) or Teammate (execution)</td><td><strong>Planning:</strong> output file paths, architecture docs path, tech-research skill. <strong>Execution:</strong> + plan README.md, <code>shared/</code> directory path, research task list instructions.</td></tr>
+<tr><td><strong>task-executor</strong></td><td>opus</td><td>Read, Write, Edit, Glob, Grep, Bash</td><td>Single-task implementation from research context</td><td>Teammate (execution only)</td><td>Plan README.md, <code>shared/</code> directory path, per-task research file, coding standards path, impl task list instructions</td></tr>
+<tr><td><strong>task-tester</strong></td><td>sonnet</td><td>Read, Glob, Grep, Bash</td><td>Testing gate in execution pipeline. Self-claims from test task list for per-task testing. Also runs full test suite as final gate before team shutdown. Must not modify source code. Bash restricted to running test commands and build tools.</td><td>Teammate (execution only)</td><td>Plan README.md, <code>shared/</code> directory path, success criteria from plan, test task list instructions, system test instructions (<code>.claude/system-test.md</code>), SendMessage target (Lead) for failures</td></tr>
+<tr><td><strong>system-tester</strong></td><td>sonnet</td><td>Read, Glob, Grep, Bash</td><td>Bug reproduction and fix validation in Debug Mode. Attempts to reproduce reported issues, validates fixes resolve the original problem. Must not modify source code. Bash restricted to bug reproduction and fix validation commands.</td><td>Subagent (Debug Mode planning)</td><td>System test instructions (<code>.claude/system-test.md</code>), bug description, reproduction steps</td></tr>
+<tr><td><strong>code-review</strong></td><td>sonnet</td><td>Read, Glob, Grep</td><td>Code review gate in execution pipeline. Self-claims from review task list. Checks code quality, pattern compliance, architecture conformance, duplication. Read-only. PASS promotes to test list, FAIL re-queues to impl list.</td><td>Teammate (execution only)</td><td>Plan README.md, <code>shared/</code> directory path, coding standards path, architecture docs path, review task list instructions</td></tr>
+<tr><td><strong>checker</strong></td><td>sonnet</td><td>Read, Grep, Glob</td><td>Compares specific code against documentation for single topic</td><td>Subagent (Verification Mode)</td><td>Code path + doc path to compare</td></tr>
+<tr><td><strong>code-surveyor</strong></td><td>haiku</td><td>Read, Grep, Glob</td><td>Quick survey of code package structure</td><td>Subagent (Verification Mode)</td><td>Target directory to survey</td></tr>
+<tr><td><strong>doc-surveyor</strong></td><td>haiku</td><td>Read, Grep, Glob</td><td>Quick survey of documentation section structure</td><td>Subagent (Verification Mode)</td><td>Documentation section to survey</td></tr>
+<tr><td><strong>market-analyzer</strong></td><td>sonnet</td><td>Read, Write, WebSearch, WebFetch, mcp__ref__ref_search_documentation, mcp__ref__ref_read_url</td><td>Market research, competitor analysis, technology trends. Subagent in Discovery Mode.</td><td>Subagent (Discovery Mode)</td><td>Research topic, output path</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3 id="agent-file-format">Agent File Format</h3>
+
+<p>Each agent is a flat <code>.md</code> file under <code>agents/</code> (per <a href="#decisions" class="tab-link">D17</a>). YAML frontmatter declares runtime configuration; the body is the agent system prompt.</p>
+
+<pre><code>agents/{agent-name}.md</code></pre>
+
+<p><strong>YAML frontmatter fields:</strong></p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>name</code></td><td>string</td><td>Yes</td><td>Human-readable agent name</td></tr>
+<tr><td><code>description</code></td><td>string</td><td>Yes</td><td>One-line description</td></tr>
+<tr><td><code>tools</code></td><td>list</td><td>No</td><td>Allowed tools (e.g., <code>[Read, Grep, Glob, Bash]</code>)</td></tr>
+<tr><td><code>disallowedTools</code></td><td>list</td><td>No</td><td>Explicitly blocked tools</td></tr>
+<tr><td><code>model</code></td><td>string</td><td>No</td><td>Model override (<code>opus</code>, <code>sonnet</code>, <code>haiku</code>)</td></tr>
+<tr><td><code>permissionMode</code></td><td>string</td><td>No</td><td>Permission mode for the agent</td></tr>
+<tr><td><code>maxTurns</code></td><td>number</td><td>No</td><td>Maximum agentic turns before stopping</td></tr>
+<tr><td><code>skills</code></td><td>list</td><td>No</td><td>Skills the agent can invoke</td></tr>
+<tr><td><code>mcpServers</code></td><td>list</td><td>No</td><td>MCP servers available to the agent</td></tr>
+<tr><td><code>hooks</code></td><td>object</td><td>No</td><td>Agent-scoped hooks</td></tr>
+<tr><td><code>memory</code></td><td>string</td><td>No</td><td>Path to persistent memory file</td></tr>
+<tr><td><code>background</code></td><td>boolean</td><td>No</td><td>If <code>true</code>, agent runs in background</td></tr>
+<tr><td><code>isolation</code></td><td>string</td><td>No</td><td>Isolation mode (e.g., <code>"worktree"</code>)</td></tr>
+</tbody>
+</table>
+</div>
+
+<p><strong>Body format:</strong></p>
+
+<p>The Markdown body is the system prompt given to the agent when spawned. Spawn prompts from the Lead or skill provide additional runtime context on top of this base prompt.</p>
+
+<p><strong>Example agent file:</strong></p>
+
+<pre><code>---
+name: Researcher
+description: Generic context-gathering agent, parameterized by spawning mode
+model: sonnet
+tools:
+  - Read
+  - Grep
+  - Glob
+  - WebFetch
+  - WebSearch
+  - mcp__ref
+---
+
+You are a Researcher agent. Your job is to gather context from the codebase,
+documentation, and external sources as directed by your spawn prompt.
+
+[... rest of system prompt ...]</code></pre>
+
+<h2 id="hooks">Hooks</h2>
+
+<p>Hooks are the hard enforcement layer (<a href="#decisions" class="tab-link">D6</a>) &mdash; they cannot be overridden by the AI.</p>
+
+<h3 id="hooks-json-structure">hooks.json Structure</h3>
+
+<p>All hooks are defined in <code>hooks/hooks.json</code>. Each hook binds to an event and specifies a handler type.</p>
+
+<pre><code>{
+  "hooks": [
+    {
+      "event": "PreToolUse",
+      "match": { "tool": ["Write", "Edit"] },
+      "type": "prompt",
+      "prompt": "Check if the file being written/edited aligns with architecture docs in documentation/technology/architecture/. If the change contradicts documented architecture, BLOCK the operation and explain why."
+    },
+    {
+      "event": "PostToolUse",
+      "match": { "tool": ["TaskUpdate"] },
+      "type": "prompt",
+      "prompt": "If the task status is being set to 'completed', read the plan README.md success criteria and validate this task meets them. Block completion if criteria are unmet."
+    },
+    {
+      "event": "Stop",
+      "type": "prompt",
+      "prompt": "If execution is in progress, save a checkpoint to the plan directory before stopping."
+    }
+  ]
+}</code></pre>
+
+<h3 id="hook-events">Hook Events</h3>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>Event</th><th>When It Fires</th><th>Ultra Claude Usage</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>PreToolUse</strong></td><td>Before a tool call executes</td><td>Architecture conformance check on Write/Edit</td></tr>
+<tr><td><strong>PostToolUse</strong></td><td>After a tool call completes</td><td>Task completion validation on TaskUpdate</td></tr>
+<tr><td><strong>Stop</strong></td><td>Session is ending</td><td>Checkpoint save during execution</td></tr>
+<tr><td><strong>SessionStart</strong></td><td>Session begins</td><td>Available but unused</td></tr>
+<tr><td><strong>TaskCompleted</strong></td><td>A task is marked complete</td><td>Available but unused (covered by PostToolUse)</td></tr>
+<tr><td><strong>TeammateIdle</strong></td><td>A teammate has no more work</td><td>Available but unused</td></tr>
+<tr><td><strong>SubagentStart</strong></td><td>A subagent is spawned</td><td>Available but unused</td></tr>
+<tr><td><strong>SubagentStop</strong></td><td>A subagent finishes</td><td>Available but unused</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3 id="hook-types">Hook Types</h3>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>Type</th><th>Description</th><th>Example Use</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>command</strong></td><td>Runs a shell command. Exit code 0 = pass, non-zero = block.</td><td>Run a linter before allowing a Write</td></tr>
+<tr><td><strong>prompt</strong></td><td>Injects a prompt into the model context for evaluation. Model decides pass/block.</td><td>Check architecture conformance</td></tr>
+<tr><td><strong>agent</strong></td><td>Spawns an agent to evaluate the action. Agent decides pass/block.</td><td>Complex multi-file validation</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>Ultra Claude currently uses only <code>prompt</code>-type hooks. <code>command</code> and <code>agent</code> types are available for future use.</p>
+
+<h3 id="hooks-in-execution-context">Hooks in Execution Context</h3>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>Hook Event</th><th>Purpose</th><th>Agent Team Behavior</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>PreToolUse (Write/Edit)</strong></td><td>Check if file changes align with architecture docs</td><td>Unchanged from planning layer</td></tr>
+<tr><td><strong>PostToolUse (TaskUpdate)</strong></td><td>Validate task meets documented success criteria</td><td>When any agent calls TaskUpdate with <code>status: "completed"</code>, reads plan README.md success criteria and validates. Blocks completion if unmet.</td></tr>
+<tr><td><strong>Stop</strong></td><td>Verify architectural changes are reflected in architecture docs</td><td>Triggers checkpoint save if execution is in progress</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2 id="templates">Templates</h2>
+
+<p>Shipped with the plugin. Copied into target projects by <code>/uc:init-project</code>.</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>Template</th><th>Purpose</th><th>Created When</th></tr>
+</thead>
+<tbody>
+<tr><td><code>templates/architecture.md</code></td><td>Architecture document template</td><td>Planning (any mode)</td></tr>
+<tr><td><code>templates/rfc.md</code></td><td>RFC template (problem, proposed solution, alternatives, open questions, outcome)</td><td>Planning (optional, for tough decisions)</td></tr>
+<tr><td><code>templates/requirement.md</code></td><td>Formal requirement template (FR-xxx, NFR-xxx)</td><td>Planning</td></tr>
+<tr><td><code>templates/plan.md</code></td><td>Plan template (README.md with embedded task list)</td><td>Planning</td></tr>
+<tr><td><code>templates/context.md</code></td><td>External system context template (docs + code layout)</td><td>As needed</td></tr>
+<tr><td><code>templates/dependency.md</code></td><td>Blocking questions/dependencies</td><td>As needed</td></tr>
+<tr><td><code>templates/task.md</code></td><td>Individual task template (used within plan README.md)</td><td>Planning</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2 id="configuration-files">Configuration Files</h2>
+
+<h3 id="plugin-manifest">Plugin Manifest (<code>plugin.json</code>)</h3>
+
+<p>Located at <code>.claude-plugin/plugin.json</code>. This is the plugin&rsquo;s identity file.</p>
+
+<pre><code>{
+  "name": "uc",
+  "version": "0.1.0",
+  "description": "Specification-driven development platform for Claude Code",
+  "author": "Dawid Duniec",
+  "keywords": ["development", "specification-driven", "agent-teams"],
+  "skills": "skills/",
+  "agents": "agents/",
+  "hooks": "hooks/hooks.json",
+  "templates": "templates/"
+}</code></pre>
+
+<p>The <code>name</code> field determines the command prefix &mdash; all user-invocable skills are namespaced as <code>/uc:{skill-name}</code>.</p>
+
+<h3 id="settings">Settings (<code>settings.json</code>)</h3>
+
+<p>Located at the plugin root. Currently the only key supported by Claude Code is <code>agent</code>:</p>
+
+<pre><code>{
+  "agent": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  }
+}</code></pre>
+
+<blockquote>
+<p><strong>Note:</strong> <code>.mcp.json</code> and <code>.lsp.json</code> exist in the plugin spec but Ultra Claude does not bundle MCP or LSP servers &mdash; it relies on globally configured servers (Ref.tools, Atlassian) per <a href="#decisions" class="tab-link">D7</a>.</p>
+</blockquote>
+
+<h3 id="environment-variable">Environment Variable</h3>
+
+<p><code>${CLAUDE_PLUGIN_ROOT}</code> resolves to the plugin&rsquo;s root directory at runtime. Use it in SKILL.md <code>context</code> paths and agent prompts for portable references to plugin files.</p>
+
+<h3 id="project-level-configuration">Project-Level Configuration</h3>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>File</th><th>Purpose</th><th>Scope</th></tr>
+</thead>
+<tbody>
+<tr><td><code>.claude/docs-format</code></td><td>Activates docs-manager skill, sets output format (confluence/gitbook)</td><td>Project</td></tr>
+<tr><td><code>.claude/environments-info</code></td><td>How to access dev/staging/prod environments</td><td>Project</td></tr>
+<tr><td><code>.claude/app-context-for-research.md</code></td><td>Domain context for researcher agents</td><td>Project</td></tr>
+<tr><td><code>.claude/system-test.md</code></td><td>Instructions for system tester agent</td><td>Project</td></tr>
+<tr><td><code>documentation/plans/{name}/shared/</code></td><td>Per-role shared memory directory. Each role writes only to their own file (<code>researcher.md</code>, <code>executor.md</code>, <code>reviewer.md</code>, <code>tester.md</code>, <code>lead.md</code>). All teammates read all files before each task claim.</td><td>Plan</td></tr>
+<tr><td><code>documentation/plans/{name}/checkpoint-{timestamp}.md</code></td><td>Session state snapshot for recovery</td><td>Plan</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>All project-level configuration lives in the project&rsquo;s <code>.claude/</code> directory. This keeps the project root clean and groups all Claude Code configuration in one place.</p>
+
+<h2 id="color-coding-convention">Color Coding Convention</h2>
+
+<p>Used in diagrams and the Miro board for visual consistency:</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>Color</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Purple</strong></td><td>Skill (procedural knowledge, extends main context)</td></tr>
+<tr><td><strong>Green</strong></td><td>Agent (isolated execution, spawned via Task tool or as teammate)</td></tr>
+<tr><td><strong>Yellow</strong></td><td>Document (artifact, template, reference file)</td></tr>
+<tr><td><strong>Blue</strong></td><td>Instruction/configuration file (.claude/ configs)</td></tr>
+<tr><td><strong>Orange</strong></td><td>Tag/mode indicator (e.g., &ldquo;Use Plan Mode&rdquo;)</td></tr>
+</tbody>
+</table>
+</div>
+
+</div>

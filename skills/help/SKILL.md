@@ -26,7 +26,7 @@ When the user has a goal, recommend the right workflow:
 - **Saving progress** -> `/uc:checkpoint`
 - **Looking up library docs** -> `/uc:tech-research`
 - **Adding external system knowledge** -> `/uc:context-management`
-- **Onboarding existing project** -> `scripts/init-docs.sh` then `/uc:docs-migration`
+- **Onboarding any project** -> `/uc:init-project`
 
 Always explain the full path: which skill to start with, what it produces, and what comes next.
 
@@ -55,7 +55,7 @@ When the user wants to add capabilities, guide them through the correct extensio
 
 **New template:**
 - Add to `templates/` directory
-- Templates are copied into target projects by `init-docs.sh`
+- Templates are copied into target projects by `/uc:init-project`
 - Used as starting points for documentation in `documentation/`
 
 ### 3. "What's the most efficient path?"

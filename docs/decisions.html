@@ -1,0 +1,58 @@
+<div class="doc-content">
+
+<h1>Decisions</h1>
+<p>Architectural decisions that have been made, and open questions still to resolve.</p>
+
+<h2 id="decided">Decided</h2>
+
+<p>Key assumptions the design is built on. If any of these prove wrong, the affected parts of the architecture need revisiting.</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>#</th><th>Decision</th><th>Rationale</th></tr>
+</thead>
+<tbody>
+<tr><td>D1</td><td><strong>Agent teams are the coordination mechanism for execution.</strong></td><td>Enables direct teammate communication, shared task lists, and self-claiming during plan execution. Planning modes use subagents (Task tool) for parallel research &mdash; they don&rsquo;t need cross-agent coordination.</td></tr>
+<tr><td>D2</td><td><strong>Documentation structure is consistent across all projects.</strong></td><td>Every project using Ultra Claude follows the same <code>documentation/</code> layout. This is non-negotiable &mdash; it&rsquo;s how specs govern code.</td></tr>
+<tr><td>D3</td><td><strong>CLAUDE.md is the entry point, not a replacement target.</strong></td><td>The plugin augments but does not replace project CLAUDE.md. Project-specific rules live in CLAUDE.md; Ultra Claude provides the framework.</td></tr>
+<tr><td>D4</td><td><strong>Token cost is acceptable.</strong></td><td>Agent teams are expensive (~200K tokens per teammate). The user has accepted this trade-off for the coordination benefits.</td></tr>
+<tr><td>D5</td><td><strong>The plugin is personal.</strong></td><td>Built for one developer&rsquo;s workflow. May be shared later, but the primary user is the author.</td></tr>
+<tr><td>D6</td><td><strong>Hooks are the enforcement layer.</strong></td><td>CLAUDE.md rules can be forgotten under context pressure. Hooks cannot be overridden. Critical governance rules go in hooks.</td></tr>
+<tr><td>D7</td><td><strong>Ref.tools MCP is a prerequisite.</strong></td><td>The tech-research skill is bundled in the plugin, but it depends on Ref.tools MCP being configured in the environment. The plugin owns the skill; the user owns the MCP server setup.</td></tr>
+<tr><td>D8</td><td><strong>The init skill handles project setup.</strong></td><td>When Ultra Claude is installed in a new project, <code>/uc:init-project</code> explores the codebase, scaffolds the <code>documentation/</code> structure, derives config, and migrates existing docs. One universal skill handles all project states.</td></tr>
+<tr><td>D9</td><td><strong>Dynamic team composition over fixed roster.</strong></td><td>Lead decides team size based on plan characteristics. A 3-task plan doesn&rsquo;t need 5 teammates. See <a href="#execution" class="tab-link">Execution</a> for sizing heuristics.</td></tr>
+<tr><td>D10</td><td><strong>Per-role shared files as persistent memory.</strong></td><td>Teammates don&rsquo;t get conversation history. Per-role files in <code>shared/</code> directory bridge the context gap and survive session death. Each role writes only to their own file &mdash; no write conflicts.</td></tr>
+<tr><td>D11</td><td><strong>Role-separated task lists (4 lists).</strong></td><td>Lead manages 4 task lists (research, impl, review, test) and promotes between them. Leverages Claude Code&rsquo;s 3 built-in states cleanly within each list rather than fighting the system with metadata hacks.</td></tr>
+<tr><td>D12</td><td><strong>SendMessage for urgent only, files for persistent.</strong></td><td>SendMessage interrupts teammates (costs tokens). Per-role files in <code>shared/</code> are read-at-own-pace. Reserve SendMessage for: (1) test/review failure feedback to Lead, (2) Researcher discovering plan-invalidating information, (3) any teammate hitting a blocker that affects other roles.</td></tr>
+<tr><td>D13</td><td><strong>Agent teams for execution, subagents for planning.</strong></td><td>Execution layer uses agent teams per D1 (shared task lists, self-claiming, shared memory). Planning modes use subagents via Task tool for parallel research jobs &mdash; simpler, cheaper, and sufficient since results just flow back to the Lead.</td></tr>
+<tr><td>D14</td><td><strong>Code Review as pipeline stage between Executor and Tester.</strong></td><td>Catches quality/pattern issues before functional testing. Read-only, uses its own task list. Prevents compounding failures where bad patterns pass tests but violate architecture.</td></tr>
+<tr><td>D15</td><td><strong>Skills replace commands as the invocation mechanism.</strong></td><td>The official Claude Code plugin spec has no <code>commands/</code> concept. User-invocable skills (with <code>user-invocable: true</code> in YAML frontmatter) ARE slash commands. The <code>commands/</code> directory is legacy and removed.</td></tr>
+<tr><td>D16</td><td><strong><code>SKILL.md</code> with YAML frontmatter is the canonical skill format.</strong></td><td>Each skill lives in <code>skills/{name}/SKILL.md</code>. YAML frontmatter declares metadata (name, description, tools, model, agent, hooks). The body is the system prompt, injected into context when the skill activates.</td></tr>
+<tr><td>D17</td><td><strong>Agent definitions use flat <code>.md</code> files with YAML frontmatter.</strong></td><td>Each agent is <code>agents/{name}.md</code>. YAML frontmatter declares model, tools, constraints, permissions. The body is the agent system prompt. This replaces any programmatic agent config.</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2 id="open-questions">Open Questions</h2>
+
+<p>To resolve before implementation begins.</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>#</th><th>Question</th><th>Options / Notes</th></tr>
+</thead>
+<tbody>
+<tr><td>Q1</td><td><del><strong>Command prefix</strong>: Is <code>/uc:</code> the right namespace?</del></td><td><strong>Resolved</strong> &mdash; Plugin name is <code>uc</code> (set in <code>plugin.json</code> <code>name</code> field). All user-invocable skills are namespaced as <code>/uc:skill-name</code> (e.g., <code>/uc:feature-mode</code>, <code>/uc:plan-execution</code>). See <a href="#components" class="tab-link">Components</a> and D15.</td></tr>
+<tr><td>Q2</td><td><del><strong>Team persistence</strong>: When a plan spans multiple sessions, how do we handle team recreation?</del></td><td><strong>Resolved</strong> &mdash; checkpoint architecture (D9-D11). Lead saves 4 task list states + <code>shared/</code> directory + research files. On resume, Lead reads latest checkpoint, rebuilds team from scratch, skips completed work. See <a href="#execution" class="tab-link">Execution</a>.</td></tr>
+<tr><td>Q3</td><td><strong>Discovery mode enforcement</strong>: Should coding be disabled via hooks (hard) or CLAUDE.md instructions (soft)?</td><td>Hook is more reliable but requires careful implementation.</td></tr>
+<tr><td>Q4</td><td><del><strong>Docs format flexibility</strong>: Should the plugin mandate a specific documentation format (Confluence-style, GitBook-style) or be format-agnostic?</del></td><td><strong>Resolved</strong> &mdash; <code>.claude/docs-format</code> file controls output format. Docs-manager skill adapts to the specified format. See <a href="#components" class="tab-link">Components</a>.</td></tr>
+<tr><td>Q5</td><td><del><strong>Existing documentation</strong>: How does the plugin interact with projects that already have documentation?</del></td><td><strong>Resolved</strong> &mdash; <code>/uc:init-project</code> handles all project states (greenfield, existing docs, mixed). It explores the codebase, scaffolds the canonical structure, derives config, and migrates existing docs &mdash; all in one skill. See <a href="#architecture" class="tab-link">Architecture</a>.</td></tr>
+<tr><td>Q6</td><td><del><strong>Help: skill or command?</strong></del></td><td><strong>Resolved</strong> &mdash; Help is a skill with <code>user-invocable: true</code> in its SKILL.md frontmatter. Per D15, there is no separate &ldquo;command&rdquo; concept &mdash; user-invocable skills ARE slash commands. Invoked as <code>/uc:help</code>.</td></tr>
+<tr><td>Q7</td><td><strong>Bundled MCP servers</strong>: Should the plugin bundle any MCP servers?</td><td>Current thinking: no &mdash; rely on globally configured MCP servers (Ref.tools, Atlassian).</td></tr>
+</tbody>
+</table>
+</div>
+
+</div>

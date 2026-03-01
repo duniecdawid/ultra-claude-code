@@ -1,0 +1,43 @@
+<div class="doc-content">
+
+<h1>Research</h1>
+<p>Solutions evaluated and methodology references that informed the Ultra Claude design.</p>
+
+<h2 id="existing-solutions-evaluated">Existing Solutions Evaluated</h2>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>Solution</th><th>What We Took</th><th>What We Skipped</th></tr>
+</thead>
+<tbody>
+<tr><td><a href="https://github.com/levnikolaevich/claude-code-skills" target="_blank" rel="noopener">levnikolaevich/claude-code-skills</a></td><td>Checkpoint/recovery system, quality gate pattern, doc-first pipeline</td><td>103-skill complexity, Agile/RICE methodology, Linear integration</td></tr>
+<tr><td><a href="https://github.com/wshobson/agents" target="_blank" rel="noopener">wshobson/agents (Conductor)</a></td><td>Doc-first workflow (Context&rarr;Spec&rarr;Plan&rarr;Implement), phase-gated execution</td><td>112-agent marketplace scale, four-tier model strategy</td></tr>
+<tr><td><a href="https://github.com/github/spec-kit" target="_blank" rel="noopener">github/spec-kit</a></td><td>Constitution concept, spec evolution model, change classification</td><td>CLI tooling, multi-agent-tool support (we&rsquo;re Claude Code only)</td></tr>
+<tr><td><a href="https://github.com/avifenesh/agentsys" target="_blank" rel="noopener">avifenesh/agentsys</a></td><td>Drift detection pattern (77% fewer tokens)</td><td>Full 12-phase pipeline</td></tr>
+<tr><td><a href="https://github.com/obra/superpowers" target="_blank" rel="noopener">obra/superpowers</a></td><td>Skill-creation meta-skill pattern</td><td>Specific implementation choices</td></tr>
+<tr><td><a href="https://github.com/ruvnet/claude-flow" target="_blank" rel="noopener">ruvnet/claude-flow</a></td><td>SPARC methodology concepts</td><td>Unstable alpha, 400+ open issues, scope creep</td></tr>
+<tr><td><a href="https://github.com/anthropics/claude-code/tree/main/plugins" target="_blank" rel="noopener">Anthropic official plugins</a></td><td>Plugin structure, hook patterns, agent definitions</td><td>Specific plugin implementations</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2 id="methodology-references">Methodology References</h2>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>Source</th><th>Key Insight</th></tr>
+</thead>
+<tbody>
+<tr><td><a href="https://addyosmani.com/blog/good-spec/" target="_blank" rel="noopener">Addy Osmani &mdash; Good specs for AI agents</a></td><td>Three-tier boundary: Always/Ask First/Never</td></tr>
+<tr><td><a href="https://www.infoq.com/articles/spec-driven-development/" target="_blank" rel="noopener">InfoQ &mdash; Spec-Driven Development</a></td><td>Specs as &ldquo;type system for distributed architecture&rdquo;</td></tr>
+<tr><td><a href="https://www.oreilly.com/radar/how-agentic-ai-empowers-architecture-governance/" target="_blank" rel="noopener">O&rsquo;Reilly &mdash; Agentic AI for Architecture Governance</a></td><td>MCP as governance abstraction layer</td></tr>
+<tr><td><a href="https://martinfowler.com/articles/exploring-gen-ai/sdd-3-tools.html" target="_blank" rel="noopener">Fowler/Bockeler &mdash; Understanding SDD</a></td><td>Three maturity levels: Spec-First &rarr; Spec-Anchored &rarr; Spec-as-Source</td></tr>
+<tr><td><a href="https://code.claude.com/docs/en/agent-teams" target="_blank" rel="noopener">Claude Code Agent Teams Docs</a></td><td>Official architecture, constraints, patterns</td></tr>
+<tr><td><a href="https://github.com/anthropics/claude-code/blob/main/plugins/plugin-dev/skills/plugin-structure/SKILL.md" target="_blank" rel="noopener">Claude Code Plugin Structure</a></td><td>Official plugin format, auto-discovery, manifest</td></tr>
+</tbody>
+</table>
+</div>
+
+</div>

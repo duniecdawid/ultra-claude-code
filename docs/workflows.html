@@ -1,0 +1,156 @@
+<div class="doc-content">
+
+<h1>Workflows</h1>
+<p>Step-by-step flows showing how each mode operates end-to-end. For the architecture behind these flows, see <a href="#architecture" class="tab-link">Architecture</a>.</p>
+
+<blockquote>
+<p><strong>Invocation:</strong> All skills are namespaced under the plugin name <code>uc</code> (from <code>plugin.json</code>). Full invocation names are <code>/uc:feature-mode</code>, <code>/uc:debug-mode</code>, <code>/uc:doc-code-verification-mode</code>, <code>/uc:discovery-mode</code>, <code>/uc:plan-execution</code>. See <a href="#components" class="tab-link">Components</a> for the complete skill table.</p>
+</blockquote>
+
+<h2 id="feature-mode">Feature Mode</h2>
+
+<p><strong>Entry condition:</strong> User has a feature idea or requirement to implement.<br>
+<strong>Exit condition:</strong> Plan approved and ready for execution, or user decides not to proceed.</p>
+
+<pre><code>User: /uc:feature-mode "Add user authentication"
+
+1. PLANNING &mdash; Feature Mode activates
+   &rarr; Plan Enhancer triggers plan mode, configures plan directory
+   &rarr; Researcher subagent + Docs Manager skill gather context (codebase, architecture, product docs)
+   &rarr; Claude challenges scope, pushes for clarity
+   &rarr; If architecture decision is ambiguous: suggests RFC mode
+     &rarr; Creates documentation/technology/rfcs/auth-strategy.md
+     &rarr; Runs AI persona review (Devil's Advocate, Pragmatist, etc.)
+     &rarr; Outcome integrated into architecture doc, RFC archived
+   &rarr; Plan created in documentation/plans/user-auth/README.md (task list embedded)
+   &rarr; User reviews and approves plan
+
+   &rarr; If user rejects plan:
+     &rarr; User provides feedback on what to change
+     &rarr; Mode re-enters planning with feedback as additional context
+     &rarr; Revised plan generated and re-presented
+   &rarr; If user partially rejects:
+     &rarr; User specifies in chat which tasks to remove or modify
+     &rarr; Plan updated in place, task list adjusted
+     &rarr; Re-presented for final approval
+
+2. EXECUTION
+   &rarr; /uc:plan-execution user-auth
+   &rarr; Agent team runs tasks from the plan (see Plan Execution below)</code></pre>
+
+<p><strong>Edge cases:</strong></p>
+<ul>
+<li><strong>RFC mode disagreement</strong> &mdash; If AI personas reach no consensus, Lead presents all perspectives and user decides.</li>
+<li><strong>Scope creep during planning</strong> &mdash; If research reveals the feature is much larger than expected, Claude flags this and suggests splitting into multiple plans.</li>
+<li><strong>Missing architecture docs</strong> &mdash; If architecture docs don&rsquo;t exist yet, Feature Mode creates them as part of planning.</li>
+</ul>
+
+<h2 id="plan-execution">Plan Execution</h2>
+
+<p>See <a href="#execution" class="tab-link">Execution</a> for the complete 5-phase workflow.</p>
+
+<p><strong>Summary:</strong> <code>/uc:plan-execution {plan-name}</code> &rarr; Lead reads plan &rarr; creates 4 role-separated task lists &rarr; spawns dynamic team &rarr; teammates self-claim and work in parallel &rarr; Lead promotes tasks between lists &rarr; checkpoints periodically &rarr; Tester runs final gate &rarr; summary report.</p>
+
+<h2 id="discovery-mode">Discovery Mode</h2>
+
+<p><strong>Entry condition:</strong> User wants to research a topic without writing code.<br>
+<strong>Exit condition:</strong> Research findings written to documentation, available as context for future planning.</p>
+
+<pre><code>User: /uc:discovery-mode "Research how competitors handle rate limiting"
+
+1. Discovery Mode skill activates (Head of Product persona)
+   &rarr; Coding is DISABLED
+   &rarr; Strategic scoping: problem statement, who cares, what decisions, artifact plan
+   &rarr; Researcher + Market Analyzer subagents spawned in parallel via Task tool
+   &rarr; Researcher: Explores internal codebase, reads docs, uses Ref.tools
+   &rarr; Market Analyzer: Web searches, competitor analysis, user insights
+
+2. Artifacts produced to documentation/product/ as needed:
+   &rarr; description/{topic}.md &mdash; always produced
+   &rarr; requirements/{topic}.md &mdash; when building something
+   &rarr; personas/{persona-name}.md &mdash; when user context matters
+3. No code changes. No plan. Pure investigation output.
+4. Feeds into future planning sessions as context.</code></pre>
+
+<p><strong>Edge cases:</strong></p>
+<ul>
+<li><strong>No relevant results found</strong> &mdash; Agents report what they searched and suggest alternative angles or broader/narrower search terms.</li>
+<li><strong>Contradictory findings</strong> &mdash; Researcher and Market Analyzer may find conflicting information. Both perspectives are documented with sources, user decides which to prioritize.</li>
+<li><strong>Scope too broad</strong> &mdash; If the topic is too large for a single discovery session, Lead suggests breaking it into focused sub-topics.</li>
+</ul>
+
+<h2 id="doc-code-verification-mode">Doc &amp; Code Verification Mode</h2>
+
+<p><strong>Entry condition:</strong> Codebase and documentation exist; user wants to check consistency.<br>
+<strong>Exit condition:</strong> Discrepancy plan approved and ready for execution, or no discrepancies found.</p>
+
+<pre><code>User: /uc:doc-code-verification-mode
+
+1. PLANNING &mdash; Doc &amp; Code Verification Mode activates
+   &rarr; Plan Enhancer triggers plan mode
+   &rarr; Spawns Code Surveyor + Doc Surveyor subagents in parallel via Task tool
+   &rarr; Code Surveyors scan codebase structure, patterns, APIs
+   &rarr; Doc Surveyors scan documentation claims, specs, architecture docs
+   &rarr; Checker subagents compare doc claims vs code reality
+   &rarr; Discrepancies listed with severity (Critical/Major/Minor)
+   &rarr; Plan created with fix tasks (update doc or update code)
+   &rarr; User reviews and approves plan
+
+   &rarr; If user rejects plan:
+     &rarr; User provides feedback on what to change
+     &rarr; Mode re-enters planning with feedback as additional context
+     &rarr; Revised plan generated and re-presented
+   &rarr; If user partially rejects:
+     &rarr; User specifies in chat which tasks to remove or modify
+     &rarr; Plan updated in place, task list adjusted
+     &rarr; Re-presented for final approval
+
+2. EXECUTION
+   &rarr; /uc:plan-execution {plan-name}
+   &rarr; Agent team resolves discrepancies per plan</code></pre>
+
+<p><strong>Edge cases:</strong></p>
+<ul>
+<li><strong>No discrepancies found</strong> &mdash; Mode reports clean status. No plan created.</li>
+<li><strong>Ambiguous discrepancy</strong> &mdash; When it&rsquo;s unclear whether code or docs are &ldquo;correct,&rdquo; the discrepancy is flagged for user decision rather than auto-resolved.</li>
+<li><strong>Very large codebase</strong> &mdash; Surveyors may hit context limits. Mode supports scoped verification (e.g., <code>/uc:doc-code-verification-mode src/auth/</code> for a specific directory).</li>
+</ul>
+
+<h2 id="debug-mode">Debug Mode</h2>
+
+<p><strong>Entry condition:</strong> User has a bug or issue to investigate.<br>
+<strong>Exit condition:</strong> Fix plan approved and ready for execution, or issue determined to be external/not reproducible.</p>
+
+<pre><code>User: /uc:debug-mode "Login fails intermittently on staging"
+
+1. PLANNING &mdash; Debug Mode activates
+   &rarr; Debug Mode skill analyzes the issue description
+   &rarr; Proposes hypotheses (e.g., race condition, session expiry, cache stale)
+   &rarr; Spawns Researcher subagents &mdash; one per hypothesis, investigating in parallel via Task tool
+   &rarr; System Tester subagent attempts to reproduce the bug
+   &rarr; Evidence gathered, hypotheses ranked by likelihood
+   &rarr; Plan created focused on the fix + verification steps
+   &rarr; User reviews and approves plan
+
+   &rarr; If user rejects plan:
+     &rarr; User provides feedback on what to change
+     &rarr; Mode re-enters planning with feedback as additional context
+     &rarr; Revised plan generated and re-presented
+   &rarr; If user partially rejects:
+     &rarr; User specifies in chat which tasks to remove or modify
+     &rarr; Plan updated in place, task list adjusted
+     &rarr; Re-presented for final approval
+
+2. EXECUTION
+   &rarr; /uc:plan-execution {plan-name}
+   &rarr; Agent team implements the fix
+   &rarr; System Tester validates the fix resolves the original issue</code></pre>
+
+<p><strong>Edge cases:</strong></p>
+<ul>
+<li><strong>Bug not reproducible</strong> &mdash; System Tester reports inability to reproduce. Lead presents findings and asks user for more context (environment details, logs, steps to reproduce).</li>
+<li><strong>Multiple root causes</strong> &mdash; Investigation reveals the symptom has multiple contributing causes. Plan includes fixes for all identified causes, ordered by impact.</li>
+<li><strong>Fix requires architectural change</strong> &mdash; If the fix would violate existing architecture, Debug Mode flags this and suggests running Feature Mode instead for a proper design review.</li>
+</ul>
+
+</div>

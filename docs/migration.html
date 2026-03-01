@@ -1,0 +1,112 @@
+<div class="doc-content">
+
+<h1>Migration Plan</h1>
+
+<blockquote>
+<p><strong>Temporary document.</strong> Delete after migration from global skills to the plugin is complete.</p>
+</blockquote>
+
+<h2 id="what-moves-into-the-plugin">What Moves Into the Plugin</h2>
+
+<p>Old global skills are refactored into the new plugin structure. The mapping is not 1:1 &mdash; old phase-based skills are consolidated into planning modes.</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>Old Global Skill</th><th>Becomes</th><th>Destination</th></tr>
+</thead>
+<tbody>
+<tr><td><code>product-design</code> + <code>tech-architecture</code> + <code>implementation-planning</code></td><td>Feature Mode</td><td><code>skills/feature-mode/SKILL.md</code></td></tr>
+<tr><td><code>development</code> + <code>execute-initiative</code></td><td>Plan Execution</td><td><code>skills/plan-execution/SKILL.md</code></td></tr>
+<tr><td><code>verify-docs</code></td><td>Doc &amp; Code Verification Mode</td><td><code>skills/doc-code-verification-mode/SKILL.md</code></td></tr>
+<tr><td><code>docs</code></td><td>Docs Manager</td><td><code>skills/docs-manager/SKILL.md</code></td></tr>
+<tr><td><code>checkpoint</code></td><td>Checkpoint</td><td><code>skills/checkpoint/SKILL.md</code></td></tr>
+<tr><td><code>skill-agent-creator</code></td><td>Help (evolved)</td><td><code>skills/help/SKILL.md</code></td></tr>
+<tr><td><code>tech-research</code></td><td>Tech Research</td><td><code>skills/tech-research/SKILL.md</code></td></tr>
+<tr><td><code>verify-checker</code></td><td>Checker agent</td><td><code>agents/checker.md</code></td></tr>
+<tr><td><code>verify-code-surveyor</code></td><td>Code Surveyor agent</td><td><code>agents/code-surveyor.md</code></td></tr>
+<tr><td><code>verify-doc-surveyor</code></td><td>Doc Surveyor agent</td><td><code>agents/doc-surveyor.md</code></td></tr>
+</tbody>
+</table>
+</div>
+
+<blockquote>
+<p><strong>Note:</strong> Each migrated skill needs proper YAML frontmatter in its <code>SKILL.md</code> (name, description, user-invocable, etc.). See <a href="#components" class="tab-link">Components &mdash; Skill File Format</a> for the full field reference.</p>
+</blockquote>
+
+<h2 id="what-stays-global">What Stays Global (NOT in Plugin)</h2>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>Component</th><th>Why</th></tr>
+</thead>
+<tbody>
+<tr><td><code>ha-nodered-knowledge</code></td><td>Domain-specific, unrelated to development pipeline</td></tr>
+<tr><td><code>prompt-architect</code></td><td>Generic utility, useful outside Ultra Claude</td></tr>
+<tr><td><code>skill-agent-creator</code></td><td>Generic utility, useful outside Ultra Claude</td></tr>
+<tr><td><code>rebuild-old-website</code></td><td>One-off project skill</td></tr>
+<tr><td><code>image-content-extractor</code></td><td>Generic utility agent</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2 id="global-skills-archived">Global Skills Archived After Migration</h2>
+
+<p>When plugin versions are ready, the originals move to <code>~/.claude/archive/</code> rather than being deleted.</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>Component</th><th>Archived From</th></tr>
+</thead>
+<tbody>
+<tr><td><code>tech-research</code></td><td><code>~/.claude/skills/tech-research/</code></td></tr>
+<tr><td><code>product-design</code></td><td><code>~/.claude/skills/product-design/</code></td></tr>
+<tr><td><code>tech-architecture</code></td><td><code>~/.claude/skills/tech-architecture/</code></td></tr>
+<tr><td><code>implementation-planning</code></td><td><code>~/.claude/skills/implementation-planning/</code></td></tr>
+<tr><td><code>development</code></td><td><code>~/.claude/skills/development/</code></td></tr>
+<tr><td><code>execute-initiative</code></td><td><code>~/.claude/skills/execute-initiative/</code></td></tr>
+<tr><td><code>verify-docs</code></td><td><code>~/.claude/skills/verify-docs/</code></td></tr>
+<tr><td><code>docs</code></td><td><code>~/.claude/skills/docs/</code></td></tr>
+<tr><td><code>checkpoint</code></td><td><code>~/.claude/skills/checkpoint/</code></td></tr>
+<tr><td><code>verify-checker</code> (&rarr; checker)</td><td><code>~/.claude/agents/verify-checker.md</code></td></tr>
+<tr><td><code>verify-code-surveyor</code> (&rarr; code-surveyor)</td><td><code>~/.claude/agents/verify-code-surveyor.md</code></td></tr>
+<tr><td><code>verify-doc-surveyor</code> (&rarr; doc-surveyor)</td><td><code>~/.claude/agents/verify-doc-surveyor.md</code></td></tr>
+</tbody>
+</table>
+</div>
+
+<h2 id="whats-new">What&rsquo;s New</h2>
+
+<p>Components that don&rsquo;t exist yet and need to be built from scratch.</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>Component</th><th>Type</th><th>Purpose</th></tr>
+</thead>
+<tbody>
+<tr><td>Feature Mode skill</td><td>Skill</td><td>Consolidates old product-design, tech-architecture, implementation-planning</td></tr>
+<tr><td>Debug Mode skill</td><td>Skill</td><td>Issue investigation and fix planning</td></tr>
+<tr><td>Plan Enhancer skill</td><td>Skill</td><td>Standardizes all plan output: plan directory, README.md with embedded task list, task granularity</td></tr>
+<tr><td>Plan Execution skill</td><td>Skill</td><td>Single execution engine for all plans (consolidates old development + execute-initiative)</td></tr>
+<tr><td>Help skill</td><td>Skill</td><td>Meta-skill with full system awareness</td></tr>
+<tr><td>Discovery Mode skill</td><td>Skill</td><td>Disables coding, enables research-only workflow</td></tr>
+<tr><td>Context Management skill</td><td>Skill</td><td>Manages top-level context/ &mdash; external system docs, code, git submodules</td></tr>
+<tr><td>Init Project skill</td><td>Skill</td><td>Universal onboarding: explores codebase, scaffolds structure, derives config, migrates existing docs (consolidated from separate init + docs-migration skills)</td></tr>
+<tr><td>Task Executor agent</td><td>Agent</td><td>Single-task implementation from research context</td></tr>
+<tr><td>Task Tester agent</td><td>Agent</td><td>Runs tests, checks success criteria pass/fail</td></tr>
+<tr><td>Code Review agent</td><td>Agent</td><td>Static analysis: code quality, compliance, duplication prevention</td></tr>
+<tr><td>System Tester agent</td><td>Agent</td><td>Full test suite execution (deliberately simple)</td></tr>
+<tr><td>Market Analyzer agent</td><td>Agent</td><td>Web/market research via Perplexity</td></tr>
+<tr><td>RFC review personas</td><td>Config</td><td>Built-in: Devil&rsquo;s Advocate, Pragmatist, Security/Reliability, Cost-conscious. User-extensible.</td></tr>
+<tr><td>All hooks</td><td>Hooks</td><td>Architecture conformance, task validation, plan context loading</td></tr>
+<tr><td>All templates</td><td>Templates</td><td>Documentation scaffolding</td></tr>
+<tr><td>Plugin manifest</td><td>Config</td><td>plugin.json</td></tr>
+<tr><td>Init script</td><td>Script</td><td><strong>Removed</strong> &mdash; scaffolding is now handled by the Init Project skill (<code>/uc:init-project</code>)</td></tr>
+</tbody>
+</table>
+</div>
+
+</div>

@@ -1,0 +1,466 @@
+<div class="doc-content">
+
+<h1>Execution</h1>
+<p>The execution engine that runs any plan through a dynamically composed agent team. This is the single source of truth for how plans are executed.</p>
+
+<p>For architecture context, see <a href="#architecture" class="tab-link">Architecture</a>. For component reference, see <a href="#components" class="tab-link">Components</a>.</p>
+
+<h2 id="overview">Overview</h2>
+
+<p><strong>Plan Execution</strong> reads the entire plan directory (<code>documentation/plans/{name}/</code>) and runs it through a dynamically composed agent team. On trigger, the Lead reads ALL files in the plan directory &mdash; README.md, any existing <code>research/</code> files, <code>shared/</code> directory (if resuming), checkpoint files &mdash; to build complete context before spawning teammates.</p>
+
+<p><strong>Prerequisites:</strong></p>
+<ul>
+<li><code>CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS: "1"</code> in the plugin&rsquo;s <code>settings.json</code> (project-level setting applied by Claude Code when the plugin is active &mdash; not a plugin.json field)</li>
+<li>tmux installed</li>
+<li>Plan exists in <code>documentation/plans/{name}/README.md</code></li>
+</ul>
+
+<p>Agent teams only (per <a href="#decisions" class="tab-link">decision D1</a> and D13).</p>
+
+<h2 id="coordination-model">The Coordination Model</h2>
+
+<p>Four mechanisms work together:</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>Mechanism</th><th>Purpose</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Role-Separated Task Lists</strong></td><td>Lead creates 4 task groups (research, impl, review, test). Promotes tasks between lists as work completes. Each role only sees their own list.</td></tr>
+<tr><td><strong>Per-Role Shared Directory</strong> (<code>plans/{name}/shared/</code>)</td><td>Persistent cross-cutting knowledge split by role. Each role writes only to their own file (<code>researcher.md</code>, <code>executor.md</code>, <code>reviewer.md</code>, <code>tester.md</code>, <code>lead.md</code>). All teammates read ALL files before each task claim. Survives session death.</td></tr>
+<tr><td><strong>Plan README.md</strong></td><td>Source of truth for what needs to be done, task ordering, success criteria.</td></tr>
+<tr><td><strong>Per-Task Research Files</strong> (<code>plans/{name}/research/task-N.md</code>)</td><td>Deep per-task findings from Researcher. Read by Executor before implementing.</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2 id="context-bridge">Context Bridge &mdash; How Teammates Get Context</h2>
+
+<p>Teammates do NOT inherit the Lead&rsquo;s conversation history. They start with a blank context window + project CLAUDE.md (auto-inherited). The Lead bridges the gap by including these paths in every teammate&rsquo;s spawn prompt:</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>Teammate</th><th>Receives in Spawn Prompt</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>All teammates</strong></td><td>Plan README.md path, <code>shared/</code> directory path</td></tr>
+<tr><td><strong>Researcher</strong></td><td>+ architecture docs path (<code>documentation/technology/architecture/</code>), research task list claiming instructions, <code>.claude/app-context-for-research.md</code> (if exists)</td></tr>
+<tr><td><strong>Executor</strong></td><td>+ architecture docs path, per-task research file path, impl task list claiming instructions, coding standards path (<code>documentation/technology/standards/</code>)</td></tr>
+<tr><td><strong>Code Reviewer</strong></td><td>+ architecture docs path, review task list claiming instructions, coding standards path</td></tr>
+<tr><td><strong>Tester</strong></td><td>+ success criteria from plan, test task list claiming instructions, <code>.claude/system-test.md</code> (if exists), SendMessage target (Lead) for failure feedback</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>Each teammate is told to re-read ALL files in the <code>shared/</code> directory before starting each new task claim &mdash; other teammates may have updated their files.</p>
+
+<p><strong>Example spawn prompt (Executor):</strong></p>
+<blockquote>
+<p>&ldquo;You are an Executor teammate. Read these files for context:<br>
+- Plan: documentation/plans/user-auth/README.md<br>
+- Shared context: documentation/plans/user-auth/shared/ (read ALL files)<br>
+- Architecture: documentation/technology/architecture/<br>
+- Standards: documentation/technology/standards/<br>
+- Your task list: implementation tasks (use TaskList to find pending tasks)<br>
+<br>
+Self-claim tasks by setting them to in_progress. Write integration notes to shared/executor.md (append-only). When your list is empty, write IDLE to shared/executor.md and notify Lead.&rdquo;</p>
+</blockquote>
+
+<h2 id="dynamic-team-composition">Dynamic Team Composition</h2>
+
+<p>The Lead decides team composition based on plan characteristics:</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>Plan Size</th><th>Team Composition</th></tr>
+</thead>
+<tbody>
+<tr><td>Small (1-5 tasks), research done during planning</td><td>1 Executor + 1 Reviewer + 1 Tester</td></tr>
+<tr><td>Medium (5-10 tasks), some research needed</td><td>1 Researcher + 1-2 Executors + 1 Reviewer + 1 Tester</td></tr>
+<tr><td>Large (10+ tasks), multi-subsystem</td><td>1 Researcher + 2-3 Executors + 1 Reviewer + 1 Tester</td></tr>
+<tr><td>Documentation-only</td><td>1-2 Executors + 1 Reviewer (no tester)</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>Max ~5-6 concurrent teammates. Lead always reserves the right to override.</p>
+
+<p>Model selection per role (these values correspond to the <code>model:</code> field in each agent&rsquo;s <code>.md</code> frontmatter &mdash; see <a href="#components" class="tab-link">Components</a>):</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>Role</th><th>Model</th><th>Rationale</th></tr>
+</thead>
+<tbody>
+<tr><td>Researcher</td><td>sonnet</td><td>Needs reasoning for context gathering, not raw power</td></tr>
+<tr><td>Executor</td><td>opus</td><td>Writing production code is the highest-stakes task &mdash; quality here reduces downstream review/test failures and retry loops</td></tr>
+<tr><td>Code Reviewer</td><td>sonnet</td><td>Pattern matching, quality analysis</td></tr>
+<tr><td>Tester</td><td>sonnet</td><td>Per-task test execution + final full test suite gate</td></tr>
+</tbody>
+</table>
+</div>
+
+<blockquote>
+<p><strong>Note:</strong> Agent model and tools are declared in each agent&rsquo;s <code>.md</code> frontmatter. Spawn prompts from the Lead provide additional runtime context (plan paths, task list instructions, shared directory) on top of the base agent definition.</p>
+</blockquote>
+
+<h3 id="cost-awareness">Cost Awareness</h3>
+
+<p>Before spawning teammates, Lead estimates token cost and presents to user:</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>Team Size</th><th>Estimated Cost</th></tr>
+</thead>
+<tbody>
+<tr><td>Minimal (3 teammates)</td><td>~600K tokens</td></tr>
+<tr><td>Medium (4 teammates)</td><td>~800K tokens</td></tr>
+<tr><td>Full (5-6 teammates)</td><td>~1M-1.2M tokens</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>Lead shows: &ldquo;This plan has N tasks. Recommended team: [composition]. Estimated ~Xk tokens. Proceed?&rdquo; User confirms before any teammates are spawned.</p>
+
+<h3 id="required-permissions">Required Permissions</h3>
+
+<p>Teammates inherit Lead&rsquo;s permission mode. For unattended execution, pre-approve in settings:</p>
+
+<ul>
+<li><strong>Bash</strong>: test runners, build commands, linters</li>
+<li><strong>Write/Edit</strong>: source files, test files, documentation</li>
+<li><strong>Read/Glob/Grep</strong>: always allowed (read-only)</li>
+</ul>
+
+<p>Tester and Researcher are read-only for source code &mdash; they should NOT have Write/Edit on <code>src/</code>. Code Reviewer is fully read-only.</p>
+
+<h2 id="role-separated-task-lists">Role-Separated Task Lists</h2>
+
+<p>The Lead manages <strong>four</strong> separate task lists using Claude Code&rsquo;s TaskCreate/TaskList/TaskUpdate:</p>
+
+<pre><code>Research Tasks:       [pending] -&gt; [in_progress] -&gt; [completed]
+                            | Lead promotes
+Implementation Tasks: [pending] -&gt; [in_progress] -&gt; [completed]
+                            | Lead promotes
+Review Tasks:         [pending] -&gt; [in_progress] -&gt; [completed/failed]
+                            | Lead promotes (if passed)
+Testing Tasks:        [pending] -&gt; [in_progress] -&gt; [completed/failed]</code></pre>
+
+<p><strong>How it flows:</strong></p>
+<ul>
+<li>Lead creates all tasks in the research list initially (or impl list if research already exists from planning)</li>
+<li>Review and test lists start empty &mdash; they are populated only when the Lead promotes completed tasks from earlier stages</li>
+<li>Researcher self-claims from research list &rarr; completes &rarr; Lead promotes to impl list</li>
+<li>Executor self-claims from impl list &rarr; completes &rarr; Lead promotes to review list</li>
+<li>Code Reviewer self-claims from review list &rarr; passes &rarr; Lead promotes to test list; fails &rarr; Lead re-queues to impl list with feedback</li>
+<li>Tester self-claims from test list &rarr; passes &rarr; done; fails &rarr; Lead re-queues to impl list with feedback</li>
+</ul>
+
+<p><strong>Self-claiming:</strong> A teammate calls TaskList to find <code>pending</code> tasks in their role&rsquo;s list, picks the first available task, and calls TaskUpdate to set it to <code>in_progress</code> with themselves as owner. No coordination with Lead needed &mdash; the task list state is the lock.</p>
+
+<p><strong>Why 4 lists instead of task states:</strong> Claude Code&rsquo;s built-in task states are only <code>pending/in_progress/completed</code>. Rather than fighting the system with metadata hacks, we use the built-in states cleanly within each role&rsquo;s list. The Lead handles promotion between lists.</p>
+
+<h2 id="task-classification">Task Classification</h2>
+
+<p>Lead classifies each task before creating task lists to avoid 4-stage overhead for simple changes:</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>Classification</th><th>Criteria</th><th>Pipeline</th><th>Example</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Full</strong></td><td>Multi-file, architectural, complex logic</td><td>Research &rarr; Implementation &rarr; Review &rarr; Test</td><td>Add new API endpoint with auth middleware, DB migration, tests</td></tr>
+<tr><td><strong>Standard</strong></td><td>Single-component, clear requirements</td><td>Implementation &rarr; Review &rarr; Test</td><td>Add validation to existing form component</td></tr>
+<tr><td><strong>Trivial</strong></td><td>Config change, rename, one-liner</td><td>Implementation &rarr; Test</td><td>Rename env variable, fix typo in config</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>Lead sets classification per task when creating lists. Tasks start in the appropriate first stage. A one-line config change skips research and review; a multi-file architectural change goes through all four stages.</p>
+
+<h2 id="plan-execution-team-structure">The Plan Execution Team Structure</h2>
+
+<pre><code>Lead (main session -- user interacts here)
+|
++-- Creates 4 role-separated task lists from plan README.md
++-- Creates shared/ directory with per-role files and initial context in lead.md
++-- Decides team composition based on plan size/complexity
+|
++-- Researcher teammate (0-1)
+|   Model: sonnet | Tools: Read, Grep, Glob, WebFetch, mcp__ref
+|   - Reads plan README.md + all files in shared/ at start
+|   - Self-claims from research task list
+|   - Writes per-task findings to plans/NAME/research/task-N.md
+|   - Writes cross-cutting discoveries to shared/researcher.md (append-only)
+|   - When list empty: writes IDLE to shared/researcher.md, notifies Lead
+|
++-- Executor teammate(s) (1-3)
+|   Model: opus | Tools: Read, Write, Edit, Glob, Grep, Bash
+|   - Re-reads all files in shared/ + per-task research file before each task
+|   - Self-claims from implementation task list
+|   - Implements code conforming to plan + architecture docs
+|   - Writes integration notes to shared/executor.md (append-only)
+|   - When list empty: writes IDLE to shared/executor.md, notifies Lead
+|
++-- Code Reviewer teammate (0-1)
+|   Model: sonnet | Tools: Read, Glob, Grep
+|   - Re-reads all files in shared/ + coding standards before each task
+|   - Self-claims from review task list
+|   - Checks: code quality, pattern compliance, duplication, architecture conformance
+|   - Pass/fail criteria sourced from documentation/technology/standards/. Failures
+|     include specific file:line references and actionable feedback for Executor.
+|   - PASS: marks complete -&gt; Lead promotes to test list
+|   - FAIL: marks failed with specific feedback -&gt; Lead re-queues to impl list
+|   - Read-only -- cannot modify code
+|   - When list empty: writes IDLE to shared/reviewer.md, notifies Lead
+|
++-- Tester teammate (0-1)
+    Model: sonnet | Tools: Read, Glob, Grep, Bash
+    - Re-reads all files in shared/ + success criteria before each task
+    - Self-claims from testing task list
+    - Per-task: runs relevant tests, checks success criteria from plan
+    - PASS: marks complete | FAIL: SendMessage feedback to Lead -&gt; re-queue
+    - Read-only -- cannot modify source code
+    - When list empty: writes IDLE to shared/tester.md, notifies Lead
+    - FINAL GATE: when all tasks done, Lead asks Tester to run full test suite
+      (not per-task -- the entire suite as regression check)
+    - Reports final gate results to Lead before team shutdown</code></pre>
+
+<h2 id="shared-memory-pattern">Shared Memory Pattern</h2>
+
+<p><code>plans/{name}/shared/</code> &mdash; a directory of per-role files forming persistent shared memory between all teammates:</p>
+
+<pre><code>plans/{name}/shared/
+  researcher.md      # Researcher writes here
+  executor.md        # Executor(s) write here
+  reviewer.md        # Code Reviewer writes here
+  tester.md          # Tester writes here
+  lead.md            # Lead writes here</code></pre>
+
+<p><strong>Read rule:</strong> All teammates read ALL files in <code>shared/</code> before each task claim.<br>
+<strong>Write rule:</strong> Each role writes ONLY to their own file. Append-only. No teammate ever edits another role&rsquo;s file.</p>
+
+<p><strong>What goes in per-role files:</strong></p>
+<ul>
+<li>Cross-cutting architecture decisions made during execution</li>
+<li>Dependency info between tasks (&ldquo;Task 3 created UserService &mdash; Task 5 should import from <code>src/services/user.ts</code>&rdquo;)</li>
+<li>Gotchas discovered (&ldquo;The API returns snake_case, not camelCase as docs say&rdquo;)</li>
+<li>Integration points between teammates&rsquo; work</li>
+<li>Code Review findings that affect multiple tasks (pattern violations)</li>
+<li>IDLE status when a teammate&rsquo;s task list is empty</li>
+</ul>
+
+<p><strong>What does NOT go in:</strong></p>
+<ul>
+<li>Per-task research (goes to <code>plans/{name}/research/task-N.md</code>)</li>
+<li>Task status (managed by task lists)</li>
+<li>Full code snippets (reference file paths instead)</li>
+</ul>
+
+<p><strong>Why per-role files instead of one shared file:</strong> Concurrent writes to a single <code>shared-context.md</code> will clobber each other. Per-role files eliminate write conflicts &mdash; each teammate owns exactly one file.</p>
+
+<h2 id="lead-intervention-points">Lead Intervention Points</h2>
+
+<p>Lead does NOT micromanage. Intervenes only at:</p>
+
+<ol>
+<li><strong>Team creation</strong> &mdash; decides roster, writes spawn prompts, creates task lists + <code>shared/</code> directory with initial <code>lead.md</code></li>
+<li><strong>Task promotion</strong> &mdash; monitors all 4 lists, promotes completed tasks to the next role&rsquo;s list</li>
+<li><strong>Failure handling</strong> &mdash; receives failure feedback from Reviewer/Tester, re-queues to impl list with context (max 2 retries per task, then escalates to user)</li>
+<li><strong>Checkpoint</strong> &mdash; periodic state save (see below)</li>
+<li><strong>Plan-invalidating discovery</strong> &mdash; if Researcher or Executor discovers something that fundamentally changes the plan (e.g., an API doesn&rsquo;t exist, a dependency is incompatible), they SendMessage Lead immediately. Lead pauses promotion, evaluates impact, and either adjusts tasks or escalates to user.</li>
+<li><strong>Completion synthesis</strong> &mdash; collects results, produces summary</li>
+<li><strong>Team shutdown</strong> &mdash; sends shutdown requests, cleans up shared resources</li>
+</ol>
+
+<p><strong>Lead behavior:</strong> Acts as a project manager &mdash; minimal intervention, data-driven decisions, escalates to user when uncertain. Spawn prompts are direct, structured, and context-rich. Does not micromanage task implementation; trusts teammates to self-coordinate within their role&rsquo;s list.</p>
+
+<p>Between these points, teammates self-coordinate via their role-specific task lists.</p>
+
+<h2 id="checkpoint-architecture">Checkpoint Architecture</h2>
+
+<p>Progress saved to plan directory at three levels:</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>What</th><th>Where</th><th>When</th></tr>
+</thead>
+<tbody>
+<tr><td>Task list snapshots (all 4 role-lists)</td><td><code>plans/{name}/checkpoint-{timestamp}.md</code></td><td>Every N completed tasks (default 3), on teammate idle, on user request, before risky changes, on session end</td></tr>
+<tr><td>Cross-cutting knowledge</td><td><code>plans/{name}/shared/*.md</code></td><td>Written continuously by teammates to per-role files (already on disk)</td></tr>
+<tr><td>Per-task research</td><td><code>plans/{name}/research/task-N.md</code></td><td>Written by Researcher per task (already on disk)</td></tr>
+</tbody>
+</table>
+</div>
+
+<p><strong>Checkpoint file contains:</strong></p>
+<ul>
+<li>All 4 task list states (research/impl/review/test: pending/in-progress/completed/failed)</li>
+<li>Active teammates and their current assignments</li>
+<li>Decisions made during execution</li>
+<li>Blockers encountered</li>
+<li>Files modified so far</li>
+</ul>
+
+<p><strong>On resume:</strong> Lead reads plan README.md + latest checkpoint + all files in <code>shared/</code> &rarr; knows exactly what&rsquo;s done vs pending &rarr; rebuilds team &rarr; skips completed work.</p>
+
+<h2 id="error-recovery">Error Recovery</h2>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>Failure Class</th><th>Detection</th><th>Recovery</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Task failure</strong> (review/test fails)</td><td>Reviewer or Tester feedback to Lead</td><td>Lead re-queues to impl list with feedback (max 2 retries). After 2 failures: Lead escalates to user with full context.</td></tr>
+<tr><td><strong>Teammate crash</strong> (session crash, context overflow)</td><td>Lead detects stalled progress via periodic polling of task lists and shared files</td><td>Lead re-queues their in-progress task to previous state. Spawns replacement teammate with same role prompt + &ldquo;continue from shared/ directory&rdquo;.</td></tr>
+<tr><td><strong>Session death</strong> (everything dies)</td><td>User reruns <code>/uc:plan-execution {plan-name}</code></td><td>Lead finds latest checkpoint, shows resume prompt. Team rebuilt from scratch, but task states + <code>shared/</code> directory + research files preserve all progress.</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2 id="mid-execution-plan-changes">Mid-Execution Plan Changes</h2>
+
+<p>When a discovery invalidates part of the plan:</p>
+
+<ol>
+<li><strong>Teammate sends urgent message to Lead</strong> with evidence of the invalidation</li>
+<li><strong>Lead pauses task promotion</strong> &mdash; no new tasks move between lists</li>
+<li><strong>Lead evaluates scope of impact:</strong>
+<ul>
+<li><strong>Single task affected</strong> &mdash; Lead updates task description, re-queues if needed</li>
+<li><strong>Multiple tasks affected</strong> &mdash; Lead adds amendment to <code>plans/{name}/shared/lead.md</code>, updates affected task descriptions, may cancel pending tasks</li>
+<li><strong>Plan fundamentally wrong</strong> &mdash; Lead escalates to user with evidence. User decides: amend plan or abort and re-plan.</li>
+</ul>
+</li>
+<li><strong>Lead resumes promotion</strong> after resolution</li>
+<li>All teammates re-read <code>shared/</code> directory on next task claim (existing rule)</li>
+</ol>
+
+<h2 id="hook-integration">Hook Integration</h2>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>Hook</th><th>Execution Layer Behavior</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>PreToolUse (Write/Edit)</strong></td><td>Checks if file changes align with architecture docs. Unchanged from planning layer.</td></tr>
+<tr><td><strong>PostToolUse (TaskUpdate)</strong></td><td>When any agent calls TaskUpdate with <code>status: "completed"</code>, reads plan README.md success criteria and validates. Blocks completion if criteria unmet.</td></tr>
+<tr><td><strong>Stop</strong></td><td>Triggers checkpoint save if execution is in progress. Writes final checkpoint before session closes.</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3 id="teammate-completion-protocol">Teammate Completion Protocol</h3>
+
+<p>When a teammate&rsquo;s role-specific task list is empty, the teammate:</p>
+<ol>
+<li>Writes <code>## [Role] IDLE</code> to their per-role shared file (e.g., <code>shared/executor.md</code>)</li>
+<li>Sends a message to Lead indicating idle status</li>
+<li>Lead checks if other lists have work that could be promoted to the idle role&rsquo;s list</li>
+<li>If no more work: Lead acknowledges and teammate shuts down</li>
+</ol>
+
+<p>For Code Reviewer specifically: before going idle, must verify all reviewed tasks have written feedback.</p>
+
+<h3 id="session-resume">Session Resume</h3>
+
+<p>When <code>/uc:plan-execution</code> fires for a plan that has existing checkpoint files, the plan-execution skill handles resume as its first action:</p>
+<ol>
+<li>Reads latest <code>checkpoint-{timestamp}.md</code> file in the plan directory</li>
+<li>Reads all per-role shared files in <code>shared/</code> directory</li>
+<li>Shows user a resume prompt with progress summary</li>
+<li>Skips completed work and rebuilds team from current state</li>
+</ol>
+
+<p>This is skill startup behavior, not a hook.</p>
+
+<h2 id="workflow-step-by-step">Workflow: Step-by-Step</h2>
+
+<pre><code>User: /uc:plan-execution user-auth
+
+PHASE 1: SETUP (Lead actions)
+  a. Read ENTIRE plan directory:
+     - documentation/plans/user-auth/README.md (plan + tasks)
+     - documentation/plans/user-auth/research/*.md (existing)
+     - documentation/plans/user-auth/shared/*.md (if resuming)
+     - documentation/plans/user-auth/checkpoint-*.md (if any)
+     Lead now has full picture of plan state.
+  b. Check for checkpoint:
+     - If checkpoint exists -&gt; show resume prompt
+     - If resuming -&gt; skip completed work based on checkpoint
+  c. Classify tasks by research status:
+     - Tasks with existing research/*.md -&gt; start in impl list
+     - Tasks without research -&gt; start in research list
+  d. Decide team composition (sizing heuristic)
+  e. Create 4 role-separated task lists
+  f. Create/load shared/ directory with initial context in lead.md
+  g. Spawn teammates with role-specific prompts:
+     - Each prompt includes: role instructions, file paths,
+       task claiming rules, communication rules
+     - Model selection per role
+
+PHASE 2: PARALLEL WORK (self-coordinating)
+
+  Researcher:
+    claim research task -&gt; read codebase + docs -&gt;
+    write research/task-N.md -&gt; update shared/researcher.md -&gt;
+    mark complete -&gt; claim next
+    (when list empty: write IDLE to shared/researcher.md, notify Lead)
+
+  Executor(s):
+    claim impl task -&gt; re-read shared/ -&gt;   Lead monitors:
+    read research -&gt; implement code -&gt;      - Promotes tasks
+    append integration notes to               between lists
+    shared/executor.md -&gt; mark complete -&gt;  - Handles fails
+    claim next                              - Checkpoints
+    (when list empty: write IDLE to shared/executor.md, notify Lead)
+
+  Code Reviewer:
+    claim review task -&gt; re-read shared/ + standards -&gt;
+    check quality, patterns, duplication -&gt;
+    PASS: mark complete | FAIL: mark failed with feedback -&gt;
+    claim next
+    (when list empty: write IDLE to shared/reviewer.md, notify Lead)
+
+  Tester:
+    claim test task -&gt; re-read shared/ + success criteria -&gt;
+    run tests -&gt; PASS: mark complete |
+    FAIL: SendMessage feedback to Lead -&gt;
+    claim next
+    (when list empty: write IDLE to shared/tester.md, notify Lead)
+
+PHASE 3: CHECKPOINT (triggered periodically by Lead)
+  Triggers: every 3 completed tasks, teammate idle,
+            user /uc:checkpoint, Stop hook (session ending)
+  Saves: 4 task list states, checkpoint file, decisions
+  shared/ files + research files already on disk
+
+PHASE 4: FAILURE HANDLING (Lead manages)
+  Review failure: Lead re-queues to impl list + feedback
+  Test failure: Lead re-queues to impl list + feedback
+  Max 2 retries per task -&gt; escalate to user
+  Teammate crash: re-queue task, spawn replacement
+  Session death: user reruns /uc:plan-execution, reads checkpoint
+
+PHASE 5: COMPLETION (Lead actions)
+  a. All tasks reach done across all 4 lists
+  b. Lead asks Tester to run full test suite (final gate)
+     - Not per-task -- entire suite as regression check
+     - If fail: Lead decides whether to re-queue or report
+  c. Produce summary: tasks, files changed, decisions, tests
+  d. Shutdown: request each teammate to shut down
+     -&gt; teammates acknowledge and exit
+     -&gt; shared resources (plan dir) kept for reference
+  e. Present summary to user</code></pre>
+
+</div>

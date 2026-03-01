@@ -83,7 +83,7 @@ All 7 templates listed in `docs/components.md` → "Templates" table (purpose, w
 
 ### 1.5 Init Script
 
-- [x] `scripts/init-docs.sh` — Scaffolds `documentation/` + `context/` + `.claude/` config files in a target project. Directory tree defined in `docs/architecture.md` → "Documentation Structure". Config files listed in `docs/components.md` → "Project-Level Configuration". Must be idempotent (don't overwrite existing files). Copies templates as placeholders.
+- [x] `scripts/init-docs.sh` — **Removed.** Scaffolding is now handled directly by `/uc:init-project`, which adapts to what already exists rather than running a rigid script.
 
 ### Phase 1 Verification
 
@@ -91,7 +91,7 @@ All 7 templates listed in `docs/components.md` → "Templates" table (purpose, w
 - All 9 agent files have correct frontmatter schema per `docs/components.md` → "Agent File Format"
 - `hooks.json` parses correctly
 - All 7 templates exist
-- `init-docs.sh` creates the full directory tree
+- `/uc:init-project` creates the full directory tree
 
 ---
 
@@ -170,7 +170,7 @@ All modes except Discovery load plan-enhancer via `context:` field.
 
 ### 3.5 Docs Migration
 
-- [x] `skills/docs-migration/SKILL.md` — User-invocable. One-time tool. Full description: `docs/architecture.md` → "Docs Migration Skill" (4-step process: survey, map, plan, execute). Spawns Code Surveyor + Doc Surveyor subagents. Produces plan executable via `/uc:plan-execution`.
+- [x] `skills/docs-migration/SKILL.md` — **Consolidated into `/uc:init-project`**. The init-project skill now handles both greenfield and migration scenarios. The separate docs-migration skill has been removed.
 
 ### Phase 3 Verification
 

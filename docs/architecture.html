@@ -1,0 +1,357 @@
+<div class="doc-content">
+
+<h1>Architecture</h1>
+<p>Ultra Claude enhances Claude Code with specification-driven development. This document describes the system design: philosophy, layers, agent coordination, and governance.</p>
+
+<h2 id="specification-driven-development">Specification-Driven Development</h2>
+
+<p>Code is a derived artifact. The specification is the source of truth.</p>
+
+<p>This does NOT mean:</p>
+<ul>
+<li>Documenting every function (implementation details belong in code)</li>
+<li>Rigid locks that prevent all change (specs evolve)</li>
+<li>Bureaucratic overhead that slows you down</li>
+</ul>
+
+<p>This DOES mean:</p>
+<ul>
+<li>Architecture documentation is kept current and reflects all decisions</li>
+<li>Product requirements exist before code is written</li>
+<li>When code diverges from specs, you fix the spec first, then re-plan</li>
+<li>AI agents read specs before coding and are constrained by them</li>
+<li>Documentation that is wrong produces broken implementations (forcing function)</li>
+</ul>
+
+<h2 id="governance-model">Governance Model</h2>
+
+<p>Documentation acts like zoning laws &mdash; you can build freely within the constraints, but the constraints control the direction of growth. Three levels of enforcement:</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>Level</th><th>Mechanism</th><th>Enforcement</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Soft</strong></td><td>CLAUDE.md rules, architecture docs</td><td>Advisory &mdash; Claude reads them, may drift under context pressure</td></tr>
+<tr><td><strong>Medium</strong></td><td>Skills that load architecture docs before planning</td><td>Workflow-enforced &mdash; can&rsquo;t skip the step</td></tr>
+<tr><td><strong>Hard</strong></td><td>Hooks (PreToolUse, PostToolUse, Stop)</td><td>Deterministic &mdash; cannot be overridden by the AI</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2 id="plugin-structure">Plugin Structure</h2>
+
+<p>Ultra Claude is packaged as a Claude Code plugin &mdash; a directory with <code>.claude-plugin/plugin.json</code> as its manifest.</p>
+
+<ul>
+<li><strong>Skills</strong> = subdirectories under <code>skills/</code>, each containing a <code>SKILL.md</code> with YAML frontmatter + system prompt body. Skills with <code>user-invocable: true</code> become slash commands namespaced as <code>/uc:{skill-name}</code>.</li>
+<li><strong>Agents</strong> = flat <code>.md</code> files under <code>agents/</code>, each with YAML frontmatter declaring model, tools, and constraints. The body is the agent system prompt.</li>
+<li><strong>Hooks</strong> = defined in <code>hooks/hooks.json</code>. Each hook binds to an event (PreToolUse, PostToolUse, Stop) and specifies a handler type (command, prompt, or agent).</li>
+<li><strong><code>${CLAUDE_PLUGIN_ROOT}</code></strong> = environment variable that resolves to the plugin&rsquo;s root directory at runtime. Used in SKILL.md <code>context</code> paths for portable file references.</li>
+</ul>
+
+<p>See <a href="#components" class="tab-link">Components</a> for full format specifications (D15, D16, D17).</p>
+
+<h2 id="change-classification">Change Classification</h2>
+
+<p>Not every change needs the same scrutiny:</p>
+
+<ul>
+<li><strong>Additive</strong> (new feature within existing patterns) &rarr; flows freely</li>
+<li><strong>Compatible</strong> (extends existing architecture) &rarr; lightweight review</li>
+<li><strong>Breaking</strong> (violates existing architecture) &rarr; must update the architecture doc first, then re-plan</li>
+</ul>
+
+<h2 id="documentation-structure">Documentation Structure</h2>
+
+<p>Every project using Ultra Claude follows this canonical layout. The structure is non-negotiable &mdash; it&rsquo;s how specs govern code.</p>
+
+<pre><code>project/
+├── documentation/
+│   ├── technology/
+│   │   ├── architecture/          # System design, components, data flow, tech stack
+│   │   ├── standards/             # Coding conventions, patterns, quality bars, security rules
+│   │   └── rfcs/                  # Structured reviews for ambiguous/high-risk decisions
+│   ├── product/
+│   │   ├── description/           # Vision, discovery outputs, market research
+│   │   └── requirements/          # Formal requirements (FR-xxx, NFR-xxx)
+│   ├── plans/
+│   │   └── {plan-name}/
+│   │       ├── README.md          # Plan document (includes task list)
+│   │       ├── shared/            # Per-role shared memory (execution)
+│   │       └── research/          # Researcher findings per task
+│   └── dependencies/              # Blocking questions, external dependencies
+│
+├── context/                       # External systems &mdash; integration knowledge
+│   └── {system-name}/
+│       ├── docs/                  # API docs, specs, guides, protocols
+│       └── code/                  # Git submodules, SDKs, code samples
+│
+└── src/                           # The derived artifact &mdash; governed by specs</code></pre>
+
+<h3 id="docs-manager-as-guardian">Docs Manager as Guardian</h3>
+
+<p>The <strong>docs-manager</strong> skill (activated by <code>.claude/docs-format</code> in the project) guards this structure:</p>
+
+<ul>
+<li><strong>Routing</strong>: When any mode or agent creates documentation, docs-manager ensures it lands in the correct directory. Architecture decisions go to <code>technology/architecture/</code>, not floating in the root. Discovery outputs go to <code>product/description/</code>, not a random location.</li>
+<li><strong>Structure enforcement</strong>: Docs-manager knows the canonical layout and rejects writes that violate it. If an agent tries to create <code>documentation/auth-notes.md</code> (wrong &mdash; no top-level files), docs-manager routes it to the correct subdirectory.</li>
+<li><strong>Initialization</strong>: On first use (<code>/uc:init-project</code>), the full directory tree is scaffolded with README placeholders so the structure is visible from day one.</li>
+<li><strong>Format awareness</strong>: The <code>.claude/docs-format</code> file tells docs-manager the output format (Confluence, GitBook, plain Markdown). Docs-manager ensures all generated documentation conforms to the chosen format.</li>
+<li><strong>Index generation</strong>: Docs-manager generates and maintains <code>documentation/README.md</code> &mdash; a navigable index of the entire documentation tree. The README lists every section with descriptions and links, so a newcomer (human or agent) can orient themselves instantly. The index is regenerated automatically whenever documentation is added or restructured.</li>
+</ul>
+
+<h3 id="what-goes-where">What Goes Where</h3>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>Content</th><th>Directory</th><th>Created By</th></tr>
+</thead>
+<tbody>
+<tr><td>System design, component diagrams, data flow</td><td><code>technology/architecture/</code></td><td>Feature Mode</td></tr>
+<tr><td>Coding conventions, API standards, error handling patterns</td><td><code>technology/standards/</code></td><td>Manual or Feature Mode</td></tr>
+<tr><td>Decision reviews (problem, options, outcome)</td><td><code>technology/rfcs/</code></td><td>Feature Mode (optional)</td></tr>
+<tr><td>Product vision, competitor analysis, market research</td><td><code>product/description/</code></td><td>Discovery Mode</td></tr>
+<tr><td>Requirements, user stories, acceptance criteria</td><td><code>product/requirements/</code></td><td>Discovery Mode, Feature Mode</td></tr>
+<tr><td>User personas, audience profiles</td><td><code>product/personas/</code></td><td>Discovery Mode</td></tr>
+<tr><td>Plans, task lists, research per initiative</td><td><code>plans/{name}/</code></td><td>All planning modes via Plan Enhancer</td></tr>
+<tr><td>Blocking questions, external dependencies</td><td><code>dependencies/</code></td><td>Manual / as needed</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3 id="context-directory">Context Directory (Top-Level)</h3>
+
+<p><code>context/</code> lives at the project root, <strong>not</strong> inside <code>documentation/</code>. It contains integration knowledge about external systems &mdash; both documentation and code. Each external system gets its own subdirectory:</p>
+
+<pre><code>context/
+├── stripe/
+│   ├── docs/                      # API reference, webhook specs, migration guides
+│   └── code/                      # Git submodule &rarr; stripe SDK or example repo
+├── auth0/
+│   ├── docs/                      # OIDC flows, tenant config, rule patterns
+│   └── code/                      # Git submodule &rarr; auth0 samples
+└── internal-api/
+    ├── docs/                      # OpenAPI spec, data model, rate limits
+    └── code/                      # Git submodule &rarr; shared proto definitions</code></pre>
+
+<p><strong>Why top-level?</strong> Context is not specification &mdash; it&rsquo;s reference material about the outside world. It can contain code (git submodules, SDKs) which doesn&rsquo;t belong inside <code>documentation/</code>. Agents read context during research; it informs the spec but is not the spec.</p>
+
+<h3 id="context-management-skill">Context Management Skill</h3>
+
+<p>The <strong>context-management</strong> skill manages the <code>context/</code> directory:</p>
+
+<ul>
+<li><strong>Structuring</strong>: Creates <code>{system-name}/docs/</code> and <code>{system-name}/code/</code> directories for each external system. Ensures consistent layout across all context entries.</li>
+<li><strong>Aggregation</strong>: Collects and organizes information from multiple sources (API docs, specs, code samples) into the appropriate context subdirectory. Deduplicates and keeps context current.</li>
+<li><strong>Git submodules</strong>: Manages git submodules in <code>code/</code> directories &mdash; adding, updating, and tracking external code dependencies that agents need for integration work.</li>
+<li><strong>Agent-ready summaries</strong>: Maintains a <code>context/README.md</code> index so agents (especially Researcher) can quickly discover what external system knowledge is available before diving into files.</li>
+</ul>
+
+<h3 id="init-project-skill">Init Project Skill</h3>
+
+<p>The <strong>init-project</strong> skill (<code>/uc:init-project</code>) is the universal onboarding tool. It handles any project state &mdash; greenfield, existing docs in non-standard layout, partially structured, or already set up.</p>
+
+<p><strong>How it works (3 phases):</strong></p>
+
+<ol>
+<li><strong>Explore</strong> &mdash; Spawns Code Surveyor and Doc Surveyor agents in parallel to scan the project. Scales surveyor count to project size (1 pair for small projects, up to 5 pairs for monorepos). Asks the user about anything ambiguous.</li>
+<li><strong>Plan</strong> &mdash; Enters plan mode and presents everything for user review:
+<ul>
+<li>Scaffold missing canonical directories and template placeholders</li>
+<li>Derive <code>.claude/</code> config files from survey findings</li>
+<li>Bootstrap architecture docs (greenfield) or map existing docs to canonical locations (migration) or both (mixed)</li>
+<li>Regenerate <code>documentation/README.md</code> index</li>
+</ul>
+</li>
+<li><strong>Execute</strong> &mdash; After plan approval, spawns Task Executor agent(s) to carry out all changes. Preserves originals when migrating (copy, don&rsquo;t delete source files).</li>
+</ol>
+
+<p><strong>When to use:</strong> When onboarding any project to Ultra Claude, regardless of whether it has existing documentation.</p>
+
+<h2 id="two-layers">Two Layers: Planning and Execution</h2>
+
+<p>Instead of a rigid multi-phase pipeline, there are <strong>three specialized planning modes</strong> that each optimize plan mode for a specific use case, and <strong>one execution engine</strong> that runs any plan.</p>
+
+<h3 id="planning-layer">Planning Layer</h3>
+
+<p>All planning modes trigger Claude Code&rsquo;s plan mode automatically, enhanced by <strong>Plan Enhancer</strong> &mdash; a shared skill that:</p>
+<ul>
+<li>Redirects the plan from Claude&rsquo;s default location to a plan directory</li>
+<li>Generates the plan as <code>README.md</code> (or configured main page name) with the task list embedded &mdash; Claude recognizes this as a single coherent plan</li>
+<li>Ensures task granularity is right for agentic execution</li>
+<li>Standardizes the output structure so all plans look the same regardless of entry point</li>
+</ul>
+
+<h4 id="feature-mode">Feature Mode</h4>
+
+<p>For new features. Spawns Researcher subagent + loads Docs Manager skill to gather context about the codebase, existing architecture, and product requirements before planning.</p>
+
+<ul>
+<li>Challenges scope, pushes for clarity, asks &ldquo;why?&rdquo;</li>
+<li>Considers product requirements, architecture, and implementation in one pass</li>
+<li>When architecture decisions are ambiguous or high-risk, suggests <strong>RFC mode</strong> for structured review (AI personas: Devil&rsquo;s Advocate, Pragmatist, Security/Reliability, Cost-conscious &mdash; and/or human reviewers)</li>
+<li>Produces a plan in <code>documentation/plans/{name}/</code></li>
+<li>Architecture decisions go to <code>documentation/technology/architecture/</code></li>
+<li>If RFC mode is triggered, RFC goes to <code>documentation/technology/rfcs/</code></li>
+</ul>
+
+<h4 id="debug-mode">Debug Mode</h4>
+
+<p>For fixing things. The mode skill itself handles planning &mdash; it analyzes the issue, proposes hypotheses, and spawns Researcher + System Tester subagents to investigate.</p>
+
+<ul>
+<li>Analyzes the issue, proposes hypotheses</li>
+<li>Collects logs, reproduces the bug</li>
+<li>Produces a plan focused on the fix + verification</li>
+</ul>
+
+<h4 id="doc-code-verification-mode">Doc &amp; Code Verification Mode</h4>
+
+<p>For periodic sync. Spawns surveyor/checker subagents to find discrepancies between documentation and code, then produces a plan of things to fix.</p>
+
+<ul>
+<li>Reviews system structure, spawns surveyor and checker subagents to look for issues</li>
+<li>Generates a list of discrepancies with severity</li>
+<li>Produces a plan to resolve them (update docs or update code)</li>
+</ul>
+
+<h3 id="discovery-mode">Discovery Mode (Optional Pre-Step)</h3>
+
+<p>Research only &mdash; coding is disabled. Operates as a Head of Product persona. Focused on building product vision, gathering requirements, defining user personas, exploring competitors, and researching technology options. Spawns Researcher + Market Analyzer subagents.</p>
+
+<p>Discovery feeds into planning but does not produce a plan itself. Output goes to <code>documentation/product/</code> &mdash; producing descriptions (<code>description/</code>), requirements (<code>requirements/</code>), and user personas (<code>personas/</code>) as the topic demands.</p>
+
+<h3 id="execution-layer">Execution Layer</h3>
+
+<p>The execution engine is documented in detail in <a href="#execution" class="tab-link">Execution</a>.</p>
+
+<p>In summary: Plan Execution reads any plan README.md and runs it through a dynamically composed agent team. The Lead creates four role-separated task lists (research &rarr; implementation &rarr; review &rarr; testing), spawns teammates with role-specific prompts that bridge the context gap, and coordinates via per-role shared files. Teammates self-claim tasks from their role&rsquo;s list and work in parallel.</p>
+
+<h2 id="agent-coordination">Agent Coordination</h2>
+
+<p>Ultra Claude uses two coordination mechanisms depending on the stage:</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>Stage</th><th>Mechanism</th><th>Why</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Planning</strong> (all modes)</td><td><strong>Subagents</strong> (Task tool)</td><td>Planning spawns parallel research jobs that report back to the Lead. No cross-agent coordination needed &mdash; the Lead collects results and synthesizes. Subagents are cheaper and simpler.</td></tr>
+<tr><td><strong>Execution</strong> (<code>/uc:plan-execution</code>)</td><td><strong>Agent teams</strong> (teammates)</td><td>Execution requires cross-role coordination: shared task lists, self-claiming, per-role shared memory, direct messaging between teammates. Only agent teams support these patterns.</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3 id="agent-teams-vs-subagents">Agent Teams vs Subagents</h3>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>Feature</th><th>Subagents</th><th>Agent Teams</th></tr>
+</thead>
+<tbody>
+<tr><td>Communication</td><td>Report back to parent only</td><td>Teammates message each other directly</td></tr>
+<tr><td>Coordination</td><td>Parent manages everything</td><td>Shared task list, self-claiming</td></tr>
+<tr><td>Context</td><td>Results summarized back</td><td>Each has full independent context</td></tr>
+<tr><td>Best for</td><td>Focused tasks (research, surveying)</td><td>Complex work requiring collaboration</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>Agent teams enable patterns that subagents cannot:</p>
+<ul>
+<li>Researcher shares findings directly with Task Executor (no parent relay)</li>
+<li>Task Tester challenges Task Executor&rsquo;s work directly</li>
+<li>Multiple teammates self-claim from shared task list</li>
+<li>Plan approval workflow gates implementation</li>
+</ul>
+
+<p>These patterns are needed during execution but not during planning.</p>
+
+<h3 id="planning-mode-structures">Planning Mode Structures</h3>
+
+<p>Planning modes spawn subagents via the Task tool. The Lead (main session) orchestrates: spawns agents in parallel, collects results, synthesizes into a plan.</p>
+
+<p>See <a href="#workflows" class="tab-link">Workflows</a> for how these operate end-to-end.</p>
+
+<h4 id="feature-mode-structure">Feature Mode</h4>
+
+<pre><code>Lead (main session)
+├── Researcher subagent
+│   - Gathers codebase + architecture + product context
+│   - Returns findings to Lead
+│
+└── Docs Manager skill (loaded in main context, not a subagent)</code></pre>
+
+<h4 id="debug-mode-structure">Debug Mode</h4>
+
+<pre><code>Lead (main session &mdash; Debug Mode skill handles planning)
+├── Researcher subagent(s)
+│   - Each investigates a different hypothesis in parallel
+│   - Returns evidence to Lead
+│
+└── System Tester subagent
+    - Reproduces the bug
+    - Returns reproduction results to Lead</code></pre>
+
+<h4 id="verification-mode-structure">Doc &amp; Code Verification Mode</h4>
+
+<pre><code>Lead (main session)
+├── Code Surveyor subagent(s)
+│   - Survey code packages/modules
+│   - Return structure and patterns
+│
+├── Doc Surveyor subagent(s)
+│   - Survey documentation sections
+│   - Return what's documented
+│
+└── Checker subagent(s)
+    - Compare code structure vs doc claims
+    - Return discrepancies with severity</code></pre>
+
+<h4 id="discovery-mode-structure">Discovery Mode</h4>
+
+<pre><code>Lead (main session &mdash; coding DISABLED)
+├── Researcher subagent
+│   - Deep code/docs research
+│   - Uses Ref.tools for external library docs
+│
+└── Market Analyzer subagent
+    - Uses Perplexity/web for market research
+    - Competitor analysis, technology trends</code></pre>
+
+<h3 id="plan-execution-team-structure">Plan Execution Team Structure</h3>
+
+<p>The execution engine is the only mode that uses agent teams. See <a href="#execution" class="tab-link">Execution</a> for the full team structure, context bridge, shared memory, checkpoints, and error recovery.</p>
+
+<p>Lead + up to 5 teammates across 4 roles: Researcher, Executor, Code Reviewer, Tester. Tasks flow through role-separated lists: research &rarr; implementation &rarr; review &rarr; testing. Teammates self-claim work and coordinate via per-role shared files.</p>
+
+<h3 id="agent-team-constraints">Agent Team Constraints We Accept</h3>
+
+<p>These apply to the execution layer only (the only layer using agent teams):</p>
+
+<ul>
+<li><strong>No session resume for teammates</strong>: If session breaks, teammates are lost. Mitigated by checkpoint skill saving state to plan files.</li>
+<li><strong>One team per session</strong>: Each workflow gets its own session.</li>
+<li><strong>No nested teams</strong>: Teammates cannot spawn sub-teams. Mitigated by teammates using Task (subagent) for focused sub-tasks.</li>
+<li><strong>Cost</strong>: Each teammate is ~200K tokens. We minimize by spawning only what&rsquo;s needed, shutting down when done.</li>
+<li><strong>Permissions</strong>: All teammates inherit lead&rsquo;s permission mode. Pre-approve common operations in settings.</li>
+</ul>
+
+<h2 id="help-meta-skill">The Help Meta-Skill</h2>
+
+<p>Help is unique &mdash; it has awareness of the ENTIRE Ultra Claude system. Its purpose:</p>
+
+<ol>
+<li><strong>&ldquo;How do I accomplish X with this system?&rdquo;</strong> &mdash; Advises which skills, agents, and workflows to use</li>
+<li><strong>&ldquo;Extend the system with Y capability&rdquo;</strong> &mdash; Guides creating new skills/agents that fit the architecture</li>
+<li><strong>&ldquo;What&rsquo;s the most efficient path?&rdquo;</strong> &mdash; Suggests workflow optimizations based on the task</li>
+</ol>
+
+<p>Help achieves this by loading <code>docs/components.md</code> and <code>docs/workflows.md</code> directly via its <code>context:</code> field, giving it access to all component definitions, relationships, and workflow patterns.</p>
+
+</div>

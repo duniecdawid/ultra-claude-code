@@ -2,7 +2,7 @@
 
 A Claude Code plugin that implements a spec-driven development platform. Documentation governs code growth. Agent teams coordinate execution.
 
-[**System Overview (interactive)**](https://duniecdawid.github.io/ultra-claude-code/assets/system-overview.html)
+[**Documentation**](https://duniecdawid.github.io/ultra-claude-code/docs/)
 
 ## What This Is
 
@@ -33,10 +33,10 @@ It is NOT a framework, library, or runtime. It is a collection of **skills**, **
 /plugin install uc@ultra-claude
 ```
 
-After installing, run the init script in your target project to scaffold the documentation layer:
+After installing, run the init skill in your target project to scaffold and configure everything:
 
-```bash
-bash ~/.claude/plugins/uc/scripts/init-docs.sh
+```
+/uc:init-project
 ```
 
 Then use `/uc:help` to see all available commands.
@@ -77,7 +77,7 @@ ultra-claude/
 │   │   └── SKILL.md
 │   ├── context-management/
 │   │   └── SKILL.md
-│   ├── docs-migration/
+│   ├── init-project/
 │   │   └── SKILL.md
 │   ├── checkpoint/
 │   │   └── SKILL.md
@@ -89,10 +89,7 @@ ultra-claude/
 │   ├── hooks.json
 │   └── scripts/
 ├── templates/                         # Documentation templates for target projects
-├── scripts/
-│   └── init-docs.sh                   # Initialize documentation/ in a new project
 ├── docs/                              # Plugin documentation (this project)
-├── assets/                            # Diagrams, images
 └── README.md
 ```
 
@@ -100,10 +97,10 @@ ultra-claude/
 
 | Document | Purpose |
 |----------|---------|
-| [Architecture](docs/architecture.md) | System design: philosophy, layers, modes, governance, agent teams |
-| [Execution](docs/execution.md) | Execution engine: agent teams, task lists, shared memory, lifecycle |
-| [Components](docs/components.md) | Reference tables: skills, agents, commands, hooks, templates, config |
-| [Workflows](docs/workflows.md) | Step-by-step flows for each mode |
-| [Decisions](docs/decisions.md) | Architectural decisions + open questions |
-| [Migration](docs/migration.md) | Old → new skill mapping *(temporary)* |
-| [Research](docs/research.md) | Evaluated solutions, methodology references |
+| [Architecture](docs/architecture.html) | System design: philosophy, layers, modes, governance, agent teams |
+| [Execution](docs/execution.html) | Execution engine: agent teams, task lists, shared memory, lifecycle |
+| [Components](docs/components.html) | Reference tables: skills, agents, commands, hooks, templates, config |
+| [Workflows](docs/workflows.html) | Step-by-step flows for each mode |
+| [Decisions](docs/decisions.html) | Architectural decisions + open questions |
+| [Migration](docs/migration.html) | Old → new skill mapping *(temporary)* |
+| [Research](docs/research.html) | Evaluated solutions, methodology references |
