@@ -1,5 +1,4 @@
 ---
-name: Tech Research
 description: Research external library/framework documentation efficiently using Ref.tools MCP. Use when adding new libraries, debugging external dependencies, finding best practices, researching breaking changes, or any task involving unfamiliar technology. Triggers on "how does X work", "why is X failing", "best practice for X", "what changed in X", "research library", "look up docs", "check documentation".
 user-invocable: true
 argument-hint: "library or topic to research"

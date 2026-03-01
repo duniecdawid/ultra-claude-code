@@ -1,5 +1,4 @@
 ---
-name: Discovery Mode
 description: Product discovery led by a senior Head of Product persona. Research product vision, gather requirements, define user personas, analyze competitors and market. Produces artifacts in documentation/product/ (description, requirements, personas). No coding. Triggers on "discovery mode", "discovery", "research topic", "gather requirements", "define persona", "product research".
 argument-hint: "research topic"
 user-invocable: true

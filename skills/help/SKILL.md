@@ -1,5 +1,4 @@
 ---
-name: Help
 description: Ultra Claude system guide. Advises which skills, agents, and workflows to use for any task. Guides extending the system with new capabilities. Use when asking "how do I accomplish X", "what should I use for Y", or "extend the system with Z".
 user-invocable: true
 argument-hint: "question about Ultra Claude (optional)"

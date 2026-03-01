@@ -1,5 +1,4 @@
 ---
-name: Debug Mode
 description: Investigate bugs and plan fixes. Analyzes issues, proposes hypotheses, spawns parallel investigation with Researcher and System Tester subagents. Use when debugging, fixing bugs, or investigating issues. Triggers on "debug", "fix", "investigate", "bug", "issue".
 argument-hint: "bug description or issue"
 user-invocable: true
@@ -108,13 +107,10 @@ After all agents return:
 
 ### Phase 5: Fix Planning
 
-Enter plan mode by calling EnterPlanMode. In plan mode:
+Enter plan mode by calling EnterPlanMode. Then:
 
 1. **Synthesize** investigation findings into a targeted fix plan
-2. **Apply Plan Enhancer format** — follow Plan Enhancer instructions loaded via context:
-   - Derive plan name from the bug description (e.g., "fix-login-race-condition")
-   - Create plan directory structure
-   - Write plan to `documentation/plans/{name}/README.md`
+2. **Derive plan name** from the bug description (e.g., "fix-login-race-condition")
 3. **Define fix tasks** — each task targets a specific part of the fix:
    - Clear description of what to change and why (reference the evidence)
    - Files to modify
@@ -123,14 +119,20 @@ Enter plan mode by calling EnterPlanMode. In plan mode:
 4. **Include verification tasks** — tasks to confirm the fix resolves the original issue
 5. **Include regression test tasks** — tasks to add tests preventing recurrence
 6. **Reference evidence** — link each fix task back to the hypothesis and evidence that supports it
+7. **Write the plan to the plan mode file** following Plan Enhancer format (plan template loaded via context)
 
 When plan is complete, call ExitPlanMode for user approval.
 
-### Phase 6: Plan Review
+### Phase 6: Post-Approval Persistence
 
-- **If approved** — Plan ready. User can run `/uc:plan-execution {plan-name}`.
-- **If rejected** — Revise based on feedback.
-- **If partially rejected** — Update plan in place, adjust tasks.
+After the user approves the plan, **immediately persist it** (plan mode is now exited, so Write/Bash tools are available):
+
+1. Scaffold the plan directory: `mkdir -p documentation/plans/{name}/shared documentation/plans/{name}/research`
+2. Write the approved plan to `documentation/plans/{name}/README.md` — this is the canonical copy that `/uc:plan-execution` reads from
+3. Inform the user: plan persisted, they can execute with `/uc:plan-execution {plan-name}`
+
+**If rejected** — Revise based on feedback, re-enter plan mode.
+**If partially rejected** — Update plan, re-present for approval.
 
 ## Edge Cases
 

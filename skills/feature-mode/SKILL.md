@@ -1,5 +1,4 @@
 ---
-name: Feature Mode
 description: Plan new features with product, architecture, and implementation context. Challenges scope, ensures clarity, spawns research. Includes optional RFC sub-mode for ambiguous architecture decisions. Use when starting a new feature, adding functionality, or planning significant changes. Triggers on "new feature", "plan feature", "start feature", "add feature".
 argument-hint: "feature description"
 user-invocable: true
@@ -107,14 +106,10 @@ If personas reach no consensus, present all perspectives with their evidence and
 
 ### Phase 4: Plan Creation
 
-Enter plan mode by calling EnterPlanMode. In plan mode:
+Enter plan mode by calling EnterPlanMode. Then:
 
 1. **Synthesize** all gathered context (Researcher findings + direct reading + architecture assessment)
-2. **Apply Plan Enhancer format** — the Plan Enhancer instructions are loaded via context. Follow them:
-   - Derive plan name from feature description
-   - Create plan directory: `documentation/plans/{name}/`
-   - Write plan to `documentation/plans/{name}/README.md`
-   - Scaffold `shared/` and `research/` subdirectories
+2. **Derive plan name** from feature description
 3. **Define tasks** — each task must have:
    - Classification: Full / Standard / Trivial
    - Description of what to build/change
@@ -125,16 +120,20 @@ Enter plan mode by calling EnterPlanMode. In plan mode:
 5. **Risk assessment** — what could go wrong and mitigations
 6. **Route documentation tasks** — follow Docs Manager routing rules (loaded via context) to ensure documentation lands in correct directories
 7. **Create requirement documents** if the feature introduces new formal requirements — route to `documentation/product/requirements/`
+8. **Write the plan to the plan mode file** following Plan Enhancer format (plan template loaded via context)
 
 When the plan is complete, call ExitPlanMode to present it for user approval.
 
-### Phase 5: Plan Review
+### Phase 5: Post-Approval Persistence
 
-After presenting the plan:
+After the user approves the plan, **immediately persist it** (plan mode is now exited, so Write/Bash tools are available):
 
-- **If user approves** — Plan is ready. Inform the user they can execute it with `/uc:plan-execution {plan-name}`.
-- **If user rejects** — Ask what to change. Re-enter planning with their feedback. Revise the plan.
-- **If user partially rejects** — Update the plan in place: remove/modify specified tasks, adjust dependencies, re-present for approval.
+1. Scaffold the plan directory: `mkdir -p documentation/plans/{name}/shared documentation/plans/{name}/research`
+2. Write the approved plan to `documentation/plans/{name}/README.md` — this is the canonical copy that `/uc:plan-execution` reads from
+3. Inform the user: plan persisted, they can execute with `/uc:plan-execution {plan-name}`
+
+**If rejected** — Ask what to change. Re-enter planning with their feedback.
+**If partially rejected** — Update the plan, re-present for approval.
 
 ## Edge Cases
 
@@ -152,4 +151,4 @@ After presenting the plan:
 - Do NOT skip task classification — every task needs Full / Standard / Trivial
 - Do NOT create tasks without success criteria
 - Always route documentation to correct locations per Docs Manager rules
-- Always create the plan directory structure per Plan Enhancer rules
+- Always persist the plan to `documentation/plans/{name}/README.md` after approval per Plan Enhancer rules

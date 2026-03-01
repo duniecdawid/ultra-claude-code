@@ -1,5 +1,4 @@
 ---
-name: Plan Execution
 description: Executes approved plans through dynamically composed agent teams. Creates role-separated task lists, spawns Researcher/Executor/Reviewer/Tester teammates, coordinates 5-phase lifecycle with shared memory, checkpoints, and error recovery. Use when user says 'execute plan', 'run plan', 'start execution', or after any planning mode approves a plan.
 argument-hint: "plan name (e.g., 'user-auth')"
 user-invocable: true

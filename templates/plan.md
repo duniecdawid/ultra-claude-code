@@ -1,5 +1,6 @@
 # Plan: {Name}
 
+> **Execute:** `/uc:plan-execution {name}`
 > Created: {date}
 > Status: Draft | Approved | In Progress | Completed
 > Source: Feature Mode | Debug Mode | Verification Mode | Migration

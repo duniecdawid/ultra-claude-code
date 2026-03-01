@@ -1,5 +1,4 @@
 ---
-name: Context Management
 description: Manages the context/ directory for external system knowledge. Structures docs and code for each external system, manages git submodules, generates context index. Use when adding external API docs, SDK references, code samples, or git submodules. Triggers on "add context", "add external system", "update context", "add API docs".
 user-invocable: true
 argument-hint: "system name or action (e.g., 'add stripe', 'update auth0 docs')"
