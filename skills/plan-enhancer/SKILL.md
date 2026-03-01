@@ -1,5 +1,5 @@
 ---
-description: Standardizes plan output for all planning modes. Redirects plan to documentation/plans/{name}/README.md with embedded task list and task classification. Auto-loaded by planning mode skills via context field.
+description: Standardizes plan output for all planning modes. Writes plan directly to documentation/plans/{name}/README.md with embedded task list and task classification. Auto-loaded by planning mode skills via context field.
 user-invocable: false
 allowed-tools:
   - Read
@@ -14,33 +14,26 @@ context:
 
 # Plan Enhancer
 
-You provide plan structuring instructions that are loaded into context by planning mode skills (Feature Mode, Debug Mode, etc.). You do NOT trigger plan mode yourself — the planning mode skill is responsible for calling EnterPlanMode and providing the planning context. You govern how the plan is structured, how tasks are classified, and where the plan is persisted after approval.
-
-## Critical: Plan Mode Tool Restrictions
-
-Plan mode restricts available tools to **read-only** (Read, Glob, Grep) plus writing to the **plan mode file only**. You CANNOT use Write, Edit, or Bash to create directories or files while in plan mode. Therefore:
-
-- **During plan mode**: Write the plan to the plan mode file only (the system-specified path)
-- **After user approves via ExitPlanMode**: Your **very first action** must be to scaffold the plan directory and write the persistent copy to `documentation/plans/{name}/README.md`. Do this before anything else — the user may clear context immediately after.
+You provide plan structuring instructions that are loaded into context by planning mode skills (Feature Mode, Debug Mode, etc.). You govern how the plan is structured, how tasks are classified, where the plan is written, and how it is presented for approval.
 
 ## Responsibility Split
 
 | Responsibility | Owner |
 |---------------|-------|
-| Triggering plan mode (EnterPlanMode) | Planning mode skill |
+| Driving the planning process | Planning mode skill |
 | Gathering context (research, architecture) | Planning mode skill |
 | Deciding plan scope and content | Planning mode skill + user |
 | **Plan format and template** | **Plan Enhancer** |
 | **Task classification** | **Plan Enhancer** |
 | **Task granularity enforcement** | **Plan Enhancer** |
-| **Post-approval: directory scaffolding + plan persistence** | **Plan Enhancer** |
+| **Plan directory scaffolding + file writing** | **Plan Enhancer** |
 
 ## What You Do
 
 1. **Standardize format** — All plans use the loaded plan template with embedded task list. The template includes an `Execute: /uc:plan-execution {name}` header so the user knows how to run it.
 2. **Classify tasks** — Each task gets a classification that determines its execution pipeline
 3. **Ensure granularity** — Tasks must be right-sized for agentic execution
-4. **Post-approval persistence** — Immediately after user approves: scaffold directory and write `documentation/plans/{name}/README.md`
+4. **Write plan to disk** — Scaffold the plan directory and write `documentation/plans/{name}/README.md` before presenting for approval
 
 ## Plan Directory Structure
 
@@ -125,33 +118,31 @@ Use the loaded plan template (`templates/plan.md`) as the base structure. The pl
 6. **Architecture Impact** — What architecture docs need updating
 7. **Risk Assessment** — Risks with likelihood, impact, mitigation
 
-## Process
-
-### During Plan Mode (read-only + plan mode file only)
-
-After the planning mode skill calls EnterPlanMode:
+## Plan Creation Process
 
 1. **Derive plan name** from the feature description or `$ARGUMENTS`
 2. **Check for existing plan** — if `documentation/plans/{name}/` exists, read it for revision context
-3. **Build the plan** — the planning mode provides the content; you ensure format compliance. Use the loaded plan template including the `Execute: /uc:plan-execution {name}` header.
-4. **Classify all tasks** — apply classification rules to every task in the list
-5. **Validate granularity** — check each task against granularity rules, split or merge as needed
-6. **Write plan to the plan mode file** — this is the system-specified file path. ExitPlanMode reads from this file to show the plan to the user for approval.
-
-The planning mode skill then calls ExitPlanMode.
-
-### After User Approves — FIRST STEP: Persist Plan
-
-Once the user approves, your **very first action** (before any other output) must be:
-
-1. **Scaffold plan directory**:
+3. **Scaffold plan directory**:
    ```bash
    mkdir -p documentation/plans/{name}/shared documentation/plans/{name}/research
    ```
-2. **Write the plan** to `documentation/plans/{name}/README.md` using the Write tool — this is the canonical copy that `/uc:plan-execution` reads from
-3. Inform the user: "Plan saved to `documentation/plans/{name}/README.md`. Execute with `/uc:plan-execution {name}`."
+4. **Build the plan** — the planning mode provides the content; you ensure format compliance. Use the loaded plan template including the `Execute: /uc:plan-execution {name}` header.
+5. **Classify all tasks** — apply classification rules to every task in the list
+6. **Validate granularity** — check each task against granularity rules, split or merge as needed
+7. **Write plan to `documentation/plans/{name}/README.md`** via the Write tool — this is the canonical copy that `/uc:plan-execution` reads from. The plan is on disk before the user reviews it.
+8. **Present a concise summary in chat** — NOT the full plan. Include: plan name, objective, task count with classification breakdown, and the file path. The user can read the full plan from the file.
+9. **Ask for approval via AskUserQuestion** — Options: "Approve" / "Reject with feedback" / "Partially reject (specify changes)"
 
-This must happen immediately because the user may clear context right after approval. If the plan is not persisted to `documentation/plans/`, it is lost.
+### Plan Revision (if rejected)
+
+If the user rejects or partially rejects the plan:
+
+1. Read their feedback
+2. Edit the existing `documentation/plans/{name}/README.md` using the Edit tool to incorporate changes
+3. Re-present the concise summary with changes highlighted
+4. Re-ask for approval via AskUserQuestion
+
+Repeat until approved or the user abandons the plan.
 
 ## Existing Plan Handling
 
@@ -163,11 +154,10 @@ If the plan directory already exists (revision or re-planning):
 
 ## Constraints
 
-- Do NOT use Write, Edit, or Bash while in plan mode — these tools are blocked. Only write to the plan mode file.
 - Do NOT execute the plan — that is `/uc:plan-execution`'s job
 - Do NOT skip task classification — every task needs one
 - Do NOT create tasks without success criteria
-- ALWAYS persist the plan to `documentation/plans/{name}/README.md` as the very first action after user approval — this is the canonical copy that `/uc:plan-execution` reads from. If this step is skipped, the plan is lost on context clear.
+- ALWAYS write the plan to `documentation/plans/{name}/README.md` BEFORE presenting for approval — this ensures the plan is on disk and cannot be lost
 - ALWAYS include the `Execute: /uc:plan-execution {name}` header in the plan document
 
 ## Example

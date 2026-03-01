@@ -97,9 +97,9 @@ Only ask questions that are genuinely unresolvable from the survey data. Don't a
 
 ---
 
-### Phase 2: Plan (enter plan mode)
+### Phase 2: Plan
 
-Call `EnterPlanMode`. Using all survey findings + user answers, produce a comprehensive plan covering everything you intend to do. Apply Plan Enhancer format.
+Using all survey findings + user answers, produce a comprehensive plan covering everything you intend to do. Apply Plan Enhancer format. Present the complete plan in chat.
 
 The plan includes these task groups, in order:
 
@@ -206,7 +206,8 @@ For **migration** (existing docs in non-standard locations):
   - Architecture, design, component, system, data flow → `technology/architecture/`
   - Convention, standard, pattern, style guide → `technology/standards/`
   - ADR, decision record, RFC, trade-off → `technology/rfcs/`
-  - Vision, competitor, market, discovery → `product/description/`
+  - Vision, positioning, product brief → `product/description/`
+  - Competitor, market, research, trends → `product/research/`
   - Requirement, FR-, NFR-, acceptance criteria → `product/requirements/`
   - External API docs, integration guides → `context/{system}/docs/`
   - Blocker, dependency, open question → `dependencies/`
@@ -221,7 +222,7 @@ For **mixed** (some canonical, some not):
 
 - Update `documentation/README.md` to reflect final state after all creates/moves
 
-Call `ExitPlanMode` for user approval. The user can discuss, request changes, or approve.
+Ask for approval via AskUserQuestion: "Review the initialization plan above. Proceed?" Options: "Approve" / "Reject with feedback" / "Approve with changes".
 
 ---
 
@@ -271,4 +272,4 @@ End with a concise report:
 - Migration moves files (delete originals after successful move, clean up empty directories)
 - Do NOT create files outside `CLAUDE.md`, `documentation/`, `context/`, and `.claude/`
 - Ask questions in Phase 1 for anything ambiguous — don't guess
-- Always enter plan mode so the user reviews everything before files are created or moved
+- Always present the full plan and get user approval before creating or moving files

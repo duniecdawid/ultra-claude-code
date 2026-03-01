@@ -18,7 +18,7 @@
 <tr><td><strong>feature-mode</strong></td><td>&ldquo;new feature&rdquo;, &ldquo;plan feature&rdquo;, &ldquo;start feature&rdquo;</td><td>Yes &mdash; <code>/uc:feature-mode</code></td><td>Feature Mode: new features with product + architecture context. Includes optional RFC sub-mode for ambiguous/high-risk architecture decisions (AI persona review).</td></tr>
 <tr><td><strong>debug-mode</strong></td><td>&ldquo;debug&rdquo;, &ldquo;fix&rdquo;, &ldquo;investigate&rdquo;</td><td>Yes &mdash; <code>/uc:debug-mode</code></td><td>Debug Mode: issue investigation and fix planning. Spawns investigation team (Researcher + System Tester) during planning phase. Fix execution uses standard plan-execution team.</td></tr>
 <tr><td><strong>doc-code-verification-mode</strong></td><td>&ldquo;verify docs&rdquo;, &ldquo;check doc-code gaps&rdquo;, &ldquo;sync docs&rdquo;</td><td>Yes &mdash; <code>/uc:doc-code-verification-mode</code></td><td>Doc &amp; Code Verification Mode: find and plan fixes for discrepancies</td></tr>
-<tr><td><strong>plan-enhancer</strong></td><td>Auto-loaded by all modes</td><td>No (internal)</td><td>Standardizes plan output: plan directory, README.md with embedded task list, task granularity. Uses Claude Code&rsquo;s plan mode file path override (writes plan to <code>documentation/plans/{name}/README.md</code> instead of default <code>.claude/plan.md</code>). Ensures task list is embedded in the plan document.</td></tr>
+<tr><td><strong>plan-enhancer</strong></td><td>Auto-loaded by all modes</td><td>No (internal)</td><td>Standardizes plan output: plan directory, README.md with embedded task list, task granularity. Writes plan directly to <code>documentation/plans/{name}/README.md</code> before user approval. Ensures task list is embedded in the plan document.</td></tr>
 <tr><td><strong>plan-execution</strong></td><td><code>/uc:plan-execution</code></td><td>Yes &mdash; <code>/uc:plan-execution</code></td><td>Execution engine: reads plan directory, composes dynamic agent team based on plan size, creates role-separated task lists, spawns teammates, coordinates 5-phase execution (setup, parallel work, checkpoint, failure handling, completion)</td></tr>
 <tr><td><strong>discovery-mode</strong></td><td>&ldquo;discovery mode&rdquo;, &ldquo;research only&rdquo;</td><td>Yes &mdash; <code>/uc:discovery-mode</code></td><td>Discovery Mode: research only, coding disabled</td></tr>
 <tr><td><strong>docs-manager</strong></td><td>&ldquo;audit docs&rdquo;, &ldquo;reorganize docs&rdquo;, &ldquo;regenerate index&rdquo;</td><td>Yes &mdash; <code>/uc:docs-manager</code></td><td>Guards <code>documentation/</code> structure &mdash; enforces canonical layout, routes docs to correct directories, prevents structural drift. Also auto-activated by <code>.claude/docs-format</code> file.</td></tr>
@@ -344,7 +344,7 @@ documentation, and external sources as directed by your spawn prompt.
 <tr><td><strong>Green</strong></td><td>Agent (isolated execution, spawned via Task tool or as teammate)</td></tr>
 <tr><td><strong>Yellow</strong></td><td>Document (artifact, template, reference file)</td></tr>
 <tr><td><strong>Blue</strong></td><td>Instruction/configuration file (.claude/ configs)</td></tr>
-<tr><td><strong>Orange</strong></td><td>Tag/mode indicator (e.g., &ldquo;Use Plan Mode&rdquo;)</td></tr>
+<tr><td><strong>Orange</strong></td><td>Tag/mode indicator (e.g., &ldquo;Planning&rdquo;)</td></tr>
 </tbody>
 </table>
 </div>

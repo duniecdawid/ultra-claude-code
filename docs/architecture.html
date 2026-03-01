@@ -74,8 +74,10 @@
 │   │   ├── standards/             # Coding conventions, patterns, quality bars, security rules
 │   │   └── rfcs/                  # Structured reviews for ambiguous/high-risk decisions
 │   ├── product/
-│   │   ├── description/           # Vision, discovery outputs, market research
-│   │   └── requirements/          # Formal requirements (FR-xxx, NFR-xxx)
+│   │   ├── description/           # Product briefs, vision, positioning
+│   │   ├── research/              # Market research, competitor analysis
+│   │   ├── requirements/          # Formal requirements (FR-xxx, NFR-xxx)
+│   │   └── personas/              # User personas (evidence-based profiles)
 │   ├── plans/
 │   │   └── {plan-name}/
 │   │       ├── README.md          # Plan document (includes task list)
@@ -113,7 +115,8 @@
 <tr><td>System design, component diagrams, data flow</td><td><code>technology/architecture/</code></td><td>Feature Mode</td></tr>
 <tr><td>Coding conventions, API standards, error handling patterns</td><td><code>technology/standards/</code></td><td>Manual or Feature Mode</td></tr>
 <tr><td>Decision reviews (problem, options, outcome)</td><td><code>technology/rfcs/</code></td><td>Feature Mode (optional)</td></tr>
-<tr><td>Product vision, competitor analysis, market research</td><td><code>product/description/</code></td><td>Discovery Mode</td></tr>
+<tr><td>Product vision, positioning, product briefs</td><td><code>product/description/</code></td><td>Discovery Mode</td></tr>
+<tr><td>Market research, competitor analysis, technology landscape</td><td><code>product/research/</code></td><td>Discovery Mode</td></tr>
 <tr><td>Requirements, user stories, acceptance criteria</td><td><code>product/requirements/</code></td><td>Discovery Mode, Feature Mode</td></tr>
 <tr><td>User personas, audience profiles</td><td><code>product/personas/</code></td><td>Discovery Mode</td></tr>
 <tr><td>Plans, task lists, research per initiative</td><td><code>plans/{name}/</code></td><td>All planning modes via Plan Enhancer</td></tr>
@@ -158,7 +161,7 @@
 
 <ol>
 <li><strong>Explore</strong> &mdash; Spawns Code Surveyor and Doc Surveyor agents in parallel to scan the project. Scales surveyor count to project size (1 pair for small projects, up to 5 pairs for monorepos). Asks the user about anything ambiguous.</li>
-<li><strong>Plan</strong> &mdash; Enters plan mode and presents everything for user review:
+<li><strong>Plan</strong> &mdash; Writes plan and presents for user review:
 <ul>
 <li>Scaffold missing canonical directories and template placeholders</li>
 <li>Derive <code>.claude/</code> config files from survey findings</li>
@@ -173,13 +176,13 @@
 
 <h2 id="two-layers">Two Layers: Planning and Execution</h2>
 
-<p>Instead of a rigid multi-phase pipeline, there are <strong>three specialized planning modes</strong> that each optimize plan mode for a specific use case, and <strong>one execution engine</strong> that runs any plan.</p>
+<p>Instead of a rigid multi-phase pipeline, there are <strong>three specialized planning modes</strong> that each produce structured plans for a specific use case, and <strong>one execution engine</strong> that runs any plan.</p>
 
 <h3 id="planning-layer">Planning Layer</h3>
 
-<p>All planning modes trigger Claude Code&rsquo;s plan mode automatically, enhanced by <strong>Plan Enhancer</strong> &mdash; a shared skill that:</p>
+<p>All planning modes write plans directly to disk, enhanced by <strong>Plan Enhancer</strong> &mdash; a shared skill that:</p>
 <ul>
-<li>Redirects the plan from Claude&rsquo;s default location to a plan directory</li>
+<li>Scaffolds the plan directory and writes the plan to <code>documentation/plans/{name}/README.md</code></li>
 <li>Generates the plan as <code>README.md</code> (or configured main page name) with the task list embedded &mdash; Claude recognizes this as a single coherent plan</li>
 <li>Ensures task granularity is right for agentic execution</li>
 <li>Standardizes the output structure so all plans look the same regardless of entry point</li>
@@ -222,7 +225,7 @@
 
 <p>Research only &mdash; coding is disabled. Operates as a Head of Product persona. Focused on building product vision, gathering requirements, defining user personas, exploring competitors, and researching technology options. Spawns Researcher + Market Analyzer subagents.</p>
 
-<p>Discovery feeds into planning but does not produce a plan itself. Output goes to <code>documentation/product/</code> &mdash; producing descriptions (<code>description/</code>), requirements (<code>requirements/</code>), and user personas (<code>personas/</code>) as the topic demands.</p>
+<p>Discovery feeds into planning but does not produce a plan itself. Output goes to <code>documentation/product/</code> &mdash; producing research reports (<code>research/</code>), distilled product descriptions (<code>description/</code>), requirements (<code>requirements/</code>), and user personas (<code>personas/</code>) as the topic demands.</p>
 
 <h3 id="execution-layer">Execution Layer</h3>
 

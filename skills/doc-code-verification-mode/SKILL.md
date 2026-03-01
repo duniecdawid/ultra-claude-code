@@ -2,6 +2,14 @@
 description: Find and plan fixes for discrepancies between documentation and code. Spawns surveyor and checker subagents to compare doc claims against code reality. Supports scoped verification. Use when verifying docs, checking doc-code gaps, syncing documentation. Triggers on "verify docs", "check doc-code gaps", "sync docs", "doc verification".
 argument-hint: "scope (optional — specific directory or 'all')"
 user-invocable: true
+allowed-tools:
+  - Read
+  - Glob
+  - Grep
+  - Agent
+  - Write
+  - Bash
+  - AskUserQuestion
 context:
   - ${CLAUDE_PLUGIN_ROOT}/skills/plan-enhancer/SKILL.md
 ---
@@ -93,33 +101,36 @@ Present the discrepancy summary to the user with counts per severity level.
 
 **If no discrepancies found** — report clean verification status. No plan needed. Inform the user and exit.
 
-### Phase 5: Fix Planning
+### Phase 5: Fix Planning and Approval
 
-If discrepancies exist, enter plan mode by calling EnterPlanMode. Then:
+If discrepancies exist:
 
 1. **Derive plan name** (e.g., "doc-code-sync-auth" or "full-verification-fix")
-2. **Create fix tasks** — one per discrepancy or grouped by related discrepancies:
+2. **Scaffold plan directory**: `mkdir -p documentation/plans/{name}/shared documentation/plans/{name}/research`
+3. **Create fix tasks** — one per discrepancy or grouped by related discrepancies:
    - Description: what's wrong and what the fix should be
    - Fix type: update docs, update code, or needs decision
    - Files to modify (both doc and code file:line references)
    - Success criteria: discrepancy resolved, re-verification passes
    - Classification: typically Standard (clear what to fix) or Trivial (naming/typo fixes)
-3. **Order tasks** — Critical fixes first, then Major, then Minor
-4. **Flag "needs decision" items** — present these to user for resolution before including in plan
-5. **Write the plan to the plan mode file** following Plan Enhancer format (plan template loaded via context)
+4. **Order tasks** — Critical fixes first, then Major, then Minor
+5. **Flag "needs decision" items** — present these to user for resolution before including in plan
+6. **Write the plan to `documentation/plans/{name}/README.md`** following Plan Enhancer format (plan template loaded via context) — the plan is on disk before the user reviews it
+7. **Present a concise summary in chat** — plan name, discrepancy count by severity, task count with classification breakdown, file path
+8. **Ask for approval via AskUserQuestion** — Options: "Approve" / "Reject with feedback" / "Partially reject (specify changes)"
 
-Call ExitPlanMode for user approval.
+If approved — inform the user: execute with `/uc:plan-execution {plan-name}`.
 
-### Phase 6: Post-Approval Persistence
+### Phase 6: Plan Review (if rejected)
 
-After the user approves the plan, **immediately persist it** (plan mode is now exited, so Write/Bash tools are available):
+If the user rejects or partially rejects the plan:
 
-1. Scaffold the plan directory: `mkdir -p documentation/plans/{name}/shared documentation/plans/{name}/research`
-2. Write the approved plan to `documentation/plans/{name}/README.md` — this is the canonical copy that `/uc:plan-execution` reads from
-3. Inform the user: plan persisted, they can execute with `/uc:plan-execution {plan-name}`
+1. Read their feedback
+2. Edit the existing `documentation/plans/{name}/README.md` to incorporate changes
+3. Re-present the concise summary with changes highlighted
+4. Re-ask for approval via AskUserQuestion
 
-**If rejected** — Revise based on feedback, re-enter plan mode.
-**If partially rejected** — Update plan in place, re-present for approval.
+Repeat until approved or the user abandons the plan.
 
 ## Edge Cases
 

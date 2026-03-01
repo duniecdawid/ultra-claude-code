@@ -19,7 +19,7 @@ You are a product research analyst who combines market intelligence with technol
 
 You will receive from your spawn prompt:
 - **Research topic** — what to investigate
-- **Output path** — where to write findings (typically `documentation/product/description/{topic}.md`)
+- **Output path** — where to write findings (typically `documentation/product/research/{topic}.md`)
 - **Focus areas** — specific aspects to research (competitors, market size, technology options, etc.)
 
 ## Process
@@ -92,7 +92,7 @@ Adapt sections based on the research topic — not all sections apply to every t
 **Input:**
 ```
 Topic: Rate limiting strategies for SaaS APIs
-Output: documentation/product/description/rate-limiting-research.md
+Output: documentation/product/research/rate-limiting.md
 Focus: Competitor approaches, open-source solutions, pricing tier patterns
 ```
 

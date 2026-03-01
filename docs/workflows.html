@@ -15,7 +15,7 @@
 <pre><code>User: /uc:feature-mode "Add user authentication"
 
 1. PLANNING &mdash; Feature Mode activates
-   &rarr; Plan Enhancer triggers plan mode, configures plan directory
+   &rarr; Plan Enhancer scaffolds plan directory, writes plan to documentation/plans/
    &rarr; Researcher subagent + Docs Manager skill gather context (codebase, architecture, product docs)
    &rarr; Claude challenges scope, pushes for clarity
    &rarr; If architecture decision is ambiguous: suggests RFC mode
@@ -66,7 +66,8 @@
    &rarr; Market Analyzer: Web searches, competitor analysis, user insights
 
 2. Artifacts produced to documentation/product/ as needed:
-   &rarr; description/{topic}.md &mdash; always produced
+   &rarr; research/{topic}.md &mdash; always produced (raw findings)
+   &rarr; description/{topic}.md &mdash; always produced (distilled brief)
    &rarr; requirements/{topic}.md &mdash; when building something
    &rarr; personas/{persona-name}.md &mdash; when user context matters
 3. No code changes. No plan. Pure investigation output.
@@ -87,7 +88,7 @@
 <pre><code>User: /uc:doc-code-verification-mode
 
 1. PLANNING &mdash; Doc &amp; Code Verification Mode activates
-   &rarr; Plan Enhancer triggers plan mode
+   &rarr; Plan Enhancer scaffolds plan directory, writes plan to documentation/plans/
    &rarr; Spawns Code Surveyor + Doc Surveyor subagents in parallel via Task tool
    &rarr; Code Surveyors scan codebase structure, patterns, APIs
    &rarr; Doc Surveyors scan documentation claims, specs, architecture docs

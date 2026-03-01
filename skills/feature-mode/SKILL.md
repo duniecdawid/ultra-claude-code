@@ -2,6 +2,14 @@
 description: Plan new features with product, architecture, and implementation context. Challenges scope, ensures clarity, spawns research. Includes optional RFC sub-mode for ambiguous architecture decisions. Use when starting a new feature, adding functionality, or planning significant changes. Triggers on "new feature", "plan feature", "start feature", "add feature".
 argument-hint: "feature description"
 user-invocable: true
+allowed-tools:
+  - Read
+  - Glob
+  - Grep
+  - Agent
+  - Write
+  - Bash
+  - AskUserQuestion
 context:
   - ${CLAUDE_PLUGIN_ROOT}/skills/plan-enhancer/SKILL.md
   - ${CLAUDE_PLUGIN_ROOT}/skills/docs-manager/SKILL.md
@@ -104,36 +112,37 @@ Trigger RFC sub-mode when architecture decisions are ambiguous or high-risk. Sig
 
 If personas reach no consensus, present all perspectives with their evidence and let the user decide.
 
-### Phase 4: Plan Creation
-
-Enter plan mode by calling EnterPlanMode. Then:
+### Phase 4: Plan Creation and Approval
 
 1. **Synthesize** all gathered context (Researcher findings + direct reading + architecture assessment)
 2. **Derive plan name** from feature description
-3. **Define tasks** — each task must have:
+3. **Scaffold plan directory**: `mkdir -p documentation/plans/{name}/shared documentation/plans/{name}/research`
+4. **Define tasks** — each task must have:
    - Classification: Full / Standard / Trivial
    - Description of what to build/change
    - Files to create or modify
    - Success criteria
    - Dependencies on other tasks
-4. **Architecture impact** — what docs need creating or updating
-5. **Risk assessment** — what could go wrong and mitigations
-6. **Route documentation tasks** — follow Docs Manager routing rules (loaded via context) to ensure documentation lands in correct directories
-7. **Create requirement documents** if the feature introduces new formal requirements — route to `documentation/product/requirements/`
-8. **Write the plan to the plan mode file** following Plan Enhancer format (plan template loaded via context)
+5. **Architecture impact** — what docs need creating or updating
+6. **Risk assessment** — what could go wrong and mitigations
+7. **Route documentation tasks** — follow Docs Manager routing rules (loaded via context) to ensure documentation lands in correct directories
+8. **Create requirement documents** if the feature introduces new formal requirements — route to `documentation/product/requirements/`
+9. **Write the plan to `documentation/plans/{name}/README.md`** following Plan Enhancer format (plan template loaded via context) — the plan is on disk before the user reviews it
+10. **Present a concise summary in chat** — plan name, objective, task count with classification breakdown, file path
+11. **Ask for approval via AskUserQuestion** — Options: "Approve" / "Reject with feedback" / "Partially reject (specify changes)"
 
-When the plan is complete, call ExitPlanMode to present it for user approval.
+If approved — inform the user: execute with `/uc:plan-execution {plan-name}`.
 
-### Phase 5: Post-Approval Persistence
+### Phase 5: Plan Review (if rejected)
 
-After the user approves the plan, **immediately persist it** (plan mode is now exited, so Write/Bash tools are available):
+If the user rejects or partially rejects the plan:
 
-1. Scaffold the plan directory: `mkdir -p documentation/plans/{name}/shared documentation/plans/{name}/research`
-2. Write the approved plan to `documentation/plans/{name}/README.md` — this is the canonical copy that `/uc:plan-execution` reads from
-3. Inform the user: plan persisted, they can execute with `/uc:plan-execution {plan-name}`
+1. Read their feedback
+2. Edit the existing `documentation/plans/{name}/README.md` to incorporate changes
+3. Re-present the concise summary with changes highlighted
+4. Re-ask for approval via AskUserQuestion
 
-**If rejected** — Ask what to change. Re-enter planning with their feedback.
-**If partially rejected** — Update the plan, re-present for approval.
+Repeat until approved or the user abandons the plan.
 
 ## Edge Cases
 

@@ -19,7 +19,7 @@ Your instincts:
 
 Your sole purpose is to investigate, analyze, and document findings. You produce knowledge artifacts — not plans, not code.
 
-**CODING IS DISABLED.** You must NOT write, edit, or create any source code files. You must NOT produce an execution plan or enter plan mode. Discovery Mode is purely investigative.
+**CODING IS DISABLED.** You must NOT write, edit, or create any source code files. You must NOT produce an execution plan or create plan directories. Discovery Mode is purely investigative.
 
 ## Artifact Types
 
@@ -27,11 +27,12 @@ During any discovery session you naturally produce whichever artifacts the topic
 
 | Artifact | When to produce | Output location |
 |----------|----------------|-----------------|
-| **Product Description** | Always — every discovery produces at minimum a description | `documentation/product/description/{topic}.md` |
+| **Research Report** | Always — every discovery produces a research report with raw findings | `documentation/product/research/{topic}.md` |
+| **Product Description** | Always — every discovery produces a distilled product brief alongside the research | `documentation/product/description/{topic}.md` |
 | **Requirements** | When the topic involves a feature, capability, or system that will be built | `documentation/product/requirements/{topic}.md` |
 | **User Persona** | When the topic involves understanding who uses the product, or when user context would strengthen requirements | `documentation/product/personas/{persona-name}.md` |
 
-Produce one, two, or all three — whatever serves the topic best. When in doubt, ask the user with AskUserQuestion whether they need requirements or personas for this topic.
+The research report and product description are always produced as a pair. Requirements and personas are produced when the topic demands them. When in doubt, ask the user with AskUserQuestion whether they need requirements or personas for this topic.
 
 ## Process
 
@@ -86,7 +87,7 @@ Spawn two subagents in parallel via the Task tool:
 
 ### Phase 3: Synthesis
 
-After both agents return, think like a Head of Product synthesizing a product brief:
+After both agents return, think like a Head of Product synthesizing findings into two outputs — a comprehensive research report and a distilled product brief:
 
 1. **Merge findings** — combine internal technical research with external market research
 2. **Identify patterns** — what trends appear across multiple sources?
@@ -94,22 +95,24 @@ After both agents return, think like a Head of Product synthesizing a product br
 4. **User lens** — what do we now understand about who needs this and why?
 5. **Highlight decisions** — what key decisions does this research inform?
 6. **Formulate recommendations** — based on evidence, what should happen next?
+7. **Separate raw from distilled** — comprehensive findings go in the research report; key insights and recommendations go in the product description
 
 ### Phase 4: Documentation
 
-Write artifacts to `documentation/product/`. Create subdirectories as needed.
+Write artifacts to `documentation/product/`. Create subdirectories as needed. Always produce both a research report (comprehensive findings) and a product description (distilled brief). Write the research report first, then distill the product description from it.
 
 **Derive filenames** from the topic:
 - Lowercase, hyphenated: "Rate limiting strategies" -> `rate-limiting-strategies.md`
 - Short but descriptive: 2-4 words
+- Use the same filename for both research and description (they live in different directories)
 - For personas, use the persona name: `mobile-power-user.md`
 
 ---
 
-#### Product Description — `documentation/product/description/{topic}.md`
+#### Research Report — `documentation/product/research/{topic}.md`
 
 ```markdown
-# {Research Topic}
+# Research: {Research Topic}
 
 > Researched: {date}
 > Sources: {count} sources consulted
@@ -138,25 +141,52 @@ Write artifacts to `documentation/product/`. Create subdirectories as needed.
 
 What exists in our codebase/docs related to this topic.
 
+## Related
+
+- Product description: [Distilled brief](../description/{topic}.md)
+
+## Sources
+
+- [{source title}]({url}) — {what it provided}
+```
+
+---
+
+#### Product Description — `documentation/product/description/{topic}.md`
+
+```markdown
+# {Research Topic}
+
+> Researched: {date}
+
+## Problem Statement
+
+{What problem or opportunity are we investigating and for whom?}
+
+## Key Insights
+
+- {insight 1 — distilled from research, with evidence}
+- {insight 2}
+
 ## Recommendations
 
-Based on research:
-1. {recommendation with supporting evidence}
-2. {recommendation with supporting evidence}
+1. {recommendation with supporting rationale}
+2. {recommendation with supporting rationale}
 
 ## Related Artifacts
 
-- Personas: {link to any personas produced}
-- Requirements: {link to any requirements produced}
+- Research: [Full research report](../research/{topic}.md)
+- Personas: {links if produced}
+- Requirements: {links if produced}
 
 ## Suggested Next Steps
 
 - {e.g., "Run /uc:feature-mode to plan implementation of X"}
 - {e.g., "Further discovery on sub-topic Y"}
 
-## Sources
+## Open Questions
 
-- [{source title}]({url}) — {what it provided}
+- {questions that emerged from research}
 ```
 
 ---
@@ -290,12 +320,13 @@ Present a concise summary to the user:
 - **Topic requires code investigation** — You may READ code for research purposes. You must NOT WRITE or MODIFY any code.
 - **Persona already exists** — Read existing persona from `documentation/product/personas/`. Update it with new findings rather than creating a duplicate. Increment the "Last updated" date.
 - **Requirements already exist** — Read existing requirements from `documentation/product/requirements/`. Merge new findings, flag conflicts, and update status.
+- **Research already exists** — Read existing research from `documentation/product/research/`. Merge new findings into the existing report, update the date, and increment the source count.
 
 ## Constraints
 
 - **CODING DISABLED** — Do NOT write, edit, or create any source code files
-- **NO PLAN MODE** — Do NOT call EnterPlanMode or produce an execution plan
-- **Output location** — Artifacts ONLY go to `documentation/product/` subdirectories
+- **NO EXECUTION PLANS** — Do NOT create execution plans or plan directories in documentation/plans/
+- **Output location** — Artifacts ONLY go to `documentation/product/` subdirectories (`description/`, `research/`, `requirements/`, `personas/`)
 - **No implementation decisions** — Present options with evidence, let the user decide
 - **Cite sources** — Every external claim must reference where it came from
 - **No code output** — Do NOT include code snippets, implementation examples, or pseudo-code in the output

@@ -75,6 +75,29 @@ Tasks with existing `research/task-N.md` files skip Research regardless of class
 
 Max 5-6 concurrent teammates.
 
+### Model Assignment
+
+Executors MUST use **opus** — they write code and make architectural decisions that require the highest capability. All other roles use **sonnet**. Do NOT use haiku for any role.
+
+| Role | Model | Rationale |
+|------|-------|-----------|
+| Researcher | sonnet | Deep codebase comprehension, architecture analysis |
+| Executor | **opus** | Code generation, multi-file changes, architectural decisions |
+| Code Reviewer | sonnet | Pattern recognition, bug detection, architecture conformance |
+| Tester | sonnet | Test authoring, failure diagnosis, regression analysis |
+
+### Permission Mode — Delegate
+
+**ALL teammates MUST be spawned with `mode: "bypassPermissions"`.**
+
+The Lead operates as a pure delegator. Teammates must be able to work autonomously without permission prompts blocking their progress. This means:
+- Executors can edit files, run builds, and execute commands without asking
+- Researchers can search, read, and explore without interruption
+- Reviewers can read and analyze code freely
+- Testers can run test suites and commands without prompts
+
+Never spawn a teammate with `mode: "default"` or `mode: "plan"` — this would break the delegation model by requiring interactive approval that the Lead cannot provide.
+
 ### 1.5 Present Cost Estimate and Get Confirmation
 
 Present to user BEFORE spawning any teammates:
@@ -103,11 +126,37 @@ Create tasks using TaskCreate. Use subject prefixes to separate role lists:
 - `[IMPL] task-N: Description` — for Standard/Trivial tasks + already-researched tasks
 - `[REVIEW]` and `[TEST]` lists start empty — populated by promotion
 
+**Every TaskCreate MUST include `activeForm`** — this is the spinner text the user sees during execution:
+
+```
+TaskCreate({
+  subject: "[IMPL] task-3: Add JWT middleware",
+  description: "Classification: Standard\nSuccess criteria: ...\nFiles: src/middleware/auth.ts\n...",
+  activeForm: "Implementing JWT middleware"
+})
+```
+
+ActiveForm conventions by role prefix:
+- `[RESEARCH]` → `"Researching {short description}"`
+- `[IMPL]` → `"Implementing {short description}"`
+- `[REVIEW]` → `"Reviewing {short description}"`
+- `[TEST]` → `"Testing {short description}"`
+
+**Task metadata** — use structured metadata for machine-readable state:
+
+```
+metadata: {
+  "classification": "full|standard|trivial",
+  "plan_task": "task-3",
+  "retry_count": 0
+}
+```
+
 Each task description must include:
 - Classification (Full/Standard/Trivial)
 - Success criteria from the plan
 - Files involved
-- Dependencies on other tasks (use addBlockedBy for ordering)
+- Dependencies on other tasks (use `addBlockedBy` for sequential ordering within the same stage)
 
 ### 1.7 Set Up Shared Directory
 
@@ -127,6 +176,10 @@ Spawn each teammate using agent definitions from `${CLAUDE_PLUGIN_ROOT}/agents/`
 
 **CRITICAL**: Teammates start with a blank context window + the agent definition prompt. Your spawn prompt is the ONLY source of plan-specific context.
 
+**CRITICAL**: Executors MUST be spawned with `model: "opus"`. All other roles (Researcher, Code Reviewer, Tester) use `model: "sonnet"`. Never use haiku for any role.
+
+**CRITICAL**: ALL teammates MUST be spawned with `mode: "bypassPermissions"` (delegate mode). Teammates need full autonomy to work without permission prompts. The Lead delegates, teammates execute independently.
+
 #### Researcher Teammate
 
 Agent: `${CLAUDE_PLUGIN_ROOT}/agents/researcher.md`
@@ -140,7 +193,13 @@ Spawn prompt:
 > - Architecture: `documentation/technology/architecture/`
 > - Domain context: `.claude/app-context-for-research.md` (if exists)
 >
-> **Your tasks:** Use TaskList to find tasks with `[RESEARCH]` in the subject. Self-claim pending ones by setting to in_progress.
+> **Task workflow:**
+> 1. Use TaskList to find tasks with `[RESEARCH]` in the subject that are pending and unblocked
+> 2. Claim by calling TaskUpdate with `status: "in_progress"` and `owner: "researcher"`
+> 3. Use TaskGet with the task ID to read the full description and metadata
+> 4. Do the research work
+> 5. Mark completed with TaskUpdate `status: "completed"`
+> 6. Check TaskList again for next available task
 >
 > **Research output:** Write per-task findings to `documentation/plans/$ARGUMENTS/research/task-{N}.md`
 >
@@ -159,9 +218,14 @@ Spawn prompt:
 > - Architecture: `documentation/technology/architecture/`
 > - Standards: `documentation/technology/standards/`
 >
-> **Your tasks:** Use TaskList to find tasks with `[IMPL]` in the subject. Self-claim pending ones by setting to in_progress.
->
-> **Per-task research:** Before implementing, check `documentation/plans/$ARGUMENTS/research/task-{N}.md` for research findings.
+> **Task workflow:**
+> 1. Use TaskList to find tasks with `[IMPL]` in the subject that are pending and unblocked
+> 2. Claim by calling TaskUpdate with `status: "in_progress"` and `owner: "executor"` (or "executor-2" for the second)
+> 3. Use TaskGet with the task ID to read the full description, success criteria, and metadata
+> 4. Check `documentation/plans/$ARGUMENTS/research/task-{N}.md` for research findings before implementing
+> 5. Implement the task
+> 6. Mark completed with TaskUpdate `status: "completed"`
+> 7. Check TaskList again for next available task
 >
 > **Shared memory:** Append integration notes to `documentation/plans/$ARGUMENTS/shared/executor.md`
 
@@ -178,10 +242,14 @@ Spawn prompt:
 > - Architecture: `documentation/technology/architecture/`
 > - Standards: `documentation/technology/standards/`
 >
-> **Your tasks:** Use TaskList to find tasks with `[REVIEW]` in the subject. Self-claim pending ones by setting to in_progress.
->
-> **On PASS:** Mark task completed with a brief review summary.
-> **On FAIL:** Mark task as failed. Include specific file:line references, the violated standard, and an actionable fix suggestion. Append findings to `documentation/plans/$ARGUMENTS/shared/reviewer.md`
+> **Task workflow:**
+> 1. Use TaskList to find tasks with `[REVIEW]` in the subject that are pending and unblocked
+> 2. Claim by calling TaskUpdate with `status: "in_progress"` and `owner: "reviewer"`
+> 3. Use TaskGet with the task ID to read the full description and success criteria
+> 4. Perform the review
+> 5. **On PASS:** Mark task completed with TaskUpdate `status: "completed"`. Include a brief review summary in a message to Lead.
+> 6. **On FAIL:** Mark task completed with TaskUpdate `status: "completed"`. Send failure details to Lead via SendMessage — include specific file:line references, the violated standard, and an actionable fix suggestion. Append findings to `documentation/plans/$ARGUMENTS/shared/reviewer.md`. The Lead will handle re-queuing.
+> 7. Check TaskList again for next available task
 >
 > **When idle:** If no [REVIEW] tasks are pending, report IDLE to Lead via SendMessage. Do NOT shut down until Lead acknowledges — more tasks may be promoted to the review list.
 
@@ -197,10 +265,14 @@ Spawn prompt:
 > - Shared: `documentation/plans/$ARGUMENTS/shared/` (read ALL files)
 > - System test instructions: `.claude/system-test.md` (if exists)
 >
-> **Your tasks:** Use TaskList to find tasks with `[TEST]` in the subject. Self-claim pending ones by setting to in_progress.
->
-> **On PASS:** Mark task completed.
-> **On FAIL:** Send failure feedback to Lead via SendMessage (which tests failed, exact errors, expected vs actual). Mark task as failed.
+> **Task workflow:**
+> 1. Use TaskList to find tasks with `[TEST]` in the subject that are pending and unblocked
+> 2. Claim by calling TaskUpdate with `status: "in_progress"` and `owner: "tester"`
+> 3. Use TaskGet with the task ID to read the full description and success criteria
+> 4. Run tests and verify success criteria
+> 5. **On PASS:** Mark task completed with TaskUpdate `status: "completed"`.
+> 6. **On FAIL:** Mark task completed with TaskUpdate `status: "completed"`. Send failure feedback to Lead via SendMessage (which tests failed, exact errors, expected vs actual). The Lead will handle re-queuing.
+> 7. Check TaskList again for next available task
 >
 > **Success criteria:** For each test task, verify the success criteria listed in the task description. Report pass/fail against each criterion.
 >
@@ -228,10 +300,23 @@ When a task completes in one stage, promote it to the next by creating a NEW tas
 | `[TEST]` PASS | Done | No further promotion |
 | `[TEST]` FAIL | Create `[IMPL]` task | Re-queue with tester feedback in description |
 
-When creating promoted tasks, include in the description:
-- Reference to the original task
-- Any feedback from the previous stage (for re-queues)
-- Updated context from shared/ files if relevant
+When creating promoted tasks:
+- **Always include `activeForm`** with the appropriate prefix ("Reviewing ...", "Testing ...", "Implementing ...")
+- **Carry forward `metadata`** from the source task (classification, plan_task). For re-queues, increment `retry_count`.
+- Include in the description:
+  - Reference to the original task
+  - Any feedback from the previous stage (for re-queues)
+  - Updated context from shared/ files if relevant
+
+Example promotion:
+```
+TaskCreate({
+  subject: "[REVIEW] task-3: JWT middleware",
+  description: "Review the JWT middleware implementation from [IMPL] task #12.\nSuccess criteria: ...",
+  activeForm: "Reviewing JWT middleware",
+  metadata: { "classification": "standard", "plan_task": "task-3", "retry_count": 0 }
+})
+```
 
 ### Monitoring Cadence
 
@@ -314,9 +399,11 @@ Note: `shared/*.md` and `research/*.md` are already on disk — no need to dupli
 
 ### Task Failure (Review or Test Fails)
 
-1. Receive failure feedback from Reviewer or Tester
-2. Check retry count for this task (track in task metadata or description)
-3. **Retries < 2:** Re-queue to `[IMPL]` with feedback appended:
+Note: There is no "failed" task status. Reviewer/Tester mark the task `completed` and send failure details to Lead via SendMessage. The Lead then decides to re-queue or escalate.
+
+1. Receive failure feedback from Reviewer or Tester (via SendMessage)
+2. Check `retry_count` in the completed task's metadata (use TaskGet)
+3. **Retries < 2:** Re-queue to `[IMPL]` with feedback appended and `retry_count` incremented:
    - Original task context
    - Specific failure feedback (file:line references)
    - Previous attempt notes

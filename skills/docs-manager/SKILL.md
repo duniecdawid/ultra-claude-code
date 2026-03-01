@@ -36,7 +36,8 @@ documentation/
 │   ├── standards/                     # Coding conventions, patterns, quality bars
 │   └── rfcs/                          # Structured reviews for ambiguous/high-risk decisions
 ├── product/
-│   ├── description/                   # Vision, discovery outputs, market research
+│   ├── description/                   # Product briefs, vision, positioning
+│   ├── research/                      # Market research, competitor analysis, technology landscape
 │   ├── requirements/                  # Formal requirements, user stories, acceptance criteria
 │   └── personas/                      # User personas (evidence-based profiles)
 ├── plans/
@@ -58,7 +59,8 @@ When any mode, agent, or user creates documentation, route it to the correct loc
 | System design, component diagrams, data flow | `technology/architecture/` | Contains: architecture, design, component, system, data flow, tech stack |
 | Coding conventions, API standards, patterns | `technology/standards/` | Contains: convention, standard, pattern, style guide, coding rules |
 | Decision reviews (problem, options, outcome) | `technology/rfcs/` | Contains: RFC, decision review, trade-off analysis, options evaluation |
-| Product vision, competitor analysis, market research | `product/description/` | Contains: vision, competitor, market, discovery, positioning |
+| Product vision, positioning, product briefs | `product/description/` | Contains: vision, positioning, product brief, description |
+| Market research, competitor analysis, technology landscape | `product/research/` | Contains: competitor, market, research, technology landscape, trends |
 | Formal requirements, user stories | `product/requirements/` | Contains: requirement, FR-, NFR-, acceptance criteria, user story, must have, should have |
 | User personas, audience profiles | `product/personas/` | Contains: persona, user profile, demographics, pain points, user archetype |
 | Plans, task lists, execution context | `plans/{name}/` | Contains: plan, task list, implementation steps |
@@ -149,6 +151,9 @@ Maintain `documentation/README.md` as a navigable index of the entire documentat
 
 ### Description
 - [Document Name](product/description/filename.md) — One-line description
+
+### Research
+- [Document Name](product/research/filename.md) — One-line description
 
 ### Requirements
 - [Document Name](product/requirements/filename.md) — One-line description

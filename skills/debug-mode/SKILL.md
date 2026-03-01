@@ -2,6 +2,14 @@
 description: Investigate bugs and plan fixes. Analyzes issues, proposes hypotheses, spawns parallel investigation with Researcher and System Tester subagents. Use when debugging, fixing bugs, or investigating issues. Triggers on "debug", "fix", "investigate", "bug", "issue".
 argument-hint: "bug description or issue"
 user-invocable: true
+allowed-tools:
+  - Read
+  - Glob
+  - Grep
+  - Agent
+  - Write
+  - Bash
+  - AskUserQuestion
 context:
   - ${CLAUDE_PLUGIN_ROOT}/skills/plan-enhancer/SKILL.md
 ---
@@ -105,34 +113,35 @@ After all agents return:
 - Include fixes for all identified causes
 - Order by impact (most severe first)
 
-### Phase 5: Fix Planning
-
-Enter plan mode by calling EnterPlanMode. Then:
+### Phase 5: Fix Planning and Approval
 
 1. **Synthesize** investigation findings into a targeted fix plan
 2. **Derive plan name** from the bug description (e.g., "fix-login-race-condition")
-3. **Define fix tasks** — each task targets a specific part of the fix:
+3. **Scaffold plan directory**: `mkdir -p documentation/plans/{name}/shared documentation/plans/{name}/research`
+4. **Define fix tasks** — each task targets a specific part of the fix:
    - Clear description of what to change and why (reference the evidence)
    - Files to modify
    - Success criteria (how to verify the fix works)
    - Regression criteria (what must NOT break)
-4. **Include verification tasks** — tasks to confirm the fix resolves the original issue
-5. **Include regression test tasks** — tasks to add tests preventing recurrence
-6. **Reference evidence** — link each fix task back to the hypothesis and evidence that supports it
-7. **Write the plan to the plan mode file** following Plan Enhancer format (plan template loaded via context)
+5. **Include verification tasks** — tasks to confirm the fix resolves the original issue
+6. **Include regression test tasks** — tasks to add tests preventing recurrence
+7. **Reference evidence** — link each fix task back to the hypothesis and evidence that supports it
+8. **Write the plan to `documentation/plans/{name}/README.md`** following Plan Enhancer format (plan template loaded via context) — the plan is on disk before the user reviews it
+9. **Present a concise summary in chat** — plan name, root cause, task count with classification breakdown, file path
+10. **Ask for approval via AskUserQuestion** — Options: "Approve" / "Reject with feedback" / "Partially reject (specify changes)"
 
-When plan is complete, call ExitPlanMode for user approval.
+If approved — inform the user: execute with `/uc:plan-execution {plan-name}`.
 
-### Phase 6: Post-Approval Persistence
+### Phase 6: Plan Review (if rejected)
 
-After the user approves the plan, **immediately persist it** (plan mode is now exited, so Write/Bash tools are available):
+If the user rejects or partially rejects the plan:
 
-1. Scaffold the plan directory: `mkdir -p documentation/plans/{name}/shared documentation/plans/{name}/research`
-2. Write the approved plan to `documentation/plans/{name}/README.md` — this is the canonical copy that `/uc:plan-execution` reads from
-3. Inform the user: plan persisted, they can execute with `/uc:plan-execution {plan-name}`
+1. Read their feedback
+2. Edit the existing `documentation/plans/{name}/README.md` to incorporate changes
+3. Re-present the concise summary with changes highlighted
+4. Re-ask for approval via AskUserQuestion
 
-**If rejected** — Revise based on feedback, re-enter plan mode.
-**If partially rejected** — Update plan, re-present for approval.
+Repeat until approved or the user abandons the plan.
 
 ## Edge Cases
 
