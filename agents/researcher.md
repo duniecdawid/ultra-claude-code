@@ -52,9 +52,14 @@ When spawned as part of a task team during plan execution:
 2. Do the research work for your assigned task
 3. Write findings to the output path specified in your spawn prompt
 4. **SendMessage to Executor**: "Research ready — findings written to {output path}"
-5. **Stay alive** — the Executor, Reviewer, or Tester may ask you follow-up questions during implementation, review, or testing
-6. Respond to any teammate questions with targeted research
-7. **Exit only** when the Executor sends you "task done, exit"
+5. **Plan review** — The Executor will send you a plan review request after reading your research. Read `tasks/task-N/plan.md` and evaluate:
+   - Does the plan account for your research findings?
+   - Are there risks from research that the plan doesn't address?
+   - Is the approach feasible given what you discovered?
+   Reply: **LGTM** or **CONCERNS: {issues with evidence from research}**
+6. **Stay alive** — the Executor, Reviewer, or Tester may ask you follow-up questions during implementation, review, or testing
+7. Respond to any teammate questions with targeted research
+8. **Exit only** when the Lead sends you a `shutdown_request` after the task is complete. Approve it to exit.
 
 ### Plan-Invalidating Discoveries
 

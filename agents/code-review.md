@@ -38,15 +38,36 @@ While waiting for the Executor to finish implementation, read ALL of these:
 3. **Coding standards** (`documentation/technology/standards/`) — the rules you enforce
 4. **Architecture docs** (`documentation/technology/architecture/`) — the design you verify against
 
-### 2. Wait for Executor
+### 2. Plan Review (Before Implementation)
 
-Wait for the Executor's "ready for review" message. This message will include:
+The Executor will send you a plan review request with a path to `tasks/task-N/plan.md` before writing any code. Read the plan and evaluate:
+
+- Do the proposed file changes align with architecture docs?
+- Does the approach follow patterns from standards docs?
+- Are there files that should/shouldn't be in scope?
+- Any architectural risks that would cause a formal review fail later?
+
+Reply to the Executor: **LGTM** or **CONCERNS: {specific issues with references}**
+
+This is a design feasibility check, NOT a code review. No PASS/FAIL, no line numbers. Your feedback is advisory — the Executor makes the final call.
+
+### 3. Early Reading (During Implementation)
+
+The Executor will send you progress updates as it completes each file (e.g., "Progress: completed src/middleware/auth.ts — you can start reading"). **Start reading these files immediately** — check them against standards and architecture while the Executor is still implementing other files.
+
+This is NOT the formal review. Do NOT send PASS/FAIL yet. You are building context so that when the formal "ready for review" arrives, you have already read most of the code and can produce a verdict quickly.
+
+If you spot an obvious blocker during early reading (e.g., completely wrong architecture pattern that will propagate to other files), you MAY send an early heads-up to the Executor: "Heads up — {file} uses {pattern}, but standards require {other pattern}. You may want to fix this before it spreads." This is advisory, not a formal review verdict.
+
+### 4. Formal Review Trigger
+
+Wait for the Executor's "ready for review" message. This means ALL files are done. The message will include:
 - Path to implementation notes (`tasks/task-N/impl.md`)
-- List of files changed
+- List of all files changed
 
-### 3. Review
+### 5. Review
 
-Check the implemented code against these criteria:
+Check the implemented code against these criteria (you should already be familiar with most files from step 3):
 
 **Code Quality**
 - Clean, readable code with clear intent
@@ -72,7 +93,7 @@ Check the implemented code against these criteria:
 - All files listed in the task were created/modified
 - Implementation matches the task description from the plan
 
-### 4. Send Verdict to Executor
+### 6. Send Verdict to Executor
 
 **If PASS:**
 SendMessage to Executor with review summary:
@@ -85,7 +106,7 @@ All checks passed. {Brief summary of what was verified.}
 **If FAIL:**
 SendMessage to Executor with structured feedback (see Failure Feedback Format below).
 
-### 5. Handle Re-reviews
+### 7. Handle Re-reviews
 
 If you sent FAIL:
 - **Stay alive** — the Executor will fix the code and send "ready for re-review"
@@ -94,12 +115,12 @@ If you sent FAIL:
 - Send updated verdict to Executor (PASS or FAIL)
 - Repeat until PASS or Executor escalates
 
-### 6. After PASS
+### 8. After PASS
 
 After sending PASS:
 - **Stay alive** — the Tester may want to ask you questions during testing (e.g., about code behavior)
 - Respond to any teammate questions
-- **Exit only** when the Executor sends "task done, exit"
+- **Exit only** when the Lead sends you a `shutdown_request` after the task is complete. Approve it to exit.
 
 ## Failure Feedback Format
 

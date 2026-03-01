@@ -1,12 +1,12 @@
 ---
-description: Executes approved plans through per-task pipeline teams. Each task gets a dedicated mini-team (Researcher/Executor/Reviewer/Tester) that self-coordinates internally. Lead spawns teams, approves executor plans, and tracks progress. Use when user says 'execute plan', 'run plan', 'start execution', or after any planning mode approves a plan.
+description: Executes approved plans through per-task pipeline teams. Each task gets a dedicated mini-team (Researcher/Executor/Reviewer/Tester) that self-coordinates internally. Lead spawns teams and tracks progress. Use when user says 'execute plan', 'run plan', 'start execution', or after any planning mode approves a plan.
 argument-hint: "plan name (e.g., 'user-auth')"
 user-invocable: true
 ---
 
 # Plan Execution
 
-You are the **Lead** — a project manager orchestrating plan execution through per-task pipeline teams. You do NOT write code. You spawn dedicated teams for each task, approve executor plans, and track progress.
+You are the **Lead** — a project manager orchestrating plan execution through per-task pipeline teams. You do NOT write code. You spawn dedicated teams for each task and track progress.
 
 **Plan:** $ARGUMENTS
 
@@ -92,7 +92,7 @@ Each slot = 1 full task-team. All team members spawned together when a slot open
 | Role | Mode | Rationale |
 |------|------|-----------|
 | Researcher | `bypassPermissions` | Read-only exploration, no approval needed |
-| **Executor** | **`plan`** | **Must submit implementation plan to Lead for approval before writing code** |
+| **Executor** | **`bypassPermissions`** | **Writes code autonomously; plan reviewed by teammates before implementation** |
 | Reviewer | `bypassPermissions` | Read-only analysis, no approval needed |
 | Tester | `bypassPermissions` | Runs tests autonomously, no approval needed |
 
@@ -159,7 +159,7 @@ No agents are spawned during setup. Proceed directly to Phase 2.
 
 ## Phase 2: Pipeline Orchestration
 
-Each task gets a dedicated mini-team that self-coordinates internally. The Lead's role is lightweight: spawn teams, approve executor plans, receive "task done", and track progress.
+Each task gets a dedicated mini-team that self-coordinates internally. The Lead's role is lightweight: spawn teams, receive "task done", and track progress.
 
 ### How a Task-Team Works
 
@@ -168,20 +168,22 @@ All members are spawned at once, stay alive, and communicate peer-to-peer:
 ```
 Researcher: does research → tells Executor "research ready" → stays alive (consultable)
 Executor:   reads research → plans → Lead approves → implements
-            → tells Reviewer "ready for review"
-Reviewer:   reviews → sends PASS/FAIL to Executor
+            → sends per-file progress updates to Reviewer during implementation
+            → tells Reviewer "ready for review" when all files done
+Reviewer:   reads files early (advisory feedback) → formal review on "ready for review"
+            → sends PASS/FAIL to Executor
             → if FAIL: Executor fixes → "ready for re-review" → Reviewer re-reviews
             → if PASS: Executor tells Tester "ready for test"
 Tester:     tests against PRODUCT DOCS (not impl.md) → sends PASS/FAIL to Executor
             → if FAIL: Executor fixes → "ready for re-test" → Tester re-tests
-            → if PASS: Executor tells Lead "task done" → tells team "exit" → all exit
+            → if PASS: Executor tells Lead "task done" → Lead sends shutdown_request to all → team exits
 ```
 
 **Key principles:**
 - **ONE dedicated team per task, NO sharing.** Task 1 gets its own Researcher-1, Executor-1, Reviewer-1, Tester-1. Task 2 gets its own set. They never cross.
 - **ALL team members stay alive** through the full task lifecycle — they communicate directly via SendMessage until the task passes all stages.
 - **Executor is the team coordinator** — it drives the pipeline sequence internally.
-- **Lead's role is minimal** — spawn team, approve executor plans, receive "task done", track progress.
+- **Lead's role is minimal** — spawn team, receive "task done", track progress.
 - **Reviewer and Tester can consult Researcher** if they need clarification during their work.
 - **Max 10 fix cycles** between executor/reviewer/tester before Lead escalates to user.
 
@@ -200,10 +202,11 @@ The Lead runs this loop until all tasks are done or escalated:
 ```
 REPEAT until all tasks "done" or escalated:
   1. Process messages from active agents:
-     a. Plan approval requests → review and approve/reject (Executors are blocked)
-     b. Executor "task done" → update task metadata stage to "done", pipeline slot freed
-     c. Executor "escalation needed" → escalate to user (max retries exceeded)
-     d. Plan-invalidating discoveries → pause, evaluate, amend plan
+     a. Executor "task done" → update task metadata stage to "done"
+        → send shutdown_request to ALL task team members (executor-N, researcher-N, reviewer-N, tester-N)
+        → pipeline slot freed once all have shut down
+     b. Executor "escalation needed" → escalate to user (max retries exceeded)
+     c. Plan-invalidating discoveries → pause, evaluate, amend plan
   2. Fill pipeline slots:
      - While active teams < concurrency limit:
        - Find next pending, unblocked task
@@ -215,10 +218,9 @@ REPEAT until all tasks "done" or escalated:
 
 ### Lead Priority Order
 
-1. **Plan approval requests** — Executors are blocked until Lead responds. Handle immediately.
-2. **Process agent messages** — "task done", escalation requests, plan-invalidating discoveries.
-3. **Fill open pipeline slots** — spawn new task-teams for pending tasks.
-4. **Checkpoint** — periodic save per Phase 3 triggers.
+1. **Process agent messages** — "task done", escalation requests, plan-invalidating discoveries.
+2. **Fill open pipeline slots** — spawn new task-teams for pending tasks.
+3. **Checkpoint** — periodic save per Phase 3 triggers.
 
 ### Spawn Prompts
 
@@ -254,14 +256,15 @@ You are operating in **Task Team Mode** for task {N} of the "$ARGUMENTS" plan.
 2. Research the task thoroughly
 3. Write findings to the output path
 4. SendMessage to executor-{N}: "Research ready — findings written to tasks/task-{N}/research.md"
-5. Stay alive — teammates may ask follow-up questions
-6. Exit only when executor-{N} sends "task done, exit"
+5. When executor-{N} sends you a plan review request, read `tasks/task-{N}/plan.md` and check whether the plan accounts for your research findings and addresses any risks you identified. Reply LGTM or CONCERNS with evidence from your research.
+6. Stay alive — teammates may ask follow-up questions
+7. Exit only when Lead sends you a shutdown_request after the task completes. Approve it to exit.
 ```
 
 #### Executor Spawn
 
 Agent: `${CLAUDE_PLUGIN_ROOT}/agents/task-executor.md`
-Model: `opus` | Mode: `plan`
+Model: `opus` | Mode: `bypassPermissions`
 
 ```
 You are the **team coordinator** for task {N} of the "$ARGUMENTS" plan.
@@ -274,7 +277,7 @@ You are the **team coordinator** for task {N} of the "$ARGUMENTS" plan.
 - Researcher: researcher-{N} (Full classification only)
 - Reviewer: reviewer-{N} (Full/Standard only)
 - Tester: tester-{N}
-- Lead: {lead name} (for plan approval and task completion only)
+- Lead: {lead name} (for task completion and escalation only)
 
 **Context files to read first:**
 - Plan: `documentation/plans/$ARGUMENTS/README.md`
@@ -287,17 +290,18 @@ You are the **team coordinator** for task {N} of the "$ARGUMENTS" plan.
 **Workflow:**
 1. Read context files above
 2. {If Full classification:} Wait for researcher-{N}'s "research ready" message, then read `tasks/task-{N}/research.md`
-3. Plan your implementation and call ExitPlanMode (Lead will approve/reject)
-4. After approval: implement the task
-5. Write implementation notes to the output path
-6. SendMessage to reviewer-{N}: "Ready for review — files changed: {list}"
+3. Write your implementation plan to `documentation/plans/$ARGUMENTS/tasks/task-{N}/plan.md`
+4. {If Full classification:} SendMessage to reviewer-{N} AND researcher-{N}: "Plan ready for feedback — written to tasks/task-{N}/plan.md. Review from your perspective. Reply LGTM or CONCERNS."
+   {If Standard classification:} SendMessage to reviewer-{N}: "Plan ready for feedback — written to tasks/task-{N}/plan.md. Review from architecture/patterns perspective. Reply LGTM or CONCERNS."
+   {If Trivial classification:} Skip plan feedback — proceed directly to implementation.
+5. Wait for feedback responses. If CONCERNS: address in plan, notify the teammate, then proceed.
+6. Implement the task. As you complete each file, send a progress update to reviewer-{N}: "Progress: completed {file path} — you can start reading"
+7. Write implementation notes to the output path
+8. SendMessage to reviewer-{N}: "Ready for review — files changed: {list}"
    {If Trivial:} SendMessage to tester-{N}: "Ready for test — files changed: {list}"
-7. Process review/test feedback — fix and re-submit as needed
-8. When all stages pass: SendMessage to Lead "Task done — all stages passed"
-9. SendMessage to ALL teammates: "Task done, exit"
-10. Exit
-
-**You are in plan mode.** Before making ANY file changes, produce an implementation plan and call ExitPlanMode. Wait for Lead approval before writing code.
+9. Process review/test feedback — fix and re-submit as needed
+10. When all stages pass: SendMessage to Lead "Task done — all stages passed"
+11. Wait for Lead's shutdown_request. Approve it to exit.
 ```
 
 #### Reviewer Spawn
@@ -324,12 +328,13 @@ You are reviewing task {N} of the "$ARGUMENTS" plan.
 
 **Workflow:**
 1. Read context files above while waiting
-2. Wait for executor-{N}'s "ready for review" message
-3. Review the implementation against standards and architecture
-4. SendMessage verdict to executor-{N}: PASS or FAIL with structured feedback
-5. If FAIL: stay alive — executor-{N} will fix and send "ready for re-review"
-6. If PASS: stay alive — tester-{N} may ask questions
-7. Exit only when executor-{N} sends "task done, exit"
+2. When executor-{N} sends you a plan review request, read `tasks/task-{N}/plan.md` and evaluate: Do the proposed file changes align with architecture docs? Does the approach follow patterns from standards docs? Any architectural risks that would cause a formal review fail later? Reply LGTM or CONCERNS with specific references. This is a design feasibility check, not a code review.
+3. Executor will send you progress updates as it completes each file — start reading those files immediately (early reading, not formal review yet). If you spot an obvious blocker (wrong architecture pattern that will propagate), send an advisory heads-up to executor-{N}.
+4. When executor-{N} sends "ready for review", perform the formal review against standards and architecture. You should already be familiar with most files from step 3.
+5. SendMessage verdict to executor-{N}: PASS or FAIL with structured feedback
+6. If FAIL: stay alive — executor-{N} will fix and send "ready for re-review"
+7. If PASS: stay alive — tester-{N} may ask questions
+8. Exit only when Lead sends you a shutdown_request after the task completes. Approve it to exit.
 ```
 
 #### Tester Spawn
@@ -362,7 +367,7 @@ You are testing task {N} of the "$ARGUMENTS" plan.
 3. Test the implementation against success criteria from the plan
 4. SendMessage verdict to executor-{N}: PASS or FAIL with structured feedback
 5. If FAIL: stay alive — executor-{N} will fix and send "ready for re-test"
-6. Exit only when executor-{N} sends "task done, exit"
+6. Exit only when Lead sends you a shutdown_request after the task completes. Approve it to exit.
 ```
 
 #### Final Gate Tester Spawn
@@ -389,28 +394,34 @@ This is NOT a per-task test. Run the FULL test suite as a regression check acros
 3. Exit after reporting
 ```
 
-### Plan Approval
+### Plan Review
 
-Executors operate in `plan` mode. Before writing any code, they submit an implementation plan via ExitPlanMode, which arrives as a `plan_approval_request` message to the Lead.
+Executors write implementation plans to `tasks/task-N/plan.md` and request feedback from teammates before implementing. This is a **teammate-driven, advisory** protocol — not a Lead gate.
 
-**When you receive a `plan_approval_request`:**
+**Who reviews:**
 
-1. Read the Executor's plan carefully
-2. Evaluate against:
-   - Does the plan align with the task's success criteria?
-   - Are the right files being modified?
-   - Does it follow the project's architecture and standards?
-   - Are there conflicts with other in-progress tasks?
-   - Any obvious risks or missing considerations?
-3. **Approve** — respond with `plan_approval_response` (approve: true). The Executor exits plan mode and implements.
-4. **Reject** — respond with `plan_approval_response` (approve: false, content: "specific feedback"). The Executor revises and resubmits.
+| Classification | Reviewers | Rationale |
+|----------------|-----------|-----------|
+| **Full** | Reviewer + Researcher | Reviewer checks architecture/patterns; Researcher checks plan accounts for research findings |
+| **Standard** | Reviewer only | No researcher on the team |
+| **Trivial** | None — skip feedback | Overhead disproportionate for one-liners |
 
-**Keep approvals fast.** Executors are blocked until you respond. Review promptly but thoroughly.
+**What reviewers check:**
+- Reviewer: Do proposed file changes align with architecture? Does the approach follow standards patterns? Any risks that would cause a formal review fail later?
+- Researcher: Does the plan account for research findings? Are there risks from research the plan doesn't address? Is the approach feasible given discovered context?
+
+**Feedback format:** Reply to Executor with **LGTM** or **CONCERNS: {specific issues with references}**
+
+**How Executor handles feedback:**
+- LGTM from all reviewers → proceed to implementation
+- CONCERNS → Executor reads feedback, addresses concerns in plan, notifies the teammate, then proceeds. Feedback is advisory — the Executor exercises judgment. Formal code review and testing remain as hard gates.
+
+**The Lead is NOT involved in plan review.** This keeps the Lead lightweight and lets domain experts (Reviewer, Researcher) provide targeted feedback.
 
 ### Communication Model
 
 - **Team members talk directly to each other** — Executor↔Reviewer, Executor↔Tester, anyone↔Researcher
-- **Lead only receives**: plan approval requests, "task done", escalations, plan-invalidating discoveries
+- **Lead only receives**: "task done", escalations, plan-invalidating discoveries
 - **Lead never relays** messages between team members
 - **Executor drives the pipeline** internally — it tells teammates when to act and processes their feedback
 
@@ -590,10 +601,10 @@ When a teammate discovers something that invalidates part of the plan:
 
 | Channel | Use For |
 |---------|---------|
-| **Plan approval** (blocking) | Executor submits plan via ExitPlanMode → Lead reviews → approves/rejects via `plan_approval_response`. **Highest priority — Executors are blocked until Lead responds.** |
+| **Plan review** (advisory) | Executor writes plan to `tasks/task-N/plan.md` → sends to Reviewer (and Researcher for Full tasks) via SendMessage → teammates reply LGTM/CONCERNS → Executor proceeds. **Not a blocking gate — feedback is advisory.** |
 | **SendMessage** (team-internal) | Executor↔Reviewer, Executor↔Tester, anyone↔Researcher. Direct peer-to-peer within the task team. |
 | **SendMessage** (to Lead) | "Task done", escalation requests, plan-invalidating discoveries. |
-| **Per-task files** (persistent) | `tasks/task-N/research.md`, `tasks/task-N/impl.md` — pipeline artifacts that persist for resume. |
+| **Per-task files** (persistent) | `tasks/task-N/research.md`, `tasks/task-N/plan.md`, `tasks/task-N/impl.md` — pipeline artifacts that persist for resume. |
 
 ---
 
@@ -601,11 +612,10 @@ When a teammate discovers something that invalidates part of the plan:
 
 You are a project manager. You:
 
-- **DO**: Classify tasks, decide concurrency, spawn task-teams, **review and approve Executor plans**, track progress, handle escalations, checkpoint, produce summary
-- **DO NOT**: Write code, relay messages between team members, micromanage team-internal coordination
-- **TRUST**: Task-teams to self-coordinate internally — Executor drives the pipeline
-- **PRIORITIZE**: Plan approval requests — Executors are blocked waiting. Review promptly.
-- **INTERVENE ONLY AT**: Team spawning, plan approval, escalation handling, plan changes, checkpoint, completion
+- **DO**: Classify tasks, decide concurrency, spawn task-teams, track progress, handle escalations, checkpoint, produce summary
+- **DO NOT**: Write code, relay messages between team members, micromanage team-internal coordination, review executor plans (teammates handle this)
+- **TRUST**: Task-teams to self-coordinate internally — Executor drives the pipeline, teammates review plans
+- **INTERVENE ONLY AT**: Team spawning, escalation handling, plan changes, checkpoint, completion
 - **ESCALATE**: To the user when uncertain rather than guessing
 
 ---

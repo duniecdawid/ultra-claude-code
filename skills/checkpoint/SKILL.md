@@ -37,7 +37,7 @@ Collect from the current session:
 
 **Task Pipeline States:**
 - Read TaskList to get all tasks
-- Record each task's pipeline stage from metadata: pending, active (research/impl/review/test), done
+- Record each task's pipeline stage from metadata: pending, research, impl, review, test, done
 - Record retry count for tasks that have been through fix cycles
 
 **Active Pipeline Teams:**
@@ -72,7 +72,7 @@ Write to `documentation/plans/{plan-name}/checkpoint-{YYYY-MM-DD-HHmm}.md`:
 | Task | Classification | Active Team Members | Notes |
 |------|---------------|---------------------|-------|
 | task-1 | full | R-1, E-1, Rev-1, T-1 | Reviewer active |
-| task-2 | standard | E-2, Rev-2, T-2 | Awaiting plan approval |
+| task-2 | standard | E-2, Rev-2, T-2 | Awaiting plan feedback |
 
 ## Task Pipeline Status
 
