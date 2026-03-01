@@ -2,6 +2,8 @@
 
 A Claude Code plugin that implements a spec-driven development platform. Documentation governs code growth. Agent teams coordinate execution.
 
+[**System Overview (interactive)**](https://duniecdawid.github.io/ultra-claude-code/assets/system-overview.html)
+
 ## What This Is
 
 Ultra Claude is a portable, reusable Claude Code plugin that turns any project into a structured, specification-driven development environment. You install it, it establishes a documentation layer, and from that point forward — documentation controls how the codebase grows.
