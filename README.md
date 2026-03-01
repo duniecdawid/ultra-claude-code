@@ -21,9 +21,23 @@ It is NOT a framework, library, or runtime. It is a collection of **skills**, **
 - **Governance, not bureaucracy.** Documentation acts like zoning laws — you build freely within the constraints, but the constraints control direction. Three enforcement levels: soft (CLAUDE.md), medium (skills), hard (hooks).
 - **Not every change needs the same scrutiny.** Additive changes flow freely. Compatible changes get lightweight review. Breaking changes require updating the architecture doc first.
 
-## Quick Start
+## Installation
 
-> **TODO**: Installation and first-use instructions will be added when the plugin implementation begins.
+```bash
+# Add the marketplace
+/plugin marketplace add duniecdawid/ultra-claude-code
+
+# Install the plugin
+/plugin install uc@ultra-claude
+```
+
+After installing, run the init script in your target project to scaffold the documentation layer:
+
+```bash
+bash ~/.claude/plugins/uc/scripts/init-docs.sh
+```
+
+Then use `/uc:help` to see all available commands.
 
 ## Plugin Directory Structure
 
