@@ -4,8 +4,8 @@ description: Ultra Claude system guide. Advises which skills, agents, and workfl
 user-invocable: true
 argument-hint: "question about Ultra Claude (optional)"
 context:
-  - ${CLAUDE_PLUGIN_ROOT}/docs/components.md
-  - ${CLAUDE_PLUGIN_ROOT}/docs/workflows.md
+  - ${CLAUDE_PLUGIN_ROOT}/docs/components.html
+  - ${CLAUDE_PLUGIN_ROOT}/docs/workflows.html
 ---
 
 # Help
@@ -124,4 +124,4 @@ Would you like me to help you write the SKILL.md?
 - Do NOT modify system files when answering help questions
 - Do NOT execute workflows — only recommend them
 - If unsure about a user's goal, ask clarifying questions before recommending
-- Always reference the loaded docs/components.md and docs/workflows.md for accurate component information
+- Always reference the loaded docs/components.html and docs/workflows.html for accurate component information
