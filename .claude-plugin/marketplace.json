@@ -1,0 +1,14 @@
+{
+  "name": "ultra-claude",
+  "owner": {
+    "name": "Dawid Duniec"
+  },
+  "plugins": [
+    {
+      "name": "uc",
+      "source": ".",
+      "description": "Specification-driven development platform for Claude Code",
+      "version": "0.1.0"
+    }
+  ]
+}
