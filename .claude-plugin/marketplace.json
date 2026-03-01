@@ -1,14 +1,17 @@
 {
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "ultra-claude",
+  "description": "Specification-driven development platform for Claude Code",
   "owner": {
     "name": "Dawid Duniec"
   },
   "plugins": [
     {
       "name": "uc",
-      "source": ".",
+      "source": "./",
       "description": "Specification-driven development platform for Claude Code",
-      "version": "0.1.0"
+      "version": "0.1.0",
+      "category": "development"
     }
   ]
 }
