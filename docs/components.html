@@ -322,7 +322,7 @@ documentation, and external sources as directed by your spawn prompt.
 <tr><td><code>.claude/environments-info</code></td><td>How to access dev/staging/prod environments</td><td>Project</td></tr>
 <tr><td><code>.claude/app-context-for-research.md</code></td><td>Domain context for researcher agents</td><td>Project</td></tr>
 <tr><td><code>.claude/system-test.md</code></td><td>Instructions for system tester agent</td><td>Project</td></tr>
-<tr><td><code>documentation/plans/{name}/shared/</code></td><td>Per-role shared memory directory. Each role writes only to their own file (<code>researcher.md</code>, <code>executor.md</code>, <code>reviewer.md</code>, <code>tester.md</code>, <code>lead.md</code>). All teammates read all files before each task claim.</td><td>Plan</td></tr>
+<tr><td><code>documentation/plans/{name}/shared/</code></td><td>Lead-level shared notes directory. Contains <code>lead.md</code> with plan overview, concurrency decisions, architectural constraints, and key decisions made during execution.</td><td>Plan</td></tr>
 <tr><td><code>documentation/plans/{name}/checkpoint-{timestamp}.md</code></td><td>Session state snapshot for recovery</td><td>Plan</td></tr>
 </tbody>
 </table>

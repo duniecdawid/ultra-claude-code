@@ -28,7 +28,7 @@ Tasks that must complete before this one:
 
 > For Full-classification tasks. Link to research file when available.
 
-Research file: `plans/{plan-name}/research/task-N.md`
+Research file: `plans/{plan-name}/tasks/task-N/research.md`
 
 ## Review Notes
 

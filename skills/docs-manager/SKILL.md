@@ -43,8 +43,8 @@ documentation/
 ├── plans/
 │   └── {plan-name}/
 │       ├── README.md                  # Plan document (task list embedded)
-│       ├── shared/                    # Per-role shared memory (execution)
-│       └── research/                  # Per-task research files
+│       ├── shared/                    # Lead-level shared notes (execution)
+│       └── tasks/                     # Per-task pipeline artifacts (execution)
 └── dependencies/                      # Blocking questions, external dependencies
 ```
 

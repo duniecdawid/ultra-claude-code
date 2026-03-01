@@ -42,11 +42,11 @@ When a plan is created, scaffold this structure:
 ```
 documentation/plans/{plan-name}/
 ├── README.md          # The plan document (task list embedded)
-├── shared/            # Per-role shared memory (created empty, used during execution)
-└── research/          # Per-task research files (created empty, used during execution)
+├── shared/            # Lead-level shared notes (created empty, used during execution)
+└── tasks/             # Per-task pipeline artifacts (created empty, used during execution)
 ```
 
-Create the directories immediately. The `shared/` and `research/` directories start empty — they are populated during execution.
+Create the directories immediately. The `shared/` and `tasks/` directories start empty — they are populated during execution.
 
 ## Plan Naming
 
@@ -59,13 +59,13 @@ If the user provides `$ARGUMENTS`, use it to derive the plan name.
 
 ## Task Classification
 
-Classify every task before adding it to the plan. Classification determines which stages of the execution pipeline the task flows through:
+Classify every task before adding it to the plan. Classification determines which team members are spawned for the task during execution:
 
-| Classification | Criteria | Pipeline Stages |
-|----------------|----------|-----------------|
-| **Full** | Multi-file changes, architectural impact, complex logic, unclear implementation path | Research -> Implementation -> Review -> Test |
-| **Standard** | Single-component, clear requirements, well-understood pattern | Implementation -> Review -> Test |
-| **Trivial** | Config change, rename, one-liner, simple flag toggle | Implementation -> Test |
+| Classification | Criteria | Pipeline Team |
+|----------------|----------|---------------|
+| **Full** | Multi-file changes, architectural impact, complex logic, unclear implementation path | Researcher + Executor + Reviewer + Tester |
+| **Standard** | Single-component, clear requirements, well-understood pattern | Executor + Reviewer + Tester |
+| **Trivial** | Config change, rename, one-liner, simple flag toggle | Executor + Tester |
 
 ### Classification Guidelines
 
@@ -124,7 +124,7 @@ Use the loaded plan template (`templates/plan.md`) as the base structure. The pl
 2. **Check for existing plan** — if `documentation/plans/{name}/` exists, read it for revision context
 3. **Scaffold plan directory**:
    ```bash
-   mkdir -p documentation/plans/{name}/shared documentation/plans/{name}/research
+   mkdir -p documentation/plans/{name}/shared documentation/plans/{name}/tasks
    ```
 4. **Build the plan** — the planning mode provides the content; you ensure format compliance. Use the loaded plan template including the `Execute: /uc:plan-execution {name}` header.
 5. **Classify all tasks** — apply classification rules to every task in the list
@@ -150,7 +150,7 @@ If the plan directory already exists (revision or re-planning):
 - Read the existing `README.md` to understand current state
 - Check for checkpoint files — if they exist, this plan has been partially executed
 - Warn the user if modifying a plan that has execution history
-- Preserve `shared/` and `research/` contents — they contain teammate work
+- Preserve `shared/` and `tasks/` contents — they contain teammate work
 
 ## Constraints
 
@@ -170,7 +170,7 @@ If the plan directory already exists (revision or re-planning):
 documentation/plans/user-auth/
 ├── README.md
 ├── shared/
-└── research/
+└── tasks/
 ```
 
 **README.md includes tasks like:**

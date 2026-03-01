@@ -1,5 +1,5 @@
 ---
-description: Save execution state for session recovery. Captures all 4 task list states, active teammate assignments, decisions, and blockers to plan directory. Use when context is long, stopping mid-execution, or as periodic progress save.
+description: Save execution state for session recovery. Captures per-task pipeline stages, active team assignments, decisions, and blockers to plan directory. Use when context is long, stopping mid-execution, or as periodic progress save.
 user-invocable: true
 argument-hint: "plan name (optional — auto-detected from active execution)"
 allowed-tools:
@@ -19,7 +19,6 @@ Save current execution state to a checkpoint file so the session can be recovere
 - **On user request** — `/uc:checkpoint` or `/uc:checkpoint {plan-name}`
 - **Before stopping** — the Stop hook also triggers this, but manual save is safer
 - **Before risky changes** — save state before attempting something uncertain
-- **On teammate idle** — when a teammate's task list empties
 
 ## Process
 
@@ -36,21 +35,20 @@ If `$ARGUMENTS` provides a plan name, use it. Otherwise:
 
 Collect from the current session:
 
-**Task List States (all 4 role-separated lists):**
-- Read TaskList to get all tasks across all 4 lists
-- Record status of each: pending, in_progress, completed, failed
-- Record owner (which teammate) for in_progress tasks
-- Record retry count for failed tasks
+**Task Pipeline States:**
+- Read TaskList to get all tasks
+- Record each task's pipeline stage from metadata: pending, active (research/impl/review/test), done
+- Record retry count for tasks that have been through fix cycles
 
-**Active Teammates:**
-- Which teammates are currently spawned (by role)
-- What each is working on (current in_progress task)
-- Model and configuration used
+**Active Pipeline Teams:**
+- Which task-teams are currently running
+- Which team members are spawned for each task (by role and name)
+- What pipeline stage each team is in (research, impl, review, test)
 
 **Execution Decisions:**
 - Decisions made by Lead during this session
 - Plan amendments (if any tasks were modified mid-execution)
-- Re-queued tasks with failure context
+- Escalations and their outcomes
 
 **Blockers:**
 - Tasks that are blocked and why
@@ -61,7 +59,7 @@ Collect from the current session:
 
 ### Step 3: Write Checkpoint File
 
-Write to `documentation/plans/{plan-name}/checkpoint-{YYYY-MM-DD-HHMMSS}.md`:
+Write to `documentation/plans/{plan-name}/checkpoint-{YYYY-MM-DD-HHmm}.md`:
 
 ```markdown
 # Checkpoint: {plan-name}
@@ -69,44 +67,25 @@ Write to `documentation/plans/{plan-name}/checkpoint-{YYYY-MM-DD-HHMMSS}.md`:
 **Saved:** {ISO timestamp}
 **Session:** {brief description of what this session accomplished}
 
-## Team Composition
+## Active Pipeline Teams
 
-| Role | Model | Status |
-|------|-------|--------|
-| Researcher | sonnet | {active/idle/not-spawned} |
-| Executor 1 | opus | {active/idle/not-spawned} |
-| Executor 2 | opus | {active/idle/not-spawned} |
-| Code Reviewer | sonnet | {active/idle/not-spawned} |
-| Tester | sonnet | {active/idle/not-spawned} |
+| Task | Classification | Active Team Members | Notes |
+|------|---------------|---------------------|-------|
+| task-1 | full | R-1, E-1, Rev-1, T-1 | Reviewer active |
+| task-2 | standard | E-2, Rev-2, T-2 | Awaiting plan approval |
 
-## Task Lists
+## Task Pipeline Status
 
-### Research Tasks
-| # | Task | Status | Owner | Notes |
-|---|------|--------|-------|-------|
-| 1 | {title} | {pending/in_progress/completed} | {teammate or —} | {notes} |
-
-### Implementation Tasks
-| # | Task | Status | Owner | Retries | Notes |
-|---|------|--------|-------|---------|-------|
-| 1 | {title} | {pending/in_progress/completed/failed} | {teammate or —} | {0-2} | {notes} |
-
-### Review Tasks
-| # | Task | Status | Owner | Result | Notes |
-|---|------|--------|-------|--------|-------|
-| 1 | {title} | {pending/in_progress/completed} | {reviewer or —} | {PASS/FAIL/—} | {notes} |
-
-### Testing Tasks
-| # | Task | Status | Owner | Result | Notes |
-|---|------|--------|-------|--------|-------|
-| 1 | {title} | {pending/in_progress/completed} | {tester or —} | {PASS/FAIL/—} | {notes} |
+| # | Task | Stage | Retry | Notes |
+|---|------|-------|-------|-------|
+| 1 | {title} | {pending/research/impl/review/test/done} | {0-10} | {notes} |
+| 2 | {title} | {pending/research/impl/review/test/done} | {0-10} | {notes} |
 
 ## Progress Summary
 
-- **Research:** {N}/{total} complete
-- **Implementation:** {N}/{total} complete
-- **Review:** {N}/{total} complete ({M} passed, {K} failed)
-- **Testing:** {N}/{total} complete ({M} passed, {K} failed)
+- **Done:** {N}/{total} tasks
+- **In pipeline:** {M} tasks (research: {A}, impl: {B}, review: {C}, test: {D})
+- **Pending:** {K} tasks
 
 ## Decisions Made This Session
 
@@ -135,7 +114,7 @@ After writing the checkpoint:
 Checkpoint saved to:
   documentation/plans/{plan-name}/checkpoint-{timestamp}.md
 
-Progress: {N}/{total} tasks complete across all stages.
+Progress: {N}/{total} tasks complete. {M} in pipeline.
 
 To resume later:
   /uc:plan-execution {plan-name}
@@ -148,16 +127,23 @@ To resume later:
 |---------|--------------|----------|
 | User `/uc:checkpoint` | User | Full checkpoint with confirmation |
 | Every 3 completed tasks | Lead (automatic) | Lightweight checkpoint, no user prompt |
-| Teammate idle | Lead (automatic) | Checkpoint when a role's list empties |
 | Stop hook | System | Emergency checkpoint before session end |
+| Before plan amendments | Lead (automatic) | Save state before risky changes |
 
 ## Resume Compatibility
 
 The checkpoint format is designed to be parseable by the Lead on resume. Critical fields:
-- **Task Lists** — Lead rebuilds TaskCreate/TaskUpdate from these tables
-- **Team Composition** — Lead knows which teammates to re-spawn
+- **Task Pipeline Status** — Lead reconstructs task state from stage + per-task files on disk
+- **Active Pipeline Teams** — Lead knows which task-teams to re-spawn (and which roles within each)
 - **Progress Summary** — Lead skips completed work
 - **Next Steps** — Lead prioritizes what to do first
+
+On resume, the Lead:
+1. Reads the latest checkpoint
+2. Reads `shared/lead.md` for accumulated decisions
+3. Reads `tasks/*/` files for per-task pipeline artifacts
+4. Rebuilds task list from checkpoint data
+5. Re-spawns teams for incomplete tasks using existing per-task files as context
 
 ## Constraints
 
