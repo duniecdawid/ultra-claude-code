@@ -112,9 +112,52 @@ The plan includes these task groups, in order:
 - Create `context/` directory if missing
 - Only create what doesn't already exist — never overwrite
 
-#### Group 2 — Configure `.claude/` files
+#### Group 2 — Configure project CLAUDE.md and `.claude/` files
 
-For each config file:
+**`CLAUDE.md`** (project root) — append an Ultra Claude section if not already present:
+
+If the project has no `CLAUDE.md`, create one. If it already exists, append the Ultra Claude section at the end. Never overwrite existing project-specific content.
+
+The section to add:
+
+```markdown
+## Ultra Claude
+
+This project uses [Ultra Claude](https://github.com/duniecdawid/ultra-claude-code), a Claude Code plugin for spec-driven development.
+
+### Conventions
+
+- **Documentation governs code.** Architecture docs are the source of truth. When code diverges from specs, update the spec first.
+- **Canonical documentation** lives in `documentation/` — do not create docs outside this structure.
+- **Plans** are stored in `documentation/plans/{name}/` with embedded task lists.
+- **External system context** (API docs, SDK references) goes in `context/`.
+- **Project configuration** for Claude is in `.claude/` (app-context, system-test, environments-info).
+
+### Key Commands
+
+| Command | Purpose |
+|---------|---------|
+| `/uc:help` | Guide to all skills and workflows |
+| `/uc:feature-mode` | Plan new features with architecture context |
+| `/uc:debug-mode` | Investigate bugs with parallel research |
+| `/uc:doc-code-verification-mode` | Verify documentation matches code |
+| `/uc:discovery-mode` | Product research and requirements |
+| `/uc:plan-execution` | Execute approved plans with agent teams |
+| `/uc:tech-research` | Research external library docs via Ref.tools |
+
+### Workflow
+
+1. **Plan first** — Use feature-mode or debug-mode before writing code
+2. **Spec-first for breaking changes** — Update architecture docs before modifying code
+3. **Verify after changes** — Run doc-code-verification to catch drift
+```
+
+Adapt the section content based on survey findings:
+- If the project has specific technologies, mention relevant tech-research triggers
+- If external integrations were found, mention the context/ directory for those specific systems
+- Keep the core structure above, but tailor examples to the project
+
+For each `.claude/` config file:
 
 **`.claude/app-context-for-research.md`** — derived from Code Surveyor findings:
 - Project Overview (name, purpose, primary language)
@@ -159,7 +202,7 @@ For **greenfield** (no existing docs):
 - Draft any other documentation that can be reasonably derived from the survey
 
 For **migration** (existing docs in non-standard locations):
-- Present a mapping table: current location → target location → action (copy)
+- Present a mapping table: current location → target location → action (move)
 - Use the Docs Manager routing rules for classification:
   - Architecture, design, component, system, data flow → `technology/architecture/`
   - Convention, standard, pattern, style guide → `technology/standards/`
@@ -169,7 +212,8 @@ For **migration** (existing docs in non-standard locations):
   - External API docs, integration guides → `context/{system}/docs/`
   - Blocker, dependency, open question → `dependencies/`
 - Flag ambiguous docs with the user's answers from Phase 1c
-- Preserve originals — copy, don't delete source files
+- Move files to canonical locations (delete originals after successful move)
+- Clean up empty directories left behind after moves
 
 For **mixed** (some canonical, some not):
 - Apply both greenfield (for gaps) and migration (for misplaced docs) as appropriate
@@ -194,7 +238,8 @@ The agent executes:
 - Create directories
 - Write config files
 - Copy templates as placeholders
-- Copy documentation to canonical locations (preserving originals)
+- Move documentation to canonical locations (delete originals after successful move)
+- Clean up empty directories left behind after moves
 - Generate/update documentation index
 
 For very large projects (many files to move, 4+ task groups with significant work), spawn multiple Task Executor agents in parallel — one per task group.
@@ -208,9 +253,9 @@ After agent(s) complete, verify results and report.
 End with a concise report:
 
 - **Scaffolded**: directories created/verified
-- **Configured**: which `.claude/` files were populated (and which skipped)
+- **Configured**: CLAUDE.md updated with Ultra Claude section, which `.claude/` files were populated (and which skipped)
 - **Documented**: architecture/docs bootstrapped or migrated
-- **Migrated**: files copied to canonical locations, originals preserved at [paths] (if applicable)
+- **Migrated**: files moved to canonical locations (originals removed)
 - **Gaps remaining**: canonical sections still using placeholders
 - **Next steps**:
   - `/uc:doc-code-verification-mode` — verify and improve documentation against actual code (recommended first)
@@ -224,7 +269,7 @@ End with a concise report:
 
 - Do NOT modify existing source code
 - Do NOT overwrite existing `.claude/` config files without user approval in the plan
-- Migration preserves originals (copy, don't delete source files)
-- Do NOT create files outside `documentation/`, `context/`, and `.claude/`
+- Migration moves files (delete originals after successful move, clean up empty directories)
+- Do NOT create files outside `CLAUDE.md`, `documentation/`, `context/`, and `.claude/`
 - Ask questions in Phase 1 for anything ambiguous — don't guess
 - Always enter plan mode so the user reviews everything before files are created or moved

@@ -1,5 +1,5 @@
 ---
-name: Doc & Code Verification Mode
+name: Doc Code Verification Mode
 description: Find and plan fixes for discrepancies between documentation and code. Spawns surveyor and checker subagents to compare doc claims against code reality. Supports scoped verification. Use when verifying docs, checking doc-code gaps, syncing documentation. Triggers on "verify docs", "check doc-code gaps", "sync docs", "doc verification".
 argument-hint: "scope (optional — specific directory or 'all')"
 user-invocable: true
