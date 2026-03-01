@@ -211,7 +211,6 @@
   <a class="logo" href="index.html">Ultra Claude</a>
   <div class="links">
     <a href="index.html">Home</a>
-    <a href="installation.html">Installation</a>
     <a href="getting-started.html" class="active">Getting Started</a>
     <a href="system-overview.html">Documentation</a>
   </div>
@@ -220,13 +219,29 @@
 <div class="page">
 
   <h1>Getting Started</h1>
-  <p class="subtitle">Five phases from install to ongoing development.</p>
+  <p class="subtitle">Six phases from install to ongoing development.</p>
 
   <!-- Phase 1 -->
   <div class="phase">
     <div class="phase-number">1</div>
-    <h2>Install &amp; Initialize</h2>
-    <p>Install the plugin (<a href="installation.html">installation instructions</a>), then run the initialization skill in your project directory:</p>
+    <h2>Install the Plugin</h2>
+    <p>In any Claude Code session, run these two commands:</p>
+    <pre><code><span class="comment"># Add the marketplace</span>
+/plugin marketplace add duniecdawid/ultra-claude-code
+
+<span class="comment"># Install the plugin</span>
+/plugin install uc@ultra-claude</code></pre>
+    <p>This registers the marketplace and installs Ultra Claude as a plugin. All skills become available as <code>/uc:*</code> slash commands.</p>
+    <div class="info-box">
+      <p><strong>Auto-updates:</strong> Enable automatic updates so the plugin stays current: <code>/plugin marketplace auto-update duniecdawid/ultra-claude-code</code></p>
+    </div>
+  </div>
+
+  <!-- Phase 2 -->
+  <div class="phase">
+    <div class="phase-number">2</div>
+    <h2>Initialize Your Project</h2>
+    <p>Navigate to your target project and run the initialization skill:</p>
     <ul>
       <li><code>/uc:init-project</code> &mdash; scaffolds <code>documentation/</code>, spawns surveyors to explore your codebase, derives <code>.claude/</code> config files from findings, and drafts initial architecture docs</li>
       <li>Review and approve the derived configs and docs it presents</li>
@@ -236,9 +251,9 @@
     </div>
   </div>
 
-  <!-- Phase 2 -->
+  <!-- Phase 3 -->
   <div class="phase">
-    <div class="phase-number">2</div>
+    <div class="phase-number">3</div>
     <h2>Build Your Documentation Foundation</h2>
     <p>The init skill drafts architecture and requirements docs from your codebase. Review and refine them &mdash; these become the source of truth that governs code growth.</p>
 
@@ -257,9 +272,9 @@
     </div>
   </div>
 
-  <!-- Phase 3 -->
+  <!-- Phase 4 -->
   <div class="phase">
-    <div class="phase-number">3</div>
+    <div class="phase-number">4</div>
     <h2>Plan Your First Feature</h2>
     <p>Run <code>/uc:feature-mode add user authentication</code> (replace with your feature). Feature mode acts as a senior tech lead &mdash; it challenges your scope, researches your codebase, and produces a structured plan before any code is written.</p>
 
@@ -285,9 +300,9 @@
     <p>Review and approve the plan, then execute it in Phase 4.</p>
   </div>
 
-  <!-- Phase 4 -->
+  <!-- Phase 5 -->
   <div class="phase">
-    <div class="phase-number">4</div>
+    <div class="phase-number">5</div>
     <h2>Execute</h2>
     <ul>
       <li><code>/uc:plan-execution {plan-name}</code> runs the approved plan with dynamically composed <a href="system-overview.html#execution">agent teams</a> &mdash; the plan name matches the directory created in <code>documentation/plans/</code></li>
@@ -296,9 +311,9 @@
     </ul>
   </div>
 
-  <!-- Phase 5 -->
+  <!-- Phase 6 -->
   <div class="phase">
-    <div class="phase-number">5</div>
+    <div class="phase-number">6</div>
     <h2>Ongoing Development</h2>
     <ul>
       <li><code>/uc:debug-mode</code> &mdash; investigate and fix bugs with parallel hypothesis testing</li>
