@@ -295,6 +295,7 @@ You are the **team coordinator** for task {N} of the "$ARGUMENTS" plan.
    {If Standard classification:} SendMessage to reviewer-{N}: "Plan ready for feedback — written to tasks/task-{N}/plan.md. Review from architecture/patterns perspective. Reply LGTM or CONCERNS."
    {If Trivial classification:} Skip plan feedback — proceed directly to implementation.
 5. Wait for feedback responses. If CONCERNS: address in plan, notify the teammate, then proceed.
+5.5 {If Full classification:} Before implementing, check if you have outstanding unknowns that qualify as research (see your agent instructions step 3.5). If so, delegate to researcher-{N} via SendMessage and begin implementing non-dependent parts while they research.
 6. Implement the task. As you complete each file, send a progress update to reviewer-{N}: "Progress: completed {file path} — you can start reading"
 7. Write implementation notes to the output path
 8. SendMessage to reviewer-{N}: "Ready for review — files changed: {list}"

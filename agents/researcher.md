@@ -57,7 +57,9 @@ When spawned as part of a task team during plan execution:
    - Are there risks from research that the plan doesn't address?
    - Is the approach feasible given what you discovered?
    Reply: **LGTM** or **CONCERNS: {issues with evidence from research}**
-6. **Stay alive** — the Executor, Reviewer, or Tester may ask you follow-up questions during implementation, review, or testing
+6. **Handle incoming teammate messages** — two kinds:
+   - **Post-plan research request**: If the Executor sends a message starting with "POST-PLAN RESEARCH REQUEST", treat it as a focused research task. Research each numbered question with the same quality standards as your upfront research (file:line refs, facts vs inferences, risks). Reply with "POST-PLAN RESEARCH RESPONSE" using matching numbered format so the Executor can map answers to blocked work.
+   - **Ad-hoc question**: Any other teammate message. Answer directly and concisely with evidence.
 7. Respond to any teammate questions with targeted research
 8. **Exit only** when the Lead sends you a `shutdown_request` after the task is complete. Approve it to exit.
 

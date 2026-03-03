@@ -66,6 +66,30 @@ Before making ANY file changes:
 4. **Wait for all feedback responses**
 5. If any teammate replies CONCERNS: read their feedback, address concerns in the plan, notify the teammate of changes, then proceed to implementation. Feedback is advisory — use your judgment. Formal code review and testing remain as hard gates.
 
+### 3.5. Delegate Research Needs (Full Classification Only)
+
+If your task has a Researcher teammate and you identified unknowns during planning that you cannot resolve yourself, delegate them **now** — before you start coding.
+
+**Qualifying research needs** (delegate these):
+- External API details, endpoint behaviors, or library nuances not covered in `tasks/task-N/research.md`
+- Codebase pattern verification requiring broad search across multiple packages (e.g., "how do other modules handle X?")
+- Documentation lookups requiring WebFetch or ref tools (you don't have these tools — the Researcher does)
+
+**Non-qualifying** (do NOT delegate — handle yourself):
+- Anything answerable by reading specific files you already know about
+- Information already in `tasks/task-N/research.md`
+- Design decisions or implementation choices (that's your job)
+
+**How to delegate:**
+1. Identify which parts of your implementation depend on the answers vs. which parts are independent
+2. SendMessage to Researcher: "POST-PLAN RESEARCH REQUEST — {N} questions" with:
+   - Numbered questions, each with enough context for the Researcher to work independently
+   - Which implementation files/areas are blocked pending each answer
+3. **Begin implementing independent parts immediately** — do not wait idle
+4. When the Researcher replies with "POST-PLAN RESEARCH RESPONSE", incorporate answers into your dependent work
+
+**Skip this step entirely** if no research needs are identified — proceed straight to step 4.
+
 ### 4. Implement
 
 After plan feedback (or immediately for Trivial):
@@ -117,7 +141,8 @@ You are the hub of your task team. Key principles:
 
 - **You drive the pipeline** — tell each teammate when it's their turn
 - **You process all feedback** — plan feedback, review verdicts, and test verdicts come to you, you decide what to act on
-- **You can consult the Researcher** — if you need clarification during implementation, SendMessage to the Researcher (they're still alive)
+- **Proactive research delegation (step 3.5)** — right after plan feedback resolves, identify unknowns and delegate to Researcher before coding starts. Begin implementing independent parts while they research.
+- **Reactive consultation** — if unexpected unknowns surface mid-implementation, SendMessage to the Researcher (they're still alive)
 - **Lead handles shutdown** — after you report "task done", the Lead sends `shutdown_request` to the entire team
 - **You escalate to Lead** only for: task completion, escalation (max retries), or plan-invalidating discoveries
 
