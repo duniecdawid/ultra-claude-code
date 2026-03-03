@@ -43,7 +43,9 @@ Before any research or planning, challenge the feature request:
 3. **Ask "why?"** — What problem does this solve? Who benefits?
 4. **Identify assumptions** — What does the request assume about current architecture?
 
-If the request is vague or overly broad, ask the user clarifying questions using AskUserQuestion before proceeding. Do NOT proceed with unclear scope.
+**Always ask scope questions via AskUserQuestion** — even if the request seems clear, there are always scope decisions the user should make (e.g., which edge cases to handle, what's in/out of scope, phasing). Never answer your own questions or assume the user's preferences. If you identify scope questions, you MUST use AskUserQuestion and wait for the user's actual response before proceeding. Do NOT proceed with unclear scope.
+
+**After the user answers:** React substantively per the Plan Enhancer's Conversational Planning rules. Agree, disagree, or ask follow-ups — don't just silently move to Phase 2. If their scope choices introduce risks or miss opportunities, say so. If their answer changes the shape of the work, explain how. This is a dialogue, not a form submission.
 
 ### Phase 2: Context Gathering
 
@@ -128,10 +130,11 @@ If personas reach no consensus, present all perspectives with their evidence and
 7. **Route documentation tasks** — follow Docs Manager routing rules (loaded via context) to ensure documentation lands in correct directories
 8. **Create requirement documents** if the feature introduces new formal requirements — route to `documentation/product/requirements/`
 9. **Write the plan to `documentation/plans/{name}/README.md`** following Plan Enhancer format (plan template loaded via context) — the plan is on disk before the user reviews it
-10. **Present a concise summary in chat** — plan name, objective, task count with classification breakdown, file path
-11. **Ask for approval via AskUserQuestion** — Options: "Approve" / "Reject with feedback" / "Partially reject (specify changes)"
+10. **Present a concise summary in chat** — plan name, objective, task count with classification breakdown, file path. Include any trade-offs you made, things you intentionally excluded, or risks worth discussing. Invite the user to review the full plan file.
+11. **Ask for approval via AskUserQuestion** — Options: "Approve" / "Reject with feedback" / "Partially reject (specify changes)". Only an explicit "Approve" counts — empty, blank, or ambiguous responses must be re-asked.
 
 If approved — inform the user: execute with `/uc:plan-execution {plan-name}`.
+If the user gives feedback without selecting reject — treat it as partial rejection, address their points, and re-ask.
 
 ### Phase 5: Plan Review (if rejected)
 

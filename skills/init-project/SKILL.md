@@ -93,7 +93,7 @@ For anything that couldn't be determined from the surveys, ask the user using As
 - Ambiguous document classification → ask "Where should `docs/X.md` go?" with options mapped to canonical structure
 - Multiple valid interpretations → ask the user to clarify
 
-Only ask questions that are genuinely unresolvable from the survey data. Don't ask about things you can reasonably infer.
+Only ask questions that are genuinely unresolvable from the survey data. Don't ask about things you can reasonably infer. Never assume or fabricate the user's answers — always wait for their actual response via AskUserQuestion.
 
 ---
 
@@ -222,7 +222,7 @@ For **mixed** (some canonical, some not):
 
 - Update `documentation/README.md` to reflect final state after all creates/moves
 
-Ask for approval via AskUserQuestion: "Review the initialization plan above. Proceed?" Options: "Approve" / "Reject with feedback" / "Approve with changes".
+Ask for approval via AskUserQuestion: "Review the initialization plan above. Proceed?" Options: "Approve" / "Reject with feedback" / "Approve with changes". Only an explicit "Approve" counts — empty, blank, or ambiguous responses must be re-asked.
 
 ---
 

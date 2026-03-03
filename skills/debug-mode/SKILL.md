@@ -42,7 +42,9 @@ Parse the bug report and extract:
 3. **Reproduction context** — Environment, steps to reproduce, frequency (always, intermittent, once)
 4. **Impact** — Who/what is affected? Severity?
 
-If any of these are missing or unclear, ask the user for more details using AskUserQuestion before proceeding. A vague bug report produces vague fixes.
+If any of these are missing or unclear, ask the user for more details using AskUserQuestion before proceeding. A vague bug report produces vague fixes. Never assume or fabricate the user's answers — always wait for their actual response.
+
+**After the user answers:** React substantively per the Plan Enhancer's Conversational Planning rules. If their description changes your understanding of the issue, say what shifted. If you think they're describing a symptom rather than the root problem, say so. This is a dialogue — don't silently move to Phase 2.
 
 ### Phase 2: Hypothesis Generation
 
@@ -127,10 +129,11 @@ After all agents return:
 6. **Include regression test tasks** — tasks to add tests preventing recurrence
 7. **Reference evidence** — link each fix task back to the hypothesis and evidence that supports it
 8. **Write the plan to `documentation/plans/{name}/README.md`** following Plan Enhancer format (plan template loaded via context) — the plan is on disk before the user reviews it
-9. **Present a concise summary in chat** — plan name, root cause, task count with classification breakdown, file path
-10. **Ask for approval via AskUserQuestion** — Options: "Approve" / "Reject with feedback" / "Partially reject (specify changes)"
+9. **Present a concise summary in chat** — plan name, root cause, task count with classification breakdown, file path. Flag any uncertainties in the diagnosis or trade-offs in the fix approach. Invite the user to review the full plan file.
+10. **Ask for approval via AskUserQuestion** — Options: "Approve" / "Reject with feedback" / "Partially reject (specify changes)". Only an explicit "Approve" counts — empty, blank, or ambiguous responses must be re-asked.
 
 If approved — inform the user: execute with `/uc:plan-execution {plan-name}`.
+If the user gives feedback without selecting reject — treat it as partial rejection, address their points, and re-ask.
 
 ### Phase 6: Plan Review (if rejected)
 
