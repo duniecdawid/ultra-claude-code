@@ -11,7 +11,12 @@ What this plan accomplishes. One or two sentences.
 
 ## Context
 
-Background information, links to architecture docs, requirements, and RFCs that inform this plan.
+References to the documentation that informs this plan. Prefer links over prose — if the information lives in a doc, link to it rather than restating it here.
+
+- **Architecture:** [link to relevant architecture doc(s)]
+- **Requirements:** [link to relevant requirements doc(s)]
+- **RFCs:** [link to relevant RFC(s), if any]
+- **Other:** [any additional context references]
 
 ## Scope
 
@@ -29,7 +34,7 @@ Background information, links to architecture docs, requirements, and RFCs that 
 
 ## Task List
 
-> Tasks are classified as Full (research -> impl -> review -> test), Standard (impl -> review -> test), or Trivial (impl -> test).
+> Tasks are classified as Full (research -> impl -> review -> test) or Standard (impl -> review -> test). Trivial work (config, docs, renames) is absorbed into the nearest task — not listed standalone.
 
 ### Task 1: {Title}
 - **Classification:** Full | Standard | Trivial
@@ -45,9 +50,19 @@ Background information, links to architecture docs, requirements, and RFCs that 
 - **Success criteria:** How to verify this task is done
 - **Dependencies:** Other tasks that must complete first
 
-## Architecture Impact
+## Documentation Changes
 
-What architecture docs need to be created or updated as part of this plan.
+Documentation updated during planning (already on disk):
+
+| File | Action | Summary |
+|------|--------|---------|
+| `documentation/technology/architecture/{file}.md` | Created / Updated | One-sentence description of what was added or changed |
+
+Documentation to update during execution (included as task steps):
+
+| File | Action | Summary |
+|------|--------|---------|
+| | | |
 
 ## Risk Assessment
 

@@ -91,7 +91,7 @@ Classify every task before adding it to the plan. Classification determines whic
 |----------------|----------|---------------|
 | **Full** | Multi-file changes, architectural impact, complex logic, unclear implementation path | Researcher + Executor + Reviewer + Tester |
 | **Standard** | Single-component, clear requirements, well-understood pattern | Executor + Reviewer + Tester |
-| **Trivial** | Config change, rename, one-liner, simple flag toggle | Executor + Tester |
+| **Trivial** | Config change, rename, one-liner, simple flag toggle | Absorbed into parent task (no standalone pipeline) |
 
 ### Classification Guidelines
 
@@ -127,9 +127,11 @@ Target task counts by plan complexity:
 
 | Complexity | Task Count | Example |
 |-----------|-----------|---------|
-| Simple | 2–4 | Add a settings page, fix a workflow bug |
+| Simple | 1–3 | Add a settings page, fix a workflow bug |
 | Medium | 4–6 | User auth system, payment integration |
 | Complex | 6–10 | Multi-tenant support, real-time collaboration |
+
+A 1-task plan is perfectly valid for small, focused changes. Do not inflate task count by splitting out config, docs, or setup work.
 
 Over 10 tasks is a red flag — the plan is likely sliced too thin or the scope is too large for a single plan.
 
@@ -145,6 +147,20 @@ Over 10 tasks is a red flag — the plan is likely sliced too thin or the scope 
 - Env config + feature that reads it → one task
 
 **Exception — keep separate when A enables fan-out:** If A unblocks multiple independent tasks (B, C, D can all start after A), keeping A separate is justified because it enables real parallelism.
+
+### Trivial Task Absorption
+
+**Standalone Trivial tasks are not allowed.** Every Trivial-classified item must be absorbed into the nearest Standard or Full task as a step in its description. This is a hard constraint, not guidance.
+
+**Rules:**
+
+1. **Documentation updates are NOT tasks.** They belong in the plan's "Documentation Changes" section. Never create a task whose primary purpose is updating docs.
+2. **Config/env changes are NOT tasks.** Adding env vars, feature flags, or deployment config is setup work — include it as a step in the task that needs the config.
+3. **Renames, copy changes, and one-liners are NOT tasks.** Absorb them into the task that motivates the change.
+
+**The only exception:** A Trivial item that enables fan-out to 3+ independent tasks may remain standalone (same exception as dependency-aware merging).
+
+**Absorption target selection:** Attach the Trivial work to the task that most directly depends on it. If multiple tasks depend on it and it doesn't enable fan-out, attach it to the first task in execution order.
 
 ### Size Examples
 
@@ -175,7 +191,7 @@ Use the loaded plan template (`templates/plan.md`) as the base structure. The pl
 3. **Scope** — In scope / out of scope boundaries
 4. **Success Criteria** — Checkboxes for plan-level acceptance
 5. **Task List** — Every task with classification, description, files, success criteria, dependencies
-6. **Architecture Impact** — What architecture docs need updating
+6. **Documentation Changes** — Structured changelog of docs updated during planning, plus any remaining doc updates for execution
 7. **Risk Assessment** — Risks with likelihood, impact, mitigation
 
 ## Plan Creation Process
@@ -188,7 +204,7 @@ Use the loaded plan template (`templates/plan.md`) as the base structure. The pl
    ```
 4. **Build the plan** — the planning mode provides the content; you ensure format compliance. Use the loaded plan template including the `Execute: /uc:plan-execution {name}` header.
 5. **Classify all tasks** — apply classification rules to every task in the list
-6. **Validate granularity** — check each task against granularity rules. Apply dependency-aware merging: for each dependency chain A→B where A is pure setup, merge into B. Verify task count falls within the target range for the plan's complexity.
+6. **Validate granularity** — check each task against granularity rules. Apply dependency-aware merging: for each dependency chain A→B where A is pure setup, merge into B. Reject any standalone Trivial task — absorb it into the nearest dependent task or into the Documentation Changes section. Verify task count falls within the target range for the plan's complexity.
 7. **Write plan to `documentation/plans/{name}/README.md`** via the Write tool — this is the canonical copy that `/uc:plan-execution` reads from. The plan is on disk before the user reviews it.
 8. **Present a concise summary in chat** — NOT the full plan. Include: plan name, objective, task count with classification breakdown, and the file path. The user can read the full plan from the file.
 9. **Ask for approval via AskUserQuestion** — Options: "Approve" / "Reject with feedback" / "Partially reject (specify changes)"
@@ -259,3 +275,5 @@ documentation/plans/user-auth/
 ```
 
 > **Why 2 tasks, not 3+:** Env config was pure setup for Task 1 with no independent value — merged in. Login, registration, and logout are the same auth surface area — one vertical slice, not three horizontal endpoints.
+
+> **Note on doc updates:** If this plan required updating API documentation, that would go in the Documentation Changes table above — not as a separate Task 3. Documentation updates are never standalone tasks.
