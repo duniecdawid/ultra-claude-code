@@ -58,11 +58,11 @@ Documentation updated during planning (already on disk):
 |------|--------|---------|
 | `documentation/technology/architecture/{file}.md` | Created / Updated | One-sentence description of what was added or changed |
 
-Documentation to update during execution (included as task steps):
+Additional documentation gaps identified (not yet addressed):
 
-| File | Action | Summary |
-|------|--------|---------|
-| | | |
+| File | Needed Change |
+|------|---------------|
+| | |
 
 ## Risk Assessment
 

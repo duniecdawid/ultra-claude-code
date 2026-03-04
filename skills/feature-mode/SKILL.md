@@ -42,81 +42,92 @@ Before any research or planning, challenge the feature request:
 2. **Challenge scope** — Is this one feature or multiple? Is it too vague? What's the minimum viable scope?
 3. **Ask "why?"** — What problem does this solve? Who benefits?
 4. **Identify assumptions** — What does the request assume about current architecture?
+5. **Predict implementation challenges** — Based on your experience, what are the likely hard parts? What will look simple but isn't? Where will the real complexity hide? Share these predictions with the user.
+6. **Surface edge cases and failure modes** — What happens when things go wrong? What are the boundary conditions? What user behaviors could break this?
+7. **Propose hypotheses** — Offer your initial hypotheses about the right approach, potential pitfalls, and things that need deciding. Frame these as "I suspect X because Y — does that match your understanding?" Don't just ask questions — bring your own perspective for the user to react to.
+8. **Flag dependencies and risks** — What could this break? What does it depend on? Are there ordering constraints or things that need to exist first?
 
-**Always ask scope questions via AskUserQuestion** — even if the request seems clear, there are always scope decisions the user should make (e.g., which edge cases to handle, what's in/out of scope, phasing). Never answer your own questions or assume the user's preferences. If you identify scope questions, you MUST use AskUserQuestion and wait for the user's actual response before proceeding. Do NOT proceed with unclear scope.
+**Present your analysis (predictions, hypotheses, edge cases, risks) alongside scope questions via AskUserQuestion.** Don't just ask "what do you want?" — bring your own informed perspective: "I think X will be the hard part because Y. I'd suggest handling edge case Z this way. Do you agree, or do you see it differently?" The goal is a dialogue where the AI contributes its expertise, not just collects requirements. Never answer your own questions or assume the user's preferences. If you identify scope questions, you MUST use AskUserQuestion and wait for the user's actual response before proceeding. Do NOT proceed with unclear scope.
 
 **After the user answers:** React substantively per the Plan Enhancer's Conversational Planning rules. Agree, disagree, or ask follow-ups — don't just silently move to Phase 2. If their scope choices introduce risks or miss opportunities, say so. If their answer changes the shape of the work, explain how. This is a dialogue, not a form submission.
 
 ### Phase 2: Context Gathering
 
-Gather context from two sources in parallel:
+Follow the **Research Dispatch Strategy** from Plan Enhancer.
 
-**Source 1: Researcher Subagent**
+**Phase A — Structural Survey**
 
-Spawn a Researcher subagent via the Task tool:
+Spawn Code Surveyor + Doc Surveyor in parallel:
 
-> Research the codebase and documentation for context about: [feature description from $ARGUMENTS]
->
-> Focus on:
-> 1. Existing architecture patterns relevant to this feature (read `documentation/technology/architecture/`)
-> 2. Product requirements that relate to this feature (read `documentation/product/requirements/`)
-> 3. Existing code patterns that this feature will build on or interact with
-> 4. External dependencies or integrations this feature may need
-> 5. Potential conflicts with existing plans (check `documentation/plans/`)
-> 6. External system context (check `context/` directory)
->
-> Write your findings to a structured research summary. Include file:line references for all code findings.
+- **Code Surveyor** (`uc:Code Surveyor`): Scope to code packages identified during Phase 1 scope challenge — the components the feature will build on, extend, or interact with.
+- **Doc Surveyor** (`uc:Doc Surveyor`): Scope to `documentation/technology/architecture/` and `documentation/product/requirements/`, plus any documentation directories relevant to the feature.
 
-Use `subagent_type: "general-purpose"` and the `researcher` agent definition.
-
-**Source 2: Direct Reading**
-
-While the Researcher works, read these directly:
+**Direct Reading** (while surveyors work):
 - `documentation/technology/architecture/` — current system design
 - `documentation/product/requirements/` — existing requirements
 - `documentation/plans/` — existing plans (check for overlap)
 - `.claude/app-context-for-research.md` — domain context (if exists)
 
-### Phase 3: Architecture Assessment
+**Phase B — Targeted Deep Research (Conditional)**
 
-With research complete, classify the architecture impact:
+After surveyors return, evaluate whether a Researcher is needed. Spawn a Researcher (`uc:Researcher`) only if surveyors reveal:
+- External dependencies or integrations requiring investigation beyond structural overview
+- Conflicts with existing plans that need deeper analysis
+- External system context (from `context/` directory) that needs cross-referencing with codebase findings
+- Cross-component complexity where 3+ components interact in non-obvious ways
 
-| Classification | Criteria | Action |
-|---------------|----------|--------|
-| **Additive** | New feature within existing patterns | Plan normally |
-| **Compatible** | Extends existing architecture | Plan with architecture update tasks |
-| **Breaking** | Violates existing architecture | Update architecture doc FIRST, then plan |
+If Phase B is not triggered, proceed to Phase 3 with surveyor output + direct reading. Do not spawn a Researcher by default.
 
-If breaking: Inform the user that architecture documentation must be updated before implementation can be planned. Include the specific conflicts.
+### Phase 3: Documentation Update
 
-#### RFC Sub-Mode (Optional)
+Before assessing architecture impact or creating the plan, update the project's canonical documentation with knowledge gained during context gathering. Documentation is the durable artifact; the plan is ephemeral coordination.
 
-Trigger RFC sub-mode when architecture decisions are ambiguous or high-risk. Signs you need an RFC:
+**Scope guard:** Only document what was learned in Phase 2. Do not speculatively document things beyond the feature's scope. Maximum 3 documentation files created or updated in this phase. If more gaps exist, note them in the "Documentation Changes" section of the plan for the user to address separately — do NOT create plan tasks for documentation updates.
 
-- Multiple valid architectural approaches with different trade-offs
-- Decision affects 3+ system components
-- Performance, security, or reliability implications
-- User expresses uncertainty about the approach
+**Process:**
 
-**RFC Process:**
+1. **Identify documentation gaps** — Compare what the Researcher found and what you read directly against the existing `documentation/technology/architecture/` and `documentation/product/requirements/` files. Ask:
+   - Does the feature depend on architectural concepts not yet documented?
+   - Are there system behaviors discovered during research that contradict or are absent from architecture docs?
+   - Does the feature introduce new product requirements not captured in requirements docs?
 
-1. Create RFC at `documentation/technology/rfcs/{NNN}-{topic}.md` using the RFC template
-2. Fill in: Problem Statement, Proposed Solution, Alternatives Considered, Trade-offs
-3. Run **AI Persona Review** — evaluate the RFC from four perspectives:
-   - **Devil's Advocate**: What could go wrong? Attack the proposal's weakest points.
-   - **Pragmatist**: What's the simplest approach that works? Is this over-engineered?
-   - **Security & Reliability**: What are the failure modes? Attack surface? Data integrity risks?
-   - **Cost-Conscious**: What's the resource impact? Are there cheaper alternatives?
-4. Present all perspectives to the user with a recommendation
-5. Record the user's decision and rationale in the RFC Outcome section
-6. Update architecture documentation to reflect the decision
-7. Continue planning with the decided approach
+2. **Create or update architecture docs** — For each undocumented architectural concept the feature depends on:
+   - Route to `documentation/technology/architecture/{component}.md` per Docs Manager routing rules (loaded via context)
+   - Use the architecture template from `templates/architecture.md`
+   - If the file exists, add or update the relevant section (do not rewrite the entire document)
+   - If the file does not exist, create it with the template structure, filling in only the sections relevant to what was learned
+   - If `documentation/technology/architecture/` does not exist, create it: `mkdir -p documentation/technology/architecture/`
 
-If personas reach no consensus, present all perspectives with their evidence and let the user decide.
+3. **Create or update requirements docs** — For new formal requirements the feature introduces:
+   - Route to `documentation/product/requirements/{feature}.md` per Docs Manager routing rules
+   - Use the requirement template from `templates/requirement.md`
+   - If the directory does not exist, create it: `mkdir -p documentation/product/requirements/`
+
+4. **Track what you changed** — Maintain a running list of documentation changes for use in Phase 4 (Plan Creation). For each change, record:
+   - File path
+   - Action (created / updated)
+   - Summary of what was added (one sentence)
+
+5. **RFC sub-mode (if needed)** — If documentation updates reveal ambiguous or high-risk architecture decisions (multiple valid approaches, affects 3+ components, performance/security/reliability implications, user expresses uncertainty), trigger the RFC process:
+   1. Create RFC at `documentation/technology/rfcs/{NNN}-{topic}.md` using the RFC template
+   2. Fill in: Problem Statement, Proposed Solution, Alternatives Considered, Trade-offs
+   3. Run AI Persona Review (Devil's Advocate, Pragmatist, Security & Reliability, Cost-Conscious)
+   4. Present all perspectives to the user with a recommendation
+   5. Record the user's decision and rationale in the RFC Outcome section
+   6. Update architecture documentation to reflect the decision
+   7. Continue to Phase 4
+
+6. **Phase 3 approval gate** — After doc updates (and RFC if triggered), present a summary of documentation changes to the user. List each file created/updated with a one-sentence summary. Ask for explicit approval via AskUserQuestion with options: "Approve docs, proceed to plan" / "Request changes". Do NOT proceed to Phase 4 until the user explicitly approves. If the user requests changes, revise the docs and re-present.
+
+**Constraints:**
+- Maximum 3 files created or updated. If more gaps exist, note them in the "Documentation Changes" section of the plan for the user to address separately — do NOT create plan tasks for documentation updates.
+- Each update is a targeted section addition, not a full rewrite.
+- Follow Docs Manager routing rules for all file placement.
+- Do NOT update the documentation index (`documentation/README.md`) — that happens during plan execution.
 
 ### Phase 4: Plan Creation and Approval
 
-1. **Synthesize** all gathered context (Researcher findings + direct reading + architecture assessment)
+1. **Synthesize** all gathered context (Researcher findings + direct reading + documentation updates from Phase 3)
 2. **Derive plan name** from feature description
 3. **Scaffold plan directory**: `mkdir -p documentation/plans/{name}/shared documentation/plans/{name}/research`
 4. **Define tasks** — each task must have:
@@ -125,13 +136,11 @@ If personas reach no consensus, present all perspectives with their evidence and
    - Files to create or modify
    - Success criteria
    - Dependencies on other tasks
-5. **Architecture impact** — what docs need creating or updating
+5. **Documentation changes** — list the docs created or updated in Phase 3, plus any remaining documentation gaps identified. Use the structured changelog format from the plan template.
 6. **Risk assessment** — what could go wrong and mitigations
-7. **Route documentation tasks** — follow Docs Manager routing rules (loaded via context) to ensure documentation lands in correct directories
-8. **Create requirement documents** if the feature introduces new formal requirements — route to `documentation/product/requirements/`
-9. **Write the plan to `documentation/plans/{name}/README.md`** following Plan Enhancer format (plan template loaded via context) — the plan is on disk before the user reviews it
-10. **Present a concise summary in chat** — plan name, objective, task count with classification breakdown, file path. Include any trade-offs you made, things you intentionally excluded, or risks worth discussing. Invite the user to review the full plan file.
-11. **Ask for approval via AskUserQuestion** — Options: "Approve" / "Reject with feedback" / "Partially reject (specify changes)". Only an explicit "Approve" counts — empty, blank, or ambiguous responses must be re-asked.
+7. **Write the plan to `documentation/plans/{name}/README.md`** following Plan Enhancer format (plan template loaded via context) — the plan is on disk before the user reviews it
+8. **Present a concise summary in chat** — plan name, objective, task count with classification breakdown, file path. Include any trade-offs you made, things you intentionally excluded, or risks worth discussing. Invite the user to review the full plan file.
+9. **Ask for approval via AskUserQuestion** — Options: "Approve" / "Reject with feedback" / "Partially reject (specify changes)". Only an explicit "Approve" counts — empty, blank, or ambiguous responses must be re-asked.
 
 If approved — inform the user: execute with `/uc:plan-execution {plan-name}`.
 If the user gives feedback without selecting reject — treat it as partial rejection, address their points, and re-ask.
@@ -150,7 +159,7 @@ Repeat until approved or the user abandons the plan.
 ## Edge Cases
 
 - **Scope creep during research** — If research reveals the feature is much larger than expected, flag this and suggest splitting into multiple plans.
-- **Missing architecture docs** — If architecture docs don't exist yet, include creating them as the first tasks in the plan.
+- **Missing architecture docs** — Phase 3 handles creating initial architecture docs. If more than 3 docs are needed, the remainder are noted in the plan's documentation gaps table for the user to address separately.
 - **Overlapping plans** — If an existing plan covers some of this work, reference it and avoid duplicating tasks.
 - **No clear requirements** — If the feature needs product requirements defined first, include requirement creation tasks before implementation tasks.
 - **RFC disagreement** — If AI personas reach no consensus, present all perspectives and let the user decide.
@@ -164,3 +173,4 @@ Repeat until approved or the user abandons the plan.
 - Do NOT create tasks without success criteria
 - Always route documentation to correct locations per Docs Manager rules
 - Always persist the plan to `documentation/plans/{name}/README.md` after approval per Plan Enhancer rules
+- Do NOT create plan tasks whose sole purpose is updating documentation — all doc updates happen in Phase 3 during planning, not as execution tasks

@@ -12,6 +12,7 @@ allowed-tools:
   - AskUserQuestion
 context:
   - ${CLAUDE_PLUGIN_ROOT}/skills/plan-enhancer/SKILL.md
+  - ${CLAUDE_PLUGIN_ROOT}/skills/docs-manager/SKILL.md
 ---
 
 # Debug Mode
@@ -46,9 +47,24 @@ If any of these are missing or unclear, ask the user for more details using AskU
 
 **After the user answers:** React substantively per the Plan Enhancer's Conversational Planning rules. If their description changes your understanding of the issue, say what shifted. If you think they're describing a symptom rather than the root problem, say so. This is a dialogue — don't silently move to Phase 2.
 
-### Phase 2: Hypothesis Generation
+### Phase 2: Structural Survey + Hypothesis Generation
 
-Based on the symptoms, generate 2-5 hypotheses ranked by likelihood:
+**Phase A — Fast Survey** (Research Dispatch Strategy from Plan Enhancer)
+
+Before generating hypotheses, spawn Code Surveyor + Doc Surveyor in parallel to build a structural map of the affected area:
+
+- **Code Surveyor** (`uc:Code Surveyor`): Scope to code paths related to the reported symptoms — the components, modules, and files most likely involved based on Phase 1 analysis.
+- **Doc Surveyor** (`uc:Doc Surveyor`): Scope to `documentation/technology/architecture/` for expected system behavior documentation.
+
+**Direct Reading** (while surveyors work):
+- `documentation/technology/architecture/` — expected behavior of affected components
+- Recent `git log` (last 20 commits) — check for recent changes that could be regressions
+
+The structural map from surveyors informs better hypothesis quality — you'll know what components exist, how they connect, and what patterns they use before theorizing about what's broken.
+
+**Hypothesis Generation**
+
+Based on the symptoms and the structural survey results, generate 2-5 hypotheses ranked by likelihood:
 
 ```
 Hypothesis 1 (most likely): [description]
@@ -64,6 +80,8 @@ Hypothesis 3: [description]
 Present hypotheses to the user. They may confirm, reject, or add hypotheses based on domain knowledge they have.
 
 ### Phase 3: Parallel Investigation
+
+> **Research Dispatch override:** This phase replaces Phase B of the Research Dispatch Strategy. Instead of a single conditional Researcher, Debug Mode spawns per-hypothesis Researchers for independent, narrowly-scoped investigation. The System Tester is also unique to Debug Mode. No changes to the behavior below — this annotation documents the override relationship.
 
 Spawn investigation agents in parallel via the Task tool:
 
@@ -115,9 +133,52 @@ After all agents return:
 - Include fixes for all identified causes
 - Order by impact (most severe first)
 
+### Phase 4.5: Documentation Update (Conditional)
+
+If the investigation revealed undocumented system behavior or standards gaps, update documentation before creating the fix plan. This ensures the fix plan references accurate, up-to-date documentation rather than embedding tribal knowledge in an ephemeral plan file.
+
+**Trigger conditions** — Only perform this phase if at least one of these is true:
+- Investigation revealed system behavior not documented in `documentation/technology/architecture/`
+- Root cause analysis revealed a missing or incorrect coding standard in `documentation/technology/standards/`
+- The bug exposed an undocumented integration or dependency
+
+If none of these conditions are met, skip directly to Phase 5.
+
+**Scope guard:** Only document findings from the investigation. Maximum 3 documentation files created or updated. If more gaps exist, note them in the "Documentation Changes" section of the plan for the user to address separately — do NOT create fix tasks for documentation updates.
+
+**Process:**
+
+1. **Identify documentation gaps from investigation** — Review the evidence synthesis. Ask:
+   - Did the investigation reveal how a component actually behaves, contradicting or absent from architecture docs?
+   - Did the root cause point to a missing standard that would have prevented this class of bug?
+   - Did the investigation uncover undocumented external dependencies or integration behaviors?
+
+2. **Update architecture docs** — For undocumented system behavior discovered during investigation:
+   - Route to `documentation/technology/architecture/{component}.md` per Docs Manager routing rules (loaded via context)
+   - Use the architecture template from `templates/architecture.md` for new files
+   - For existing files, add or update the relevant section only
+   - If `documentation/technology/architecture/` does not exist, create it: `mkdir -p documentation/technology/architecture/`
+
+3. **Update standards docs** — If the root cause reveals a standards gap:
+   - Route to `documentation/technology/standards/{area}.md` per Docs Manager routing rules
+   - If `documentation/technology/standards/` does not exist, create it: `mkdir -p documentation/technology/standards/`
+
+4. **Track what you changed** — Maintain a running list for use in Phase 5 (Fix Planning). For each change, record:
+   - File path
+   - Action (created / updated)
+   - Summary of what was added (one sentence)
+
+**Constraints:**
+- Maximum 3 files created or updated. If more gaps exist, note them in the "Documentation Changes" section of the plan for the user to address separately — do NOT create fix tasks for documentation updates.
+- Each update is a targeted section addition, not a full rewrite.
+- Follow Docs Manager routing rules for all file placement.
+- Do NOT update the documentation index — that happens during plan execution.
+
+5. **Phase 4.5 approval gate** — After doc updates, present a summary of documentation changes to the user. List each file created/updated with a one-sentence summary. Ask for explicit approval via AskUserQuestion with options: "Approve docs, proceed to fix plan" / "Request changes". Do NOT proceed to Phase 5 until the user explicitly approves. If the user requests changes, revise the docs and re-present.
+
 ### Phase 5: Fix Planning and Approval
 
-1. **Synthesize** investigation findings into a targeted fix plan
+1. **Synthesize** investigation findings and documentation updates from Phase 4.5 into a targeted fix plan
 2. **Derive plan name** from the bug description (e.g., "fix-login-race-condition")
 3. **Scaffold plan directory**: `mkdir -p documentation/plans/{name}/shared documentation/plans/{name}/research`
 4. **Define fix tasks** — each task targets a specific part of the fix:
@@ -128,9 +189,10 @@ After all agents return:
 5. **Include verification tasks** — tasks to confirm the fix resolves the original issue
 6. **Include regression test tasks** — tasks to add tests preventing recurrence
 7. **Reference evidence** — link each fix task back to the hypothesis and evidence that supports it
-8. **Write the plan to `documentation/plans/{name}/README.md`** following Plan Enhancer format (plan template loaded via context) — the plan is on disk before the user reviews it
-9. **Present a concise summary in chat** — plan name, root cause, task count with classification breakdown, file path. Flag any uncertainties in the diagnosis or trade-offs in the fix approach. Invite the user to review the full plan file.
-10. **Ask for approval via AskUserQuestion** — Options: "Approve" / "Reject with feedback" / "Partially reject (specify changes)". Only an explicit "Approve" counts — empty, blank, or ambiguous responses must be re-asked.
+8. **Documentation changes** — list the docs created or updated in Phase 4.5, plus any remaining documentation gaps identified. Use the structured changelog format from the plan template.
+9. **Write the plan to `documentation/plans/{name}/README.md`** following Plan Enhancer format (plan template loaded via context) — the plan is on disk before the user reviews it
+10. **Present a concise summary in chat** — plan name, root cause, task count with classification breakdown, file path. Flag any uncertainties in the diagnosis or trade-offs in the fix approach. Invite the user to review the full plan file.
+11. **Ask for approval via AskUserQuestion** — Options: "Approve" / "Reject with feedback" / "Partially reject (specify changes)". Only an explicit "Approve" counts — empty, blank, or ambiguous responses must be re-asked.
 
 If approved — inform the user: execute with `/uc:plan-execution {plan-name}`.
 If the user gives feedback without selecting reject — treat it as partial rejection, address their points, and re-ask.
@@ -162,3 +224,4 @@ Repeat until approved or the user abandons the plan.
 - Do NOT plan a fix without evidence supporting the root cause
 - Always include verification tasks in the fix plan
 - Always include regression test tasks
+- Do NOT create fix tasks whose sole purpose is updating documentation — doc updates happen in Phase 4.5 during planning, not as execution tasks
