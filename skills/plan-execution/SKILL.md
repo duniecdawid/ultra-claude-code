@@ -60,7 +60,6 @@ For each task in the plan, assign a classification:
 |----------------|----------|--------------|
 | **Full** | Multi-file, architectural, complex logic | Researcher + Executor + Reviewer + Tester |
 | **Standard** | Single-component, clear requirements | Executor + Reviewer + Tester |
-| **Trivial** | Config change, rename, one-liner | Executor + Tester |
 
 Tasks with existing `tasks/task-N/research.md` files skip Research regardless of classification.
 
@@ -102,14 +101,13 @@ Present to user BEFORE spawning any teams:
 
 ```
 Plan: $ARGUMENTS
-Tasks: N total (X Full + Y Standard + Z Trivial)
+Tasks: N total (X Full + Y Standard)
 Concurrency: up to M task-teams in parallel
 Estimated cost: ~[X]K tokens
 
 Cost per task pipeline:
   Full (R+I+Rev+T):    ~200K tokens
   Standard (I+Rev+T):  ~150K tokens
-  Trivial (I+T):       ~100K tokens
 
 Proceed? (yes/no)
 ```
@@ -131,7 +129,7 @@ TaskCreate({
 ```
 
 Each task description must include:
-- Classification (Full/Standard/Trivial)
+- Classification (Full/Standard)
 - Success criteria from the plan
 - Files involved
 - Dependencies on other tasks (use `addBlockedBy` for sequential ordering)
@@ -193,7 +191,6 @@ Tester:     tests against PRODUCT DOCS (not impl.md) → sends PASS/FAIL to Exec
 |----------------|---------------------|
 | Full           | Researcher + Executor + Reviewer + Tester |
 | Standard       | Executor + Reviewer + Tester |
-| Trivial        | Executor + Tester |
 
 ### Orchestration Loop
 
@@ -212,7 +209,7 @@ REPEAT until all tasks "done" or escalated:
        - Find next pending, unblocked task
        - Create tasks/task-N/ directory
        - Spawn the full task team (all members at once)
-       - Update task metadata: stage → "research" (Full) or "impl" (Standard/Trivial)
+       - Update task metadata: stage → "research" (Full) or "impl" (Standard)
   3. Checkpoint if triggered
 ```
 
@@ -271,7 +268,7 @@ You are the **team coordinator** for task {N} of the "$ARGUMENTS" plan.
 
 **Your task:** {task description from plan}
 **Success criteria:** {success criteria from plan}
-**Classification:** {full/standard/trivial}
+**Classification:** {full/standard}
 
 **Your teammates (use SendMessage to communicate):**
 - Researcher: researcher-{N} (Full classification only)
@@ -293,13 +290,11 @@ You are the **team coordinator** for task {N} of the "$ARGUMENTS" plan.
 3. Write your implementation plan to `documentation/plans/$ARGUMENTS/tasks/task-{N}/plan.md`
 4. {If Full classification:} SendMessage to reviewer-{N} AND researcher-{N}: "Plan ready for feedback — written to tasks/task-{N}/plan.md. Review from your perspective. Reply LGTM or CONCERNS."
    {If Standard classification:} SendMessage to reviewer-{N}: "Plan ready for feedback — written to tasks/task-{N}/plan.md. Review from architecture/patterns perspective. Reply LGTM or CONCERNS."
-   {If Trivial classification:} Skip plan feedback — proceed directly to implementation.
 5. Wait for feedback responses. If CONCERNS: address in plan, notify the teammate, then proceed.
 5.5 {If Full classification:} Before implementing, check if you have outstanding unknowns that qualify as research (see your agent instructions step 3.5). If so, delegate to researcher-{N} via SendMessage and begin implementing non-dependent parts while they research.
 6. Implement the task. As you complete each file, send a progress update to reviewer-{N}: "Progress: completed {file path} — you can start reading"
 7. Write implementation notes to the output path
 8. SendMessage to reviewer-{N}: "Ready for review — files changed: {list}"
-   {If Trivial:} SendMessage to tester-{N}: "Ready for test — files changed: {list}"
 9. Process review/test feedback — fix and re-submit as needed
 10. When all stages pass: SendMessage to Lead "Task done — all stages passed"
 11. Wait for Lead's shutdown_request. Approve it to exit.
@@ -405,7 +400,6 @@ Executors write implementation plans to `tasks/task-N/plan.md` and request feedb
 |----------------|-----------|-----------|
 | **Full** | Reviewer + Researcher | Reviewer checks architecture/patterns; Researcher checks plan accounts for research findings |
 | **Standard** | Reviewer only | No researcher on the team |
-| **Trivial** | None — skip feedback | Overhead disproportionate for one-liners |
 
 **What reviewers check:**
 - Reviewer: Do proposed file changes align with architecture? Does the approach follow standards patterns? Any risks that would cause a formal review fail later?

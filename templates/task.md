@@ -1,7 +1,7 @@
 # Task: {Title}
 
 > Plan: {plan-name}
-> Classification: Full | Standard | Trivial
+> Classification: Full | Standard
 > Status: Pending | In Progress | Completed | Failed
 
 ## Description

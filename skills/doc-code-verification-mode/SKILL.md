@@ -112,7 +112,7 @@ If discrepancies exist:
    - Fix type: update docs, update code, or needs decision
    - Files to modify (both doc and code file:line references)
    - Success criteria: discrepancy resolved, re-verification passes
-   - Classification: typically Standard (clear what to fix) or Trivial (naming/typo fixes)
+   - Classification: typically Standard (clear what to fix). Trivial fixes (naming/typo) are absorbed into the nearest Standard task.
 4. **Order tasks** — Critical fixes first, then Major, then Minor
 5. **Flag "needs decision" items** — present these to user for resolution before including in plan
 6. **Write the plan to `documentation/plans/{name}/README.md`** following Plan Enhancer format (plan template loaded via context) — the plan is on disk before the user reviews it

@@ -80,9 +80,11 @@ If Phase B is not triggered, proceed to Phase 3 with surveyor output + direct re
 
 ### Phase 3: Documentation Update
 
-Before assessing architecture impact or creating the plan, update the project's canonical documentation with knowledge gained during context gathering. Documentation is the durable artifact; the plan is ephemeral coordination.
+Update the project's canonical documentation NOW — during this phase — with knowledge gained during context gathering. **Do the updates here. Do NOT defer them to the plan.**
 
-**Scope guard:** Only document what was learned in Phase 2. Do not speculatively document things beyond the feature's scope. Maximum 3 documentation files created or updated in this phase. If more gaps exist, note them in the "Documentation Changes" section of the plan for the user to address separately — do NOT create plan tasks for documentation updates.
+**Hard rule:** Documentation changes are NEVER plan tasks. If you find a doc gap, either fix it right now in this phase or drop it. The only acceptable outputs of Phase 3 are (a) actual file writes you make immediately, and (b) gaps you chose to skip, which go in the plan's informational "Documentation Changes" table. Never say "I'll add that as part of the plan" — that is the exact anti-pattern this phase prevents.
+
+**Scope guard:** Only document what was learned in Phase 2. Maximum 3 documentation files created or updated. If more gaps exist, note them in the plan's "Documentation Changes" section for the user to address separately.
 
 **Process:**
 
@@ -91,14 +93,14 @@ Before assessing architecture impact or creating the plan, update the project's 
    - Are there system behaviors discovered during research that contradict or are absent from architecture docs?
    - Does the feature introduce new product requirements not captured in requirements docs?
 
-2. **Create or update architecture docs** — For each undocumented architectural concept the feature depends on:
+2. **Create or update architecture docs immediately** — For each undocumented architectural concept the feature depends on:
    - Route to `documentation/technology/architecture/{component}.md` per Docs Manager routing rules (loaded via context)
    - Use the architecture template from `templates/architecture.md`
    - If the file exists, add or update the relevant section (do not rewrite the entire document)
    - If the file does not exist, create it with the template structure, filling in only the sections relevant to what was learned
    - If `documentation/technology/architecture/` does not exist, create it: `mkdir -p documentation/technology/architecture/`
 
-3. **Create or update requirements docs** — For new formal requirements the feature introduces:
+3. **Create or update requirements docs immediately** — For new formal requirements the feature introduces:
    - Route to `documentation/product/requirements/{feature}.md` per Docs Manager routing rules
    - Use the requirement template from `templates/requirement.md`
    - If the directory does not exist, create it: `mkdir -p documentation/product/requirements/`
@@ -117,13 +119,14 @@ Before assessing architecture impact or creating the plan, update the project's 
    6. Update architecture documentation to reflect the decision
    7. Continue to Phase 4
 
-6. **Phase 3 approval gate** — After doc updates (and RFC if triggered), present a summary of documentation changes to the user. List each file created/updated with a one-sentence summary. Ask for explicit approval via AskUserQuestion with options: "Approve docs, proceed to plan" / "Request changes". Do NOT proceed to Phase 4 until the user explicitly approves. If the user requests changes, revise the docs and re-present.
+6. **Phase 3 completion** — If you made doc updates, briefly list what you changed (file + one-sentence summary). If you found no gaps worth updating, say so and move on. Do NOT gate on approval here — proceed to Phase 4.
 
 **Constraints:**
-- Maximum 3 files created or updated. If more gaps exist, note them in the "Documentation Changes" section of the plan for the user to address separately — do NOT create plan tasks for documentation updates.
+- Maximum 3 files created or updated. If more gaps exist, note them in the "Documentation Changes" section of the plan for the user to address separately.
 - Each update is a targeted section addition, not a full rewrite.
 - Follow Docs Manager routing rules for all file placement.
 - Do NOT update the documentation index (`documentation/README.md`) — that happens during plan execution.
+- **NEVER create a plan task for documentation.** This is a hard constraint repeated from Plan Enhancer.
 
 ### Phase 4: Plan Creation and Approval
 
@@ -131,12 +134,13 @@ Before assessing architecture impact or creating the plan, update the project's 
 2. **Derive plan name** from feature description
 3. **Scaffold plan directory**: `mkdir -p documentation/plans/{name}/shared documentation/plans/{name}/research`
 4. **Define tasks** — each task must have:
-   - Classification: Full / Standard / Trivial
+   - Classification: Full / Standard
    - Description of what to build/change
    - Files to create or modify
    - Success criteria
    - Dependencies on other tasks
-5. **Documentation changes** — list the docs created or updated in Phase 3, plus any remaining documentation gaps identified. Use the structured changelog format from the plan template.
+   - **No task may have documentation as its primary purpose.** If you catch yourself writing a task that is essentially "update doc X", delete it — that work belongs in Phase 3 or the Documentation Changes table below.
+5. **Documentation changes** — list the docs created or updated in Phase 3, plus any remaining documentation gaps identified. Use the structured changelog format from the plan template. This is an informational record, not an execution task list.
 6. **Risk assessment** — what could go wrong and mitigations
 7. **Write the plan to `documentation/plans/{name}/README.md`** following Plan Enhancer format (plan template loaded via context) — the plan is on disk before the user reviews it
 8. **Present a concise summary in chat** — plan name, objective, task count with classification breakdown, file path. Include any trade-offs you made, things you intentionally excluded, or risks worth discussing. Invite the user to review the full plan file.
@@ -169,7 +173,7 @@ Repeat until approved or the user abandons the plan.
 - Do NOT write any implementation code — this is a planning mode
 - Do NOT skip the scope challenge phase
 - Do NOT proceed with unclear scope without asking clarifying questions
-- Do NOT skip task classification — every task needs Full / Standard / Trivial
+- Do NOT skip task classification — every task needs Full / Standard
 - Do NOT create tasks without success criteria
 - Always route documentation to correct locations per Docs Manager rules
 - Always persist the plan to `documentation/plans/{name}/README.md` after approval per Plan Enhancer rules

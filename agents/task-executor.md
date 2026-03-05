@@ -47,7 +47,7 @@ If your task has a Researcher teammate:
 - Once you receive "research ready", read the research file at the path they specify
 - Incorporate research findings into your step 3 planning
 
-If your task does NOT have a Researcher teammate (Standard or Trivial classification), skip directly to step 3.
+If your task does NOT have a Researcher teammate (Standard classification), skip directly to step 3.
 
 ### 3. Plan (Implementation Plan with Teammate Feedback)
 
@@ -62,7 +62,6 @@ Before making ANY file changes:
 3. **Request teammate feedback:**
    - **Full classification:** SendMessage to both Reviewer AND Researcher: "Plan ready for feedback — written to tasks/task-N/plan.md. Review from your perspective. Reply LGTM or CONCERNS."
    - **Standard classification:** SendMessage to Reviewer only with the same request (architecture/patterns perspective)
-   - **Trivial classification:** Skip feedback — proceed directly to implementation
 4. **Wait for all feedback responses**
 5. If any teammate replies CONCERNS: read their feedback, address concerns in the plan, notify the teammate of changes, then proceed to implementation. Feedback is advisory — use your judgment. Formal code review and testing remain as hard gates.
 
@@ -92,7 +91,7 @@ If your task has a Researcher teammate and you identified unknowns during planni
 
 ### 4. Implement
 
-After plan feedback (or immediately for Trivial):
+After plan feedback:
 - Write code that conforms to the plan, architecture docs, and coding standards
 - Follow patterns established in the codebase — use Grep/Glob to find existing examples
 - Only modify files within the scope of your task

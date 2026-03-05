@@ -178,12 +178,11 @@ Testing Tasks:        [pending] -&gt; [in_progress] -&gt; [completed/failed]</co
 <tbody>
 <tr><td><strong>Full</strong></td><td>Multi-file, architectural, complex logic</td><td>Research &rarr; Implementation &rarr; Review &rarr; Test</td><td>Add new API endpoint with auth middleware, DB migration, tests</td></tr>
 <tr><td><strong>Standard</strong></td><td>Single-component, clear requirements</td><td>Implementation &rarr; Review &rarr; Test</td><td>Add validation to existing form component</td></tr>
-<tr><td><strong>Trivial</strong></td><td>Config change, rename, one-liner</td><td>Implementation &rarr; Test</td><td>Rename env variable, fix typo in config</td></tr>
 </tbody>
 </table>
 </div>
 
-<p>Lead sets classification per task when creating lists. Tasks start in the appropriate first stage. A one-line config change skips research and review; a multi-file architectural change goes through all four stages.</p>
+<p>Lead sets classification per task when creating lists. Tasks start in the appropriate first stage. Trivial work (config changes, renames, one-liners) is absorbed into the nearest Full or Standard task &mdash; never listed as a standalone task.</p>
 
 <h2 id="plan-execution-team-structure">The Plan Execution Team Structure</h2>
 

@@ -54,6 +54,44 @@ Planning is a **dialogue with the user**, not a one-shot generation. Every plann
 - If the user selects "Other" with empty or unclear text, re-ask the question. Say: "I need an explicit approval, rejection, or feedback before proceeding."
 - Never skip or auto-approve the approval step. The plan is not approved until the user explicitly says so.
 
+## Research Dispatch Strategy
+
+Planning modes need codebase context before building a plan. This section defines a two-phase research approach that all planning modes follow by default. Individual modes may override specific phases — overrides are documented in the table below.
+
+### Phase A — Structural Survey
+
+Spawn **Code Surveyor** + **Doc Surveyor** in parallel (both Sonnet, `uc:Code Surveyor` and `uc:Doc Surveyor` agent types):
+
+- **Code Surveyor**: Scoped to the code packages most relevant to the feature or bug. The planning mode determines the scope based on its Phase 1 analysis (e.g., Feature Mode uses scope challenge output; Debug Mode uses symptom-related code paths).
+- **Doc Surveyor**: Scoped to the documentation directories most relevant to the work — typically `documentation/technology/architecture/` and `documentation/product/requirements/`, plus any directories identified in Phase 1.
+
+While surveyors work, the Lead does its own **direct reading** of key files (architecture docs, requirements, plans, app-context). The planning mode specifies which files to read directly.
+
+Surveyors return structured overviews (file lists, components, data structures, patterns, cross-references). This gives the Lead a structural map of the relevant codebase and documentation without the cost of a full Researcher agent.
+
+### Phase B — Targeted Deep Research (Conditional)
+
+Only spawn a **Researcher** (`uc:Researcher` agent type, Sonnet) when Phase A reveals gaps that require deep analysis. Specific triggers:
+
+- **External integrations**: Surveyors found references to external services, APIs, or dependencies that need investigation beyond structural overview
+- **Complex cross-component interactions**: Structural map shows the work touches 3+ components with non-obvious interaction patterns
+- **Undocumented patterns**: Code Surveyor found patterns or conventions with no corresponding documentation from Doc Surveyor
+- **Doc-code conflicts**: Doc Surveyor and Code Surveyor returned contradictory information about the same component
+
+If none of these triggers fire, proceed to the next phase with surveyor output + direct reading only. Do not spawn a Researcher "just in case."
+
+When Phase B is triggered, scope the Researcher tightly to the identified gaps — not a broad re-survey of what the surveyors already covered. Reference specific findings from Phase A in the Researcher prompt.
+
+### Mode Override Table
+
+| Mode | Phase A | Phase B | Notes |
+|------|---------|---------|-------|
+| **Feature Mode** | Default (Code + Doc Surveyor) | Conditional — triggered by external deps, plan conflicts, external system context | Standard two-phase |
+| **Debug Mode** | Default, scoped to symptom-related code paths | **Override**: Per-hypothesis Researchers replace generic Phase B. Each hypothesis gets its own narrowly-scoped Researcher. System Tester also spawned (unique to Debug Mode). | Phase B override for targeted investigation |
+| **Doc-Code Verification** | Already uses surveyors natively | Uses Checkers instead of Researcher | Pre-existing, no change needed |
+| **Init Project** | Already uses surveyors natively | N/A | Pre-existing, no change needed |
+| **Re-planning** | May skip Phase A if prior survey data is still valid | Default | Avoid redundant re-survey |
+
 ## What You Do
 
 1. **Standardize format** — All plans use the loaded plan template with embedded task list. The template includes an `Execute: /uc:plan-execution {name}` header so the user knows how to run it.
@@ -91,8 +129,6 @@ Classify every task before adding it to the plan. Classification determines whic
 |----------------|----------|---------------|
 | **Full** | Multi-file changes, architectural impact, complex logic, unclear implementation path | Researcher + Executor + Reviewer + Tester |
 | **Standard** | Single-component, clear requirements, well-understood pattern | Executor + Reviewer + Tester |
-| **Trivial** | Config change, rename, one-liner, simple flag toggle | Absorbed into parent task (no standalone pipeline) |
-
 ### Classification Guidelines
 
 Mark as **Full** when:
@@ -106,10 +142,7 @@ Mark as **Standard** when:
 - Requirements are clear and pattern is established
 - Similar implementations exist in the codebase
 
-Mark as **Trivial** when:
-- Task is a single-line or few-line change
-- Task is purely configuration (env vars, feature flags)
-- Task is a rename, typo fix, or copy change
+**Trivial work** (single-line changes, config/env vars, renames, typo fixes) is always absorbed into the nearest Full or Standard task — never classified as a standalone task.
 
 ## Task Granularity Rules
 
@@ -131,7 +164,7 @@ Target task counts by plan complexity:
 | Medium | 4–6 | User auth system, payment integration |
 | Complex | 6–10 | Multi-tenant support, real-time collaboration |
 
-A 1-task plan is perfectly valid for small, focused changes. Do not inflate task count by splitting out config, docs, or setup work.
+**Default to the low end.** Start with the minimum number of tasks and only add more when a task is clearly too large for a single agent. Most plans should have 1-3 tasks. A 1-task plan for a focused change is ideal, not a sign of under-planning. Never pad task count with config, setup, or doc tasks — these are absorbed, not standalone.
 
 Over 10 tasks is a red flag — the plan is likely sliced too thin or the scope is too large for a single plan.
 
@@ -204,9 +237,14 @@ Use the loaded plan template (`templates/plan.md`) as the base structure. The pl
    ```
 4. **Build the plan** — the planning mode provides the content; you ensure format compliance. Use the loaded plan template including the `Execute: /uc:plan-execution {name}` header.
 5. **Classify all tasks** — apply classification rules to every task in the list
-6. **Validate granularity** — check each task against granularity rules. Apply dependency-aware merging: for each dependency chain A→B where A is pure setup, merge into B. Reject any standalone Trivial task — absorb it into the nearest dependent task or into the Documentation Changes section. Verify task count falls within the target range for the plan's complexity.
+6. **Validate — HARD GATE (do not skip):**
+   a. Scan the task list for any task classified as Trivial. If found, STOP and absorb it into the nearest Full/Standard task before proceeding.
+   b. Scan for any task whose sole purpose is documentation, config/env changes, or renames. If found, STOP and absorb it.
+   c. Apply dependency-aware merging: for each A→B chain where A is pure setup, merge into B.
+   d. Count remaining tasks. If count exceeds the low end of the complexity range, justify each task — if you can't articulate why it needs its own pipeline, merge it.
+   e. Every remaining task must be Full or Standard.
 7. **Write plan to `documentation/plans/{name}/README.md`** via the Write tool — this is the canonical copy that `/uc:plan-execution` reads from. The plan is on disk before the user reviews it.
-8. **Present a concise summary in chat** — NOT the full plan. Include: plan name, objective, task count with classification breakdown, and the file path. The user can read the full plan from the file.
+8. **Present a concise summary in chat** — NOT the full plan. Include: plan name, objective, task count with Full/Standard breakdown only (never report Trivial counts — Trivial tasks should not exist), and the file path. The user can read the full plan from the file.
 9. **Ask for approval via AskUserQuestion** — Options: "Approve" / "Reject with feedback" / "Partially reject (specify changes)"
 
 **Approval gate rules — strictly enforce:**
