@@ -124,7 +124,7 @@ TaskCreate({
   description: "Classification: Standard\nSuccess criteria: ...\nFiles: src/middleware/auth.ts\n...",
   activeForm: "Processing task 1: Add JWT middleware",
   metadata: { "classification": "standard", "stage": "pending", "retry_count": 0 }
-  // stage values: "pending" | "research" | "impl" | "review" | "test" | "done"
+  // stage values: "pending" | "planning" | "research" | "impl" | "review" | "test" | "done"
 })
 ```
 
@@ -165,16 +165,16 @@ All members are spawned at once, stay alive, and communicate peer-to-peer:
 
 ```
 Researcher: does research → tells Executor "research ready" → stays alive (consultable)
-Executor:   reads research → plans → Lead approves → implements
+Executor:   reads research → plans → implements
             → sends per-file progress updates to Reviewer during implementation
-            → tells Reviewer "ready for review" when all files done
+            → signals Lead "implementation complete" (fire-and-forget for pipeline spawning)
+            → tells Reviewer "ready for review" AND Tester "ready for test" simultaneously
 Reviewer:   reads files early (advisory feedback) → formal review on "ready for review"
             → sends PASS/FAIL to Executor
-            → if FAIL: Executor fixes → "ready for re-review" → Reviewer re-reviews
-            → if PASS: Executor tells Tester "ready for test"
-Tester:     tests against PRODUCT DOCS (not impl.md) → sends PASS/FAIL to Executor
-            → if FAIL: Executor fixes → "ready for re-test" → Tester re-tests
-            → if PASS: Executor tells Lead "task done" → Lead sends shutdown_request to all → team exits
+            → if FAIL: Executor fixes → re-review + re-test signals sent to both
+Tester:     tests against PRODUCT DOCS (not impl.md) → sends PASS/FAIL to Executor (in parallel with Reviewer)
+            → if FAIL: Executor fixes → re-test + re-review signals sent to both
+Both PASS:  Executor tells Lead "task done" → Lead sends shutdown_request to all → team exits
 ```
 
 **Key principles:**
@@ -199,11 +199,25 @@ The Lead runs this loop until all tasks are done or escalated:
 ```
 REPEAT until all tasks "done" or escalated:
   1. Process messages from active agents:
-     a. Executor "task done" → update task metadata stage to "done"
-        → send shutdown_request to ALL task team members (executor-N, researcher-N, reviewer-N, tester-N)
-        → pipeline slot freed once all have shut down
-     b. Executor "escalation needed" → escalate to user (max retries exceeded)
-     c. Plan-invalidating discoveries → pause, evaluate, amend plan
+     a. Executor "task done — all stages passed" →
+        - Update task metadata stage to "done"
+        - Send shutdown_request to ALL task team members (executor-N, researcher-N, reviewer-N, tester-N)
+        - Pipeline slot freed once all have shut down
+        - Check: any task in "planning" stage with blocked_by_task == this task?
+          → SendMessage to that executor: "Implementation approved — predecessor
+            task {N} passed all stages. Proceed to implement."
+          → Update that task's stage to "impl"
+     b. Executor "implementation complete" →
+        - Update task metadata stage to "review" (informational)
+        - Check: dependent successors in "pending" state?
+          → If yes AND active teams < concurrency limit:
+            - Spawn successor's task-team with pipeline_spawned=true
+            - Set successor stage to "planning"
+            - Successor counts toward concurrency limit
+          → If at concurrency limit: do nothing (successor stays "pending",
+            spawned normally when slot opens)
+     c. Executor "escalation needed" → escalate to user (max retries exceeded)
+     d. Plan-invalidating discoveries → pause, evaluate, amend plan
   2. Fill pipeline slots:
      - While active teams < concurrency limit:
        - Find next pending, unblocked task
@@ -215,7 +229,7 @@ REPEAT until all tasks "done" or escalated:
 
 ### Lead Priority Order
 
-1. **Process agent messages** — "task done", escalation requests, plan-invalidating discoveries.
+1. **Process agent messages** — "task done", "implementation complete", escalation requests, plan-invalidating discoveries.
 2. **Fill open pipeline slots** — spawn new task-teams for pending tasks.
 3. **Checkpoint** — periodic save per Phase 3 triggers.
 
@@ -292,12 +306,27 @@ You are the **team coordinator** for task {N} of the "$ARGUMENTS" plan.
    {If Standard classification:} SendMessage to reviewer-{N}: "Plan ready for feedback — written to tasks/task-{N}/plan.md. Review from architecture/patterns perspective. Reply LGTM or CONCERNS."
 5. Wait for feedback responses. If CONCERNS: address in plan, notify the teammate, then proceed.
 5.5 {If Full classification:} Before implementing, check if you have outstanding unknowns that qualify as research (see your agent instructions step 3.5). If so, delegate to researcher-{N} via SendMessage and begin implementing non-dependent parts while they research.
+5.9 {If pipeline_spawned:} See your agent instructions step 3.9 — send "Planning complete — awaiting implementation approval" to Lead and WAIT before implementing.
 6. Implement the task. As you complete each file, send a progress update to reviewer-{N}: "Progress: completed {file path} — you can start reading"
 7. Write implementation notes to the output path
-8. SendMessage to reviewer-{N}: "Ready for review — files changed: {list}"
-9. Process review/test feedback — fix and re-submit as needed
-10. When all stages pass: SendMessage to Lead "Task done — all stages passed"
-11. Wait for Lead's shutdown_request. Approve it to exit.
+8. SendMessage to Lead: "Implementation complete — entering review/test phase" (fire-and-forget, do not wait for response)
+9. SendMessage to BOTH reviewer-{N}: "Ready for review — files changed: {list}" AND tester-{N}: "Ready for test — implementation complete, files changed: {list}" simultaneously
+10. Process review AND test feedback in parallel — both must PASS. If either FAILs, fix code and re-signal BOTH reviewer and tester (see agent instructions step 5).
+11. When both review and test pass: SendMessage to Lead "Task done — all stages passed"
+12. Wait for Lead's shutdown_request. Approve it to exit.
+```
+
+For **pipeline-spawned tasks** (where `pipeline_spawned: true`), append to the executor spawn prompt:
+
+```
+**Pipeline mode:** This task was spawned early while predecessor task {P} is still
+in review/test. You may research and plan, but you MUST NOT begin implementing
+until Lead sends you "Implementation approved".
+
+After completing your plan and receiving teammate feedback, SendMessage to Lead:
+"Planning complete — awaiting implementation approval"
+Then WAIT. Do not write any code until you receive "Implementation approved".
+While waiting, you may process post-plan research responses and refine your plan.
 ```
 
 #### Reviewer Spawn
@@ -359,11 +388,12 @@ You are testing task {N} of the "$ARGUMENTS" plan.
 
 **Workflow:**
 1. Read context files above while waiting
-2. Wait for executor-{N}'s "ready for test" message
+2. Wait for executor-{N}'s "ready for test" message (arrives at the same time as Reviewer's "ready for review" — you work in parallel with Reviewer)
 3. Test the implementation against success criteria from the plan
 4. SendMessage verdict to executor-{N}: PASS or FAIL with structured feedback
 5. If FAIL: stay alive — executor-{N} will fix and send "ready for re-test"
-6. Exit only when Lead sends you a shutdown_request after the task completes. Approve it to exit.
+6. You may also receive "Code changed after review fix" from executor-{N} — this means the Reviewer found issues and code was updated. Re-test the updated code regardless of your previous verdict.
+7. Exit only when Lead sends you a shutdown_request after the task completes. Approve it to exit.
 ```
 
 #### Final Gate Tester Spawn
@@ -416,7 +446,7 @@ Executors write implementation plans to `tasks/task-N/plan.md` and request feedb
 ### Communication Model
 
 - **Team members talk directly to each other** — Executor↔Reviewer, Executor↔Tester, anyone↔Researcher
-- **Lead only receives**: "task done", escalations, plan-invalidating discoveries
+- **Lead only receives**: "task done", "implementation complete", "planning complete", escalations, plan-invalidating discoveries
 - **Lead never relays** messages between team members
 - **Executor drives the pipeline** internally — it tells teammates when to act and processes their feedback
 
@@ -456,11 +486,12 @@ Write to `documentation/plans/$ARGUMENTS/checkpoint-{YYYY-MM-DD-HHmm}.md`:
 | 2 | Login endpoint | review | 1 | Retry after review fail |
 | 3 | Env config | active | 0 | In implementation |
 | 4 | User model | pending | 0 | Blocked by task 1 |
+| 5 | Dashboard  | planning | 0 | Pipeline-spawned, awaiting task 3 |
 
 ## Progress Summary
 
 - Done: N/{total} tasks
-- In pipeline: M tasks (research: A, impl: B, review: C, test: D)
+- In pipeline: M tasks (planning: A, research: B, impl: C, review: D, test: E)
 - Pending: K tasks
 
 ## Decisions Made
@@ -598,7 +629,7 @@ When a teammate discovers something that invalidates part of the plan:
 |---------|---------|
 | **Plan review** (advisory) | Executor writes plan to `tasks/task-N/plan.md` → sends to Reviewer (and Researcher for Full tasks) via SendMessage → teammates reply LGTM/CONCERNS → Executor proceeds. **Not a blocking gate — feedback is advisory.** |
 | **SendMessage** (team-internal) | Executor↔Reviewer, Executor↔Tester, anyone↔Researcher. Direct peer-to-peer within the task team. |
-| **SendMessage** (to Lead) | "Task done", escalation requests, plan-invalidating discoveries. |
+| **SendMessage** (to Lead) | "Task done", "Implementation complete", "Planning complete — awaiting implementation approval", escalation requests, plan-invalidating discoveries. |
 | **Per-task files** (persistent) | `tasks/task-N/research.md`, `tasks/task-N/plan.md`, `tasks/task-N/impl.md` — pipeline artifacts that persist for resume. |
 
 ---

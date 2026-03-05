@@ -135,7 +135,9 @@ After all agents return:
 
 ### Phase 4.5: Documentation Update (Conditional)
 
-If the investigation revealed undocumented system behavior or standards gaps, update documentation before creating the fix plan. This ensures the fix plan references accurate, up-to-date documentation rather than embedding tribal knowledge in an ephemeral plan file.
+If the investigation revealed undocumented system behavior or standards gaps, update documentation NOW — during this phase, not as a plan task. **Do the updates here. Do NOT defer them to the plan.**
+
+**Hard rule:** Documentation changes are NEVER fix tasks. If you find a doc gap, either fix it right now in this phase or drop it. Never say "I'll add that as part of the plan" — that is the exact anti-pattern this phase prevents.
 
 **Trigger conditions** — Only perform this phase if at least one of these is true:
 - Investigation revealed system behavior not documented in `documentation/technology/architecture/`
@@ -144,7 +146,7 @@ If the investigation revealed undocumented system behavior or standards gaps, up
 
 If none of these conditions are met, skip directly to Phase 5.
 
-**Scope guard:** Only document findings from the investigation. Maximum 3 documentation files created or updated. If more gaps exist, note them in the "Documentation Changes" section of the plan for the user to address separately — do NOT create fix tasks for documentation updates.
+**Scope guard:** Only document findings from the investigation. Maximum 3 documentation files created or updated. If more gaps exist, note them in the plan's "Documentation Changes" section for the user to address separately.
 
 **Process:**
 
@@ -169,12 +171,13 @@ If none of these conditions are met, skip directly to Phase 5.
    - Summary of what was added (one sentence)
 
 **Constraints:**
-- Maximum 3 files created or updated. If more gaps exist, note them in the "Documentation Changes" section of the plan for the user to address separately — do NOT create fix tasks for documentation updates.
+- Maximum 3 files created or updated. If more gaps exist, note them in the plan's "Documentation Changes" section for the user to address separately.
 - Each update is a targeted section addition, not a full rewrite.
 - Follow Docs Manager routing rules for all file placement.
 - Do NOT update the documentation index — that happens during plan execution.
+- **NEVER create a fix task for documentation.** This is a hard constraint repeated from Plan Enhancer.
 
-5. **Phase 4.5 approval gate** — After doc updates, present a summary of documentation changes to the user. List each file created/updated with a one-sentence summary. Ask for explicit approval via AskUserQuestion with options: "Approve docs, proceed to fix plan" / "Request changes". Do NOT proceed to Phase 5 until the user explicitly approves. If the user requests changes, revise the docs and re-present.
+5. **Phase 4.5 completion** — If you made doc updates, briefly list what you changed (file + one-sentence summary). If you found no gaps worth updating, say so and move on. Do NOT gate on approval here — proceed to Phase 5.
 
 ### Phase 5: Fix Planning and Approval
 
@@ -189,7 +192,7 @@ If none of these conditions are met, skip directly to Phase 5.
 5. **Include verification tasks** — tasks to confirm the fix resolves the original issue
 6. **Include regression test tasks** — tasks to add tests preventing recurrence
 7. **Reference evidence** — link each fix task back to the hypothesis and evidence that supports it
-8. **Documentation changes** — list the docs created or updated in Phase 4.5, plus any remaining documentation gaps identified. Use the structured changelog format from the plan template.
+8. **Documentation changes** — list the docs created or updated in Phase 4.5, plus any remaining documentation gaps identified. Use the structured changelog format from the plan template. This is an informational record, not a fix task list.
 9. **Write the plan to `documentation/plans/{name}/README.md`** following Plan Enhancer format (plan template loaded via context) — the plan is on disk before the user reviews it
 10. **Present a concise summary in chat** — plan name, root cause, task count with classification breakdown, file path. Flag any uncertainties in the diagnosis or trade-offs in the fix approach. Invite the user to review the full plan file.
 11. **Ask for approval via AskUserQuestion** — Options: "Approve" / "Reject with feedback" / "Partially reject (specify changes)". Only an explicit "Approve" counts — empty, blank, or ambiguous responses must be re-asked.

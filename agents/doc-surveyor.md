@@ -1,7 +1,7 @@
 ---
 name: Doc Surveyor
 description: Quick survey of documentation section structure. Returns what's documented for verification orchestration. Subagent only.
-model: haiku
+model: sonnet
 tools:
   - Read
   - Grep

@@ -65,7 +65,7 @@ Before making ANY file changes:
 4. **Wait for all feedback responses**
 5. If any teammate replies CONCERNS: read their feedback, address concerns in the plan, notify the teammate of changes, then proceed to implementation. Feedback is advisory — use your judgment. Formal code review and testing remain as hard gates.
 
-### 3.5. Delegate Research Needs (Full Classification Only)
+### 3.5 Delegate Research Needs (Full Classification Only)
 
 If your task has a Researcher teammate and you identified unknowns during planning that you cannot resolve yourself, delegate them **now** — before you start coding.
 
@@ -89,6 +89,21 @@ If your task has a Researcher teammate and you identified unknowns during planni
 
 **Skip this step entirely** if no research needs are identified — proceed straight to step 4.
 
+### 3.9 Pipeline Gate (Pipeline-Spawned Tasks Only)
+
+If your spawn prompt includes **"Pipeline mode"** instructions:
+
+1. After plan feedback is resolved (step 3) and post-plan research delegated (step 3.5):
+2. **SendMessage to Lead**: "Planning complete — awaiting implementation approval"
+3. **STOP. Do NOT proceed to step 4 until Lead sends "Implementation approved".**
+4. While waiting, you may:
+   - Process post-plan research responses from Researcher
+   - Re-read context, refine your plan
+   - But do NOT write any implementation code
+5. When you receive "Implementation approved" from Lead → proceed to step 4
+
+If your spawn prompt does NOT include "Pipeline mode", skip this step entirely.
+
 ### 4. Implement
 
 After plan feedback:
@@ -98,25 +113,42 @@ After plan feedback:
 - Write implementation notes to `tasks/task-N/impl.md`
 - **Send progress updates to Reviewer** — after completing each file, SendMessage to Reviewer: "Progress: completed {file path} — you can start reading". This lets the Reviewer begin reading your code while you're still implementing other files, so the formal review is faster.
 
-### 5. Drive Review Cycle
+### 4.5 Signal Implementation Complete
+
+After ALL implementation files are written and `tasks/task-N/impl.md` is updated:
+
+1. **SendMessage to Lead**: "Implementation complete — entering review/test phase"
+2. **Do NOT wait for a response** — proceed immediately to step 5 (Drive Review + Test)
+
+This is fire-and-forget. It tells Lead your code is written so dependent successor tasks can begin their research/planning phase early.
+
+### 5. Drive Review + Test (Parallel)
 
 After ALL implementation is complete:
 
-1. **SendMessage to Reviewer**: "Ready for review — implementation in tasks/task-N/impl.md, files changed: {list}"
-2. **Wait for Reviewer's verdict**
-3. **If FAIL**: Read feedback, fix code, update impl.md, then SendMessage to Reviewer: "Ready for re-review — fixed: {summary of changes}"
-4. **If PASS**: Proceed to test cycle (step 6)
+1. **Send BOTH signals simultaneously:**
+   - SendMessage to Reviewer: "Ready for review — implementation in tasks/task-N/impl.md, files changed: {list}"
+   - SendMessage to Tester: "Ready for test — implementation complete, files changed: {list}"
 
-### 6. Drive Test Cycle
+2. **Track two independent verdicts:**
+   - Review verdict: pending/pass/fail
+   - Test verdict: pending/pass/fail
 
-After review passes:
+3. **Process verdicts as they arrive:**
+   - **Review FAIL**: Fix code, update impl.md, then:
+     - SendMessage to Reviewer: "Ready for re-review — fixed: {summary}"
+     - SendMessage to Tester: "Code changed after review fix — files updated: {list}. Re-test when ready."
+     - Reset test verdict to pending (Tester must re-verify)
+   - **Test FAIL** (while review still pending or passed): Fix code, update impl.md, then:
+     - SendMessage to Tester: "Ready for re-test — fixed: {summary}"
+     - SendMessage to Reviewer: "Code changed after test fix — files updated: {list}. Re-review when ready."
+     - Reset review verdict to pending (Reviewer must re-verify)
+   - **Review PASS**: Record. If test also PASS → step 6.
+   - **Test PASS**: Record. If review also PASS → step 6.
 
-1. **SendMessage to Tester**: "Ready for test — review passed, files changed: {list}"
-2. **Wait for Tester's verdict**
-3. **If FAIL**: Read feedback, fix code, update impl.md, then SendMessage to Tester: "Ready for re-test — fixed: {summary of changes}"
-4. **If PASS**: Proceed to completion (step 7)
+4. **Both PASS required** — proceed to step 6 (Complete) only when BOTH verdicts are PASS with no subsequent code changes.
 
-### 7. Complete
+### 6. Complete
 
 When all stages pass:
 
@@ -125,7 +157,7 @@ When all stages pass:
 
 ### Retry Limit
 
-Track total fix cycles across review and test. If you reach **10 fix cycles** without all stages passing:
+Track total fix cycles across review and test (both combined count toward the limit). If you reach **10 fix cycles** without both review and test passing simultaneously:
 
 1. **SendMessage to Lead**: "Escalation needed — {N} fix cycles exhausted. History: {brief summary of each cycle's feedback}"
 2. **Wait for Lead's guidance** before continuing

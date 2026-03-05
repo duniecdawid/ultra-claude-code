@@ -1,7 +1,7 @@
 ---
 name: Code Surveyor
 description: Quick survey of code package structure. Returns structured overview for verification orchestration. Subagent only.
-model: haiku
+model: sonnet
 tools:
   - Read
   - Grep
