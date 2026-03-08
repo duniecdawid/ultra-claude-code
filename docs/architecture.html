@@ -34,8 +34,8 @@
 </thead>
 <tbody>
 <tr><td><strong>Soft</strong></td><td>CLAUDE.md rules, architecture docs</td><td>Advisory &mdash; Claude reads them, may drift under context pressure</td></tr>
-<tr><td><strong>Medium</strong></td><td>Skills that load architecture docs before planning</td><td>Workflow-enforced &mdash; can&rsquo;t skip the step</td></tr>
-<tr><td><strong>Hard</strong></td><td>Hooks (PreToolUse, PostToolUse, Stop)</td><td>Deterministic &mdash; cannot be overridden by the AI</td></tr>
+<tr><td><strong>Medium</strong></td><td>Skills that load architecture docs before planning</td><td>Prompt-enforced &mdash; skills inject architecture context into the conversation, making it highly unlikely to be skipped, but not a deterministic gate</td></tr>
+<tr><td><strong>Hard</strong></td><td>Hooks (PreToolUse, PostToolUse, Stop)</td><td>Cannot be overridden by the AI. Note: all current hooks use <code>type: "prompt"</code> (model-evaluated), not shell commands or agents. Still &ldquo;hard&rdquo; because the hook fires unconditionally &mdash; the AI cannot skip the evaluation step.</td></tr>
 </tbody>
 </table>
 </div>
@@ -52,16 +52,6 @@
 </ul>
 
 <p>See <a href="#components" class="tab-link">Components</a> for full format specifications (D15, D16, D17).</p>
-
-<h2 id="change-classification">Change Classification</h2>
-
-<p>Not every change needs the same scrutiny:</p>
-
-<ul>
-<li><strong>Additive</strong> (new feature within existing patterns) &rarr; flows freely</li>
-<li><strong>Compatible</strong> (extends existing architecture) &rarr; lightweight review</li>
-<li><strong>Breaking</strong> (violates existing architecture) &rarr; must update the architecture doc first, then re-plan</li>
-</ul>
 
 <h2 id="documentation-structure">Documentation Structure</h2>
 
@@ -113,7 +103,7 @@
 </thead>
 <tbody>
 <tr><td>System design, component diagrams, data flow</td><td><code>technology/architecture/</code></td><td>Feature Mode</td></tr>
-<tr><td>Coding conventions, API standards, error handling patterns</td><td><code>technology/standards/</code></td><td>Manual or Feature Mode</td></tr>
+<tr><td>Coding conventions, API standards, error handling patterns</td><td><code>technology/standards/</code></td><td>Init Project (auto-generated), Manual, or Feature Mode</td></tr>
 <tr><td>Decision reviews (problem, options, outcome)</td><td><code>technology/rfcs/</code></td><td>Feature Mode (optional)</td></tr>
 <tr><td>Product vision, positioning, product briefs</td><td><code>product/description/</code></td><td>Discovery Mode</td></tr>
 <tr><td>Market research, competitor analysis, technology landscape</td><td><code>product/research/</code></td><td>Discovery Mode</td></tr>
@@ -157,19 +147,27 @@
 
 <p>The <strong>init-project</strong> skill (<code>/uc:init-project</code>) is the universal onboarding tool. It handles any project state &mdash; greenfield, existing docs in non-standard layout, partially structured, or already set up.</p>
 
-<p><strong>How it works (3 phases):</strong></p>
+<p><strong>How it works (4 phases):</strong></p>
 
-<ol>
-<li><strong>Explore</strong> &mdash; Spawns Code Surveyor and Doc Surveyor agents in parallel to scan the project. Scales surveyor count to project size (1 pair for small projects, up to 5 pairs for monorepos). Asks the user about anything ambiguous.</li>
+<ol start="0">
+<li><strong>Safety Check</strong> &mdash; Warns the user about directory creation and documentation moves. Waits for user confirmation before proceeding.</li>
+<li><strong>Explore</strong> &mdash; Spawns Code Surveyor and Doc Surveyor agents in parallel to scan the project. Scales surveyor count to project size (1 pair for small projects, up to 5 pairs for monorepos). Code Surveyors now also detect <strong>standards signals</strong> (API patterns, auth, error handling, etc.) and <strong>test infrastructure details</strong> (frameworks, commands, CI steps). Asks the user about anything ambiguous.</li>
 <li><strong>Plan</strong> &mdash; Writes plan and presents for user review:
 <ul>
 <li>Scaffold missing canonical directories and template placeholders</li>
 <li>Derive <code>.claude/</code> config files from survey findings</li>
+<li><strong>Standards &amp; system-test approval</strong> &mdash; presents candidate standards (from code signals) for user approval with per-topic Create/Skip/Add-context options</li>
 <li>Bootstrap architecture docs (greenfield) or map existing docs to canonical locations (migration) or both (mixed)</li>
 <li>Regenerate <code>documentation/README.md</code> index</li>
 </ul>
 </li>
-<li><strong>Execute</strong> &mdash; After plan approval, spawns Task Executor agent(s) to carry out all changes. Preserves originals when migrating (copy, don&rsquo;t delete source files).</li>
+<li><strong>Execute</strong> &mdash; Three-stage pipeline after plan approval:
+<ul>
+<li><strong>Stage A</strong>: Core scaffolding, config, docs migration (Task Executor agents)</li>
+<li><strong>Stage B</strong>: Parallel Researcher agents gather evidence for each approved standard + system-test (runs in parallel with Stage A)</li>
+<li><strong>Stage C</strong>: Parallel Task Executor agents write standards and system-test.md from research findings using prompt-architect principles (waits for Stage B)</li>
+</ul>
+</li>
 </ol>
 
 <p><strong>When to use:</strong> When onboarding any project to Ultra Claude, regardless of whether it has existing documentation.</p>
@@ -231,7 +229,7 @@
 
 <p>The execution engine is documented in detail in <a href="#execution" class="tab-link">Execution</a>.</p>
 
-<p>In summary: Plan Execution reads any plan README.md and runs it through a dynamically composed agent team. The Lead creates four role-separated task lists (research &rarr; implementation &rarr; review &rarr; testing), spawns teammates with role-specific prompts that bridge the context gap, and coordinates via per-role shared files. Teammates self-claim tasks from their role&rsquo;s list and work in parallel.</p>
+<p>In summary: Plan Execution reads any plan README.md and runs it through per-task pipeline teams. The Lead classifies tasks, spawns a dedicated mini-team for each task (Researcher, Executor, Reviewer, Tester), and tracks progress. Each team self-coordinates internally &mdash; the Executor drives the review/test cycle via SendMessage. Teams run concurrently up to the plan-size-based limit (2&ndash;4 teams). Persistent context lives in <code>shared/lead.md</code> and per-task <code>tasks/task-N/</code> artifact files.</p>
 
 <h2 id="agent-coordination">Agent Coordination</h2>
 
@@ -244,7 +242,7 @@
 </thead>
 <tbody>
 <tr><td><strong>Planning</strong> (all modes)</td><td><strong>Subagents</strong> (Task tool)</td><td>Planning spawns parallel research jobs that report back to the Lead. No cross-agent coordination needed &mdash; the Lead collects results and synthesizes. Subagents are cheaper and simpler.</td></tr>
-<tr><td><strong>Execution</strong> (<code>/uc:plan-execution</code>)</td><td><strong>Agent teams</strong> (teammates)</td><td>Execution requires cross-role coordination: shared task lists, self-claiming, per-role shared memory, direct messaging between teammates. Only agent teams support these patterns.</td></tr>
+<tr><td><strong>Execution</strong> (<code>/uc:plan-execution</code>)</td><td><strong>Agent teams</strong> (per-task pipeline teams)</td><td>Execution requires intra-team coordination: Executor drives review/test cycles via SendMessage, teammates communicate directly within each task team. Only agent teams support these patterns.</td></tr>
 </tbody>
 </table>
 </div>
@@ -258,7 +256,7 @@
 </thead>
 <tbody>
 <tr><td>Communication</td><td>Report back to parent only</td><td>Teammates message each other directly</td></tr>
-<tr><td>Coordination</td><td>Parent manages everything</td><td>Shared task list, self-claiming</td></tr>
+<tr><td>Coordination</td><td>Parent manages everything</td><td>Teammates coordinate directly via SendMessage</td></tr>
 <tr><td>Context</td><td>Results summarized back</td><td>Each has full independent context</td></tr>
 <tr><td>Best for</td><td>Focused tasks (research, surveying)</td><td>Complex work requiring collaboration</td></tr>
 </tbody>
@@ -268,9 +266,9 @@
 <p>Agent teams enable patterns that subagents cannot:</p>
 <ul>
 <li>Researcher shares findings directly with Task Executor (no parent relay)</li>
-<li>Task Tester challenges Task Executor&rsquo;s work directly</li>
-<li>Multiple teammates self-claim from shared task list</li>
-<li>Plan approval workflow gates implementation</li>
+<li>Task Tester challenges Task Executor&rsquo;s work directly via SendMessage</li>
+<li>Code Reviewer sends specific feedback to Executor for fix cycles</li>
+<li>Per-task team members coordinate internally without Lead involvement</li>
 </ul>
 
 <p>These patterns are needed during execution but not during planning.</p>
@@ -284,6 +282,14 @@
 <h4 id="feature-mode-structure">Feature Mode</h4>
 
 <pre><code>Lead (main session)
+├── Code Surveyor subagent(s)
+│   - Survey codebase structure and patterns
+│   - Return structural overview to Lead
+│
+├── Doc Surveyor subagent(s)
+│   - Survey existing documentation
+│   - Return what's documented to Lead
+│
 ├── Researcher subagent
 │   - Gathers codebase + architecture + product context
 │   - Returns findings to Lead
@@ -331,7 +337,7 @@
 
 <p>The execution engine is the only mode that uses agent teams. See <a href="#execution" class="tab-link">Execution</a> for the full team structure, context bridge, shared memory, checkpoints, and error recovery.</p>
 
-<p>Lead + up to 5 teammates across 4 roles: Researcher, Executor, Code Reviewer, Tester. Tasks flow through role-separated lists: research &rarr; implementation &rarr; review &rarr; testing. Teammates self-claim work and coordinate via per-role shared files.</p>
+<p>Lead + per-task pipeline teams. Each task gets a dedicated mini-team (Researcher, Task Executor, Code Reviewer, Task Tester) that self-coordinates internally through pipeline stages: research &rarr; implementation &rarr; review &rarr; test. Up to 2&ndash;4 task teams run concurrently depending on plan size.</p>
 
 <h3 id="agent-team-constraints">Agent Team Constraints We Accept</h3>
 
@@ -355,6 +361,6 @@
 <li><strong>&ldquo;What&rsquo;s the most efficient path?&rdquo;</strong> &mdash; Suggests workflow optimizations based on the task</li>
 </ol>
 
-<p>Help achieves this by loading <code>docs/components.md</code> and <code>docs/workflows.md</code> directly via its <code>context:</code> field, giving it access to all component definitions, relationships, and workflow patterns.</p>
+<p>Help achieves this by loading <code>docs/components.html</code> and <code>docs/workflows.html</code> directly via its <code>context:</code> field, giving it access to all component definitions, relationships, and workflow patterns.</p>
 
 </div>

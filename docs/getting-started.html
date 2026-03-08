@@ -243,8 +243,8 @@
     <h2>Initialize Your Project</h2>
     <p>Navigate to your target project and run the initialization skill:</p>
     <ul>
-      <li><code>/uc:init-project</code> &mdash; scaffolds <code>documentation/</code>, spawns surveyors to explore your codebase, derives <code>.claude/</code> config files from findings, and drafts initial architecture docs</li>
-      <li>Review and approve the derived configs and docs it presents</li>
+      <li><code>/uc:init-project</code> &mdash; scaffolds <code>documentation/</code>, spawns surveyors to explore your codebase, derives <code>.claude/</code> config files from findings, drafts initial architecture docs, auto-generates coding standards from detected code patterns, and produces a comprehensive <code>system-test.md</code></li>
+      <li>Review and approve the derived configs, standards candidates, and docs it presents</li>
     </ul>
     <div class="info-box">
       <p><strong>Works for any project state.</strong> <code>/uc:init-project</code> handles greenfield projects, existing documentation migration, and mixed states &mdash; all in one skill. After init, run <code>/uc:doc-code-verification-mode</code> to verify and improve the generated docs.</p>
