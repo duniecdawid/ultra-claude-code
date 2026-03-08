@@ -134,7 +134,6 @@ Update the project's canonical documentation NOW — during this phase — with 
 2. **Derive plan name** from feature description
 3. **Scaffold plan directory**: `mkdir -p documentation/plans/{name}/shared documentation/plans/{name}/research`
 4. **Define tasks** — each task must have:
-   - Classification: Full / Standard
    - Description of what to build/change
    - Files to create or modify
    - Success criteria
@@ -143,7 +142,7 @@ Update the project's canonical documentation NOW — during this phase — with 
 5. **Documentation changes** — list the docs created or updated in Phase 3, plus any remaining documentation gaps identified. Use the structured changelog format from the plan template. This is an informational record, not an execution task list.
 6. **Risk assessment** — what could go wrong and mitigations
 7. **Write the plan to `documentation/plans/{name}/README.md`** following Plan Enhancer format (plan template loaded via context) — the plan is on disk before the user reviews it
-8. **Present a concise summary in chat** — plan name, objective, task count with classification breakdown, file path. Include any trade-offs you made, things you intentionally excluded, or risks worth discussing. Invite the user to review the full plan file.
+8. **Present a concise summary in chat** — plan name, objective, task count, file path. Include any trade-offs you made, things you intentionally excluded, or risks worth discussing. Invite the user to review the full plan file.
 9. **Ask for approval via AskUserQuestion** — Options: "Approve" / "Reject with feedback" / "Partially reject (specify changes)". Only an explicit "Approve" counts — empty, blank, or ambiguous responses must be re-asked.
 
 If approved — inform the user: execute with `/uc:plan-execution {plan-name}`.
@@ -173,7 +172,7 @@ Repeat until approved or the user abandons the plan.
 - Do NOT write any implementation code — this is a planning mode
 - Do NOT skip the scope challenge phase
 - Do NOT proceed with unclear scope without asking clarifying questions
-- Do NOT skip task classification — every task needs Full / Standard
+- Do NOT create tasks that are too small — every task must be a substantial vertical feature slice
 - Do NOT create tasks without success criteria
 - Always route documentation to correct locations per Docs Manager rules
 - Always persist the plan to `documentation/plans/{name}/README.md` after approval per Plan Enhancer rules

@@ -40,14 +40,12 @@ Before any implementation, read ALL of these in order:
 4. **Architecture docs** (`documentation/technology/architecture/`) — system design you must conform to
 5. **Coding standards** (`documentation/technology/standards/`) — patterns and conventions to follow
 
-### 2. Wait for Research (Full Classification Only)
+### 2. Wait for Research
 
-If your task has a Researcher teammate:
-- **STOP here. Do NOT proceed to step 3 until you receive the Researcher's "research ready" message.** The research contains critical context — architecture patterns, library gotchas, risks, and missing information that will shape your entire implementation plan. Starting without it leads to rework.
+**STOP here. Do NOT proceed to step 3 until you receive the Researcher's "research ready" message.** The research contains critical context — architecture patterns, library gotchas, risks, and missing information that will shape your entire implementation plan. Starting without it leads to rework.
+
 - Once you receive "research ready", read the research file at the path they specify
 - Incorporate research findings into your step 3 planning
-
-If your task does NOT have a Researcher teammate (Standard classification), skip directly to step 3.
 
 ### 3. Plan (Implementation Plan with Teammate Feedback)
 
@@ -59,15 +57,13 @@ Before making ANY file changes:
    - What changes you will make in each file (specific functions, classes, patterns)
    - How you will satisfy the success criteria
    - Any risks or trade-offs
-3. **Request teammate feedback:**
-   - **Full classification:** SendMessage to both Reviewer AND Researcher: "Plan ready for feedback — written to tasks/task-N/plan.md. Review from your perspective. Reply LGTM or CONCERNS."
-   - **Standard classification:** SendMessage to Reviewer only with the same request (architecture/patterns perspective)
+3. **Request teammate feedback:** SendMessage to both Reviewer AND Researcher: "Plan ready for feedback — written to tasks/task-N/plan.md. Review from your perspective. Reply LGTM or CONCERNS."
 4. **Wait for all feedback responses**
 5. If any teammate replies CONCERNS: read their feedback, address concerns in the plan, notify the teammate of changes, then proceed to implementation. Feedback is advisory — use your judgment. Formal code review and testing remain as hard gates.
 
-### 3.5 Delegate Research Needs (Full Classification Only)
+### 3.5 Delegate Research Needs
 
-If your task has a Researcher teammate and you identified unknowns during planning that you cannot resolve yourself, delegate them **now** — before you start coding.
+If you identified unknowns during planning that you cannot resolve yourself, delegate them to your Researcher **now** — before you start coding.
 
 **Qualifying research needs** (delegate these):
 - External API details, endpoint behaviors, or library nuances not covered in `tasks/task-N/research.md`

@@ -229,7 +229,7 @@
 
 <p>The execution engine is documented in detail in <a href="#execution" class="tab-link">Execution</a>.</p>
 
-<p>In summary: Plan Execution reads any plan README.md and runs it through per-task pipeline teams. The Lead classifies tasks, spawns a dedicated mini-team for each task (Researcher, Executor, Reviewer, Tester), and tracks progress. Each team self-coordinates internally &mdash; the Executor drives the review/test cycle via SendMessage. Teams run concurrently up to the plan-size-based limit (2&ndash;4 teams). Persistent context lives in <code>shared/lead.md</code> and per-task <code>tasks/task-N/</code> artifact files.</p>
+<p>In summary: Plan Execution reads any plan README.md and runs it through per-task pipeline teams. The Lead spawns a dedicated mini-team for each task (Researcher, Executor, Reviewer, Tester &mdash; every task gets the full team), and tracks progress. Each team self-coordinates internally &mdash; the Executor drives the review/test cycle via SendMessage. Teams run concurrently up to the plan-size-based limit (2&ndash;4 teams). Persistent context lives in <code>shared/lead.md</code> and per-task <code>tasks/task-N/</code> artifact files.</p>
 
 <h2 id="agent-coordination">Agent Coordination</h2>
 

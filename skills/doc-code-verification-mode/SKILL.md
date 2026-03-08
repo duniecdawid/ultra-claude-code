@@ -112,11 +112,11 @@ If discrepancies exist:
    - Fix type: update docs, update code, or needs decision
    - Files to modify (both doc and code file:line references)
    - Success criteria: discrepancy resolved, re-verification passes
-   - Classification: typically Standard (clear what to fix). Trivial fixes (naming/typo) are absorbed into the nearest Standard task.
+   - Trivial fixes (naming/typo) are absorbed into the nearest task, not listed standalone.
 4. **Order tasks** — Critical fixes first, then Major, then Minor
 5. **Flag "needs decision" items** — present these to user for resolution before including in plan
 6. **Write the plan to `documentation/plans/{name}/README.md`** following Plan Enhancer format (plan template loaded via context) — the plan is on disk before the user reviews it
-7. **Present a concise summary in chat** — plan name, discrepancy count by severity, task count with classification breakdown, file path
+7. **Present a concise summary in chat** — plan name, discrepancy count by severity, task count, file path
 8. **Ask for approval via AskUserQuestion** — Options: "Approve" / "Reject with feedback" / "Partially reject (specify changes)". Only an explicit "Approve" counts — empty, blank, or ambiguous responses must be re-asked.
 
 If approved — inform the user: execute with `/uc:plan-execution {plan-name}`.

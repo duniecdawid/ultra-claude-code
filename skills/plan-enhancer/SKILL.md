@@ -1,5 +1,5 @@
 ---
-description: Standardizes plan output for all planning modes. Writes plan directly to documentation/plans/{name}/README.md with embedded task list and task classification. Auto-loaded by planning mode skills via context field.
+description: Standardizes plan output for all planning modes. Writes plan directly to documentation/plans/{name}/README.md with embedded task list. Auto-loaded by planning mode skills via context field.
 user-invocable: false
 allowed-tools:
   - Read
@@ -14,7 +14,7 @@ context:
 
 # Plan Enhancer
 
-You provide plan structuring instructions that are loaded into context by planning mode skills (Feature Mode, Debug Mode, etc.). You govern how the plan is structured, how tasks are classified, where the plan is written, and how it is presented for approval.
+You provide plan structuring instructions that are loaded into context by planning mode skills (Feature Mode, Debug Mode, etc.). You govern how the plan is structured, task granularity, where the plan is written, and how it is presented for approval.
 
 ## Responsibility Split
 
@@ -24,7 +24,6 @@ You provide plan structuring instructions that are loaded into context by planni
 | Gathering context (research, architecture) | Planning mode skill |
 | Deciding plan scope and content | Planning mode skill + user |
 | **Plan format and template** | **Plan Enhancer** |
-| **Task classification** | **Plan Enhancer** |
 | **Task granularity enforcement** | **Plan Enhancer** |
 | **Plan directory scaffolding + file writing** | **Plan Enhancer** |
 
@@ -95,9 +94,8 @@ When Phase B is triggered, scope the Researcher tightly to the identified gaps �
 ## What You Do
 
 1. **Standardize format** — All plans use the loaded plan template with embedded task list. The template includes an `Execute: /uc:plan-execution {name}` header so the user knows how to run it.
-2. **Classify tasks** — Each task gets a classification that determines its execution pipeline
-3. **Ensure granularity** — Tasks must be right-sized for agentic execution
-4. **Write plan to disk** — Scaffold the plan directory and write `documentation/plans/{name}/README.md` before presenting for approval
+2. **Ensure granularity** — Tasks must be right-sized for agentic execution. Err heavily toward fewer, larger tasks.
+3. **Write plan to disk** — Scaffold the plan directory and write `documentation/plans/{name}/README.md` before presenting for approval
 
 ## Plan Directory Structure
 
@@ -121,38 +119,23 @@ Derive the plan name from the user's feature description:
 
 If the user provides `$ARGUMENTS`, use it to derive the plan name.
 
-## Task Classification
+## Task Pipeline
 
-Classify every task before adding it to the plan. Classification determines which team members are spawned for the task during execution:
+Every task gets the full pipeline team: **Researcher + Executor + Reviewer + Tester**. There is no classification step — all tasks receive the same treatment. Research ensures the Executor has full context before implementing, regardless of perceived complexity.
 
-| Classification | Criteria | Pipeline Team |
-|----------------|----------|---------------|
-| **Full** | Multi-file changes, architectural impact, complex logic, unclear implementation path | Researcher + Executor + Reviewer + Tester |
-| **Standard** | Single-component, clear requirements, well-understood pattern | Executor + Reviewer + Tester |
-### Classification Guidelines
-
-Mark as **Full** when:
-- Task touches 3+ files across different modules
-- Task introduces a new architectural pattern
-- Task involves integration with external services
-- Task has unclear implementation approach requiring research
-
-Mark as **Standard** when:
-- Task modifies 1-2 files within a single component
-- Requirements are clear and pattern is established
-- Similar implementations exist in the codebase
-
-**Trivial work** (single-line changes, config/env vars, renames, typo fixes) is always absorbed into the nearest Full or Standard task — never classified as a standalone task.
+**Trivial work** (single-line changes, config/env vars, renames, typo fixes) is always absorbed into the nearest task — never a standalone task.
 
 ## Task Granularity Rules
 
 ### Sizing Philosophy
 
-Tasks are **vertical feature slices**, not horizontal technical layers. Each task should deliver a recognizable piece of functionality end-to-end.
+Tasks are **substantial vertical feature slices**, not horizontal technical layers. Each task should deliver a major, recognizable piece of functionality end-to-end. Err on the side of **too few, too large** tasks rather than too many small ones.
 
-- **Wrong:** Split by layer — one task for DB schema, another for the API endpoint, another for the frontend component
-- **Right:** Split by functionality — "media upload flow" covers schema + endpoint + UI for that feature
-- **Heuristic:** "Would a developer do this in one focused sitting?" If yes, it's one task.
+- **Wrong:** Split by layer — one task for DB schema, another for the entity/repo, another for the service, another for the controller, another for tests. This is horizontal slicing and produces tasks that are too small.
+- **Wrong:** Split by technical concern — "Add migration", "Update repository", "Add service method", "Clean up controller", "Add test coverage". These are steps within a single task, not separate tasks.
+- **Right:** Split by major functionality — "Implement admin overload with schema migration, entity updates, service logic, and API endpoints" covers the entire vertical slice as one task.
+- **Heuristic:** "Is this a full feature or workflow that delivers user-visible or system-visible value?" If it's just a technical step toward that, it belongs inside a larger task, not as its own task.
+- **Anti-pattern detector:** If your tasks form a sequential chain where each depends on the previous one, they are almost certainly too granular. A chain of 3+ sequential tasks should usually be merged into 1-2 tasks.
 
 ### Task Count Guidance
 
@@ -160,30 +143,31 @@ Target task counts by plan complexity:
 
 | Complexity | Task Count | Example |
 |-----------|-----------|---------|
-| Simple | 1–3 | Add a settings page, fix a workflow bug |
-| Medium | 4–6 | User auth system, payment integration |
-| Complex | 6–10 | Multi-tenant support, real-time collaboration |
+| Simple | 1 | Add a settings page, fix a workflow bug, add a new API endpoint with tests |
+| Medium | 2–3 | User auth system, payment integration |
+| Complex | 3–5 | Multi-tenant support, real-time collaboration |
 
-**Default to the low end.** Start with the minimum number of tasks and only add more when a task is clearly too large for a single agent. Most plans should have 1-3 tasks. A 1-task plan for a focused change is ideal, not a sign of under-planning. Never pad task count with config, setup, or doc tasks — these are absorbed, not standalone.
+**Default to 1 task.** A single-task plan is the ideal outcome for most work. Only split into multiple tasks when the work genuinely has independent, parallelizable pieces or is too large for one agent to hold in context. Sequential dependency chains are a strong signal that tasks should be merged.
 
-Over 10 tasks is a red flag — the plan is likely sliced too thin or the scope is too large for a single plan.
+Over 5 tasks is a red flag — the plan is almost certainly sliced too thin. Over 3 tasks should be rare and justified.
 
 ### Dependency-Aware Merging
 
-**Core rule:** If Task A must complete before Task B can start, and A exists only to set something up for B, **merge A into B**.
+**Core rule:** If tasks form a sequential dependency chain, **merge them into one task**. Sequential tasks that each depend on the previous one gain nothing from being separate — they can't run in parallel and they add overhead.
 
-**Decision test:** "Does keeping A separate enable real parallelism?" If B is the only task that depends on A, the answer is no — merge them.
+**Decision test:** "Can these tasks run in parallel?" If no, merge them. Period.
 
 **Common merge targets:**
-- Schema migration + endpoint that uses it → one task
+- Schema migration + entity + repository + service + controller → one task (this is a single feature, not five tasks)
 - Type definitions + component that consumes them → one task
 - Env config + feature that reads it → one task
+- Any A→B→C chain → one task
 
-**Exception — keep separate when A enables fan-out:** If A unblocks multiple independent tasks (B, C, D can all start after A), keeping A separate is justified because it enables real parallelism.
+**Exception — keep separate only when tasks enable real parallelism:** If A unblocks multiple independent tasks (B, C, D can all start after A), keeping A separate is justified. But B, C, D themselves must each be substantial.
 
 ### Trivial Task Absorption
 
-**Standalone Trivial tasks are not allowed.** Every Trivial-classified item must be absorbed into the nearest Standard or Full task as a step in its description. This is a hard constraint, not guidance.
+**Standalone Trivial tasks are not allowed.** Every Trivial item must be absorbed into the nearest task as a step in its description. This is a hard constraint, not guidance.
 
 **Rules:**
 
@@ -197,9 +181,13 @@ Over 10 tasks is a red flag — the plan is likely sliced too thin or the scope 
 
 ### Size Examples
 
-- **Too large**: "Implement the authentication system" — this is a plan, not a task
-- **Too small**: "Add JWT_SECRET to env config" — this is setup that belongs inside a real task, not a standalone task
+- **Too large**: "Implement the entire multi-tenant architecture with data isolation, tenant management, billing integration, and admin dashboard" — this is a plan, not a task
+- **Too small**: "Add JWT_SECRET to env config" — this is a step inside a real task
+- **Too small**: "Add schema migration for scope column" — this is a step inside a real task
+- **Too small**: "Update repository to support nullable partner" — this is a step inside a real task
+- **Too small**: "Clean up controller to remove sentinel UUID" — this is a step inside a real task
 - **Right size**: "Build login flow with JWT middleware, token validation, refresh logic, and auth endpoint" — clear scope, vertical slice, completable by one agent, testable independently
+- **Right size**: "Add admin overload support — schema migration, entity/repository changes, service logic, API endpoints, and controller updates" — this is a complete feature delivered end-to-end as one task
 
 ### Granularity Checks
 
@@ -223,7 +211,7 @@ Use the loaded plan template (`templates/plan.md`) as the base structure. The pl
 2. **Context** — Links to architecture docs, requirements, RFCs
 3. **Scope** — In scope / out of scope boundaries
 4. **Success Criteria** — Checkboxes for plan-level acceptance
-5. **Task List** — Every task with classification, description, files, success criteria, dependencies
+5. **Task List** — Every task with description, files, success criteria, dependencies
 6. **Documentation Changes** — Structured changelog of docs updated during planning, plus any remaining doc updates for execution
 7. **Risk Assessment** — Risks with likelihood, impact, mitigation
 
@@ -236,15 +224,14 @@ Use the loaded plan template (`templates/plan.md`) as the base structure. The pl
    mkdir -p documentation/plans/{name}/shared documentation/plans/{name}/tasks
    ```
 4. **Build the plan** — the planning mode provides the content; you ensure format compliance. Use the loaded plan template including the `Execute: /uc:plan-execution {name}` header.
-5. **Classify all tasks** — apply classification rules to every task in the list
+5. **Validate task sizes** — apply granularity rules to every task in the list
 6. **Validate — HARD GATE (do not skip):**
-   a. Scan the task list for any task classified as Trivial. If found, STOP and absorb it into the nearest Full/Standard task before proceeding.
-   b. Scan for any task whose sole purpose is documentation, config/env changes, or renames. If found, STOP and absorb it.
-   c. Apply dependency-aware merging: for each A→B chain where A is pure setup, merge into B.
-   d. Count remaining tasks. If count exceeds the low end of the complexity range, justify each task — if you can't articulate why it needs its own pipeline, merge it.
-   e. Every remaining task must be Full or Standard.
+   a. Scan for any task whose sole purpose is documentation, config/env changes, renames, or other trivial work. If found, STOP and absorb it into the nearest task.
+   b. Scan for sequential dependency chains (A→B→C where each depends on the previous). If found, STOP and merge the chain into one task. Sequential chains gain nothing from being separate.
+   c. Count remaining tasks. If count exceeds the low end of the complexity range, justify each task — if you can't articulate why it MUST be separate (i.e., it enables real parallelism), merge it.
+   d. For each task, verify it represents a substantial vertical feature slice, not a single technical step. If a task is just "add migration" or "update repository" or "clean up controller", it's too small — merge it into the task it supports.
 7. **Write plan to `documentation/plans/{name}/README.md`** via the Write tool — this is the canonical copy that `/uc:plan-execution` reads from. The plan is on disk before the user reviews it.
-8. **Present a concise summary in chat** — NOT the full plan. Include: plan name, objective, task count with Full/Standard breakdown only (never report Trivial counts — Trivial tasks should not exist), and the file path. The user can read the full plan from the file.
+8. **Present a concise summary in chat** — NOT the full plan. Include: plan name, objective, task count, and the file path. The user can read the full plan from the file.
 9. **Ask for approval via AskUserQuestion** — Options: "Approve" / "Reject with feedback" / "Partially reject (specify changes)"
 
 **Approval gate rules — strictly enforce:**
@@ -274,7 +261,6 @@ If the plan directory already exists (revision or re-planning):
 ## Constraints
 
 - Do NOT execute the plan — that is `/uc:plan-execution`'s job
-- Do NOT skip task classification — every task needs one
 - Do NOT create tasks without success criteria
 - ALWAYS write the plan to `documentation/plans/{name}/README.md` BEFORE presenting for approval — this ensures the plan is on disk and cannot be lost
 - ALWAYS include the `Execute: /uc:plan-execution {name}` header in the plan document
@@ -283,7 +269,7 @@ If the plan directory already exists (revision or re-planning):
 
 **Input from Feature Mode:** "Add user authentication with JWT"
 
-**Merge analysis:** An initial draft might produce: Task A "Update env config with JWT_SECRET" → Task 1 depends on it, Task B "Add login endpoint" → depends on Task 1. Applying dependency-aware merging: env config is pure setup with no fan-out benefit — absorb it into Task 1. Login and registration are the same auth surface — combine into one vertical slice. Result: 3 tasks → 2 tasks.
+**Merge analysis:** An initial draft might produce: Task A "Update env config with JWT_SECRET", Task B "Build JWT middleware", Task C "Add login endpoint", Task D "Add registration endpoint", Task E "Add tests". Applying the sequential chain rule: these all form a dependency chain (A→B→C→D→E) and cannot run in parallel. Auth middleware and auth endpoints are the same feature surface. Result: 5 tasks → 1 task.
 
 **Plan Enhancer produces:**
 
@@ -297,21 +283,13 @@ documentation/plans/user-auth/
 **README.md includes tasks like:**
 
 ```markdown
-### Task 1: Build JWT auth middleware with token validation
-- **Classification:** Full
-- **Description:** Add JWT_SECRET and TOKEN_EXPIRY to environment config. Create Express middleware that validates JWT tokens from HTTP-only cookies, extracts user claims, and attaches to request context. Includes token refresh logic.
-- **Files:** .env.example (modify), src/config.ts (modify), src/middleware/auth.ts (create), src/types/auth.ts (create), src/app.ts (modify)
-- **Success criteria:** Env vars documented and loaded; middleware validates tokens, rejects expired tokens, refreshes near-expiry tokens, attaches user to req.user
+### Task 1: Build JWT authentication system
+- **Description:** Add JWT_SECRET and TOKEN_EXPIRY to environment config. Create Express middleware that validates JWT tokens from HTTP-only cookies, extracts user claims, and attaches to request context. Includes token refresh logic. Create POST /api/auth/login, POST /api/auth/register, and POST /api/auth/logout endpoints. Login validates credentials and returns JWT in HTTP-only cookie. Register creates user with hashed password. Logout clears the token cookie.
+- **Files:** .env.example (modify), src/config.ts (modify), src/middleware/auth.ts (create), src/types/auth.ts (create), src/app.ts (modify), src/routes/auth.ts (create), src/services/auth.ts (create), src/models/user.ts (create)
+- **Success criteria:** Env vars documented and loaded; middleware validates tokens, rejects expired tokens, refreshes near-expiry tokens, attaches user to req.user; login returns 200 with token cookie on valid creds, 401 on invalid; register creates user and returns 201; logout clears cookie and returns 200
 - **Dependencies:** None
-
-### Task 2: Build login and registration endpoints
-- **Classification:** Standard
-- **Description:** Create POST /api/auth/login, POST /api/auth/register, and POST /api/auth/logout endpoints. Login validates credentials and returns JWT in HTTP-only cookie. Register creates user with hashed password. Logout clears the token cookie.
-- **Files:** src/routes/auth.ts (create), src/services/auth.ts (create), src/models/user.ts (create)
-- **Success criteria:** Login returns 200 with token cookie on valid creds, 401 on invalid; register creates user and returns 201; logout clears cookie and returns 200
-- **Dependencies:** Task 1
 ```
 
-> **Why 2 tasks, not 3+:** Env config was pure setup for Task 1 with no independent value — merged in. Login, registration, and logout are the same auth surface area — one vertical slice, not three horizontal endpoints.
+> **Why 1 task, not 5:** Env config, middleware, login, registration, and logout form a sequential dependency chain — they cannot run in parallel and they all serve the same feature. One task, one vertical slice, one pipeline team.
 
-> **Note on doc updates:** If this plan required updating API documentation, that would go in the Documentation Changes table above — not as a separate Task 3. Documentation updates are never standalone tasks.
+> **Note on doc updates:** If this plan required updating API documentation, that would go in the Documentation Changes table above — not as a separate task. Documentation updates are never standalone tasks.

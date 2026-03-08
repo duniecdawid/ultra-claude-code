@@ -34,18 +34,17 @@ References to the documentation that informs this plan. Prefer links over prose 
 
 ## Task List
 
-> Tasks are Full (research -> impl -> review -> test) or Standard (impl -> review -> test) only.
-> Trivial work (config changes, doc updates, renames) MUST be absorbed into the nearest Full/Standard task — never listed as a standalone task.
+> Every task gets the full pipeline: research -> impl -> review -> test.
+> Tasks must be substantial vertical feature slices. Trivial work (config changes, doc updates, renames) MUST be absorbed into the nearest task — never listed standalone.
+> Sequential dependency chains MUST be merged into a single task.
 
 ### Task 1: {Title}
-- **Classification:** Full | Standard
 - **Description:** What needs to be done
 - **Files:** Expected files to create/modify
 - **Success criteria:** How to verify this task is done
 - **Dependencies:** Other tasks that must complete first
 
 ### Task 2: {Title}
-- **Classification:** Full | Standard
 - **Description:** What needs to be done
 - **Files:** Expected files to create/modify
 - **Success criteria:** How to verify this task is done

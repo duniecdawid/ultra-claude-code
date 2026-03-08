@@ -28,7 +28,7 @@
 <tr><th>Mechanism</th><th>Purpose</th></tr>
 </thead>
 <tbody>
-<tr><td><strong>Per-Task Pipeline Teams</strong></td><td>Lead spawns a dedicated mini-team for each task. Each team has its own Researcher, Executor, Reviewer, and Tester (depending on task classification). The team self-coordinates internally through all pipeline stages.</td></tr>
+<tr><td><strong>Per-Task Pipeline Teams</strong></td><td>Lead spawns a dedicated mini-team for each task. Each team has its own Researcher, Executor, Reviewer, and Tester. The team self-coordinates internally through all pipeline stages.</td></tr>
 <tr><td><strong>Shared Directory</strong> (<code>plans/{name}/shared/</code>)</td><td>Contains <code>lead.md</code> with plan overview, concurrency decisions, architectural constraints, and key decisions. Written by the Lead. Survives session death.</td></tr>
 <tr><td><strong>Plan README.md</strong></td><td>Source of truth for what needs to be done, task ordering, success criteria.</td></tr>
 <tr><td><strong>Per-Task Artifact Files</strong> (<code>plans/{name}/tasks/task-N/</code>)</td><td>Each task gets a subdirectory with <code>research.md</code>, <code>plan.md</code>, and <code>impl.md</code> &mdash; persistent context written by the task&rsquo;s pipeline team.</td></tr>
@@ -76,7 +76,7 @@ Write your implementation plan to tasks/task-3/plan.md. Write implementation not
 
 <p><strong>How it flows:</strong></p>
 <ul>
-<li>Lead creates all tasks as <code>pending</code> with their classification (Full or Standard)</li>
+<li>Lead creates all tasks as <code>pending</code></li>
 <li>Lead spawns a per-task team for each task (respecting concurrency limits)</li>
 <li>Within each team, the Executor drives the pipeline:
 <ul>
@@ -95,35 +95,34 @@ Write your implementation plan to tasks/task-3/plan.md. Write implementation not
 
 <p><strong>Review and test run in parallel</strong> after the Executor signals readiness. Both must PASS before the task is complete.</p>
 
-<h2 id="task-classification">Task Classification</h2>
+<h2 id="task-pipeline">Task Pipeline</h2>
 
-<p>Lead classifies each task before spawning teams to avoid full pipeline overhead for simpler changes:</p>
+<p>Every task gets the full pipeline team: <strong>Researcher + Executor + Reviewer + Tester</strong>. There is no classification step &mdash; all tasks receive the same treatment.</p>
 
 <div class="table-wrap">
 <table>
 <thead>
-<tr><th>Classification</th><th>Criteria</th><th>Pipeline</th><th>Example</th></tr>
+<tr><th>Pipeline</th><th>Team</th></tr>
 </thead>
 <tbody>
-<tr><td><strong>Full</strong></td><td>Multi-file, architectural, complex logic</td><td>Research &rarr; Implementation &rarr; Review &rarr; Test</td><td>Add new API endpoint with auth middleware, DB migration, tests</td></tr>
-<tr><td><strong>Standard</strong></td><td>Single-component, clear requirements</td><td>Implementation &rarr; Review &rarr; Test</td><td>Add validation to existing form component</td></tr>
+<tr><td>Research &rarr; Implementation &rarr; Review &rarr; Test</td><td>Researcher + Executor + Reviewer + Tester</td></tr>
 </tbody>
 </table>
 </div>
 
-<p>Lead sets classification per task when creating task lists. Tasks start at the appropriate first stage. Trivial work (config changes, renames, one-liners) is absorbed into the nearest Full or Standard task &mdash; never listed as a standalone task.</p>
+<p>Trivial work (config changes, renames, one-liners) is absorbed into the nearest task &mdash; never listed as a standalone task.</p>
 
 <h2 id="plan-execution-team-structure">The Plan Execution Team Structure</h2>
 
 <pre><code>Lead (main session -- user interacts here)
 |
-+-- Reads plan README.md, classifies tasks, decides concurrency
++-- Reads plan README.md, decides concurrency
 +-- Creates shared/ directory with lead.md (plan overview, constraints, decisions)
 +-- Creates tasks/ subdirectories for each task
 |
 +-- Per-Task Team 1 (spawned as agent team)
 |   |
-|   +-- Researcher (0-1, Full tasks only)
+|   +-- Researcher (1)
 |   |   Model: sonnet | Tools: Read, Write, Grep, Glob, WebFetch, WebSearch, mcp__ref
 |   |   - Reads plan README.md + shared/lead.md
 |   |   - Gathers context for this specific task
@@ -243,7 +242,7 @@ Write your implementation plan to tasks/task-3/plan.md. Write implementation not
 <p>Lead does NOT micromanage. Intervenes only at:</p>
 
 <ol>
-<li><strong>Team spawning</strong> &mdash; classifies tasks, decides concurrency, writes spawn prompts, creates <code>shared/</code> directory with initial <code>lead.md</code>, creates <code>tasks/</code> subdirectories</li>
+<li><strong>Team spawning</strong> &mdash; decides concurrency, writes spawn prompts, creates <code>shared/</code> directory with initial <code>lead.md</code>, creates <code>tasks/</code> subdirectories</li>
 <li><strong>Task completion tracking</strong> &mdash; monitors which task teams have finished, spawns next pending task&rsquo;s team</li>
 <li><strong>Escalation handling</strong> &mdash; receives escalations from Executors after 10 failed fix cycles, decides whether to adjust task or escalate to user</li>
 <li><strong>Checkpoint</strong> &mdash; periodic state save (see below)</li>
@@ -364,8 +363,7 @@ PHASE 1: SETUP (Lead actions)
   b. Check for checkpoint:
      - If checkpoint exists -&gt; show resume prompt
      - If resuming -&gt; skip completed tasks based on checkpoint
-  c. Classify tasks (Full vs Standard)
-  d. Create shared/ directory with initial lead.md
+  c. Create shared/ directory with initial lead.md
   e. Create tasks/task-N/ subdirectories for each task
   f. Determine concurrency (1-3 tasks: 2, 4-8: 3, 9+: 4 max teams)
 
@@ -374,7 +372,6 @@ PHASE 2: PIPELINE ORCHESTRATION (per-task teams, self-coordinating)
   For each task (up to concurrency limit):
     Lead spawns a per-task agent team:
 
-    [Full task pipeline]
     Researcher:
       read plan + shared/lead.md + architecture docs -&gt;
       gather context for this task -&gt;

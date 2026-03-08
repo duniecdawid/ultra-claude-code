@@ -1,7 +1,6 @@
 # Task: {Title}
 
 > Plan: {plan-name}
-> Classification: Full | Standard
 > Status: Pending | In Progress | Completed | Failed
 
 ## Description
@@ -25,8 +24,6 @@ Tasks that must complete before this one:
 -
 
 ## Research
-
-> For Full-classification tasks. Link to research file when available.
 
 Research file: `plans/{plan-name}/tasks/task-N/research.md`
 

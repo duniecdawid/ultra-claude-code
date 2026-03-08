@@ -69,10 +69,10 @@ Write to `documentation/plans/{plan-name}/checkpoint-{YYYY-MM-DD-HHmm}.md`:
 
 ## Active Pipeline Teams
 
-| Task | Classification | Active Team Members | Notes |
-|------|---------------|---------------------|-------|
-| task-1 | full | R-1, E-1, Rev-1, T-1 | Reviewer active |
-| task-2 | standard | E-2, Rev-2, T-2 | Awaiting plan feedback |
+| Task | Active Team Members | Notes |
+|------|---------------------|-------|
+| task-1 | R-1, E-1, Rev-1, T-1 | Reviewer active |
+| task-2 | R-2, E-2, Rev-2, T-2 | Awaiting plan feedback |
 
 ## Task Pipeline Status
 

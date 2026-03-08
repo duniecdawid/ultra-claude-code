@@ -52,16 +52,11 @@ If `checkpoint-*.md` files exist:
 4. If yes: skip completed work, re-spawn teams for incomplete tasks using per-task files as context
 5. If no: confirm user wants to discard progress, then start fresh
 
-### 1.3 Classify Tasks
+### 1.3 Task Pipeline
 
-For each task in the plan, assign a classification:
+Every task gets the full pipeline team: **Researcher + Executor + Reviewer + Tester**. There is no classification step.
 
-| Classification | Criteria | Team Members |
-|----------------|----------|--------------|
-| **Full** | Multi-file, architectural, complex logic | Researcher + Executor + Reviewer + Tester |
-| **Standard** | Single-component, clear requirements | Executor + Reviewer + Tester |
-
-Tasks with existing `tasks/task-N/research.md` files skip Research regardless of classification.
+Tasks with existing `tasks/task-N/research.md` files skip the Research phase (Researcher is still spawned but told to read existing research instead of generating new).
 
 ### 1.4 Concurrency Decision
 
@@ -73,7 +68,7 @@ Determine how many task-teams can run concurrently:
 | 4-8 tasks | 2-3 |
 | 9+ tasks  | 3-4 |
 
-Max ceiling: **4 concurrent task-teams** (each team = 2-4 agents depending on classification).
+Max ceiling: **4 concurrent task-teams** (each team = 4 agents: Researcher + Executor + Reviewer + Tester).
 
 Each slot = 1 full task-team. All team members spawned together when a slot opens, all exit together when the task is done.
 
@@ -101,13 +96,11 @@ Present to user BEFORE spawning any teams:
 
 ```
 Plan: $ARGUMENTS
-Tasks: N total (X Full + Y Standard)
+Tasks: N total
 Concurrency: up to M task-teams in parallel
-Estimated cost: ~[X]K tokens
+Estimated cost: ~[N * 200]K tokens
 
-Cost per task pipeline:
-  Full (R+I+Rev+T):    ~200K tokens
-  Standard (I+Rev+T):  ~150K tokens
+Cost per task pipeline: ~200K tokens (Researcher + Executor + Reviewer + Tester)
 
 Proceed? (yes/no)
 ```
@@ -121,15 +114,14 @@ Create ONE task per plan task — no role prefixes. Pipeline stage is tracked in
 ```
 TaskCreate({
   subject: "task-1: Add JWT middleware",
-  description: "Classification: Standard\nSuccess criteria: ...\nFiles: src/middleware/auth.ts\n...",
+  description: "Success criteria: ...\nFiles: src/middleware/auth.ts\n...",
   activeForm: "Processing task 1: Add JWT middleware",
-  metadata: { "classification": "standard", "stage": "pending", "retry_count": 0 }
+  metadata: { "stage": "pending", "retry_count": 0 }
   // stage values: "pending" | "planning" | "research" | "impl" | "review" | "test" | "done"
 })
 ```
 
 Each task description must include:
-- Classification (Full/Standard)
 - Success criteria from the plan
 - Files involved
 - Dependencies on other tasks (use `addBlockedBy` for sequential ordering)
@@ -185,12 +177,9 @@ Both PASS:  Executor tells Lead "task done" → Lead sends shutdown_request to a
 - **Reviewer and Tester can consult Researcher** if they need clarification during their work.
 - **Max 10 fix cycles** between executor/reviewer/tester before Lead escalates to user.
 
-### Team Composition by Classification
+### Team Composition
 
-| Classification | Team Members Spawned |
-|----------------|---------------------|
-| Full           | Researcher + Executor + Reviewer + Tester |
-| Standard       | Executor + Reviewer + Tester |
+Every task gets the same team: **Researcher + Executor + Reviewer + Tester**.
 
 ### Orchestration Loop
 
@@ -223,7 +212,7 @@ REPEAT until all tasks "done" or escalated:
        - Find next pending, unblocked task
        - Create tasks/task-N/ directory
        - Spawn the full task team (all members at once)
-       - Update task metadata: stage → "research" (Full) or "impl" (Standard)
+       - Update task metadata: stage → "research"
   3. Checkpoint if triggered
 ```
 
@@ -282,11 +271,10 @@ You are the **team coordinator** for task {N} of the "$ARGUMENTS" plan.
 
 **Your task:** {task description from plan}
 **Success criteria:** {success criteria from plan}
-**Classification:** {full/standard}
 
 **Your teammates (use SendMessage to communicate):**
-- Researcher: researcher-{N} (Full classification only)
-- Reviewer: reviewer-{N} (Full/Standard only)
+- Researcher: researcher-{N}
+- Reviewer: reviewer-{N}
 - Tester: tester-{N}
 - Lead: {lead name} (for task completion and escalation only)
 
@@ -300,12 +288,11 @@ You are the **team coordinator** for task {N} of the "$ARGUMENTS" plan.
 
 **Workflow:**
 1. Read context files above
-2. {If Full classification:} Wait for researcher-{N}'s "research ready" message, then read `tasks/task-{N}/research.md`
+2. Wait for researcher-{N}'s "research ready" message, then read `tasks/task-{N}/research.md`
 3. Write your implementation plan to `documentation/plans/$ARGUMENTS/tasks/task-{N}/plan.md`
-4. {If Full classification:} SendMessage to reviewer-{N} AND researcher-{N}: "Plan ready for feedback — written to tasks/task-{N}/plan.md. Review from your perspective. Reply LGTM or CONCERNS."
-   {If Standard classification:} SendMessage to reviewer-{N}: "Plan ready for feedback — written to tasks/task-{N}/plan.md. Review from architecture/patterns perspective. Reply LGTM or CONCERNS."
+4. SendMessage to reviewer-{N} AND researcher-{N}: "Plan ready for feedback — written to tasks/task-{N}/plan.md. Review from your perspective. Reply LGTM or CONCERNS."
 5. Wait for feedback responses. If CONCERNS: address in plan, notify the teammate, then proceed.
-5.5 {If Full classification:} Before implementing, check if you have outstanding unknowns that qualify as research (see your agent instructions step 3.5). If so, delegate to researcher-{N} via SendMessage and begin implementing non-dependent parts while they research.
+5.5 Before implementing, check if you have outstanding unknowns that qualify as research (see your agent instructions step 3.5). If so, delegate to researcher-{N} via SendMessage and begin implementing non-dependent parts while they research.
 5.9 {If pipeline_spawned:} See your agent instructions step 3.9 — send "Planning complete — awaiting implementation approval" to Lead and WAIT before implementing.
 6. Implement the task. As you complete each file, send a progress update to reviewer-{N}: "Progress: completed {file path} — you can start reading"
 7. Write implementation notes to the output path
@@ -342,7 +329,7 @@ You are reviewing task {N} of the "$ARGUMENTS" plan.
 
 **Your teammates (use SendMessage to communicate):**
 - Executor: executor-{N}
-- Researcher: researcher-{N} (if applicable — ask them questions if you need context)
+- Researcher: researcher-{N} (ask them questions if you need context)
 - Tester: tester-{N}
 
 **Context files to read (while waiting for Executor):**
@@ -375,8 +362,8 @@ You are testing task {N} of the "$ARGUMENTS" plan.
 
 **Your teammates (use SendMessage to communicate):**
 - Executor: executor-{N}
-- Reviewer: reviewer-{N} (if applicable)
-- Researcher: researcher-{N} (if applicable — ask them questions if you need context)
+- Reviewer: reviewer-{N}
+- Researcher: researcher-{N} (ask them questions if you need context)
 
 **Context files to read (while waiting — these are your testing references):**
 - Plan: `documentation/plans/$ARGUMENTS/README.md` (PRIMARY — success criteria live here)
@@ -424,12 +411,7 @@ This is NOT a per-task test. Run the FULL test suite as a regression check acros
 
 Executors write implementation plans to `tasks/task-N/plan.md` and request feedback from teammates before implementing. This is a **teammate-driven, advisory** protocol — not a Lead gate.
 
-**Who reviews:**
-
-| Classification | Reviewers | Rationale |
-|----------------|-----------|-----------|
-| **Full** | Reviewer + Researcher | Reviewer checks architecture/patterns; Researcher checks plan accounts for research findings |
-| **Standard** | Reviewer only | No researcher on the team |
+**Who reviews:** Reviewer + Researcher (every task has both).
 
 **What reviewers check:**
 - Reviewer: Do proposed file changes align with architecture? Does the approach follow standards patterns? Any risks that would cause a formal review fail later?
@@ -473,10 +455,10 @@ Write to `documentation/plans/$ARGUMENTS/checkpoint-{YYYY-MM-DD-HHmm}.md`:
 
 ## Active Pipeline Teams
 
-| Task | Classification | Active Team Members | Notes |
-|------|---------------|---------------------|-------|
-| task-1 | full | R-1, E-1, Rev-1, T-1 | In review stage |
-| task-2 | standard | E-2, Rev-2, T-2 | Implementing |
+| Task | Active Team Members | Notes |
+|------|---------------------|-------|
+| task-1 | R-1, E-1, Rev-1, T-1 | In review stage |
+| task-2 | R-2, E-2, Rev-2, T-2 | Implementing |
 
 ## Task Pipeline Status
 
@@ -638,7 +620,7 @@ When a teammate discovers something that invalidates part of the plan:
 
 You are a project manager. You:
 
-- **DO**: Classify tasks, decide concurrency, spawn task-teams, track progress, handle escalations, checkpoint, produce summary
+- **DO**: Decide concurrency, spawn task-teams, track progress, handle escalations, checkpoint, produce summary
 - **DO NOT**: Write code, relay messages between team members, micromanage team-internal coordination, review executor plans (teammates handle this)
 - **TRUST**: Task-teams to self-coordinate internally — Executor drives the pipeline, teammates review plans
 - **INTERVENE ONLY AT**: Team spawning, escalation handling, plan changes, checkpoint, completion
