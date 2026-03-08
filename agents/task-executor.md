@@ -135,14 +135,10 @@ After ALL implementation is complete:
    - Test verdict: pending/pass/fail
 
 3. **Process verdicts as they arrive:**
-   - **Review FAIL**: Fix code, update impl.md, then:
-     - SendMessage to Reviewer: "Ready for re-review — fixed: {summary}"
-     - SendMessage to Tester: "Code changed after review fix — files updated: {list}. Re-test when ready."
-     - Reset test verdict to pending (Tester must re-verify)
-   - **Test FAIL** (while review still pending or passed): Fix code, update impl.md, then:
-     - SendMessage to Tester: "Ready for re-test — fixed: {summary}"
-     - SendMessage to Reviewer: "Code changed after test fix — files updated: {list}. Re-review when ready."
-     - Reset review verdict to pending (Reviewer must re-verify)
+   - **Review FAIL** or **Test FAIL**: Fix code, update impl.md, then:
+     - SendMessage to Reviewer: "Ready for re-review — fixed: {summary}, files updated: {list}"
+     - SendMessage to Tester: "Ready for re-test — fixed: {summary}, files updated: {list}"
+     - Reset BOTH verdicts to pending (both must re-verify after any code change)
    - **Review PASS**: Record. If test also PASS → step 6.
    - **Test PASS**: Record. If review also PASS → step 6.
 

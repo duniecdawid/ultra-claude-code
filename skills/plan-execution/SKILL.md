@@ -171,9 +171,9 @@ Executor:   reads research → plans → implements
             → tells Reviewer "ready for review" AND Tester "ready for test" simultaneously
 Reviewer:   reads files early (advisory feedback) → formal review on "ready for review"
             → sends PASS/FAIL to Executor
-            → if FAIL: Executor fixes → re-review + re-test signals sent to both
+            → if FAIL: Executor fixes → "Ready for re-review" + "Ready for re-test" sent to both simultaneously
 Tester:     tests against PRODUCT DOCS (not impl.md) → sends PASS/FAIL to Executor (in parallel with Reviewer)
-            → if FAIL: Executor fixes → re-test + re-review signals sent to both
+            → if FAIL: Executor fixes → "Ready for re-test" + "Ready for re-review" sent to both simultaneously
 Both PASS:  Executor tells Lead "task done" → Lead sends shutdown_request to all → team exits
 ```
 
@@ -311,7 +311,7 @@ You are the **team coordinator** for task {N} of the "$ARGUMENTS" plan.
 7. Write implementation notes to the output path
 8. SendMessage to Lead: "Implementation complete — entering review/test phase" (fire-and-forget, do not wait for response)
 9. SendMessage to BOTH reviewer-{N}: "Ready for review — files changed: {list}" AND tester-{N}: "Ready for test — implementation complete, files changed: {list}" simultaneously
-10. Process review AND test feedback in parallel — both must PASS. If either FAILs, fix code and re-signal BOTH reviewer and tester (see agent instructions step 5).
+10. Process review AND test feedback in parallel — both must PASS. If either FAILs, fix code, reset both verdicts to pending, and send "Ready for re-review" to reviewer-{N} AND "Ready for re-test" to tester-{N} simultaneously (see agent instructions step 5).
 11. When both review and test pass: SendMessage to Lead "Task done — all stages passed"
 12. Wait for Lead's shutdown_request. Approve it to exit.
 ```
@@ -392,7 +392,7 @@ You are testing task {N} of the "$ARGUMENTS" plan.
 3. Test the implementation against success criteria from the plan
 4. SendMessage verdict to executor-{N}: PASS or FAIL with structured feedback
 5. If FAIL: stay alive — executor-{N} will fix and send "ready for re-test"
-6. You may also receive "Code changed after review fix" from executor-{N} — this means the Reviewer found issues and code was updated. Re-test the updated code regardless of your previous verdict.
+6. After any code fix, executor-{N} sends "Ready for re-test — fixed: {summary}, files updated: {list}". Treat every such message as a full re-test trigger regardless of your previous verdict.
 7. Exit only when Lead sends you a shutdown_request after the task completes. Approve it to exit.
 ```
 

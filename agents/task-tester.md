@@ -58,7 +58,7 @@ While waiting for the Executor to finish, do real work — don't just read, **pr
 
 The Executor will message you when implementation is complete. They'll include a list of files changed. **This signal arrives at the same time as the Reviewer's "ready for review" — you work in parallel with the Reviewer.** This is your trigger to start, not your boundary — you verify independently, you don't just check what they say they did.
 
-**IMPORTANT:** If the Reviewer finds issues and the Executor fixes code, the Executor will send you "Code changed after review fix — files updated: {list}. Re-test when ready." You MUST re-test against the updated code, even if you already sent PASS. Your previous PASS is invalidated by code changes.
+**IMPORTANT:** After any code fix (whether triggered by Reviewer feedback or your own test failures), the Executor will send you "Ready for re-test — fixed: {summary}, files updated: {list}". You MUST re-test against the updated code, even if you already sent PASS. Your previous PASS is invalidated by code changes.
 
 ### 3. Independent Investigation
 
@@ -123,7 +123,7 @@ If you sent FAIL:
 - Send updated verdict to Executor (PASS or FAIL)
 - Repeat until PASS or Executor escalates
 
-You may also receive re-test signals triggered by review fixes (not just your own failures). The Executor will send "Code changed after review fix" — treat this as a re-test trigger regardless of your previous verdict. Code has changed, so your previous results are no longer valid.
+After any code fix (whether triggered by review failures or your own test failures), the Executor sends "Ready for re-test" — treat every such message as a full re-test trigger regardless of your previous verdict. Code has changed, so your previous results are no longer valid.
 
 ### 6. Exit
 

@@ -115,7 +115,7 @@ If you sent FAIL:
 - Send updated verdict to Executor (PASS or FAIL)
 - Repeat until PASS or Executor escalates
 
-You may also receive "Code changed after test fix — files updated: {list}. Re-review when ready." from the Executor. This means the Tester found issues and the Executor fixed code after your review. Treat this as a re-review trigger — re-review the updated files, focusing on your previous checks plus any new changes.
+After any code fix (whether triggered by your review feedback or Tester failures), the Executor will send you "Ready for re-review — fixed: {summary}, files updated: {list}". This is identical in urgency to your initial review trigger. Re-review the updated files, focusing on your previous checks plus any new changes.
 
 ### 8. After PASS
 
