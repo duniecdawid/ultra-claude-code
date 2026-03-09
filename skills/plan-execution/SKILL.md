@@ -50,6 +50,7 @@ If `checkpoint-*.md` files exist:
    Resume from checkpoint? (yes/no)
    ```
 4. If yes: skip completed work, re-spawn teams for incomplete tasks using per-task files as context
+   - After re-spawning teams for incomplete tasks, run the tmux-team-grid skill to establish the grid layout: `Skill({ skill: "uc:tmux-team-grid" })`
 5. If no: confirm user wants to discard progress, then start fresh
 
 ### 1.3 Task Pipeline
@@ -192,6 +193,7 @@ REPEAT until all tasks "done" or escalated:
         - Update task metadata stage to "done"
         - Send shutdown_request to ALL task team members (executor-N, researcher-N, reviewer-N, tester-N)
         - Pipeline slot freed once all have shut down
+        - After all team members have shut down, run the tmux-team-grid skill to reorganize the layout (cleans up the grid after panes disappear): `Skill({ skill: "uc:tmux-team-grid" })`
         - Check: any task in "planning" stage with blocked_by_task == this task?
           → SendMessage to that executor: "Implementation approved — predecessor
             task {N} passed all stages. Proceed to implement."
@@ -213,6 +215,7 @@ REPEAT until all tasks "done" or escalated:
        - Create tasks/task-N/ directory
        - Spawn the full task team (all members at once)
        - Update task metadata: stage → "research"
+     - After spawning all team members, run the tmux-team-grid skill to reorganize the layout (arranges new agent panes into the grid): `Skill({ skill: "uc:tmux-team-grid" })`
   3. Checkpoint if triggered
 ```
 
@@ -372,6 +375,8 @@ You are testing task {N} of the "$ARGUMENTS" plan.
 - System test instructions: `.claude/system-test.md` (if exists)
 
 **IMPORTANT:** Test against the plan's success criteria and product docs, NOT against the Executor's impl.md. You may read impl.md only to know which files were touched.
+
+**IMPORTANT:** Each task should be end-to-end testable from the user's perspective. If you can only verify technical artifacts (a column exists, a method is defined, a type is exported) rather than user behavior (making requests, checking responses, observing system behavior), report this to the Executor as a task scoping issue.
 
 **Workflow:**
 1. Read context files above while waiting

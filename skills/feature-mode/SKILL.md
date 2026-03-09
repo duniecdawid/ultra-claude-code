@@ -172,7 +172,7 @@ Repeat until approved or the user abandons the plan.
 - Do NOT write any implementation code — this is a planning mode
 - Do NOT skip the scope challenge phase
 - Do NOT proceed with unclear scope without asking clarifying questions
-- Do NOT create tasks that are too small — every task must be a substantial vertical feature slice
+- Do NOT create tasks that violate Plan Enhancer's sizing rules (loaded in context) — every task must be end-to-end testable from the user's perspective
 - Do NOT create tasks without success criteria
 - Always route documentation to correct locations per Docs Manager rules
 - Always persist the plan to `documentation/plans/{name}/README.md` after approval per Plan Enhancer rules

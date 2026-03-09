@@ -129,13 +129,15 @@ Every task gets the full pipeline team: **Researcher + Executor + Reviewer + Tes
 
 ### Sizing Philosophy
 
-Tasks are **substantial vertical feature slices**, not horizontal technical layers. Each task should deliver a major, recognizable piece of functionality end-to-end. Err on the side of **too few, too large** tasks rather than too many small ones.
+Tasks deliver **end-to-end testable user value**, not technical artifacts. The core heuristic: **"Can the tester verify this task by putting themselves in the user's shoes and testing the full flow from input to output?"** If yes — right-sized. If the tester can only verify a technical artifact (a migration exists, a repository method works, a type is defined) — too small.
 
-- **Wrong:** Split by layer — one task for DB schema, another for the entity/repo, another for the service, another for the controller, another for tests. This is horizontal slicing and produces tasks that are too small.
-- **Wrong:** Split by technical concern — "Add migration", "Update repository", "Add service method", "Clean up controller", "Add test coverage". These are steps within a single task, not separate tasks.
-- **Right:** Split by major functionality — "Implement admin overload with schema migration, entity updates, service logic, and API endpoints" covers the entire vertical slice as one task.
-- **Heuristic:** "Is this a full feature or workflow that delivers user-visible or system-visible value?" If it's just a technical step toward that, it belongs inside a larger task, not as its own task.
-- **Anti-pattern detector:** If your tasks form a sequential chain where each depends on the previous one, they are almost certainly too granular. A chain of 3+ sequential tasks should usually be merged into 1-2 tasks.
+Each task should cut across the full stack (DB → backend → frontend/API) so that when it's done, a tester can simulate real user behavior and confirm the feature works end-to-end. Err on the side of **too few, too large** tasks rather than too many small ones.
+
+- **Wrong:** Split by layer — one task for DB schema, another for the entity/repo, another for the service, another for the controller, another for tests. These produce tasks a tester can only verify by checking technical artifacts ("the column exists", "the method is defined"), not user behavior.
+- **Wrong:** Split by technical concern — "Add migration", "Update repository", "Add service method", "Clean up controller", "Add test coverage". A tester cannot verify any of these from the user's perspective — they're steps within a single task.
+- **Right:** Split by user-facing functionality — "Implement admin overload with schema migration, entity updates, service logic, and API endpoints" delivers a complete flow a tester can verify: "as a user, when I create an admin overload, the system stores it and returns it via the API."
+- **Heuristic:** "Can a tester verify this by simulating user behavior — making requests, checking responses, observing system behavior?" If the tester can only check technical artifacts (schema exists, function defined, type exported), the task is too small.
+- **Anti-pattern detector:** If your tasks form a sequential chain where each depends on the previous one, they are almost certainly too granular — and none of them are independently testable from a user's perspective. A chain of 3+ sequential tasks should usually be merged into 1-2 tasks.
 
 ### Task Count Guidance
 
@@ -182,12 +184,13 @@ Over 5 tasks is a red flag — the plan is almost certainly sliced too thin. Ove
 ### Size Examples
 
 - **Too large**: "Implement the entire multi-tenant architecture with data isolation, tenant management, billing integration, and admin dashboard" — this is a plan, not a task
-- **Too small**: "Add JWT_SECRET to env config" — this is a step inside a real task
-- **Too small**: "Add schema migration for scope column" — this is a step inside a real task
-- **Too small**: "Update repository to support nullable partner" — this is a step inside a real task
-- **Too small**: "Clean up controller to remove sentinel UUID" — this is a step inside a real task
-- **Right size**: "Build login flow with JWT middleware, token validation, refresh logic, and auth endpoint" — clear scope, vertical slice, completable by one agent, testable independently
-- **Right size**: "Add admin overload support — schema migration, entity/repository changes, service logic, API endpoints, and controller updates" — this is a complete feature delivered end-to-end as one task
+- **Too small**: "Add JWT_SECRET to env config" — a tester can only verify the env var exists, not any user behavior
+- **Too small**: "Add schema migration for scope column" — a tester can only verify the column exists, not that scoping works end-to-end
+- **Too small**: "Update repository to support nullable partner" — a tester can only verify a method signature, not a user-facing flow
+- **Too small**: "Clean up controller to remove sentinel UUID" — a tester can only verify code structure, not user behavior
+- **Right size**: "Build login flow with JWT middleware, token validation, refresh logic, and auth endpoint" — tester can verify: "as a user, when I submit credentials, I get a token; when I use the token, I access protected resources; when the token expires, I'm rejected"
+- **Right size**: "Add partner scoping — migration adds scope column, repository supports filtering by scope, service enforces scope on all queries, API endpoints accept scope parameter, returns scoped results" — tester can verify: "as a user, when I request partners with scope X, I only see partners in that scope"
+- **Right size**: "Add admin overload support — schema migration, entity/repository changes, service logic, API endpoints, and controller updates" — tester can verify: "as a user, when I create an admin overload via the API, the system stores it and returns it correctly"
 
 ### Granularity Checks
 
@@ -199,9 +202,9 @@ Each task MUST have:
 
 Each task SHOULD be:
 - Completable by a single Executor agent in one pass
-- Independently testable
+- End-to-end testable from a user or system perspective — a tester can verify it by simulating user behavior, not just checking technical artifacts
 - Non-overlapping with other tasks (no two tasks modifying the same file for the same reason)
-- A vertical slice delivering recognizable progress, not a horizontal layer
+- A cross-functional slice (DB → backend → API/UI) delivering end-to-end user value, not a horizontal layer
 
 ## Plan Format
 
@@ -229,7 +232,7 @@ Use the loaded plan template (`templates/plan.md`) as the base structure. The pl
    a. Scan for any task whose sole purpose is documentation, config/env changes, renames, or other trivial work. If found, STOP and absorb it into the nearest task.
    b. Scan for sequential dependency chains (A→B→C where each depends on the previous). If found, STOP and merge the chain into one task. Sequential chains gain nothing from being separate.
    c. Count remaining tasks. If count exceeds the low end of the complexity range, justify each task — if you can't articulate why it MUST be separate (i.e., it enables real parallelism), merge it.
-   d. For each task, verify it represents a substantial vertical feature slice, not a single technical step. If a task is just "add migration" or "update repository" or "clean up controller", it's too small — merge it into the task it supports.
+   d. For each task, verify the tester can verify it end-to-end from the user's perspective. If a task can only be verified by checking technical artifacts (schema exists, function defined, type exported), it's too small — merge it into the task it supports.
 7. **Write plan to `documentation/plans/{name}/README.md`** via the Write tool — this is the canonical copy that `/uc:plan-execution` reads from. The plan is on disk before the user reviews it.
 8. **Present a concise summary in chat** — NOT the full plan. Include: plan name, objective, task count, and the file path. The user can read the full plan from the file.
 9. **Ask for approval via AskUserQuestion** — Options: "Approve" / "Reject with feedback" / "Partially reject (specify changes)"
@@ -290,6 +293,6 @@ documentation/plans/user-auth/
 - **Dependencies:** None
 ```
 
-> **Why 1 task, not 5:** Env config, middleware, login, registration, and logout form a sequential dependency chain — they cannot run in parallel and they all serve the same feature. One task, one vertical slice, one pipeline team.
+> **Why 1 task, not 5:** Env config, middleware, login, registration, and logout form a sequential dependency chain — they cannot run in parallel and they all serve the same feature. One task, one end-to-end testable unit, one pipeline team.
 
 > **Note on doc updates:** If this plan required updating API documentation, that would go in the Documentation Changes table above — not as a separate task. Documentation updates are never standalone tasks.

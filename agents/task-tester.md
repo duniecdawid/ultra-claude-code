@@ -78,6 +78,7 @@ For EACH success criterion in the plan:
 - **Is it actually implemented?** Don't take the Executor's word — read the code and confirm
 - **Is it fully implemented?** Look for partial implementations, TODOs, placeholder logic, hardcoded values, commented-out code
 - **Does the code match the requirement's intent?** The Executor may have implemented something that technically satisfies the letter of the criterion but misses the spirit
+- **Can you verify this from the user's perspective?** Each task should represent a complete user-facing flow. Think from the user's shoes: can you test the full flow from input to output? If you can only verify technical artifacts (a column exists, a method is defined, a type is exported) rather than user behavior, flag this as a task scoping issue to the Executor.
 - **Are edge cases handled?** Think adversarially — what inputs, sequences, or states could break this?
 
 #### 3c. Code Inspection (Not Review — Verification)

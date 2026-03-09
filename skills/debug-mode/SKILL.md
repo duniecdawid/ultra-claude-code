@@ -184,13 +184,13 @@ If none of these conditions are met, skip directly to Phase 5.
 1. **Synthesize** investigation findings and documentation updates from Phase 4.5 into a targeted fix plan
 2. **Derive plan name** from the bug description (e.g., "fix-login-race-condition")
 3. **Scaffold plan directory**: `mkdir -p documentation/plans/{name}/shared documentation/plans/{name}/research`
-4. **Define fix tasks** — each task targets a specific part of the fix:
+4. **Define fix tasks** — sized per Plan Enhancer rules (loaded in context). Each task must be end-to-end verifiable from the user's perspective:
    - Clear description of what to change and why (reference the evidence)
    - Files to modify
    - Success criteria (how to verify the fix works)
    - Regression criteria (what must NOT break)
-5. **Include verification tasks** — tasks to confirm the fix resolves the original issue
-6. **Include regression test tasks** — tasks to add tests preventing recurrence
+5. **Include verification within each fix task** — success criteria must confirm the fix resolves the original issue from the user's perspective
+6. **Include regression tests within each fix task** — tests preventing recurrence are part of the task, not standalone
 7. **Reference evidence** — link each fix task back to the hypothesis and evidence that supports it
 8. **Documentation changes** — list the docs created or updated in Phase 4.5, plus any remaining documentation gaps identified. Use the structured changelog format from the plan template. This is an informational record, not a fix task list.
 9. **Write the plan to `documentation/plans/{name}/README.md`** following Plan Enhancer format (plan template loaded via context) — the plan is on disk before the user reviews it
@@ -225,6 +225,5 @@ Repeat until approved or the user abandons the plan.
 - Do NOT skip hypothesis generation — jumping to solutions without evidence produces wrong fixes
 - Do NOT ignore System Tester results — reproduction evidence is critical
 - Do NOT plan a fix without evidence supporting the root cause
-- Always include verification tasks in the fix plan
-- Always include regression test tasks
+- Always include verification and regression tests as steps within fix tasks, not as separate standalone tasks
 - Do NOT create fix tasks whose sole purpose is updating documentation — doc updates happen in Phase 4.5 during planning, not as execution tasks

@@ -35,7 +35,8 @@ References to the documentation that informs this plan. Prefer links over prose 
 ## Task List
 
 > Every task gets the full pipeline: research -> impl -> review -> test.
-> Tasks must be substantial vertical feature slices. Trivial work (config changes, doc updates, renames) MUST be absorbed into the nearest task — never listed standalone.
+> Tasks must deliver end-to-end testable user value — from database through backend to API/UI. A tester must be able to verify each task by simulating user behavior, not just checking technical artifacts.
+> Trivial work (config changes, doc updates, renames) MUST be absorbed into the nearest task — never listed standalone.
 > Sequential dependency chains MUST be merged into a single task.
 
 ### Task 1: {Title}
