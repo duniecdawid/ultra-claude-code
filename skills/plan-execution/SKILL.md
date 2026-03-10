@@ -50,7 +50,6 @@ If `checkpoint-*.md` files exist:
    Resume from checkpoint? (yes/no)
    ```
 4. If yes: skip completed work, re-spawn teams for incomplete tasks using per-task files as context
-   - After re-spawning teams for incomplete tasks, run the tmux-team-grid skill to establish the grid layout: `Skill({ skill: "uc:tmux-team-grid" })`
 5. If no: confirm user wants to discard progress, then start fresh
 
 ### 1.3 Task Pipeline
@@ -193,7 +192,6 @@ REPEAT until all tasks "done" or escalated:
         - Update task metadata stage to "done"
         - Send shutdown_request to ALL task team members (executor-N, researcher-N, reviewer-N, tester-N)
         - Pipeline slot freed once all have shut down
-        - After all team members have shut down, run the tmux-team-grid skill to reorganize the layout (cleans up the grid after panes disappear): `Skill({ skill: "uc:tmux-team-grid" })`
         - Check: any task in "planning" stage with blocked_by_task == this task?
           → SendMessage to that executor: "Implementation approved — predecessor
             task {N} passed all stages. Proceed to implement."
@@ -215,7 +213,6 @@ REPEAT until all tasks "done" or escalated:
        - Create tasks/task-N/ directory
        - Spawn the full task team (all members at once)
        - Update task metadata: stage → "research"
-     - After spawning all team members, run the tmux-team-grid skill to reorganize the layout (arranges new agent panes into the grid): `Skill({ skill: "uc:tmux-team-grid" })`
   3. Checkpoint if triggered
 ```
 
@@ -446,7 +443,6 @@ Executors write implementation plans to `tasks/task-N/plan.md` and request feedb
 Save a checkpoint when ANY of these occur:
 - Every 3 completed tasks
 - User runs `/uc:checkpoint`
-- Stop hook fires (session ending)
 - Before risky plan amendments
 
 ### Content
