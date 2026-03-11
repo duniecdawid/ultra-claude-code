@@ -49,12 +49,6 @@ When the user wants to add capabilities, guide them through the correct extensio
 - Agents are spawned as subagents (Task tool) or teammates (agent teams)
 - Follow principle of least privilege for tool access
 
-**New hook:**
-- Add entry to `hooks/hooks.json`
-- Choose event: PreToolUse, PostToolUse, Stop
-- Choose type: command (shell), prompt (model evaluation), agent (spawned agent)
-- Hooks are the hard enforcement layer — use for rules that must not be overridden
-
 **New template:**
 - Add to `templates/` directory
 - Templates are copied into target projects by `/uc:init-project`

@@ -25,7 +25,7 @@
 
 <h2 id="governance-model">Governance Model</h2>
 
-<p>Documentation acts like zoning laws &mdash; you can build freely within the constraints, but the constraints control the direction of growth. Three levels of enforcement:</p>
+<p>Documentation acts like zoning laws &mdash; you can build freely within the constraints, but the constraints control the direction of growth. Two levels of enforcement:</p>
 
 <div class="table-wrap">
 <table>
@@ -35,7 +35,6 @@
 <tbody>
 <tr><td><strong>Soft</strong></td><td>CLAUDE.md rules, architecture docs</td><td>Advisory &mdash; Claude reads them, may drift under context pressure</td></tr>
 <tr><td><strong>Medium</strong></td><td>Skills that load architecture docs before planning</td><td>Prompt-enforced &mdash; skills inject architecture context into the conversation, making it highly unlikely to be skipped, but not a deterministic gate</td></tr>
-<tr><td><strong>Hard</strong></td><td>Hooks (PreToolUse, PostToolUse, Stop)</td><td>Cannot be overridden by the AI. Note: all current hooks use <code>type: "prompt"</code> (model-evaluated), not shell commands or agents. Still &ldquo;hard&rdquo; because the hook fires unconditionally &mdash; the AI cannot skip the evaluation step.</td></tr>
 </tbody>
 </table>
 </div>
@@ -47,7 +46,6 @@
 <ul>
 <li><strong>Skills</strong> = subdirectories under <code>skills/</code>, each containing a <code>SKILL.md</code> with YAML frontmatter + system prompt body. Skills with <code>user-invocable: true</code> become slash commands namespaced as <code>/uc:{skill-name}</code>.</li>
 <li><strong>Agents</strong> = flat <code>.md</code> files under <code>agents/</code>, each with YAML frontmatter declaring model, tools, and constraints. The body is the agent system prompt.</li>
-<li><strong>Hooks</strong> = defined in <code>hooks/hooks.json</code>. Each hook binds to an event (PreToolUse, PostToolUse, Stop) and specifies a handler type (command, prompt, or agent).</li>
 <li><strong><code>${CLAUDE_PLUGIN_ROOT}</code></strong> = environment variable that resolves to the plugin&rsquo;s root directory at runtime. Used in SKILL.md <code>context</code> paths for portable file references.</li>
 </ul>
 

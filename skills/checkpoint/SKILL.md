@@ -17,7 +17,7 @@ Save current execution state to a checkpoint file so the session can be recovere
 
 - **During execution** — periodic save every 3 completed tasks
 - **On user request** — `/uc:checkpoint` or `/uc:checkpoint {plan-name}`
-- **Before stopping** — the Stop hook also triggers this, but manual save is safer
+- **Before stopping** — manual save before ending a session
 - **Before risky changes** — save state before attempting something uncertain
 
 ## Process
@@ -127,7 +127,6 @@ To resume later:
 |---------|--------------|----------|
 | User `/uc:checkpoint` | User | Full checkpoint with confirmation |
 | Every 3 completed tasks | Lead (automatic) | Lightweight checkpoint, no user prompt |
-| Stop hook | System | Emergency checkpoint before session end |
 | Before plan amendments | Lead (automatic) | Save state before risky changes |
 
 ## Resume Compatibility

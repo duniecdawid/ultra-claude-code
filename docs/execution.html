@@ -275,7 +275,6 @@ Write your implementation plan to tasks/task-3/plan.md. Write implementation not
 <ul>
 <li>Every 3 completed tasks</li>
 <li>User runs <code>/uc:checkpoint</code></li>
-<li>Stop hook fires (session ending)</li>
 <li>Before risky plan amendments</li>
 </ul>
 
@@ -320,21 +319,6 @@ Write your implementation plan to tasks/task-3/plan.md. Write implementation not
 </li>
 <li><strong>Lead resumes spawning</strong> after resolution</li>
 </ol>
-
-<h2 id="hook-integration">Hook Integration</h2>
-
-<div class="table-wrap">
-<table>
-<thead>
-<tr><th>Hook</th><th>Execution Layer Behavior</th></tr>
-</thead>
-<tbody>
-<tr><td><strong>PreToolUse (Write/Edit)</strong></td><td>Checks if file changes align with architecture docs. Unchanged from planning layer.</td></tr>
-<tr><td><strong>PostToolUse (TaskUpdate)</strong></td><td>When any agent calls TaskUpdate with <code>status: "completed"</code>, reads plan README.md success criteria and validates. Blocks completion if criteria unmet.</td></tr>
-<tr><td><strong>Stop</strong></td><td>Triggers checkpoint save if execution is in progress. Writes checkpoint before session closes.</td></tr>
-</tbody>
-</table>
-</div>
 
 <h3 id="session-resume">Session Resume</h3>
 
@@ -403,7 +387,7 @@ PHASE 2: PIPELINE ORCHESTRATION (per-task teams, self-coordinating)
 
 PHASE 3: CHECKPOINT (triggered by Lead)
   Triggers: every 3 completed tasks,
-            user /uc:checkpoint, Stop hook (session ending),
+            user /uc:checkpoint,
             before risky plan amendments
   Saves: task states, checkpoint file, decisions
   Per-task artifacts already on disk

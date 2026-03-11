@@ -8,11 +8,10 @@ A Claude Code plugin that implements a spec-driven development platform. Documen
 
 Ultra Claude is a portable, reusable Claude Code plugin that turns any project into a structured, specification-driven development environment. You install it, it establishes a documentation layer, and from that point forward — documentation controls how the codebase grows.
 
-It is NOT a framework, library, or runtime. It is a collection of **skills**, **agents**, and **hooks** packaged as a Claude Code plugin. When installed in a project, Claude Code gains:
+It is NOT a framework, library, or runtime. It is a collection of **skills** and **agents** packaged as a Claude Code plugin. When installed in a project, Claude Code gains:
 
 - Three specialized planning modes (Feature, Debugging, Verification) + one execution engine
 - Agent teams that coordinate research, implementation, and validation in parallel
-- Architectural governance via hooks that enforce architecture conformance
 - Documentation-vs-code verification that detects drift
 - Plan management with checkpoint/recovery across sessions
 - A meta-skill ("Help") that teaches how to use the system
@@ -20,7 +19,7 @@ It is NOT a framework, library, or runtime. It is a collection of **skills**, **
 ## Core Philosophy
 
 - **Code is a derived artifact.** The specification is the source of truth. Architecture docs exist before code is written, and when code diverges from specs, you fix the spec first.
-- **Governance, not bureaucracy.** Documentation acts like zoning laws — you build freely within the constraints, but the constraints control direction. Three enforcement levels: soft (CLAUDE.md), medium (skills), hard (hooks).
+- **Governance, not bureaucracy.** Documentation acts like zoning laws — you build freely within the constraints, but the constraints control direction. Two enforcement levels: soft (CLAUDE.md) and medium (skills).
 - **Not every change needs the same scrutiny.** Additive changes flow freely. Compatible changes get lightweight review. Breaking changes require updating the architecture doc first.
 
 ## Installation
@@ -85,9 +84,6 @@ ultra-claude/
 │   │   └── SKILL.md
 │   └── tech-research/
 │       └── SKILL.md
-├── hooks/                             # Deterministic enforcement
-│   ├── hooks.json
-│   └── scripts/
 ├── templates/                         # Documentation templates for target projects
 ├── docs/                              # Plugin documentation (this project)
 └── README.md
@@ -99,7 +95,7 @@ ultra-claude/
 |----------|---------|
 | [Architecture](docs/architecture.html) | System design: philosophy, layers, modes, governance, agent teams |
 | [Execution](docs/execution.html) | Execution engine: agent teams, task lists, shared memory, lifecycle |
-| [Components](docs/components.html) | Reference tables: skills, agents, commands, hooks, templates, config |
+| [Components](docs/components.html) | Reference tables: skills, agents, templates, config |
 | [Workflows](docs/workflows.html) | Step-by-step flows for each mode |
 | [Decisions](docs/decisions.html) | Architectural decisions + open questions |
 | [Migration](docs/migration.html) | Old → new skill mapping *(temporary)* |

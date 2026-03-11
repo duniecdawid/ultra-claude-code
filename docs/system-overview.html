@@ -437,14 +437,6 @@
     word-break: break-word;
   }
 
-  /* hook items */
-  .hook-item {
-    background: var(--red-light);
-    border: 1px solid var(--red-border);
-  }
-  .hook-item .name { color: var(--red); }
-  .hook-item .desc { color: var(--gray-500); }
-
   /* support skill items */
   .support-item {
     background: var(--purple-light);
@@ -644,22 +636,6 @@
     color: var(--red);
     white-space: nowrap;
   }
-  .governance-bar .hooks {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-  }
-  .hook-chip {
-    font-size: 10px;
-    font-weight: 600;
-    padding: 2px 8px;
-    border-radius: 10px;
-    background: white;
-    color: var(--red);
-    border: 1px solid var(--red-border);
-    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
-  }
-
   /* ── Tab Bar ── */
   .tab-bar {
     display: flex;
@@ -950,10 +926,6 @@
     <div class="legend-dot" style="background: var(--orange)"></div>
     Discovery / Command
   </div>
-  <div class="legend-item">
-    <div class="legend-dot" style="background: var(--red)"></div>
-    Hook (Hard Enforcement)
-  </div>
 </div>
 
 <!-- Main Layout -->
@@ -1069,16 +1041,6 @@
     <div class="section execution-layer">
       <div class="section-label">Execution Layer</div>
 
-      <!-- Governance bar -->
-      <div class="governance-bar">
-        <div class="label">Hooks enforce:</div>
-        <div class="hooks">
-          <span class="hook-chip" data-tip="PreToolUse on Write/Edit — checks file changes align with architecture docs">PreToolUse (Write/Edit)</span>
-          <span class="hook-chip" data-tip="PostToolUse on TaskUpdate — validates task meets plan success criteria before allowing completion">PostToolUse (TaskUpdate)</span>
-          <span class="hook-chip" data-tip="Stop — saves checkpoint if execution in progress; checks architecture docs updated">Stop</span>
-        </div>
-      </div>
-
       <div class="exec-engine">
         <!-- Lead -->
         <div class="lead-box" data-tip="Main session. Creates 4 task lists from plan, spawns teammates, promotes tasks between lists, handles failures, checkpoints.">
@@ -1188,7 +1150,6 @@
         <div>
           <div class="tree-group">
             <div class="tree-line"><span class="tree-dir blue">.claude/</span><span class="tree-comment">configuration &amp; governance</span></div>
-            <div class="tree-line"><span class="tree-prefix">├── </span><span class="tree-file">hooks/</span><span class="tree-comment">PreToolUse, PostToolUse, Stop</span></div>
             <div class="tree-line"><span class="tree-prefix">├── </span><span class="tree-file">skills/</span><span class="tree-comment">modes, execution, support</span></div>
             <div class="tree-line"><span class="tree-prefix">├── </span><span class="tree-file">docs-format</span></div>
             <div class="tree-line"><span class="tree-prefix">├── </span><span class="tree-file">ultra-claude.local.md</span></div>
@@ -1213,25 +1174,6 @@
 
   <!-- ════ SIDE COLUMN ════ -->
   <div class="side-column">
-
-    <!-- Governance -->
-    <div class="side-panel">
-      <div class="section-label">Governance</div>
-      <div class="items-row">
-        <div class="side-item hook-item" data-tip="Deterministic — cannot be overridden by the AI. Checks file changes align with architecture docs on every Write/Edit.">
-          <div class="name">PreToolUse (Write/Edit)</div>
-          <div class="desc">Architecture conformance on file changes</div>
-        </div>
-        <div class="side-item hook-item" data-tip="Validates task meets plan success criteria before allowing completion.">
-          <div class="name">PostToolUse (TaskUpdate)</div>
-          <div class="desc">Validates task vs plan criteria</div>
-        </div>
-        <div class="side-item hook-item" data-tip="Saves checkpoint if execution in progress; checks architecture docs updated before session ends.">
-          <div class="name">Stop</div>
-          <div class="desc">Checkpoint + docs-updated check</div>
-        </div>
-      </div>
-    </div>
 
     <!-- Support Skills -->
     <div class="side-panel">
