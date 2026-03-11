@@ -132,7 +132,7 @@ Update the project's canonical documentation NOW — during this phase — with 
 
 1. **Synthesize** all gathered context (Researcher findings + direct reading + documentation updates from Phase 3)
 2. **Derive plan name** from feature description
-3. **Scaffold plan directory**: `mkdir -p documentation/plans/{name}/shared documentation/plans/{name}/research`
+3. **Scaffold plan directory**: `mkdir -p documentation/plans/{name}/shared documentation/plans/{name}/tasks`
 4. **Define tasks** — each task must have:
    - Description of what to build/change
    - Files to create or modify

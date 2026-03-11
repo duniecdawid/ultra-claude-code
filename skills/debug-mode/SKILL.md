@@ -183,7 +183,7 @@ If none of these conditions are met, skip directly to Phase 5.
 
 1. **Synthesize** investigation findings and documentation updates from Phase 4.5 into a targeted fix plan
 2. **Derive plan name** from the bug description (e.g., "fix-login-race-condition")
-3. **Scaffold plan directory**: `mkdir -p documentation/plans/{name}/shared documentation/plans/{name}/research`
+3. **Scaffold plan directory**: `mkdir -p documentation/plans/{name}/shared documentation/plans/{name}/tasks`
 4. **Define fix tasks** — sized per Plan Enhancer rules (loaded in context). Each task must be end-to-end verifiable from the user's perspective:
    - Clear description of what to change and why (reference the evidence)
    - Files to modify

@@ -12,6 +12,7 @@ allowed-tools:
   - AskUserQuestion
 context:
   - ${CLAUDE_PLUGIN_ROOT}/skills/plan-enhancer/SKILL.md
+  - ${CLAUDE_PLUGIN_ROOT}/skills/docs-manager/SKILL.md
 ---
 
 # Doc & Code Verification Mode
@@ -106,14 +107,13 @@ Present the discrepancy summary to the user with counts per severity level.
 If discrepancies exist:
 
 1. **Derive plan name** (e.g., "doc-code-sync-auth" or "full-verification-fix")
-2. **Scaffold plan directory**: `mkdir -p documentation/plans/{name}/shared documentation/plans/{name}/research`
-3. **Create fix tasks** — one per discrepancy or grouped by related discrepancies:
+2. **Scaffold plan directory**: `mkdir -p documentation/plans/{name}/shared documentation/plans/{name}/tasks`
+3. **Create fix tasks** sized per Plan Enhancer rules (loaded in context). Group discrepancies into end-to-end verifiable tasks — e.g., all discrepancies for a single component become one task. A tester should be able to verify each task by confirming the documentation accurately describes the code behavior for that component.
    - Description: what's wrong and what the fix should be
    - Fix type: update docs, update code, or needs decision
    - Files to modify (both doc and code file:line references)
-   - Success criteria: discrepancy resolved, re-verification passes
+   - Success criteria: documentation accurately describes code behavior for the affected component — a tester can read the docs, exercise the code, and confirm they match
    - Trivial fixes (naming/typo) are absorbed into the nearest task, not listed standalone.
-4. **Order tasks** — Critical fixes first, then Major, then Minor
 5. **Flag "needs decision" items** — present these to user for resolution before including in plan
 6. **Write the plan to `documentation/plans/{name}/README.md`** following Plan Enhancer format (plan template loaded via context) — the plan is on disk before the user reviews it
 7. **Present a concise summary in chat** — plan name, discrepancy count by severity, task count, file path
