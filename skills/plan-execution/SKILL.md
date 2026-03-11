@@ -226,7 +226,15 @@ REPEAT until all tasks "done" or escalated:
 
 All team members for a task are spawned at once. Each gets: task context, paths to read, output path, **names of ALL teammates**.
 
-Use the Agent tool with `team_name` set to the active team. Each teammate is spawned with a unique name incorporating the task number (e.g., `researcher-1`, `executor-1`, `reviewer-1`, `tester-1`).
+Use the Agent tool with `team_name` set to the active team. **MANDATORY naming convention** — the `name` parameter MUST follow exactly `{role}-{N}` where role is one of `researcher`, `executor`, `reviewer`, `tester` and N is the task number:
+
+| Task | Researcher | Executor | Reviewer | Tester |
+|------|-----------|----------|----------|--------|
+| 1 | `researcher-1` | `executor-1` | `reviewer-1` | `tester-1` |
+| 2 | `researcher-2` | `executor-2` | `reviewer-2` | `tester-2` |
+| N | `researcher-N` | `executor-N` | `reviewer-N` | `tester-N` |
+
+**NEVER** use alternative formats like `task-1-researcher`, `r1`, `Researcher_1`, or descriptive names. The `/uc:tmux-team-grid` skill depends on this exact `{role}-{N}` pattern to organize panes.
 
 #### Researcher Spawn
 
