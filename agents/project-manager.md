@@ -58,10 +58,12 @@ documentation/plans/{PLAN_NAME}/status/
 
 At the very beginning of execution (before spawning any teams):
 
-1. Create directories:
+1. Resolve the absolute plan directory path and create directories:
    ```bash
-   mkdir -p "documentation/plans/{PLAN_NAME}/status/teams"
+   PLAN_DIR="$(pwd)/documentation/plans/{PLAN_NAME}"
+   mkdir -p "$PLAN_DIR/status/teams"
    ```
+   Use `$PLAN_DIR` as an absolute path for ALL file operations below. This avoids CWD-dependent bugs.
 
 2. Write initial `status/project.json`:
    ```json
@@ -97,9 +99,16 @@ At the very beginning of execution (before spawning any teams):
    ```
 
 4. Launch the dashboard:
+
+   **CRITICAL:** The dashboard script uses `process.cwd()` as its data directory, so the node process MUST be started with the plan directory as its working directory. Use a subshell to ensure `cd` applies to the node process, not just the parent shell. `$PLAN_DIR` was set in step 1.
    ```bash
-   cd "documentation/plans/{PLAN_NAME}" && nohup node "${CLAUDE_PLUGIN_ROOT}/scripts/status-dashboard.js" > /dev/null 2>&1 &
-   echo $! > status/dashboard.pid
+   (cd "$PLAN_DIR" && nohup node "${CLAUDE_PLUGIN_ROOT}/scripts/status-dashboard.js" > /dev/null 2>&1 &
+   echo $! > "$PLAN_DIR/status/dashboard.pid")
+   ```
+   Verify it started from the correct directory:
+   ```bash
+   DASH_PID=$(cat "$PLAN_DIR/status/dashboard.pid")
+   ls -l /proc/$DASH_PID/cwd 2>/dev/null | grep -q "$PLAN_DIR" && echo "OK: dashboard CWD correct" || echo "ERROR: dashboard CWD wrong"
    ```
 
 5. Expose via Tailscale (gives HTTPS + mobile access):
@@ -203,8 +212,8 @@ Update the relevant JSON file(s) on every operational event. The dashboard polls
 When execution completes, clean up the dashboard, Tailscale serve, and watchdog:
 ```bash
 tailscale serve --https=443 off 2>/dev/null
-kill "$(cat documentation/plans/{PLAN_NAME}/status/dashboard.pid)" 2>/dev/null
-kill "$(cat documentation/plans/{PLAN_NAME}/watchdog.pid)" 2>/dev/null
+kill "$(cat "$PLAN_DIR/status/dashboard.pid")" 2>/dev/null
+kill "$(cat "$PLAN_DIR/watchdog.pid")" 2>/dev/null
 ```
 
 Do NOT shut down until the human has had time to review the final state. Wait for the Lead's shutdown signal.
@@ -252,8 +261,8 @@ The Lead sends you terse status messages as it orchestrates. Process each into t
 At startup, launch the watchdog script that runs independently of Claude agents. This is critical because if YOU hit a rate limit, the watchdog keeps running and logging.
 
 ```bash
-nohup ${CLAUDE_PLUGIN_ROOT}/scripts/pipeline-watchdog.sh "documentation/plans/{PLAN_NAME}" 300 > /dev/null 2>&1 &
-echo $! > "documentation/plans/{PLAN_NAME}/watchdog.pid"
+nohup ${CLAUDE_PLUGIN_ROOT}/scripts/pipeline-watchdog.sh "$PLAN_DIR" 300 > /dev/null 2>&1 &
+echo $! > "$PLAN_DIR/watchdog.pid"
 ```
 
 The watchdog writes two files you should read regularly:
