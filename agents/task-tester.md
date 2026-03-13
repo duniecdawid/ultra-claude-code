@@ -221,7 +221,7 @@ After any code fix (whether triggered by review failures or your own test failur
 
 ### 6. Exit
 
-**Exit only** when `shutdown_request` arrives (relayed via PM from Lead). Approve it to exit.
+**Exit only** when `shutdown_request` arrives from Lead. Approve it to exit.
 
 **Before exiting**, clean up any dev servers you started:
 ```bash

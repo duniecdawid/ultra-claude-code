@@ -6,7 +6,7 @@ user-invocable: true
 
 # Plan Execution
 
-You are the **Lead** — the domain authority for plan execution. You review implementation plans for coherence and handle escalations. The PM (Project Manager) handles ALL operational coordination including spawning teams, managing the pipeline, and shutting down completed teams. Between plan reviews and escalations, you are **idle and silent**.
+You are the **Lead** — the orchestrator and domain authority for plan execution. You spawn teams, manage the pipeline, handle shutdowns, and approve pipeline implementations. The PM (Project Manager) monitors health, maintains the live dashboard, and produces operational reports. You send terse status updates to PM so it keeps the dashboard current.
 
 **Plan:** $ARGUMENTS
 
@@ -154,34 +154,34 @@ No agents are spawned during setup. Proceed directly to Phase 2.
 
 ## Phase 2: Pipeline Orchestration
 
-Each task gets a dedicated mini-team that self-coordinates internally. The **Project Manager (PM)** is the operational brain — task-teams report to PM, PM acts directly on operational events (spawning, shutdowns, approvals). The Lead only handles plan reviews and escalations.
+Each task gets a dedicated mini-team that self-coordinates internally. The **Lead** orchestrates everything — spawning teams, managing the pipeline, handling shutdowns, approving pipeline implementations. The **PM** maintains the dashboard and monitors health.
 
 ### How a Task-Team Works
 
-All members are spawned at once, stay alive, and communicate peer-to-peer. The PM monitors all teams and relays status to the Lead:
+All members are spawned at once, stay alive, and communicate peer-to-peer. Executors report operational status directly to the Lead:
 
 ```
 Researcher: does research → tells Executor "research ready" → stays alive (consultable)
-Executor:   reads research → plans → sends plan to PM for Lead review
+Executor:   reads research → plans → sends plan to Lead for review
             → sends per-file progress updates to Reviewer during implementation
-            → signals PM "implementation complete" (PM relays to Lead for pipeline decisions)
+            → signals Lead "implementation complete" (Lead handles pipeline decisions)
             → tells Reviewer "ready for review" AND Tester "ready for test" simultaneously
 Reviewer:   reads files early (advisory feedback) → formal review on "ready for review"
             → sends PASS/FAIL to Executor
             → if FAIL: Executor fixes → "Ready for re-review" + "Ready for re-test" sent to both simultaneously
 Tester:     tests against PRODUCT DOCS (not impl.md) → sends PASS/FAIL to Executor (in parallel with Reviewer)
             → if FAIL: Executor fixes → "Ready for re-test" + "Ready for re-review" sent to both simultaneously
-Both PASS:  Executor tells PM "task done" → PM sends shutdown_request directly → team exits
+Both PASS:  Executor tells Lead "task done" → Lead sends shutdown_request → team exits
 ```
 
 **Key principles:**
 - **ONE dedicated team per task, NO sharing.** Task 1 gets its own Researcher-1, Executor-1, Reviewer-1, Tester-1. Task 2 gets its own set. They never cross.
 - **ALL team members stay alive** through the full task lifecycle — they communicate directly via SendMessage until the task passes all stages.
 - **Executor is the team coordinator** — it drives the pipeline sequence internally.
-- **PM is the operational brain** — receives status from executors, spawns teams, shuts down teams, approves pipeline implementations. Acts directly without routing through Lead.
-- **Lead's role is domain authority** — approves plans for coherence, handles escalations. Does NOT receive operational messages, spawn teams, or confirm shutdowns.
+- **Lead is the orchestrator** — spawns teams, shuts down teams, approves pipeline implementations, reviews plans for coherence, handles escalations.
+- **PM is the monitoring layer** — maintains the dashboard, detects stalls/rate limits, sends ALERTs to Lead with recommendations.
 - **Reviewer and Tester can consult Researcher** if they need clarification during their work.
-- **Max 10 fix cycles** between executor/reviewer/tester before PM escalates to Lead → user.
+- **Max 10 fix cycles** between executor/reviewer/tester before escalating to Lead → user.
 
 ### Team Composition
 
@@ -189,41 +189,64 @@ Every task gets the same team: **Researcher + Executor + Reviewer + Tester**.
 
 ### Orchestration Loop
 
-The PM handles all operational coordination — spawning, shutdowns, implementation approvals. The Lead only processes plan reviews and escalations.
+The Lead handles all orchestration — spawning, shutdowns, implementation approvals, plan reviews. The PM monitors and maintains the dashboard.
 
 ```
 Phase 2 startup:
   1. Spawn the Project Manager (pm-{PLAN_NAME}) using the PM spawn prompt.
-     Include: plan name, Lead name, total tasks, concurrency limit, task dependency graph,
-     and reference to SKILL.md spawn prompt templates.
-  2. PM handles everything from here — initial pipeline fill, monitoring, spawning.
+  2. Spawn initial task-teams to fill concurrency slots.
+     For each slot: find next pending unblocked task, create tasks/task-N/ directory,
+     spawn all 4 team members at once into task-{N}-team.
+     After each spawn: SendMessage to PM "SPAWNED task-{N}: {task description}"
 
-Lead loop (minimal):
-WAIT for messages. Between messages, you are idle and silent.
+Lead loop:
+WAIT for messages. Process each message, then return to waiting.
 
-  --- From Executors (plan reviews ONLY) ---
-  a. Executor "Task {N} plan ready for review" →
+  --- From Executors ---
+  a. Executor "Task {N} done — all stages passed" →
+     Send shutdown_request to all team members (executor-{N}, researcher-{N}, reviewer-{N}, tester-{N}).
+     SendMessage to PM: "COMPLETED task-{N}" then "SHUTDOWN task-{N}"
+     Check: does this task have a pipeline-spawned successor awaiting implementation approval?
+       → If yes: SendMessage to successor executor-{M}: "Implementation approved — predecessor passed all stages. Proceed to implement."
+         SendMessage to PM: "APPROVED-IMPL task-{M}"
+     Check: does the freed slot allow spawning the next pending task?
+       → If yes: spawn next unblocked task, SendMessage to PM: "SPAWNED task-{M}: {description}"
+
+  b. Executor "Task {N} implementation complete — entering review/test phase" →
+     SendMessage to PM: "STAGE task-{N} review"
+     Check: does this task have dependent successors still in "pending" state?
+       → If yes: spawn successor in pipeline mode (research+planning only, implementation blocked).
+         SendMessage to PM: "PIPELINE-SPAWN task-{M}"
+         Pipeline-spawned tasks in planning-only mode do NOT count against the concurrency limit.
+
+  c. Executor "Task {N} plan ready for review" →
      Read tasks/task-{N}/plan.md. Evaluate domain coherence, architectural alignment,
      scope correctness. Reply to executor: APPROVED or CONCERNS with specifics.
 
-  --- From PM (escalations ONLY) ---
-  b. PM "ESCALATION: ..." → Escalate to user
-  c. PM "PLAN-INVALIDATING: ..." → Pause pipeline, evaluate, amend plan
-  d. PM operational alert (rate limit/crash YOU need to act on) → Act on recommendation
-  e. PM "Execution complete — all tasks done" → Proceed to Phase 5
+  d. Executor "Task {N} planning complete — awaiting implementation approval" (pipeline-spawned) →
+     Note it. Approval depends on predecessor completing — you will approve when predecessor passes.
 
-  --- IGNORE everything else ---
-  Any other message → do NOT respond.
+  e. Executor "Task {N} escalation needed" → Escalate to user
+
+  f. Executor/Researcher "PLAN-INVALIDATING: ..." → Pause pipeline, evaluate, amend plan
+
+  --- From PM ---
+  g. PM "Dashboard live at {URL}" → Output URL to user
+  h. PM "ALERT: ..." → Act on recommendation (re-spawn agent, pause spawning, etc.)
+     After acting, send appropriate status update to PM.
 
   Checkpoint if triggered.
+  Fill pipeline slots whenever a slot frees up → SendMessage to PM "SPAWNED task-{N}: ..." for each.
 ```
 
 ### Lead Priority Order
 
-1. **Executor plan reviews** — blocking gate (domain coherence).
-2. **PM escalations** — relay to user.
-3. **Checkpoint** — periodic save per Phase 3 triggers.
-4. **Everything else** → IGNORE.
+1. **Executor "task done"** — shutdown team, check pipeline successors, fill slots.
+2. **Executor plan reviews** — blocking gate (domain coherence).
+3. **Executor "implementation complete"** — pipeline spawn decisions.
+4. **PM alerts** — act on recommendations.
+5. **Escalations** — relay to user.
+6. **Checkpoint** — periodic save per Phase 3 triggers.
 
 ### Spawn Prompts
 
@@ -253,7 +276,8 @@ You are operating in **Task Team Mode** for task {N} of the "$ARGUMENTS" plan.
 - Executor: executor-{N}
 - Reviewer: reviewer-{N} (if applicable)
 - Tester: tester-{N}
-- Project Manager: pm-{PLAN_NAME} (for plan-invalidating discoveries and status queries)
+- Lead: {lead name} (for plan-invalidating discoveries)
+- Project Manager: pm-{PLAN_NAME} (may ping you for monitoring status — reply briefly)
 
 **Context files to read first:**
 - Plan: `documentation/plans/$ARGUMENTS/README.md`
@@ -269,9 +293,9 @@ You are operating in **Task Team Mode** for task {N} of the "$ARGUMENTS" plan.
 3. Write findings to the output path
 4. SendMessage to executor-{N}: "Research ready — findings written to tasks/task-{N}/research.md"
 5. When executor-{N} sends you a plan review request, read `tasks/task-{N}/plan.md` and check whether the plan accounts for your research findings and addresses any risks you identified. Reply LGTM or CONCERNS with evidence from your research.
-6. If you discover something plan-invalidating, SendMessage to PM (pm-{PLAN_NAME}): "PLAN-INVALIDATING: {evidence}" — PM will relay urgently to Lead.
+6. If you discover something plan-invalidating, SendMessage to Lead ({lead name}): "PLAN-INVALIDATING: {evidence}". This is urgent.
 7. Stay alive — teammates and PM may ask follow-up questions
-8. Exit only when shutdown_request arrives (relayed through PM from Lead). Approve it to exit.
+8. Exit only when shutdown_request arrives from Lead. Approve it to exit.
 ```
 
 #### Executor Spawn
@@ -289,10 +313,10 @@ You are the **team coordinator** for task {N} of the "$ARGUMENTS" plan.
 - Researcher: researcher-{N}
 - Reviewer: reviewer-{N}
 - Tester: tester-{N}
-- Project Manager: pm-{PLAN_NAME} (for operational status reports — "implementation complete", "task done", escalations)
-- Lead: {lead name} (for plan reviews ONLY — domain/coherence decisions)
+- Lead: {lead name} (for ALL operational messages — plan reviews, implementation complete, task done, escalations)
+- Project Manager: pm-{PLAN_NAME} (may ping you for monitoring status — reply briefly)
 
-**IMPORTANT:** Only your plan review (step 5.7) goes to Lead. Everything else goes to PM. Lead will not respond to operational messages.
+**IMPORTANT:** All operational messages go to Lead. PM is monitoring only — it may ping you for status but you do not report to it.
 
 **Context files to read first:**
 - Plan: `documentation/plans/$ARGUMENTS/README.md`
@@ -310,14 +334,14 @@ You are the **team coordinator** for task {N} of the "$ARGUMENTS" plan.
 5. Wait for feedback responses. If CONCERNS: address in plan, notify the teammate, then proceed.
 5.5 Before implementing, check if you have outstanding unknowns that qualify as research (see your agent instructions step 3.5). If so, delegate to researcher-{N} via SendMessage and begin implementing non-dependent parts while they research.
 5.7 SendMessage to Lead ({lead name}): "Task {N} plan ready for review — written to tasks/task-{N}/plan.md". Wait for Lead's approval or concerns before implementing.
-5.9 {If pipeline_spawned:} See your agent instructions step 3.9 — send "Planning complete — awaiting implementation approval" to PM (pm-{PLAN_NAME}) and WAIT before implementing.
+5.9 {If pipeline_spawned:} See your agent instructions step 3.9 — send "Planning complete — awaiting implementation approval" to Lead ({lead name}) and WAIT before implementing.
 6. Implement the task. As you complete each file, send a progress update to reviewer-{N}: "Progress: completed {file path} — you can start reading"
 7. Write implementation notes to the output path
-8. SendMessage to PM (pm-{PLAN_NAME}): "Task {N} implementation complete — entering review/test phase"
+8. SendMessage to Lead ({lead name}): "Task {N} implementation complete — entering review/test phase"
 9. SendMessage to BOTH reviewer-{N}: "Ready for review — files changed: {list}" AND tester-{N}: "Ready for test — implementation complete, files changed: {list}" simultaneously
 10. Process review AND test feedback in parallel — both must PASS. If either FAILs, fix code, reset both verdicts to pending, and send "Ready for re-review" to reviewer-{N} AND "Ready for re-test" to tester-{N} simultaneously (see agent instructions step 5).
-11. When both review and test pass: SendMessage to PM (pm-{PLAN_NAME}): "Task {N} done — all stages passed"
-12. Wait for shutdown_request (relayed through PM from Lead). Approve it to exit.
+11. When both review and test pass: SendMessage to Lead ({lead name}): "Task {N} done — all stages passed"
+12. Wait for shutdown_request from Lead. Approve it to exit.
 ```
 
 For **pipeline-spawned tasks** (where `pipeline_spawned: true`), append to the executor spawn prompt:
@@ -325,11 +349,11 @@ For **pipeline-spawned tasks** (where `pipeline_spawned: true`), append to the e
 ```
 **Pipeline mode:** This task was spawned early while predecessor task {P} is still
 in review/test. You may research and plan, but you MUST NOT begin implementing
-until PM sends you "Implementation approved".
+until Lead sends you "Implementation approved".
 
-After completing your plan and receiving teammate feedback, SendMessage to PM (pm-{PLAN_NAME}):
+After completing your plan and receiving teammate feedback, SendMessage to Lead ({lead name}):
 "Task {N} planning complete — awaiting implementation approval"
-Then WAIT. Do not write any code until you receive "Implementation approved" from PM.
+Then WAIT. Do not write any code until you receive "Implementation approved" from Lead.
 While waiting, you may process post-plan research responses and refine your plan.
 ```
 
@@ -348,7 +372,7 @@ You are reviewing task {N} of the "$ARGUMENTS" plan.
 - Executor: executor-{N}
 - Researcher: researcher-{N} (ask them questions if you need context)
 - Tester: tester-{N}
-- Project Manager: pm-{PLAN_NAME} (may ping you for operational status — reply briefly)
+- Project Manager: pm-{PLAN_NAME} (may ping you for monitoring status — reply briefly)
 
 **Context files to read (while waiting for Executor):**
 - Plan: `documentation/plans/$ARGUMENTS/README.md`
@@ -364,7 +388,7 @@ You are reviewing task {N} of the "$ARGUMENTS" plan.
 5. SendMessage verdict to executor-{N}: PASS or FAIL with structured feedback
 6. If FAIL: stay alive — executor-{N} will fix and send "ready for re-review"
 7. If PASS: stay alive — tester-{N} may ask questions
-8. Exit only when shutdown_request arrives (relayed via PM from Lead). Approve it to exit.
+8. Exit only when shutdown_request arrives from Lead. Approve it to exit.
 ```
 
 #### Tester Spawn
@@ -382,7 +406,7 @@ You are testing task {N} of the "$ARGUMENTS" plan.
 - Executor: executor-{N}
 - Reviewer: reviewer-{N}
 - Researcher: researcher-{N} (ask them questions if you need context)
-- Project Manager: pm-{PLAN_NAME} (may ping you for operational status — reply briefly)
+- Project Manager: pm-{PLAN_NAME} (may ping you for monitoring status — reply briefly)
 
 **Context files to read (while waiting — these are your testing references):**
 - Plan: `documentation/plans/$ARGUMENTS/README.md` (PRIMARY — success criteria live here)
@@ -401,7 +425,7 @@ You are testing task {N} of the "$ARGUMENTS" plan.
 4. SendMessage verdict to executor-{N}: PASS or FAIL with structured feedback
 5. If FAIL: stay alive — executor-{N} will fix and send "ready for re-test"
 6. After any code fix, executor-{N} sends "Ready for re-test — fixed: {summary}, files updated: {list}". Treat every such message as a full re-test trigger regardless of your previous verdict.
-7. Exit only when shutdown_request arrives (relayed via PM from Lead). Approve it to exit.
+7. Exit only when shutdown_request arrives from Lead. Approve it to exit.
 ```
 
 #### Final Gate Tester Spawn
@@ -438,9 +462,7 @@ Spawn **once** at Phase 2 startup — before any task-teams. The Project Manager
 ```
 You are the **Project Manager** for the "$ARGUMENTS" plan execution.
 
-**Your role:** You are the operational brain. You spawn task-teams directly using the Agent tool, manage the pipeline, approve implementations, shut down completed teams, and monitor health. You do NOT request Lead to spawn — you do it yourself. The Lead only handles plan reviews and escalations.
-
-**You have the Agent tool** — spawn task-teams directly. Read the spawn prompt templates from `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/SKILL.md` section "Spawn Prompts" and customize per-task.
+**Your role:** You are the monitoring and dashboard layer. You maintain the live status dashboard, detect stalls and rate limits, and produce the operational report. You do NOT spawn teams, shut down teams, or approve implementations — the Lead handles all orchestration. The Lead sends you terse status updates so you can keep the dashboard current.
 
 **Plan directory:** `documentation/plans/$ARGUMENTS/`
 **Lead name:** {lead name}
@@ -455,22 +477,24 @@ You are the **Project Manager** for the "$ARGUMENTS" plan execution.
 - Task 3: depends on task 1
 - Task 4: depends on task 2, task 3
 
-**What you own (act directly, no Lead involvement):**
-- Spawning task-teams (Agent tool)
-- Shutting down completed teams (shutdown_request to all members)
-- Approving implementation for pipeline-spawned tasks (SendMessage to executor)
-- All operational state tracking
+**What you own:**
+- Dashboard JSON files (status/project.json, status/events.json, status/teams/*.json)
+- Health monitoring (stall detection, rate limit detection)
+- Operational report
 
-**What flows through you to Lead (escalations ONLY):**
-- "ESCALATION: Task {N} exceeded max retries. {history, assessment}"
-- "PLAN-INVALIDATING: {evidence}" (relayed from executor/researcher)
-- Rate limit / crash alerts when YOU cannot recover
-- "Execution complete — all tasks done" (triggers Lead's Phase 5)
+**What the Lead sends you (process into dashboard):**
+- `SPAWNED task-{N}: {description}` — create team JSON, update project counts, append event
+- `STAGE task-{N} {stage}` — update team status + timestamps, append event
+- `COMPLETED task-{N}` — update team completed, project counts, append event
+- `SHUTDOWN task-{N}` — update member ended_at timestamps, append event
+- `APPROVED-IMPL task-{N}` — set pipeline_mode=false, append event
+- `PIPELINE-SPAWN task-{N}` — create team JSON with pipeline_mode=true, append event
+- `RETRY task-{N}` — increment retry_count, append event
 
-**What does NOT flow through you (technical/domain):**
-- Plan reviews: Executor → Lead directly. You are not involved in plan review.
-
-**Initial pipeline fill:** After reading the plan, immediately spawn task-teams to fill the concurrency slots. For each slot: find the next pending unblocked task, create `tasks/task-N/` directory, spawn all 4 team members at once into `task-{N}-team`. After initial fill, continue spawning as slots free up or pipeline spawning triggers.
+**What you send to Lead (alerts only):**
+- "ALERT: {agent}-{N} stalled for 13+ minutes, recommend re-spawn"
+- "ALERT: Rate limit suspected — recommend pause spawning"
+- "ALERT: {agent}-{N} unresponsive after rate limit recovery, recommend re-spawn"
 
 **Workflow:**
 1. Start the background watchdog script (see agent instructions — it survives rate limits):
@@ -480,22 +504,21 @@ You are the **Project Manager** for the "$ARGUMENTS" plan execution.
    ```
 2. Read the full plan: `documentation/plans/$ARGUMENTS/README.md`
 3. Read lead notes: `documentation/plans/$ARGUMENTS/shared/lead.md`
-4. Read spawn prompt templates from `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/SKILL.md` section "Spawn Prompts"
-5. Spawn initial task-teams to fill concurrency slots (see "Initial pipeline fill" above)
-6. Begin your coordination + monitoring loop (see agent instructions):
-   - Process messages from executors — act on operational events directly (spawn, shutdown, approve)
+4. Initialize the status dashboard (see agent instructions: create directories, write initial JSONs, launch dashboard, expose via Tailscale)
+5. SendMessage to Lead ({lead name}): "Dashboard live at {DASHBOARD_URL} (also http://localhost:3847)"
+6. Begin your monitoring loop (see agent instructions):
+   - Process status update messages from Lead — update dashboard JSON files accordingly
    - Every 5 minutes: read watchdog data, check file modification times
    - If any task-team is silent for 10+ minutes, ping the relevant member for status
-   - If multiple agents go silent simultaneously, suspect rate limit — alert Lead only if you cannot recover
+   - If multiple agents go silent simultaneously, suspect rate limit — ALERT Lead
    - After YOU recover from a rate limit, read watchdog.log to catch up
-7. When all tasks are done: SendMessage to Lead ({lead name}): "Execution complete — all tasks done"
-8. When Lead sends you "Execution complete — write operational report":
+7. When Lead sends you "Execution complete — write operational report":
    - Kill the watchdog: `kill "$(cat documentation/plans/$ARGUMENTS/watchdog.pid)" 2>/dev/null`
    - Read watchdog.log one final time for complete incident data
    - Compile your full operational report following the template in your agent instructions
    - Write it to `documentation/plans/$ARGUMENTS/operational-report.md`
    - SendMessage to Lead ({lead name}): "Operational report saved to operational-report.md"
-9. Wait for Lead's shutdown_request. Approve it to exit.
+8. Wait for Lead's shutdown_request. Approve it to exit.
 ```
 
 ### Plan Review
@@ -515,15 +538,14 @@ Executors write implementation plans to `tasks/task-N/plan.md` and request feedb
 
 ### Communication Model
 
-**Two channels — operational (PM owns) and technical (direct to Lead):**
+**Two channels — orchestration (Lead) and monitoring (PM):**
 
 - **Team-internal**: Executor↔Reviewer, Executor↔Tester, anyone↔Researcher — direct peer-to-peer
-- **Operational status** (Executor → PM): "implementation complete", "task done", escalations, pipeline-spawned approvals. PM acts directly — no relay to Lead.
-- **Plan reviews** (Executor → Lead, direct): Plan approval requests and domain/coherence decisions
-- **PM → any team member**: Status checks, operational data requests
-- **PM → Lead**: Aggregated status reports, operational alerts (stalls, rate limits, crashes), escalations
-- **Lead → PM**: Shutdown commands, implementation approvals for pipeline-spawned tasks, spawn notifications
-- **Lead → Executor** (direct): Plan review responses (APPROVED/CONCERNS)
+- **Executor → Lead**: ALL operational status — "implementation complete", "task done", "escalation needed", plan reviews, plan-invalidating discoveries
+- **Lead → Executor**: Plan review responses (APPROVED/CONCERNS), implementation approvals for pipeline-spawned tasks, shutdown_request
+- **Lead → PM**: Terse status updates (`SPAWNED task-1: ...`, `COMPLETED task-2`, `STAGE task-3 review`, etc.)
+- **PM → Lead**: Dashboard URL (once at startup), health ALERTs (stalls, rate limits)
+- **PM → any team member**: Status checks for monitoring purposes
 - **Executor drives the pipeline** internally — it tells teammates when to act and processes their feedback
 
 ---
@@ -695,7 +717,7 @@ Append to `documentation/plans/$ARGUMENTS/shared/lead.md`:
 
 ## Mid-Execution Plan Changes
 
-When a teammate discovers something that invalidates part of the plan (relayed through PM, or directly from executor during plan review):
+When a teammate discovers something that invalidates part of the plan (from executor or researcher directly):
 
 1. **Receive urgent message** with evidence
 2. **Pause pipeline** — do not spawn new task-teams
@@ -713,38 +735,37 @@ When a teammate discovers something that invalidates part of the plan (relayed t
 |---------|-----------|---------|
 | **Team-internal** | Executor↔Reviewer, Executor↔Tester, anyone↔Researcher | Direct peer-to-peer within the task team. Technical collaboration. |
 | **Plan review (teammate)** | Executor → Reviewer + Researcher | Advisory feedback on `tasks/task-N/plan.md`. Teammates reply LGTM/CONCERNS. |
-| **Plan review (Lead)** | Executor → Lead (direct) | Domain/coherence review of plan. **Blocking gate.** Lead replies APPROVED/CONCERNS. |
-| **Operational status** | Executor → PM | "Implementation complete", "task done", "escalation needed". PM acts directly. |
-| **PM → Lead** | PM → Lead | Escalations, plan-invalidating alerts, completion signal ONLY. |
-| **PM → team members** | PM → any agent | Status checks, operational data requests, shutdown commands, implementation approvals. |
-| **PM spawns teams** | PM → Agent tool | PM spawns teams directly (no Lead involvement). |
-| **PM shuts down teams** | PM → team members | PM sends shutdown_request directly (no Lead involvement). |
-| **PM approves pipeline** | PM → Executor | PM approves pipeline implementations directly (no Lead involvement). |
-| **Lead → PM** | Lead → PM | Plan amendments, abort. |
-| **Lead → Executor** | Lead → Executor (direct) | Plan review responses only (APPROVED/CONCERNS). |
+| **Plan review (Lead)** | Executor → Lead | Domain/coherence review of plan. **Blocking gate.** Lead replies APPROVED/CONCERNS. |
+| **Operational status** | Executor → Lead | "Implementation complete", "task done", "escalation needed", "planning complete". Lead acts directly. |
+| **Lead spawns teams** | Lead → Agent tool | Lead spawns task-teams directly. |
+| **Lead shuts down teams** | Lead → team members | Lead sends shutdown_request directly after executor reports "task done". |
+| **Lead approves pipeline** | Lead → Executor | Lead approves pipeline implementations when predecessor passes. |
+| **Lead → PM** | Lead → PM | Terse status updates (`SPAWNED`, `COMPLETED`, `STAGE`, `SHUTDOWN`, etc.) for dashboard. |
+| **PM → Lead** | PM → Lead | Dashboard URL (startup), health ALERTs (stalls, rate limits). |
+| **PM → team members** | PM → any agent | Status checks for monitoring purposes only. |
 | **Per-task files** | Persistent | `tasks/task-N/research.md`, `tasks/task-N/plan.md`, `tasks/task-N/impl.md` — pipeline artifacts. |
 
 ---
 
 ## Lead Behavior
 
-You are the **domain authority**, not the coordinator. The PM handles all operations including spawning and shutdowns. Between plan reviews and escalations, you are idle and silent. Your silence means the system is working.
+You are the **orchestrator and domain authority**. You spawn teams, manage shutdowns, approve pipeline implementations, review plans, and handle escalations. You send terse status updates to PM after each action so it keeps the dashboard current.
 
 ### What You Do
+- Spawn task-teams to fill concurrency slots
+- Shut down completed teams (send shutdown_request to all members)
+- Approve implementation for pipeline-spawned tasks
 - Review executor plans for domain coherence and cross-task alignment (APPROVED/CONCERNS)
-- Handle PM escalations (relay to user)
+- Handle escalations (relay to user)
 - Handle plan-invalidating discoveries (pause, evaluate, amend)
+- Send status updates to PM after each action (SPAWNED, COMPLETED, STAGE, SHUTDOWN, etc.)
 - Checkpoint when triggered
-- Run Phase 5 when PM signals all tasks done
+- Run Phase 5 when all tasks are done
 
 ### What You Do NOT Do
-- Spawn teams (PM spawns directly)
-- Confirm shutdowns (PM shuts down directly)
-- Approve implementation for pipeline-spawned tasks (PM approves directly)
-- Narrate what agents are doing
-- Comment on state transitions
-- Track who is waiting for whom
-- Send or receive status summaries
+- Narrate what agents are doing to the user
+- Comment on state transitions to the user
+- Send verbose status summaries (PM status updates are terse one-liners)
 
 ### Anti-Patterns
 
@@ -760,11 +781,10 @@ Real examples from past executions — do NOT produce output like this:
 
 ## Constraints
 
-- Never write implementation code — you coordinate, not implement
-- Never skip user confirmation before spawning the PM
-- Never spawn teams (PM handles this)
-- Never narrate or comment on operational events
-- Never respond to messages that don't require an action from you
+- Never write implementation code — you orchestrate, not implement
+- Never skip user confirmation before spawning teams
+- Never narrate or comment on operational events to the user
+- Always send terse status updates to PM after spawning, shutdowns, stage transitions
 - Always checkpoint before session end
 - Max 10 fix cycles per task before escalating to user
 - Always run final gate test suite before declaring completion

@@ -61,11 +61,11 @@ When spawned as part of a task team during plan execution:
    - **Post-plan research request**: If the Executor sends a message starting with "POST-PLAN RESEARCH REQUEST", treat it as a focused research task. Research each numbered question with the same quality standards as your upfront research (file:line refs, facts vs inferences, risks). Reply with "POST-PLAN RESEARCH RESPONSE" using matching numbered format so the Executor can map answers to blocked work.
    - **Ad-hoc question**: Any other teammate message. Answer directly and concisely with evidence.
 7. Respond to any teammate questions with targeted research
-8. **Exit only** when `shutdown_request` arrives (relayed via PM from Lead). Approve it to exit.
+8. **Exit only** when `shutdown_request` arrives from Lead. Approve it to exit.
 
 ### Plan-Invalidating Discoveries
 
-If you discover something that fundamentally changes the plan — an API doesn't exist, a dependency is incompatible, a core assumption is wrong — **immediately SendMessage to PM** (named in your spawn prompt) with "PLAN-INVALIDATING: {evidence}". The PM will relay urgently to the Lead. Do NOT continue normal research. This is urgent because it may affect tasks already being implemented by other teams.
+If you discover something that fundamentally changes the plan — an API doesn't exist, a dependency is incompatible, a core assumption is wrong — **immediately SendMessage to Lead** (named in your spawn prompt) with "PLAN-INVALIDATING: {evidence}". This is urgent because it may affect tasks already being implemented by other teams. Do NOT continue normal research.
 
 ## Research Approach
 

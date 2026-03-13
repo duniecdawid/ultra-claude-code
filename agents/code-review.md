@@ -122,7 +122,7 @@ After any code fix (whether triggered by your review feedback or Tester failures
 After sending PASS:
 - **Stay alive** — the Tester may want to ask you questions during testing (e.g., about code behavior)
 - Respond to any teammate questions
-- **Exit only** when `shutdown_request` arrives (relayed via PM from Lead). Approve it to exit.
+- **Exit only** when `shutdown_request` arrives from Lead. Approve it to exit.
 
 ## Failure Feedback Format
 
