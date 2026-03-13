@@ -145,19 +145,7 @@ Update the project's canonical documentation NOW — during this phase — with 
 8. **Present a concise summary in chat** — plan name, objective, task count, file path. Include any trade-offs you made, things you intentionally excluded, or risks worth discussing. Invite the user to review the full plan file.
 9. **Ask for approval via AskUserQuestion** — Options: "Approve" / "Reject with feedback" / "Partially reject (specify changes)". Only an explicit "Approve" counts — empty, blank, or ambiguous responses must be re-asked.
 
-If approved — inform the user: execute with `/uc:plan-execution {plan-name}`.
-If the user gives feedback without selecting reject — treat it as partial rejection, address their points, and re-ask.
-
-### Phase 5: Plan Review (if rejected)
-
-If the user rejects or partially rejects the plan:
-
-1. Read their feedback
-2. Edit the existing `documentation/plans/{name}/README.md` to incorporate changes
-3. Re-present the concise summary with changes highlighted
-4. Re-ask for approval via AskUserQuestion
-
-Repeat until approved or the user abandons the plan.
+Plan Enhancer handles post-approval (commit + execution command) and revision loops. If the user gives feedback without selecting reject — treat it as partial rejection, address their points, and re-ask.
 
 ## Edge Cases
 

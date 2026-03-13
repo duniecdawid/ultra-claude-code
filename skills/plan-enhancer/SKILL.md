@@ -242,6 +242,22 @@ Use the loaded plan template (`templates/plan.md`) as the base structure. The pl
 - If the user selects "Other" with empty or unclear text, re-ask the question. Say: "I need an explicit approval, rejection, or feedback before proceeding."
 - Never skip or auto-approve this step. The plan is not approved until the user explicitly says so.
 
+### Post-Approval (mandatory — all planning modes follow this)
+
+When the user explicitly approves the plan:
+
+1. **Commit plan files** — Stage all plan files (README.md, directories) and commit:
+   ```
+   git add documentation/plans/{name}/ && git commit -m "plan: {name}"
+   ```
+2. **Print execution command** — Display this message:
+   ```
+   Plan committed. To execute, run:
+   /clear /uc:plan-execution {name}
+   ```
+   Clearing context before execution gives executor agents maximum working memory. Plans are on disk — nothing is lost.
+3. **Stop** — Do NOT start execution, spawn agents, or do any further work. Planning ends here.
+
 ### Plan Revision (if rejected)
 
 If the user rejects or partially rejects the plan:
@@ -263,10 +279,11 @@ If the plan directory already exists (revision or re-planning):
 
 ## Constraints
 
-- Do NOT execute the plan — that is `/uc:plan-execution`'s job
+- Do NOT execute the plan — that is `/uc:plan-execution`'s job. After approval, commit and print the execution command, then STOP.
 - Do NOT create tasks without success criteria
 - ALWAYS write the plan to `documentation/plans/{name}/README.md` BEFORE presenting for approval — this ensures the plan is on disk and cannot be lost
 - ALWAYS include the `Execute: /uc:plan-execution {name}` header in the plan document
+- ALWAYS follow the Post-Approval steps after the user approves — commit, print command, stop. No exceptions.
 
 ## Example
 
