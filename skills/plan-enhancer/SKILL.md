@@ -242,7 +242,9 @@ Use the loaded plan template (`templates/plan.md`) as the base structure. The pl
 - If the user selects "Other" with empty or unclear text, re-ask the question. Say: "I need an explicit approval, rejection, or feedback before proceeding."
 - Never skip or auto-approve this step. The plan is not approved until the user explicitly says so.
 
-### Post-Approval (mandatory — all planning modes follow this)
+### Post-Approval — HARD STOP (mandatory — all planning modes follow this)
+
+**CRITICAL: The planning conversation ENDS after these 3 steps. There is no step 4.**
 
 When the user explicitly approves the plan:
 
@@ -250,13 +252,20 @@ When the user explicitly approves the plan:
    ```
    git add documentation/plans/{name}/ && git commit -m "plan: {name}"
    ```
-2. **Print execution command** — Display this message:
+2. **Print execution command** — Display this exact message and nothing else after it:
    ```
    Plan committed. To execute, run:
    /clear /uc:plan-execution {name}
    ```
    Clearing context before execution gives executor agents maximum working memory. Plans are on disk — nothing is lost.
-3. **Stop** — Do NOT start execution, spawn agents, or do any further work. Planning ends here.
+3. **STOP IMMEDIATELY** — Your job is done. Do NOT:
+   - Start executing the plan
+   - Spawn any agents or teams
+   - Invoke `/uc:plan-execution` or any other skill
+   - Write any more code or make any more changes
+   - Continue the conversation with implementation work
+
+   The user will start a fresh context and run the execution command themselves. This separation is intentional — execution needs a clean context window, not one filled with planning artifacts.
 
 ### Plan Revision (if rejected)
 
