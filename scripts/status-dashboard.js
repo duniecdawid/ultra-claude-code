@@ -30,6 +30,46 @@ function readAllTeams() {
   }
 }
 
+function parsePlanTasks() {
+  const readmePath = path.join(PLAN_DIR, 'README.md');
+  try {
+    const content = fs.readFileSync(readmePath, 'utf8');
+    const tasks = [];
+    // Match ### Task N: Title lines
+    const taskRegex = /^### Task (\d+):\s*(.+)$/gm;
+    let match;
+    while ((match = taskRegex.exec(content)) !== null) {
+      const taskNum = parseInt(match[1], 10);
+      const title = match[2].trim();
+      // Extract classification if present
+      // Scope to current task section (up to next ### Task or end of content)
+      const restContent = content.slice(match.index + match[0].length);
+      const nextTaskIdx = restContent.search(/^### Task \d+:/m);
+      const afterMatch = nextTaskIdx > 0 ? restContent.slice(0, nextTaskIdx) : restContent;
+      const classMatch = afterMatch.match(/\*\*Classification:\*\*\s*(\w+)/);
+      // Extract dependencies
+      const depMatch = afterMatch.match(/\*\*Dependencies:\*\*\s*(.+)/);
+      const deps = depMatch ? depMatch[1].trim() : 'None';
+      // Extract description (first non-empty line after classification/blank)
+      const descMatch = afterMatch.match(/\*\*Description:\*\*\s*(.+)/);
+      const description = descMatch ? descMatch[1].trim() : '';
+      tasks.push({
+        task_id: 'task-' + taskNum,
+        task_num: taskNum,
+        title: title,
+        classification: classMatch ? classMatch[1] : null,
+        dependencies: deps,
+        description: description
+      });
+    }
+    // Also extract the dependency graph if present
+    const graphMatch = content.match(/## Task Dependency Graph[\s\S]*?```([\s\S]*?)```/);
+    return { tasks, dependency_graph: graphMatch ? graphMatch[1].trim() : null };
+  } catch {
+    return { tasks: [], dependency_graph: null };
+  }
+}
+
 function handleAPI(req, res) {
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -39,6 +79,8 @@ function handleAPI(req, res) {
     res.end(JSON.stringify(data || {}));
   } else if (req.url === '/api/teams') {
     res.end(JSON.stringify(readAllTeams()));
+  } else if (req.url === '/api/plan') {
+    res.end(JSON.stringify(parsePlanTasks()));
   } else if (req.url === '/api/events') {
     const data = readJSON(path.join(STATUS_DIR, 'events.json'));
     res.end(JSON.stringify(data || { events: [] }));
@@ -124,6 +166,17 @@ const DASHBOARD_HTML = `<!DOCTYPE html>
   .refresh-indicator { width: 8px; height: 8px; border-radius: 50%; background: #3fb950; display: inline-block; margin-right: 6px; animation: blink 3s ease-in-out infinite; }
   @keyframes blink { 0%, 90%, 100% { opacity: 1; } 95% { opacity: 0.2; } }
   .description { font-size: 0.9em; color: #8b949e; margin-bottom: 12px; line-height: 1.4; }
+  .plan-tasks { background: #161b22; border: 1px solid #21262d; border-radius: 8px; padding: 14px; margin-bottom: 8px; }
+  .plan-task-row { display: flex; align-items: center; gap: 12px; padding: 6px 0; border-bottom: 1px solid #21262d22; font-size: 0.85em; }
+  .plan-task-row:last-child { border-bottom: none; }
+  .plan-task-id { min-width: 52px; font-weight: 600; color: #8b949e; font-family: monospace; font-size: 0.9em; }
+  .plan-task-title { flex: 1; color: #e6edf3; }
+  .plan-task-deps { font-size: 0.8em; color: #484f58; min-width: 100px; }
+  .plan-task-status { min-width: 100px; text-align: right; }
+  .plan-task-row.status-active { background: #1f6feb11; }
+  .plan-task-row.status-completed .plan-task-title { color: #3fb950; }
+  .plan-task-row.status-pending .plan-task-title { color: #8b949e; }
+  .dep-graph { font-family: monospace; font-size: 0.78em; color: #484f58; white-space: pre; padding: 8px 0 0; line-height: 1.5; }
 </style>
 </head>
 <body>
@@ -138,7 +191,9 @@ const DASHBOARD_HTML = `<!DOCTYPE html>
   </div>
 </div>
 <div class="counters" id="counters"></div>
-<h2>Teams</h2>
+<h2>Plan Tasks</h2>
+<div class="plan-tasks" id="plan-tasks"></div>
+<h2>Active Teams</h2>
 <div class="teams-grid" id="teams"></div>
 <h2>Event Log</h2>
 <div class="events-log" id="events"></div>
@@ -215,6 +270,42 @@ function renderTeams(teams) {
   }).join('');
 }
 
+function renderPlan(planData, teams) {
+  const el = document.getElementById('plan-tasks');
+  if (!planData.tasks || !planData.tasks.length) { el.innerHTML = '<div style="color:#484f58">No plan tasks found</div>'; return; }
+  // Build a map of team status by task_id
+  const teamMap = {};
+  teams.forEach(t => { teamMap[t.task_id] = t; });
+
+  const rows = planData.tasks.map(task => {
+    const team = teamMap[task.task_id];
+    let statusHtml = '';
+    let rowClass = 'status-pending';
+    if (team) {
+      const sc = statusClass(team.status);
+      rowClass = 'status-' + sc;
+      statusHtml = '<span class="status-badge status-' + sc + '">' + (team.status || '') + '</span>';
+    } else {
+      statusHtml = '<span class="status-badge status-pending">queued</span>';
+    }
+    const deps = task.dependencies && task.dependencies !== 'None'
+      ? '<span title="' + task.dependencies + '">dep: ' + task.dependencies + '</span>'
+      : '';
+    return '<div class="plan-task-row ' + rowClass + '">' +
+      '<span class="plan-task-id">' + task.task_id + '</span>' +
+      '<span class="plan-task-title">' + task.title + '</span>' +
+      '<span class="plan-task-deps">' + deps + '</span>' +
+      '<span class="plan-task-status">' + statusHtml + '</span>' +
+      '</div>';
+  }).join('');
+
+  const graph = planData.dependency_graph
+    ? '<div class="dep-graph">' + planData.dependency_graph.replace(/</g, '&lt;') + '</div>'
+    : '';
+
+  el.innerHTML = rows + graph;
+}
+
 function renderEvents(data) {
   const el = document.getElementById('events');
   const events = (data.events || []).slice().reverse();
@@ -230,12 +321,14 @@ function renderEvents(data) {
 
 async function refresh() {
   try {
-    const [proj, teams, events] = await Promise.all([
+    const [proj, teams, events, plan] = await Promise.all([
       fetch('/api/project').then(r => r.json()),
       fetch('/api/teams').then(r => r.json()),
-      fetch('/api/events').then(r => r.json())
+      fetch('/api/events').then(r => r.json()),
+      fetch('/api/plan').then(r => r.json())
     ]);
     renderProject(proj);
+    renderPlan(plan, teams);
     renderTeams(teams);
     renderEvents(events);
   } catch (e) {
