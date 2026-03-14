@@ -170,7 +170,7 @@ Before spawning any task-teams, set up the shared Tech Knowledge agent:
 5. Spawn using the Tech Knowledge agent:
 
 Agent: `${CLAUDE_PLUGIN_ROOT}/agents/tech-knowledge.md`
-Model: `sonnet[1m]` | Mode: `bypassPermissions`
+Model: `sonnet` | Mode: `bypassPermissions`
 
 ```
 You are the shared **Tech Knowledge** agent for the "$ARGUMENTS" plan execution.
@@ -348,7 +348,7 @@ See the PM agent instructions. On receiving any SPAWNED message with `| panes:` 
 #### Executor Spawn
 
 Agent: `${CLAUDE_PLUGIN_ROOT}/agents/task-executor.md`
-Model: `opus[1m]` | Mode: `bypassPermissions`
+Model: `opus` | Mode: `bypassPermissions`
 
 ```
 You are the **team coordinator** for task {N} of the "$ARGUMENTS" plan.
@@ -410,7 +410,7 @@ While waiting, you may process post-plan research responses and refine your plan
 #### Reviewer Spawn
 
 Agent: `${CLAUDE_PLUGIN_ROOT}/agents/code-review.md`
-Model: `sonnet[1m]` | Mode: `bypassPermissions`
+Model: `sonnet` | Mode: `bypassPermissions`
 
 ```
 You are reviewing task {N} of the "$ARGUMENTS" plan.
@@ -448,7 +448,7 @@ Tester-written tests are in your review scope.
 #### Tester Spawn
 
 Agent: `${CLAUDE_PLUGIN_ROOT}/agents/task-tester.md`
-Model: `sonnet[1m]` | Mode: `bypassPermissions`
+Model: `sonnet` | Mode: `bypassPermissions`
 
 ```
 You are testing task {N} of the "$ARGUMENTS" plan.
@@ -487,7 +487,7 @@ Write additional tests to cover success criteria gaps. Tests survive in the code
 #### Final Gate Tester Spawn
 
 Agent: `${CLAUDE_PLUGIN_ROOT}/agents/task-tester.md`
-Model: `sonnet[1m]` | Mode: `bypassPermissions`
+Model: `sonnet` | Mode: `bypassPermissions`
 
 For the final regression gate after all tasks complete, spawn a fresh Tester:
 
@@ -511,7 +511,7 @@ This is NOT a per-task test. Run the FULL test suite as a regression check acros
 #### Project Manager Spawn
 
 Agent: `${CLAUDE_PLUGIN_ROOT}/agents/project-manager.md`
-Model: `sonnet[1m]` | Mode: `bypassPermissions`
+Model: `sonnet` | Mode: `bypassPermissions`
 
 Spawn **once** at Phase 2 startup — before any task-teams. The Project Manager runs for the entire plan duration — it is NOT per-task. Name it `pm-{PLAN_NAME}` (e.g., `pm-user-auth`).
 

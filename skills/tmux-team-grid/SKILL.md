@@ -74,7 +74,9 @@ If a manifest file exists at `/tmp/team-grid-manifest.json`, pane titles are app
 
 ### Step 1: Write and run the grid builder script
 
-Get the main pane ID with `tmux display-message -p '#{pane_id}'`, then write `/tmp/tmux-team-grid.sh` (replacing `__MAIN_PANE__` with the actual ID) and execute it with `bash /tmp/tmux-team-grid.sh`.
+Get the main pane ID with `tmux display-message -p '#{pane_id}'`, then write the script to `/tmp/tmux-team-grid.sh` **using Bash** (e.g., `cat > /tmp/tmux-team-grid.sh << 'EOF' ... EOF`). Replace `__MAIN_PANE__` with the actual ID. Then execute with `bash /tmp/tmux-team-grid.sh`.
+
+**Important:** Only the `Bash` tool is available — do NOT use the Write tool. Write the file via `cat` heredoc in Bash.
 
 ```bash
 #!/usr/bin/env bash

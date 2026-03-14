@@ -1,7 +1,7 @@
 ---
 name: Project Manager
 description: Active operational monitor for plan execution. Watches team member health, detects stalls and rate limits, recovers stuck pipelines, and produces post-execution operational report with system improvement suggestions. One per plan.
-model: sonnet[1m]
+model: sonnet
 tools:
   - Read
   - Write

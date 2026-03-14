@@ -2,6 +2,9 @@
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2026.03.14-16 | 2026-03-14 | tmux-team-grid: fix Write tool error — skill only has Bash, must use cat heredoc to write script file |
+| 2026.03.14-15 | 2026-03-14 | Fix 1M context for real: Agent tool model enum doesn't support [1m] suffix — use ANTHROPIC_DEFAULT_*_MODEL env vars in .bashrc instead; clean up misleading [1m] from agent frontmatter and skill spawn instructions |
+| 2026.03.14-14 | 2026-03-14 | Add version field to plugin.json (0.1.0), add version consistency rule to CLAUDE.md |
 | 2026.03.14-13 | 2026-03-14 | tmux-team-grid: adaptive layouts (startup/execution/final-gate), cross-session isolation fixes, final-gate pane support; plan-execution: pane-diffing for knowledge/PM/final-gate spawns |
 | 2026.03.14-12 | 2026-03-14 | Fix 1M context not working: add [1m] suffix to spawn Model instructions in plan-execution skill (was overriding agent frontmatter); add pane title tracking to PM and tmux-team-grid improvements |
 | 2026.03.14-11 | 2026-03-14 | Remove Glob/Grep from Tech Knowledge agent to prevent codebase analysis; expand research brief template with verbatim doc excerpts for executors |

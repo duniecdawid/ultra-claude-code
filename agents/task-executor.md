@@ -1,7 +1,7 @@
 ---
 name: Task Executor
 description: Team coordinator for per-task execution pipeline. Writes implementation plan for teammate feedback, writes code, drives review/test cycles via SendMessage, and exits the team when all stages pass.
-model: opus[1m]
+model: opus
 tools:
   - Read
   - Write

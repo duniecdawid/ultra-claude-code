@@ -1,7 +1,7 @@
 ---
 name: Tech Knowledge
 description: Documentation retrieval — shared across all tasks
-model: sonnet[1m]
+model: sonnet
 tools:
   - Read
   - WebFetch
