@@ -132,7 +132,7 @@ Update the project's canonical documentation NOW — during this phase — with 
 
 1. **Synthesize** all gathered context (Researcher findings + direct reading + documentation updates from Phase 3)
 2. **Derive plan name** from feature description
-3. **Scaffold plan directory**: `mkdir -p documentation/plans/{name}/shared documentation/plans/{name}/tasks`
+3. **Scaffold plan directory**: `mkdir -p documentation/plans/{NNN}-{name}/shared documentation/plans/{NNN}-{name}/tasks`
 4. **Define tasks** — each task must have:
    - Description of what to build/change
    - Files to create or modify
@@ -141,7 +141,7 @@ Update the project's canonical documentation NOW — during this phase — with 
    - **No task may have documentation as its primary purpose.** If you catch yourself writing a task that is essentially "update doc X", delete it — that work belongs in Phase 3 or the Documentation Changes table below.
 5. **Documentation changes** — list the docs created or updated in Phase 3, plus any remaining documentation gaps identified. Use the structured changelog format from the plan template. This is an informational record, not an execution task list.
 6. **Risk assessment** — what could go wrong and mitigations
-7. **Write the plan to `documentation/plans/{name}/README.md`** following Plan Enhancer format (plan template loaded via context) — the plan is on disk before the user reviews it
+7. **Write the plan to `documentation/plans/{NNN}-{name}/README.md`** following Plan Enhancer format (plan template loaded via context) — the plan is on disk before the user reviews it
 8. **Present a concise summary in chat** — plan name, objective, task count, file path. Include any trade-offs you made, things you intentionally excluded, or risks worth discussing. Invite the user to review the full plan file.
 9. **Ask for approval via AskUserQuestion** — Options: "Approve" / "Reject with feedback" / "Partially reject (specify changes)". Only an explicit "Approve" counts — empty, blank, or ambiguous responses must be re-asked.
 
@@ -163,5 +163,5 @@ Plan Enhancer handles post-approval (commit + execution command) and revision lo
 - Do NOT create tasks that violate Plan Enhancer's sizing rules (loaded in context) — every task must be end-to-end testable from the user's perspective
 - Do NOT create tasks without success criteria
 - Always route documentation to correct locations per Docs Manager rules
-- Always persist the plan to `documentation/plans/{name}/README.md` after approval per Plan Enhancer rules
+- Always persist the plan to `documentation/plans/{NNN}-{name}/README.md` after approval per Plan Enhancer rules
 - Do NOT create plan tasks whose sole purpose is updating documentation — all doc updates happen in Phase 3 during planning, not as execution tasks

@@ -59,7 +59,7 @@ Collect from the current session:
 
 ### Step 3: Write Checkpoint File
 
-Write to `documentation/plans/{plan-name}/checkpoint-{YYYY-MM-DD-HHmm}.md`:
+Write to `documentation/plans/{NNN}-{plan-name}/checkpoint-{YYYY-MM-DD-HHmm}.md`:
 
 ```markdown
 # Checkpoint: {plan-name}
@@ -112,12 +112,12 @@ After writing the checkpoint:
 
 ```
 Checkpoint saved to:
-  documentation/plans/{plan-name}/checkpoint-{timestamp}.md
+  documentation/plans/{NNN}-{plan-name}/checkpoint-{timestamp}.md
 
 Progress: {N}/{total} tasks complete. {M} in pipeline.
 
 To resume later:
-  /uc:plan-execution {plan-name}
+  /uc:plan-execution {NNN}
   (Lead will detect the checkpoint and offer to resume)
 ```
 

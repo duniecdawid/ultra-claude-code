@@ -154,7 +154,7 @@ This project uses [Ultra Claude](https://github.com/duniecdawid/ultra-claude-cod
 
 - **Documentation governs code.** Architecture docs are the source of truth. When code diverges from specs, update the spec first.
 - **Canonical documentation** lives in `documentation/` — do not create docs outside this structure.
-- **Plans** are stored in `documentation/plans/{name}/` with embedded task lists.
+- **Plans** are stored in `documentation/plans/{NNN}-{name}/` with sequential numbering and embedded task lists.
 - **External system context** (API docs, SDK references) goes in `context/`.
 - **Project configuration** for Claude is in `.claude/` (app-context, system-test, environments-info).
 

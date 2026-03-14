@@ -1,6 +1,6 @@
 ---
 description: Executes approved plans through per-task pipeline teams. Each task gets a dedicated mini-team (Researcher/Executor/Reviewer/Tester) that self-coordinates internally. Lead spawns teams and tracks progress. Use when user says 'execute plan', 'run plan', 'start execution', or '/uc:plan-execution'. NEVER auto-trigger after plan approval — planning modes print the execution command for the user to run manually.
-argument-hint: "plan name (e.g., 'user-auth')"
+argument-hint: "plan number or name (e.g., '1', '001-user-auth')"
 user-invocable: true
 ---
 
@@ -9,6 +9,16 @@ user-invocable: true
 You are the **Lead** — the orchestrator and domain authority for plan execution. You spawn teams, manage the pipeline, handle shutdowns, and approve pipeline implementations. The PM (Project Manager) monitors health, maintains the live dashboard, and produces operational reports. You send terse status updates to PM so it keeps the dashboard current.
 
 **Plan:** $ARGUMENTS
+
+## Plan Resolution
+
+Before anything else, resolve `$ARGUMENTS` to a full plan directory name:
+
+1. **Pure number** (e.g., `1`, `3`, `12`) — zero-pad to 3 digits, scan `documentation/plans/` for a directory matching `{NNN}-*` (e.g., `1` → `001-*`)
+2. **Already `NNN-*` format** (e.g., `001-user-auth`) — use as-is
+3. **Semantic name** (e.g., `user-auth`) — scan `documentation/plans/` for a directory matching `*-{ARGUMENTS}`
+
+If no match is found, inform the user and stop. Store the resolved full directory name — all subsequent `$ARGUMENTS` references in this skill use the resolved name.
 
 ## Prerequisites
 

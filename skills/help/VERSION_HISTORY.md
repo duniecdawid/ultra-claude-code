@@ -2,6 +2,7 @@
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2026.03.14-2 | 2026-03-14 | Add sequential numbering to plan folders (001-name format) with number-based execution references |
 | 2026.03.14-1 | 2026-03-14 | Fix missing pipeline stage updates: Lead now sends STAGE messages for research, planning, and implementation to PM dashboard |
 | 2026.03.13-2 | 2026-03-13 | Add CLAUDE.md with version history commit instructions |
 | 2026.03.13-1 | 2026-03-13 | Add version history display to help skill |

@@ -38,7 +38,7 @@ When the user has a goal, recommend the right workflow. **This is the canonical 
 - **Fixing a bug** -> `/uc:debug-mode`
 - **Checking if docs match code** -> `/uc:doc-code-verification-mode`
 - **Researching a topic (no coding)** -> `/uc:discovery-mode`
-- **Running a plan** -> `/uc:plan-execution {plan-name}`
+- **Running a plan** -> `/uc:plan-execution {number}` (e.g., `/uc:plan-execution 1`)
 - **Saving progress** -> `/uc:checkpoint`
 - **Looking up library docs** -> `/uc:tech-research`
 - **Auditing or reorganizing documentation** -> `/uc:docs-manager` — audit structure, reorganize misplaced docs, regenerate index
@@ -98,9 +98,9 @@ Keep answers focused and actionable:
    - Research your codebase and architecture
    - Challenge scope and push for clarity
    - If architecture is ambiguous, suggest RFC mode for structured review
-   - Produce a plan in `documentation/plans/payment-system/`
+   - Produce a plan in `documentation/plans/001-payment-system/`
 2. Review and approve the plan
-3. `/uc:plan-execution payment-system` — Agent team implements the plan
+3. `/uc:plan-execution 1` — Agent team implements the plan
 
 Before starting: ensure your architecture docs exist in `documentation/technology/architecture/`. If they don't, Feature Mode will create them as part of planning.
 

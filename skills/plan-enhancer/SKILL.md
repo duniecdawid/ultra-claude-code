@@ -93,16 +93,16 @@ When Phase B is triggered, scope the Researcher tightly to the identified gaps �
 
 ## What You Do
 
-1. **Standardize format** — All plans use the loaded plan template with embedded task list. The template includes an `Execute: /uc:plan-execution {name}` header so the user knows how to run it.
+1. **Standardize format** — All plans use the loaded plan template with embedded task list. The template includes an `Execute: /uc:plan-execution {NNN}` header so the user knows how to run it by number.
 2. **Ensure granularity** — Tasks must be right-sized for agentic execution. Err heavily toward fewer, larger tasks.
-3. **Write plan to disk** — Scaffold the plan directory and write `documentation/plans/{name}/README.md` before presenting for approval
+3. **Write plan to disk** — Scaffold the plan directory and write `documentation/plans/{NNN}-{name}/README.md` before presenting for approval
 
 ## Plan Directory Structure
 
 When a plan is created, scaffold this structure:
 
 ```
-documentation/plans/{plan-name}/
+documentation/plans/{NNN}-{plan-name}/
 ├── README.md          # The plan document (task list embedded)
 ├── shared/            # Lead-level shared notes (created empty, used during execution)
 └── tasks/             # Per-task pipeline artifacts (created empty, used during execution)
@@ -112,12 +112,19 @@ Create the directories immediately. The `shared/` and `tasks/` directories start
 
 ## Plan Naming
 
-Derive the plan name from the user's feature description:
-- Lowercase, hyphenated: "Add user authentication" -> `user-auth`
-- Short but descriptive: 2-4 words max
-- No special characters
+Derive the plan name and number:
 
-If the user provides `$ARGUMENTS`, use it to derive the plan name.
+1. **Semantic name** — from the user's feature description or `$ARGUMENTS`:
+   - Lowercase, hyphenated: "Add user authentication" -> `user-auth`
+   - Short but descriptive: 2-4 words max
+   - No special characters
+
+2. **Sequential number** — scan `documentation/plans/` for directories matching `[0-9][0-9][0-9]-*`:
+   - Extract the highest number, increment by 1, zero-pad to 3 digits
+   - If no numbered plans exist, start at `001`
+   - Example: existing `001-user-auth`, `002-api-keys` → next is `003`
+
+3. **Final folder name**: `{NNN}-{semantic-name}` (e.g., `001-user-auth`)
 
 ## Task Pipeline
 
@@ -220,21 +227,21 @@ Use the loaded plan template (`templates/plan.md`) as the base structure. The pl
 
 ## Plan Creation Process
 
-1. **Derive plan name** from the feature description or `$ARGUMENTS`
-2. **Check for existing plan** — if `documentation/plans/{name}/` exists, read it for revision context
+1. **Derive plan name and number** from the feature description or `$ARGUMENTS`. Scan `documentation/plans/` for the next sequential number (see Plan Naming above).
+2. **Check for existing plan** — if `documentation/plans/*-{name}/` exists (suffix match), read it for revision context
 3. **Scaffold plan directory**:
    ```bash
-   mkdir -p documentation/plans/{name}/shared documentation/plans/{name}/tasks
+   mkdir -p documentation/plans/{NNN}-{name}/shared documentation/plans/{NNN}-{name}/tasks
    ```
-4. **Build the plan** — the planning mode provides the content; you ensure format compliance. Use the loaded plan template including the `Execute: /uc:plan-execution {name}` header.
+4. **Build the plan** — the planning mode provides the content; you ensure format compliance. Use the loaded plan template including the `Execute: /uc:plan-execution {NNN}` header.
 5. **Validate task sizes** — apply granularity rules to every task in the list
 6. **Validate — HARD GATE (do not skip):**
    a. Scan for any task whose sole purpose is documentation, config/env changes, renames, or other trivial work. If found, STOP and absorb it into the nearest task.
    b. Scan for sequential dependency chains (A→B→C where each depends on the previous). If found, STOP and merge the chain into one task. Sequential chains gain nothing from being separate.
    c. Count remaining tasks. If count exceeds the low end of the complexity range, justify each task — if you can't articulate why it MUST be separate (i.e., it enables real parallelism), merge it.
    d. For each task, verify the tester can verify it end-to-end from the user's perspective. If a task can only be verified by checking technical artifacts (schema exists, function defined, type exported), it's too small — merge it into the task it supports.
-7. **Write plan to `documentation/plans/{name}/README.md`** via the Write tool — this is the canonical copy that `/uc:plan-execution` reads from. The plan is on disk before the user reviews it.
-8. **Present a concise summary in chat** — NOT the full plan. Include: plan name, objective, task count, and the file path. The user can read the full plan from the file.
+7. **Write plan to `documentation/plans/{NNN}-{name}/README.md`** via the Write tool — this is the canonical copy that `/uc:plan-execution` reads from. The plan is on disk before the user reviews it.
+8. **Present a concise summary in chat** — NOT the full plan. Include: plan number, plan name, objective, task count, and the file path. The user can read the full plan from the file.
 9. **Ask for approval via AskUserQuestion** — Options: "Approve" / "Reject with feedback" / "Partially reject (specify changes)"
 
 **Approval gate rules — strictly enforce:**
@@ -250,12 +257,12 @@ When the user explicitly approves the plan:
 
 1. **Commit plan files** — Stage all plan files (README.md, directories) and commit:
    ```
-   git add documentation/plans/{name}/ && git commit -m "plan: {name}"
+   git add documentation/plans/{NNN}-{name}/ && git commit -m "plan: {NNN}-{name}"
    ```
 2. **Print execution command** — Display this exact message and nothing else after it:
    ```
    Plan committed. To execute, run:
-   /clear /uc:plan-execution {name}
+   /clear /uc:plan-execution {NNN}
    ```
    Clearing context before execution gives executor agents maximum working memory. Plans are on disk — nothing is lost.
 3. **STOP IMMEDIATELY** — Your job is done. Do NOT:
@@ -272,7 +279,7 @@ When the user explicitly approves the plan:
 If the user rejects or partially rejects the plan:
 
 1. Read their feedback
-2. Edit the existing `documentation/plans/{name}/README.md` using the Edit tool to incorporate changes
+2. Edit the existing `documentation/plans/{NNN}-{name}/README.md` using the Edit tool to incorporate changes
 3. Re-present the concise summary with changes highlighted
 4. Re-ask for approval via AskUserQuestion
 
@@ -280,7 +287,7 @@ Repeat until approved or the user abandons the plan.
 
 ## Existing Plan Handling
 
-If the plan directory already exists (revision or re-planning):
+If a plan directory matching `*-{name}` already exists (revision or re-planning):
 - Read the existing `README.md` to understand current state
 - Check for checkpoint files — if they exist, this plan has been partially executed
 - Warn the user if modifying a plan that has execution history
@@ -290,8 +297,8 @@ If the plan directory already exists (revision or re-planning):
 
 - Do NOT execute the plan — that is `/uc:plan-execution`'s job. After approval, commit and print the execution command, then STOP.
 - Do NOT create tasks without success criteria
-- ALWAYS write the plan to `documentation/plans/{name}/README.md` BEFORE presenting for approval — this ensures the plan is on disk and cannot be lost
-- ALWAYS include the `Execute: /uc:plan-execution {name}` header in the plan document
+- ALWAYS write the plan to `documentation/plans/{NNN}-{name}/README.md` BEFORE presenting for approval — this ensures the plan is on disk and cannot be lost
+- ALWAYS include the `Execute: /uc:plan-execution {NNN}` header in the plan document
 - ALWAYS follow the Post-Approval steps after the user approves — commit, print command, stop. No exceptions.
 
 ## Example
@@ -303,7 +310,7 @@ If the plan directory already exists (revision or re-planning):
 **Plan Enhancer produces:**
 
 ```
-documentation/plans/user-auth/
+documentation/plans/001-user-auth/
 ├── README.md
 ├── shared/
 └── tasks/

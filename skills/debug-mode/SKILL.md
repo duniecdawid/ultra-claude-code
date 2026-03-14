@@ -183,7 +183,7 @@ If none of these conditions are met, skip directly to Phase 5.
 
 1. **Synthesize** investigation findings and documentation updates from Phase 4.5 into a targeted fix plan
 2. **Derive plan name** from the bug description (e.g., "fix-login-race-condition")
-3. **Scaffold plan directory**: `mkdir -p documentation/plans/{name}/shared documentation/plans/{name}/tasks`
+3. **Scaffold plan directory**: `mkdir -p documentation/plans/{NNN}-{name}/shared documentation/plans/{NNN}-{name}/tasks`
 4. **Define fix tasks** — sized per Plan Enhancer rules (loaded in context). Each task must be end-to-end verifiable from the user's perspective:
    - Clear description of what to change and why (reference the evidence)
    - Files to modify
@@ -193,7 +193,7 @@ If none of these conditions are met, skip directly to Phase 5.
 6. **Include regression tests within each fix task** — tests preventing recurrence are part of the task, not standalone
 7. **Reference evidence** — link each fix task back to the hypothesis and evidence that supports it
 8. **Documentation changes** — list the docs created or updated in Phase 4.5, plus any remaining documentation gaps identified. Use the structured changelog format from the plan template. This is an informational record, not a fix task list.
-9. **Write the plan to `documentation/plans/{name}/README.md`** following Plan Enhancer format (plan template loaded via context) — the plan is on disk before the user reviews it
+9. **Write the plan to `documentation/plans/{NNN}-{name}/README.md`** following Plan Enhancer format (plan template loaded via context) — the plan is on disk before the user reviews it
 10. **Present a concise summary in chat** — plan name, root cause, task count, file path. Flag any uncertainties in the diagnosis or trade-offs in the fix approach. Invite the user to review the full plan file.
 11. **Ask for approval via AskUserQuestion** — Options: "Approve" / "Reject with feedback" / "Partially reject (specify changes)". Only an explicit "Approve" counts — empty, blank, or ambiguous responses must be re-asked.
 
