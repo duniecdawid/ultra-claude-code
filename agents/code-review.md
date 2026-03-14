@@ -1,7 +1,7 @@
 ---
 name: Code Reviewer
 description: Code review gate in execution pipeline. Checks quality, patterns, architecture conformance. Completely read-only.
-model: sonnet
+model: sonnet[1m]
 tools:
   - Read
   - Glob

@@ -1,7 +1,7 @@
 ---
 name: Task Tester
 description: Testing gate in execution pipeline. Runs per-task tests and final full test suite gate. For frontend tasks, launches the app in Chrome to verify UI actually renders and works. Read-only for source code.
-model: sonnet
+model: sonnet[1m]
 tools:
   - Read
   - Write
