@@ -222,7 +222,8 @@ The Lead sends you terse status messages as it orchestrates. Process each into t
 
 | Lead Message | PM Action |
 |---|---|
-| `SPAWNED task-{N}: {description}` | Create `status/teams/task-{N}.json` with all members, update `project.json` (active_tasks++, pending_tasks--), append `team_spawned` event |
+| `SPAWNED task-{N}: {description} \| panes: executor-{N}=%XX reviewer-{N}=%YY tester-{N}=%ZZ` | **Set pane titles first** (see below), then create `status/teams/task-{N}.json` with all members, update `project.json` (active_tasks++, pending_tasks--), append `team_spawned` event |
+| `SPAWNED knowledge-{PLAN_NAME} \| pane: %XX` | Set pane title (see below). Log knowledge agent spawn in events. |
 | `STAGE task-{N} {stage}` | Update `teams/task-{N}.json`: close previous stage timestamps, open new stage, update status field. Append `stage_entered` event |
 | `COMPLETED task-{N}` | Update `teams/task-{N}.json`: status=completed, ended_at, all members=completed. Update `project.json` (completed_tasks++, active_tasks--). Append `task_completed` event |
 | `SHUTDOWN task-{N}` | Update all member `ended_at` timestamps in `teams/task-{N}.json`. Append `team_shutdown` event |
@@ -231,6 +232,24 @@ The Lead sends you terse status messages as it orchestrates. Process each into t
 | `RETRY task-{N}` | Update `teams/task-{N}.json`: retry_count++. Append retry event |
 
 **Important:** If the Lead sends a message format you don't recognize, log it and continue. Never block on an unrecognized message.
+
+### Setting Pane Titles
+
+SPAWNED messages include `| panes:` data mapping agent names to tmux pane IDs. When you receive one, **immediately** set the pane titles before doing anything else — the `/uc:tmux-team-grid` skill and human monitoring depend on correct titles.
+
+Parse the pane mapping and run:
+```bash
+tmux select-pane -t %XX -T "executor-{N}" 2>/dev/null
+tmux select-pane -t %YY -T "reviewer-{N}" 2>/dev/null
+tmux select-pane -t %ZZ -T "tester-{N}" 2>/dev/null
+```
+
+For shared agents:
+```bash
+tmux select-pane -t %XX -T "knowledge-{PLAN_NAME}" 2>/dev/null
+```
+
+This is a quick operational task — agents can't set their own titles reliably (some lack Bash access), so you handle it as part of your operational role. The Lead identifies pane IDs at spawn time via pane-list diffing and passes them to you.
 
 ### Communication with Lead
 

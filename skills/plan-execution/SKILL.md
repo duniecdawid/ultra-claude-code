@@ -168,7 +168,7 @@ Before spawning any task-teams, set up the shared Tech Knowledge agent:
 3. Spawn `knowledge-{PLAN_NAME}` using the Tech Knowledge agent:
 
 Agent: `${CLAUDE_PLUGIN_ROOT}/agents/tech-knowledge.md`
-Model: `sonnet` | Mode: `bypassPermissions`
+Model: `sonnet[1m]` | Mode: `bypassPermissions`
 
 ```
 You are the shared **Tech Knowledge** agent for the "$ARGUMENTS" plan execution.
@@ -238,8 +238,9 @@ Phase 2 startup:
   1. Spawn the Project Manager (pm-{PLAN_NAME}) using the PM spawn prompt.
   2. Spawn initial task-teams to fill concurrency slots.
      For each slot: find next pending unblocked task, create tasks/task-N/ directory,
-     spawn all 3 team members at once into task-{N}-team.
-     After each spawn:
+     spawn team members ONE AT A TIME (executor-N, then reviewer-N, then tester-N),
+     recording each pane ID via the diffing method after each spawn.
+     After spawning all 3:
        SendMessage to PM "SPAWNED task-{N}: {task description}" then "STAGE task-{N} planning"
        SendMessage to knowledge-{PLAN_NAME}: "TASK-START: Task {N} — {task title}\nDescription: {task description}\nSuccess criteria: {success criteria}\nExecutor: executor-{N}\nPlan path (when available): documentation/plans/$ARGUMENTS/tasks/task-{N}/plan.md"
 
@@ -311,10 +312,41 @@ Use the Agent tool with `team_name` set to the active team. **MANDATORY naming c
 
 **NEVER** use alternative formats like `task-1-executor`, `e1`, `Executor_1`, or descriptive names. The `/uc:tmux-team-grid` skill depends on this exact `{role}-{N}` pattern to organize panes.
 
+#### Pane Title Tracking (MANDATORY)
+
+Agents cannot reliably set their own tmux pane titles (some don't have Bash access, others skip the instruction). The **Lead identifies pane IDs** at spawn time and the **PM sets the titles** as an operational task.
+
+**Lead's responsibility — identify pane IDs via diffing:**
+
+Agents must be spawned **one at a time** (not all 3 in a single message with parallel tool calls). Between each spawn, diff the pane list to capture which new pane appeared:
+
+```
+For EACH agent spawn:
+  1. Before: PANES_BEFORE=$(tmux list-panes -F '#{pane_id}' | sort)
+  2. Spawn the agent (single Agent tool call)
+  3. After:  PANES_AFTER=$(tmux list-panes -F '#{pane_id}' | sort)
+  4. Find new pane: NEW_PANE=$(comm -13 <(echo "$PANES_BEFORE") <(echo "$PANES_AFTER"))
+  5. Record the mapping: {agent-name} = {NEW_PANE}
+```
+
+After spawning all members of a task-team, include the pane mapping in the SPAWNED message to PM:
+
+```
+SendMessage to PM: "SPAWNED task-{N}: {description} | panes: executor-{N}=%XX reviewer-{N}=%YY tester-{N}=%ZZ"
+```
+
+For shared agents, include pane IDs in their respective messages:
+- After spawning knowledge: `"SPAWNED knowledge-{PLAN_NAME} | pane: %XX"`
+- After spawning PM: set PM's own title directly since PM isn't alive yet to receive a message: `tmux select-pane -t "$NEW_PANE" -T "pm-{PLAN_NAME}"`
+
+**PM's responsibility — set pane titles:**
+
+See the PM agent instructions. On receiving any SPAWNED message with `| panes:` data, PM parses the pane IDs and sets tmux titles immediately.
+
 #### Executor Spawn
 
 Agent: `${CLAUDE_PLUGIN_ROOT}/agents/task-executor.md`
-Model: `opus` | Mode: `bypassPermissions`
+Model: `opus[1m]` | Mode: `bypassPermissions`
 
 ```
 You are the **team coordinator** for task {N} of the "$ARGUMENTS" plan.
@@ -376,7 +408,7 @@ While waiting, you may process post-plan research responses and refine your plan
 #### Reviewer Spawn
 
 Agent: `${CLAUDE_PLUGIN_ROOT}/agents/code-review.md`
-Model: `sonnet` | Mode: `bypassPermissions`
+Model: `sonnet[1m]` | Mode: `bypassPermissions`
 
 ```
 You are reviewing task {N} of the "$ARGUMENTS" plan.
@@ -414,7 +446,7 @@ Tester-written tests are in your review scope.
 #### Tester Spawn
 
 Agent: `${CLAUDE_PLUGIN_ROOT}/agents/task-tester.md`
-Model: `sonnet` | Mode: `bypassPermissions`
+Model: `sonnet[1m]` | Mode: `bypassPermissions`
 
 ```
 You are testing task {N} of the "$ARGUMENTS" plan.
@@ -453,7 +485,7 @@ Write additional tests to cover success criteria gaps. Tests survive in the code
 #### Final Gate Tester Spawn
 
 Agent: `${CLAUDE_PLUGIN_ROOT}/agents/task-tester.md`
-Model: `sonnet` | Mode: `bypassPermissions`
+Model: `sonnet[1m]` | Mode: `bypassPermissions`
 
 For the final regression gate after all tasks complete, spawn a fresh Tester:
 
@@ -477,7 +509,7 @@ This is NOT a per-task test. Run the FULL test suite as a regression check acros
 #### Project Manager Spawn
 
 Agent: `${CLAUDE_PLUGIN_ROOT}/agents/project-manager.md`
-Model: `sonnet` | Mode: `bypassPermissions`
+Model: `sonnet[1m]` | Mode: `bypassPermissions`
 
 Spawn **once** at Phase 2 startup — before any task-teams. The Project Manager runs for the entire plan duration — it is NOT per-task. Name it `pm-{PLAN_NAME}` (e.g., `pm-user-auth`).
 

@@ -2,6 +2,8 @@
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2026.03.14-12 | 2026-03-14 | Fix 1M context not working: add [1m] suffix to spawn Model instructions in plan-execution skill (was overriding agent frontmatter); add pane title tracking to PM and tmux-team-grid improvements |
+| 2026.03.14-11 | 2026-03-14 | Remove Glob/Grep from Tech Knowledge agent to prevent codebase analysis; expand research brief template with verbatim doc excerpts for executors |
 | 2026.03.14-10 | 2026-03-14 | Add proactive technology research: Code Reviewer queries Tech Knowledge to verify external library usage against docs, Tech Knowledge sends research briefs to executors on task spawn, new [DOCS] failure category |
 | 2026.03.14-9 | 2026-03-14 | Enable 1M context for Code Reviewer, Task Tester, and Project Manager (sonnet[1m]) agents |
 | 2026.03.14-8 | 2026-03-14 | Enable 1M context for Task Executor (opus[1m]) and Tech Knowledge (sonnet[1m]) agents |

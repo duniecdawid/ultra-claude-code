@@ -1,277 +1,405 @@
 ---
 name: tmux-team-grid
-description: Organize existing tmux panes into a team grid layout. Scans pane titles for role-N patterns (executor-1, tester-2, reviewer-3, etc.), then rearranges them into rows by role, columns by number. Main context pane stays on the left (full height, fixed width). NEVER creates new panes. Use when user says "team grid", "tmux grid", "organize panes", "arrange team", or "team layout".
+description: Organize existing tmux panes into a team grid layout for plan-execution teams. Left column stacks main context + shared agents (tech-knowledge, project-manager). Right side shows task grid (executor/tester/reviewer rows × task columns). Reads pane titles to identify agents. NEVER creates new panes. Use when user says "team grid", "tmux grid", "organize panes", "arrange team", or "team layout".
 user-invocable: true
 allowed-tools: [Bash]
 ---
 
 # tmux Team Grid
 
-Scans existing tmux panes and rearranges them into a structured grid. **Never creates new panes.**
+Scans existing tmux panes by title and rearranges them into a structured grid. **Never creates new panes.**
 
 ## The Layout
 
 ```
-│            │ task 1       │ task 2       │ task 3       │
-│            │──────────────┼──────────────┼──────────────│
-│   main     │ executor-1   │ executor-2   │ executor-3   │  ← executor row
-│  context   │──────────────┼──────────────┼──────────────│
-│            │ tester-1     │ tester-2     │ tester-3     │  ← tester row
-│  (fixed    │──────────────┼──────────────┼──────────────│
-│   width,   │ reviewer-1   │ reviewer-2   │ reviewer-3   │  ← reviewer row
-│  full h)   │              │              │              │
+│ main         │ executor-1   │ executor-2   │ executor-3   │
+│ context      │──────────────┼──────────────┼──────────────│
+│──────────────│ tester-1     │ tester-2     │ tester-3     │
+│ tech-        │──────────────┼──────────────┼──────────────│
+│ knowledge    │ reviewer-1   │ reviewer-2   │ reviewer-3   │
+│──────────────│              │              │              │
+│ project-     │              │              │              │
+│ manager      │              │              │              │
 ```
 
-- **Main pane:** leftmost, full height, fixed width (70 cols). Never moves.
-- **Grid:** rows = roles, columns = task numbers. Equal space distribution.
-- **Row order:** executor → tester → reviewer → alphabetical for others
-- **Note:** Shared plan-wide agents (e.g., `knowledge-{PLAN_NAME}`) appear in unmatched panes and are left untouched
-- **Column order:** ascending by number (1, 2, 3, ...)
+- **Left column (fixed 70 cols, full height):**
+  - Main context (top, ~50% height) — never moves
+  - Tech-knowledge (middle, ~25%) — shared, plan-wide
+  - Project-manager (bottom, ~25%) — shared, plan-wide
+- **Task grid (remaining width):**
+  - Rows = roles: executor → tester → reviewer
+  - Columns = task numbers: 1, 2, 3, ...
+  - Equal space distribution
+
+If only some shared agents exist (e.g., knowledge but no PM), the left column adjusts — main gets ~60%, the single shared agent gets ~40%.
+
+## Pane Identification
+
+Panes are matched by their tmux pane title (`#{pane_title}`). Plan-execution is responsible for setting these titles after spawning each agent.
+
+**Title patterns recognized:**
+- Task agents: `executor-N`, `tester-N`, `reviewer-N` (N = task number)
+- Tech-knowledge: title starts with `knowledge` (e.g., `knowledge-user-auth`)
+- Project-manager: title starts with `pm` (e.g., `pm-user-auth`)
+
+If a manifest file exists at `/tmp/team-grid-manifest.json`, pane titles are applied from it before scanning. This is a fallback for cases where titles weren't set at spawn time.
 
 ## Instructions
 
 ### Step 1: Write and run the grid builder script
 
-Get the main pane ID with `tmux display-message -p '#{pane_id}'`, then write `/tmp/tmux-team-grid.sh` with this content (replacing `__MAIN_PANE__` with the actual ID) and execute it.
+Get the main pane ID with `tmux display-message -p '#{pane_id}'`, then write `/tmp/tmux-team-grid.sh` (replacing `__MAIN_PANE__` with the actual ID) and execute it with `bash /tmp/tmux-team-grid.sh`.
 
 ```bash
 #!/usr/bin/env bash
-# NO set -e — handle errors explicitly so one failed join doesn't kill everything
+# NO set -e — individual join failures must not kill the script
 
 MAIN_PANE="__MAIN_PANE__"
 MAIN_WIDTH=70
 WINDOW=$(tmux display-message -p '#{window_id}')
 
-# ── 1. Scan panes, classify by role-N pattern ──────────────────────
-declare -A PANE_MAP        # PANE_MAP[role,number] = pane_id
-declare -A ROLE_ORDER_MAP  # for sorting
-ROLE_LIST=()
-NUM_LIST=()
+# ── 0. Apply manifest titles if available ────────────────────────
+MANIFEST="/tmp/team-grid-manifest.json"
+if [ -f "$MANIFEST" ] && command -v python3 &>/dev/null; then
+  echo "Applying pane titles from manifest..."
+  python3 -c "
+import json, subprocess
+with open('$MANIFEST') as f:
+    data = json.load(f)
+for pane_id, info in data.get('agents', {}).items():
+    role = info['role']
+    task = info.get('task')
+    title = f'{role}-{task}' if task else role
+    subprocess.run(['tmux', 'select-pane', '-t', pane_id, '-T', title],
+                   capture_output=True)
+"
+  sleep 0.1
+fi
 
-role_priority() {
+# ── 1. Scan panes, classify ─────────────────────────────────────
+declare -A TASK_MAP          # TASK_MAP[role,number] = pane_id
+declare -A SHARED_MAP        # SHARED_MAP[knowledge|pm] = pane_id
+TASK_ROLES_RAW=()
+TASK_NUMS_RAW=()
+
+task_role_priority() {
   case "$1" in
-    executor)   echo 1 ;;
-    tester)     echo 2 ;;
-    reviewer)   echo 3 ;;
-    *)          echo 4 ;;
+    executor) echo 1 ;; tester) echo 2 ;; reviewer) echo 3 ;; *) echo 4 ;;
   esac
 }
 
 TOTAL_PANES=0
 MATCHED_PANES=0
-UNMATCHED_PANES=()
+UNMATCHED=()
 
 while IFS=' ' read -r pane_id pane_title; do
   [ "$pane_id" = "$MAIN_PANE" ] && continue
   ((TOTAL_PANES++))
-  if [[ "$pane_title" =~ ^([a-zA-Z_-]+)-([0-9]+)$ ]]; then
+
+  # Task agent: executor-N, tester-N, reviewer-N
+  if [[ "$pane_title" =~ ^(executor|tester|reviewer)-([0-9]+)$ ]]; then
     role="${BASH_REMATCH[1]}"
     num="${BASH_REMATCH[2]}"
-    PANE_MAP["$role,$num"]="$pane_id"
-    ROLE_ORDER_MAP["$role"]=$(role_priority "$role")
-    ROLE_LIST+=("$role")
-    NUM_LIST+=("$num")
+    TASK_MAP["$role,$num"]="$pane_id"
+    TASK_ROLES_RAW+=("$role")
+    TASK_NUMS_RAW+=("$num")
+    ((MATCHED_PANES++))
+  # Shared: knowledge-* or just "knowledge"
+  elif [[ "$pane_title" =~ ^knowledge ]]; then
+    SHARED_MAP["knowledge"]="$pane_id"
+    ((MATCHED_PANES++))
+  # Shared: pm-* or just "pm"
+  elif [[ "$pane_title" =~ ^pm ]]; then
+    SHARED_MAP["pm"]="$pane_id"
     ((MATCHED_PANES++))
   else
-    UNMATCHED_PANES+=("$pane_id:$pane_title")
+    UNMATCHED+=("$pane_id:$pane_title")
   fi
 done < <(tmux list-panes -t "$WINDOW" -F '#{pane_id} #{pane_title}')
 
-# ── Safety check: abort if naming structure is not recognized ──────
-# Require at least 2 matched panes AND >50% of non-main panes must match.
-# This prevents destroying a layout the script doesn't understand.
-
+# ── Safety checks ───────────────────────────────────────────────
 if [ "$TOTAL_PANES" -eq 0 ]; then
-  echo "ABORT: No panes found besides main. Nothing to arrange."
+  echo "ABORT: No panes found besides main."
   exit 0
 fi
 
 if [ "$MATCHED_PANES" -lt 2 ]; then
-  echo "ABORT: Only $MATCHED_PANES pane(s) match the role-N naming pattern (need at least 2)."
-  echo "  Expected names like: executor-1, tester-2, reviewer-3"
-  echo "  Found: $(tmux list-panes -t "$WINDOW" -F '#{pane_title}' | grep -v '^$' | tr '\n' ', ')"
-  echo "Leaving layout untouched."
+  echo "ABORT: Only $MATCHED_PANES pane(s) matched (need at least 2)."
+  echo "  Expected titles: executor-1, tester-1, reviewer-1, knowledge-*, pm-*"
+  echo "  Actual titles:"
+  tmux list-panes -t "$WINDOW" -F '  #{pane_id}  #{pane_title}' | grep -v "^  $MAIN_PANE"
+  echo ""
+  echo "If titles aren't set, check that plan-execution is setting them at spawn time."
   exit 1
 fi
 
 MATCH_PCT=$(( MATCHED_PANES * 100 / TOTAL_PANES ))
-if [ "$MATCH_PCT" -lt 50 ]; then
-  echo "ABORT: Only $MATCHED_PANES/$TOTAL_PANES panes (${MATCH_PCT}%) match role-N pattern."
-  echo "  Matched: ${ROLE_LIST[*]/%/-}${NUM_LIST[*]}"
+if [ "$MATCH_PCT" -lt 40 ]; then
+  echo "ABORT: Only $MATCHED_PANES/$TOTAL_PANES (${MATCH_PCT}%) matched."
   echo "  Unmatched:"
-  for u in "${UNMATCHED_PANES[@]}"; do
-    echo "    ${u%%:*} — '${u#*:}'"
-  done
-  echo "Leaving layout untouched. Rename panes to role-N format first."
+  for u in "${UNMATCHED[@]}"; do echo "    ${u%%:*} — '${u#*:}'"; done
   exit 1
 fi
 
 # Deduplicate and sort
-ROLES=($(printf '%s\n' "${ROLE_LIST[@]}" | sort -u | while read r; do
-  echo "${ROLE_ORDER_MAP[$r]} $r"
+ROLES=($(printf '%s\n' "${TASK_ROLES_RAW[@]}" | sort -u | while read r; do
+  echo "$(task_role_priority "$r") $r"
 done | sort -n | awk '{print $2}'))
 
-NUMS=($(printf '%s\n' "${NUM_LIST[@]}" | sort -un))
+NUMS=($(printf '%s\n' "${TASK_NUMS_RAW[@]}" | sort -un))
 
 NUM_ROLES=${#ROLES[@]}
 NUM_COLS=${#NUMS[@]}
+KNOW_PANE="${SHARED_MAP[knowledge]:-}"
+PM_PANE="${SHARED_MAP[pm]:-}"
+NUM_SHARED=0
+[ -n "$KNOW_PANE" ] && ((NUM_SHARED++))
+[ -n "$PM_PANE" ] && ((NUM_SHARED++))
 
-if [ "$NUM_ROLES" -eq 0 ] || [ "$NUM_COLS" -eq 0 ]; then
-  echo "ABORT: No valid grid structure found."
-  exit 0
-fi
-
-echo "Grid: $NUM_ROLES roles × $NUM_COLS tasks ($MATCHED_PANES/$TOTAL_PANES panes matched)"
+echo "Layout: ${NUM_COLS} tasks × ${NUM_ROLES} roles + ${NUM_SHARED} shared agent(s)"
 echo "  Roles: ${ROLES[*]}"
 echo "  Tasks: ${NUMS[*]}"
-if [ "${#UNMATCHED_PANES[@]}" -gt 0 ]; then
-  echo "  Skipping ${#UNMATCHED_PANES[@]} unrecognized pane(s) (will not be moved)"
-fi
+[ -n "$KNOW_PANE" ] && echo "  Shared: tech-knowledge ($KNOW_PANE)"
+[ -n "$PM_PANE" ] && echo "  Shared: project-manager ($PM_PANE)"
+[ "${#UNMATCHED[@]}" -gt 0 ] && echo "  Skipping ${#UNMATCHED[@]} unrecognized pane(s)"
 
-# ── 2. Break all grid panes to hidden windows ──────────────────────
+# ── 1b. Save layout snapshot for restore ────────────────────────
+RESTORE_SCRIPT="/tmp/tmux-restore-layout.sh"
+{
+  echo '#!/usr/bin/env bash'
+  echo "WINDOW=\"$WINDOW\""
+  echo "MAIN_PANE=\"$MAIN_PANE\""
+  echo ''
+  echo '# Remove resize hooks'
+  echo "tmux set-hook -wu window-layout-changed 2>/dev/null || true"
+  echo "tmux set-hook -u client-resized 2>/dev/null || true"
+  echo ''
+  echo '# Break all non-main panes to hidden windows'
+  echo 'ALL_PANES=($(tmux list-panes -t "$WINDOW" -F "#{pane_id}" | grep -v "^${MAIN_PANE}$"))'
+  echo 'for pid in "${ALL_PANES[@]}"; do'
+  echo '  tmux break-pane -d -s "$pid" 2>/dev/null || true'
+  echo 'done'
+  echo 'sleep 0.3'
+  echo ''
+  echo '# Rejoin all broken panes — apply tiled layout after each join'
+  echo '# to prevent running out of space on horizontal/vertical splits'
+  echo 'for pid in "${ALL_PANES[@]}"; do'
+  echo '  tmux join-pane -v -t "$MAIN_PANE" -s "$pid" 2>/dev/null || true'
+  echo '  tmux select-layout -t "$WINDOW" tiled 2>/dev/null || true'
+  echo '  sleep 0.05'
+  echo 'done'
+  echo ''
+  echo '# Remove border labels'
+  echo 'tmux set-option -wu pane-border-status 2>/dev/null || true'
+  echo 'tmux select-pane -t "$MAIN_PANE"'
+  echo 'echo "Layout restored to tiled. Resize hooks removed."'
+} > "$RESTORE_SCRIPT"
+chmod +x "$RESTORE_SCRIPT"
+echo "Restore script saved: $RESTORE_SCRIPT"
+
+# ── 2. Break all non-main panes to hidden windows ───────────────
 ERRORS=0
+
+for role in knowledge pm; do
+  pid="${SHARED_MAP[$role]:-}"; [ -z "$pid" ] && continue
+  tmux break-pane -d -s "$pid" 2>/dev/null || { echo "  WARN: break failed $role ($pid)"; ((ERRORS++)); }
+done
+
 for role in "${ROLES[@]}"; do
   for num in "${NUMS[@]}"; do
-    pid="${PANE_MAP[$role,$num]:-}"; [ -z "$pid" ] && continue
-    if ! tmux break-pane -d -s "$pid" 2>/dev/null; then
-      echo "  WARN: break-pane failed for $role-$num ($pid)"
-      ((ERRORS++))
-    fi
+    pid="${TASK_MAP[$role,$num]:-}"; [ -z "$pid" ] && continue
+    tmux break-pane -d -s "$pid" 2>/dev/null || { echo "  WARN: break failed $role-$num ($pid)"; ((ERRORS++)); }
   done
 done
 sleep 0.3
 
-# ── 3. Rebuild grid ────────────────────────────────────────────────
-# IMPORTANT: tmux panes form a binary tree. If we build each column
-# fully (all vertical splits) before the next, join-pane -h only
-# splits ONE cell, not the whole column. So we MUST build in two phases:
-#   Phase 1: first row across all columns (horizontal splits → columns)
-#   Phase 2: remaining rows within each column (vertical splits → rows)
+# ── 3. Rebuild: two-phase binary-tree approach ──────────────────
+# Phase 1: horizontal joins → establish columns (first task row)
+# Phase 2a: vertical joins → left column (shared agents below main)
+# Phase 2b: vertical joins → task rows within each column
+#
+# Horizontal first is mandatory. Building column-by-column causes
+# tmux's binary split tree to nest incorrectly.
 
 FIRST_COL_PANE=()
 JOIN_TARGET="$MAIN_PANE"
-FIRST_ROLE="${ROLES[0]}"
+FIRST_ROLE="${ROLES[0]:-}"
 
-# Phase 1: horizontal structure — one pane per column
-for col_idx in "${!NUMS[@]}"; do
-  num="${NUMS[$col_idx]}"
-  pid="${PANE_MAP[$FIRST_ROLE,$num]:-}"; [ -z "$pid" ] && continue
-  if tmux join-pane -h -t "$JOIN_TARGET" -s "$pid" 2>/dev/null; then
-    FIRST_COL_PANE+=("$pid")
-    JOIN_TARGET="$pid"
+# Phase 1: task columns (horizontal splits from main)
+if [ -n "$FIRST_ROLE" ] && [ "$NUM_COLS" -gt 0 ]; then
+  for col_idx in "${!NUMS[@]}"; do
+    num="${NUMS[$col_idx]}"
+    pid="${TASK_MAP[$FIRST_ROLE,$num]:-}"; [ -z "$pid" ] && continue
+    if tmux join-pane -h -t "$JOIN_TARGET" -s "$pid" 2>/dev/null; then
+      FIRST_COL_PANE+=("$pid")
+      JOIN_TARGET="$pid"
+    else
+      echo "  ERROR: H-join failed $FIRST_ROLE-$num ($pid)"
+      ((ERRORS++))
+    fi
+    sleep 0.05
+  done
+fi
+
+# Phase 2a: left column — shared agents below main
+LEFT_PREV="$MAIN_PANE"
+if [ -n "$KNOW_PANE" ]; then
+  if tmux join-pane -v -t "$LEFT_PREV" -s "$KNOW_PANE" 2>/dev/null; then
+    LEFT_PREV="$KNOW_PANE"
   else
-    echo "  ERROR: Phase 1 join failed for $FIRST_ROLE-$num ($pid)"
+    echo "  ERROR: V-join failed knowledge ($KNOW_PANE)"
     ((ERRORS++))
   fi
   sleep 0.05
-done
+fi
+if [ -n "$PM_PANE" ]; then
+  if tmux join-pane -v -t "$LEFT_PREV" -s "$PM_PANE" 2>/dev/null; then
+    LEFT_PREV="$PM_PANE"
+  else
+    echo "  ERROR: V-join failed pm ($PM_PANE)"
+    ((ERRORS++))
+  fi
+  sleep 0.05
+fi
 
-# Phase 2: vertical structure — remaining rows per column
+# Phase 2b: task grid rows
 for col_idx in "${!NUMS[@]}"; do
   num="${NUMS[$col_idx]}"
-  prev_pid="${PANE_MAP[$FIRST_ROLE,$num]:-}"; [ -z "$prev_pid" ] && continue
+  prev_pid="${TASK_MAP[$FIRST_ROLE,$num]:-}"; [ -z "$prev_pid" ] && continue
   for (( row_idx=1; row_idx < NUM_ROLES; row_idx++ )); do
     role="${ROLES[$row_idx]}"
-    pid="${PANE_MAP[$role,$num]:-}"; [ -z "$pid" ] && continue
+    pid="${TASK_MAP[$role,$num]:-}"; [ -z "$pid" ] && continue
     if tmux join-pane -v -t "$prev_pid" -s "$pid" 2>/dev/null; then
       prev_pid="$pid"
     else
-      echo "  ERROR: Phase 2 join failed for $role-$num ($pid)"
+      echo "  ERROR: V-join failed $role-$num ($pid)"
       ((ERRORS++))
     fi
     sleep 0.05
   done
 done
 
-# ── 4. Resize: main fixed, columns equal, rows equal ──────────────
+# ── 4. Resize ───────────────────────────────────────────────────
 sleep 0.3
 tmux resize-pane -t "$MAIN_PANE" -x "$MAIN_WIDTH" 2>/dev/null
 
 TOTAL_W=$(tmux display-message -p '#{window_width}')
-GRID_W=$(( TOTAL_W - MAIN_WIDTH - 1 ))
-COL_W=$(( GRID_W / NUM_COLS ))
-
-# Resize columns (skip last — gets remainder)
-for (( i=0; i < ${#FIRST_COL_PANE[@]} - 1; i++ )); do
-  tmux resize-pane -t "${FIRST_COL_PANE[$i]}" -x "$COL_W" 2>/dev/null || true
-done
-
-# Equalize rows
 TOTAL_H=$(tmux display-message -p '#{window_height}')
-ROW_H=$(( TOTAL_H / NUM_ROLES ))
-for role in "${ROLES[@]}"; do
-  for num in "${NUMS[@]}"; do
-    pid="${PANE_MAP[$role,$num]:-}"; [ -z "$pid" ] && continue
-    tmux resize-pane -t "$pid" -y "$ROW_H" 2>/dev/null || true
-  done
-done
 
-# ── 5. Generate and install resize hook ────────────────────────────
-# This script runs on every window resize to keep main width constant
-# and redistribute grid space evenly.
+# Left column heights: main ~50%, shared split the rest
+if [ "$NUM_SHARED" -eq 2 ]; then
+  MAIN_H=$(( TOTAL_H * 50 / 100 ))
+  SHARED_H=$(( (TOTAL_H - MAIN_H) / 2 ))
+  tmux resize-pane -t "$MAIN_PANE" -y "$MAIN_H" 2>/dev/null || true
+  [ -n "$KNOW_PANE" ] && tmux resize-pane -t "$KNOW_PANE" -y "$SHARED_H" 2>/dev/null || true
+elif [ "$NUM_SHARED" -eq 1 ]; then
+  MAIN_H=$(( TOTAL_H * 60 / 100 ))
+  tmux resize-pane -t "$MAIN_PANE" -y "$MAIN_H" 2>/dev/null || true
+fi
+
+# Task grid: equal columns (skip last — gets remainder)
+if [ "$NUM_COLS" -gt 1 ]; then
+  GRID_W=$(( TOTAL_W - MAIN_WIDTH - 1 ))
+  COL_W=$(( GRID_W / NUM_COLS ))
+  for (( i=0; i < ${#FIRST_COL_PANE[@]} - 1; i++ )); do
+    tmux resize-pane -t "${FIRST_COL_PANE[$i]}" -x "$COL_W" 2>/dev/null || true
+  done
+fi
+
+# Task grid: equal rows
+if [ "$NUM_ROLES" -gt 1 ]; then
+  ROW_H=$(( TOTAL_H / NUM_ROLES ))
+  for role in "${ROLES[@]}"; do
+    for num in "${NUMS[@]}"; do
+      pid="${TASK_MAP[$role,$num]:-}"; [ -z "$pid" ] && continue
+      tmux resize-pane -t "$pid" -y "$ROW_H" 2>/dev/null || true
+    done
+  done
+fi
+
+# ── 5. Resize hook ──────────────────────────────────────────────
 RESIZE_SCRIPT="/tmp/tmux-resize-grid.sh"
 {
-  echo '#!/usr/bin/env bash'
+  cat <<'HOOK_HEAD'
+#!/usr/bin/env bash
+HOOK_HEAD
   echo "WINDOW=\"$WINDOW\""
   echo "MAIN_PANE=\"$MAIN_PANE\""
   echo "MAIN_WIDTH=$MAIN_WIDTH"
   echo "NUM_COLS=$NUM_COLS"
   echo "NUM_ROLES=$NUM_ROLES"
+  echo "NUM_SHARED=$NUM_SHARED"
+  [ -n "$KNOW_PANE" ] && echo "KNOW_PANE=\"$KNOW_PANE\""
+  [ -n "$PM_PANE" ] && echo "PM_PANE=\"$PM_PANE\""
   echo ''
-  echo '# Only run if we are in the grid window (client-resized fires for all windows)'
   echo 'CURRENT=$(tmux display-message -p "#{window_id}" 2>/dev/null) || exit 0'
   echo '[ "$CURRENT" != "$WINDOW" ] && exit 0'
   echo ''
   echo 'tmux resize-pane -t "$MAIN_PANE" -x "$MAIN_WIDTH" 2>/dev/null || exit 0'
   echo ''
   echo 'TOTAL_W=$(tmux display-message -p "#{window_width}")'
-  echo 'GRID_W=$(( TOTAL_W - MAIN_WIDTH - 1 ))'
-  echo 'COL_W=$(( GRID_W / NUM_COLS ))'
   echo 'TOTAL_H=$(tmux display-message -p "#{window_height}")'
-  echo 'ROW_H=$(( TOTAL_H / NUM_ROLES ))'
   echo ''
-  # Column width resizes (skip last column — gets remainder)
-  for (( i=0; i < ${#FIRST_COL_PANE[@]} - 1; i++ )); do
-    echo "tmux resize-pane -t \"${FIRST_COL_PANE[$i]}\" -x \$COL_W 2>/dev/null || true"
-  done
+  # Left column
+  echo 'if [ "$NUM_SHARED" -eq 2 ]; then'
+  echo '  MAIN_H=$(( TOTAL_H * 50 / 100 ))'
+  echo '  SHARED_H=$(( (TOTAL_H - MAIN_H) / 2 ))'
+  echo '  tmux resize-pane -t "$MAIN_PANE" -y "$MAIN_H" 2>/dev/null || true'
+  [ -n "$KNOW_PANE" ] && echo "  tmux resize-pane -t \"$KNOW_PANE\" -y \$SHARED_H 2>/dev/null || true"
+  echo 'elif [ "$NUM_SHARED" -eq 1 ]; then'
+  echo '  MAIN_H=$(( TOTAL_H * 60 / 100 ))'
+  echo '  tmux resize-pane -t "$MAIN_PANE" -y "$MAIN_H" 2>/dev/null || true'
+  echo 'fi'
   echo ''
-  # Row height resizes
-  for role in "${ROLES[@]}"; do
-    for num in "${NUMS[@]}"; do
-      pid="${PANE_MAP[$role,$num]:-}"; [ -z "$pid" ] && continue
-      echo "tmux resize-pane -t \"$pid\" -y \$ROW_H 2>/dev/null || true"
+  # Task columns
+  if [ "$NUM_COLS" -gt 1 ]; then
+    echo 'GRID_W=$(( TOTAL_W - MAIN_WIDTH - 1 ))'
+    echo 'COL_W=$(( GRID_W / NUM_COLS ))'
+    for (( i=0; i < ${#FIRST_COL_PANE[@]} - 1; i++ )); do
+      echo "tmux resize-pane -t \"${FIRST_COL_PANE[$i]}\" -x \$COL_W 2>/dev/null || true"
     done
-  done
+  fi
+  echo ''
+  # Task rows
+  if [ "$NUM_ROLES" -gt 1 ]; then
+    echo 'ROW_H=$(( TOTAL_H / NUM_ROLES ))'
+    for role in "${ROLES[@]}"; do
+      for num in "${NUMS[@]}"; do
+        pid="${TASK_MAP[$role,$num]:-}"; [ -z "$pid" ] && continue
+        echo "tmux resize-pane -t \"$pid\" -y \$ROW_H 2>/dev/null || true"
+      done
+    done
+  fi
 } > "$RESIZE_SCRIPT"
 chmod +x "$RESIZE_SCRIPT"
 
-# Install hooks:
-# - window-layout-changed (window-level) — fires on pane split/close within window
-# - client-resized (session-level) — fires on terminal resize; script guards by window ID
 tmux set-hook -w window-layout-changed "run-shell '$RESIZE_SCRIPT'"
 tmux set-hook client-resized "run-shell '$RESIZE_SCRIPT'"
 
-# ── 6. Labels and borders ─────────────────────────────────────────
+# ── 6. Labels and borders ──────────────────────────────────────
 tmux set-option -w pane-border-status top
 tmux set-option -w pane-border-format " #{pane_title} "
 tmux select-pane -t "$MAIN_PANE"
 
-# ── 7. Report ─────────────────────────────────────────────────────
-if [ "$ERRORS" -gt 0 ]; then
-  echo ""
-  echo "WARNING: $ERRORS errors occurred during arrangement"
-fi
+# ── 7. Report ──────────────────────────────────────────────────
+[ "$ERRORS" -gt 0 ] && echo "" && echo "WARNING: $ERRORS errors during arrangement"
 
 echo ""
-echo "Grid arranged: ${NUM_COLS} tasks × ${NUM_ROLES} roles (resize hook installed)"
+echo "Grid arranged: ${NUM_COLS} tasks × ${NUM_ROLES} roles + ${NUM_SHARED} shared (resize hook installed)"
 echo ""
+# Visual grid
 printf "│ %-12s │" "main"
 for num in "${NUMS[@]}"; do printf " task %-3s │" "$num"; done
+echo ""
+[ -n "$KNOW_PANE" ] && { printf "│ %-12s │" "knowledge"; for num in "${NUMS[@]}"; do printf " %-8s │" ""; done; echo ""; }
+[ -n "$PM_PANE" ] && { printf "│ %-12s │" "pm"; for num in "${NUMS[@]}"; do printf " %-8s │" ""; done; echo ""; }
+printf "│ %-12s │" ""
+for num in "${NUMS[@]}"; do printf "──────────│"; done
 echo ""
 for role in "${ROLES[@]}"; do
   printf "│ %-12s │" "$role"
   for num in "${NUMS[@]}"; do
-    pid="${PANE_MAP[$role,$num]:-}"
+    pid="${TASK_MAP[$role,$num]:-}"
     if [ -n "$pid" ]; then
       printf " %-8s │" "$role-$num"
     else
@@ -284,16 +412,45 @@ done
 
 ### Step 2: Report
 
-The resize hook (`/tmp/tmux-resize-grid.sh`) is auto-generated and installed by the main script — no separate step needed. Print the final grid diagram to the user.
+The script handles everything — building, resizing, hooks, and reporting. Print the grid diagram output to the user.
+
+## Manifest File (Optional)
+
+If plan-execution writes `/tmp/team-grid-manifest.json`, the script applies pane titles from it before scanning. Format:
+
+```json
+{
+  "plan": "user-auth",
+  "agents": {
+    "%142": {"role": "executor", "task": 1},
+    "%143": {"role": "reviewer", "task": 1},
+    "%144": {"role": "tester", "task": 1},
+    "%150": {"role": "knowledge", "task": null},
+    "%151": {"role": "pm", "task": null}
+  }
+}
+```
+
+This is a fallback — the primary mechanism is plan-execution setting pane titles directly after each spawn.
+
+## Restore Original Layout
+
+If the grid goes wrong, restore the saved layout snapshot:
+
+```bash
+bash /tmp/tmux-restore-layout.sh
+```
+
+The grid builder script saves a snapshot before rearranging. This restore script breaks all panes back to hidden windows and rejoins them in the original order, returning to tmux's default tiled layout. It also removes the resize hooks.
 
 ## Critical Rules
 
 - **NEVER use `split-window` or `new-window`** — only rearrange existing panes
 - **NEVER use `set -e`** — individual join failures must not kill the script
-- **Always use `%`-prefixed pane IDs** (e.g. `%142`) — never named targets
+- **Always use `%`-prefixed pane IDs** (e.g., `%142`) — never named targets
 - **Two-phase build is mandatory** — horizontal first (columns), then vertical (rows). Building column-by-column causes the binary tree to nest incorrectly.
-- **`break-pane -d`** detaches without destroying — the pane moves to a hidden window
+- **`break-pane -d`** detaches without destroying — pane moves to a hidden window
 - **`join-pane`** moves it back into the target window at the specified position
-- **Main pane never moves** — all joins target relative to it or to other grid panes
-- **Unrecognized panes** (title doesn't match `role-N`) are left untouched
-- Set hooks on **window** level (`-w`) not global (`-g`) to avoid affecting other windows
+- **Main pane never moves** — all joins target relative to it
+- **Unrecognized panes** (title doesn't match any pattern) are left untouched
+- Set hooks on **window** level (`-w`) not global (`-g`)

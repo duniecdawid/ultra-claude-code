@@ -8,7 +8,7 @@ description: >-
   Triggers on "brainstorm", "critical brainstorm", "devil's advocate", "stress test this",
   "what could go wrong", "challenge my thinking", "what am I missing", "is this a good idea",
   "should I use X or Y", "what do you think about", "help me decide", "poke holes in this",
-  "what are the tradeoffs", "convince me otherwise", "play devil's advocate".
+  "what are the tradeoffs", "convince me otherwise", "play devil's advocate", "WDYT", "wdyt?".
   Auto-trigger when the user presents a solution and seems uncertain or asks for opinions
   on approach — even without using the exact phrases above.
 user-invocable: true
