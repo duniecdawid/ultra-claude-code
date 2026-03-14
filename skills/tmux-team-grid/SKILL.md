@@ -24,7 +24,8 @@ Scans existing tmux panes and rearranges them into a structured grid. **Never cr
 
 - **Main pane:** leftmost, full height, fixed width (70 cols). Never moves.
 - **Grid:** rows = roles, columns = task numbers. Equal space distribution.
-- **Row order:** executor → tester → reviewer → researcher → alphabetical for others
+- **Row order:** executor → tester → reviewer → alphabetical for others
+- **Note:** Shared plan-wide agents (e.g., `knowledge-{PLAN_NAME}`) appear in unmatched panes and are left untouched
 - **Column order:** ascending by number (1, 2, 3, ...)
 
 ## Instructions
@@ -52,8 +53,7 @@ role_priority() {
     executor)   echo 1 ;;
     tester)     echo 2 ;;
     reviewer)   echo 3 ;;
-    researcher) echo 4 ;;
-    *)          echo 5 ;;
+    *)          echo 4 ;;
   esac
 }
 

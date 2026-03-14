@@ -147,7 +147,7 @@ Based on research:
 
 ## Constraints
 
-- **Web sources only** — do not analyze the project's codebase (that's the Researcher's job)
+- **Web sources only** — do not analyze the project's codebase (use Explore agents for that)
 - **Cite sources** — every claim must reference where it came from
 - **Note conflicts** — when sources disagree, present both perspectives
 - **Stay focused** — research the topic given, don't go on tangents

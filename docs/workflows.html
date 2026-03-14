@@ -20,7 +20,7 @@
 
 2. CONTEXT GATHERING
    &rarr; Code Surveyor + Doc Surveyor subagents scan codebase and documentation in parallel
-   &rarr; Researcher subagent gathers deeper context (architecture, product docs, codebase)
+   &rarr; Explore subagent investigates deeper context (architecture, product docs, codebase)
    &rarr; Docs Manager skill loaded for documentation awareness
 
 3. DOCUMENTATION UPDATE
@@ -33,7 +33,7 @@
 4. PLAN CREATION
    &rarr; Plan Enhancer scaffolds plan directory
    &rarr; Plan created in documentation/plans/user-auth/README.md (task list embedded)
-   &rarr; Every task gets the full pipeline (Researcher + Executor + Reviewer + Tester)
+   &rarr; Every task gets the full pipeline (Executor + Reviewer + Tester + Tech Knowledge)
 
 5. PLAN REVIEW
    &rarr; User reviews and approves plan
@@ -61,7 +61,7 @@
 
 <p>See <a href="#execution" class="tab-link">Execution</a> for the complete 5-phase workflow.</p>
 
-<p><strong>Summary:</strong> <code>/uc:plan-execution {plan-name}</code> &rarr; Lead reads plan &rarr; spawns per-task pipeline teams (Researcher, Executor, Reviewer, Tester for every task) &rarr; each team self-coordinates internally through pipeline stages &rarr; up to 2&ndash;4 teams run concurrently &rarr; checkpoints at every 3 tasks, on user request, and before risky amendments &rarr; Tester runs final gate &rarr; summary report.</p>
+<p><strong>Summary:</strong> <code>/uc:plan-execution {plan-name}</code> &rarr; Lead reads plan &rarr; spawns per-task pipeline teams (Executor, Reviewer, Tester for every task + shared Tech Knowledge agent) &rarr; each team self-coordinates internally through pipeline stages &rarr; up to 2&ndash;4 teams run concurrently &rarr; checkpoints at every 3 tasks, on user request, and before risky amendments &rarr; Tester runs final gate &rarr; summary report.</p>
 
 <h2 id="discovery-mode">Discovery Mode</h2>
 
@@ -76,8 +76,8 @@
    &rarr; Defines: problem statement, who cares, what decisions, artifact plan
 
 2. PARALLEL RESEARCH
-   &rarr; Researcher + Market Analyzer subagents spawned in parallel via Task tool
-   &rarr; Researcher: Explores internal codebase, reads docs, uses Ref.tools
+   &rarr; Explore + Market Analyzer subagents spawned in parallel via Task tool
+   &rarr; Explore: Investigates internal codebase, reads docs
    &rarr; Market Analyzer: Web searches, competitor analysis, user insights
 
 3. SYNTHESIS
@@ -100,7 +100,7 @@
 <p><strong>Edge cases:</strong></p>
 <ul>
 <li><strong>No relevant results found</strong> &mdash; Agents report what they searched and suggest alternative angles or broader/narrower search terms.</li>
-<li><strong>Contradictory findings</strong> &mdash; Researcher and Market Analyzer may find conflicting information. Both perspectives are documented with sources, user decides which to prioritize.</li>
+<li><strong>Contradictory findings</strong> &mdash; Explore and Market Analyzer may find conflicting information. Both perspectives are documented with sources, user decides which to prioritize.</li>
 <li><strong>Scope too broad</strong> &mdash; If the topic is too large for a single discovery session, Lead suggests breaking it into focused sub-topics.</li>
 </ul>
 
@@ -127,11 +127,11 @@
      &rarr; Presents candidate standards table with evidence strength
      &rarr; Per-topic options: Create / Skip / Create (I'll add context)
      &rarr; System-test.md outline for approval
-     &rarr; User must explicitly approve before researchers spawn
+     &rarr; User must explicitly approve before research agents spawn
 
 4. EXECUTE (three-stage pipeline)
    &rarr; Stage A (parallel): Core scaffolding — Task Executors handle Groups 1-4
-   &rarr; Stage B (parallel with A): Researchers gather evidence per approved standard + system-test
+   &rarr; Stage B (parallel with A): Explore agents gather evidence per approved standard + system-test
    &rarr; Stage C (after B): Task Executors write standards + system-test.md from research
      &rarr; Standards use prompt-architect methodology (persona, context, few-shot, chain-of-thought)
      &rarr; Each standard follows templates/standard.md structure
@@ -218,7 +218,7 @@
    &rarr; Proposes hypotheses based on survey findings (e.g., race condition, session expiry, cache stale)
 
 3. PARALLEL INVESTIGATION
-   &rarr; Spawns Researcher subagents &mdash; one per hypothesis, investigating in parallel via Task tool
+   &rarr; Spawns Explore subagents &mdash; one per hypothesis, investigating in parallel via Task tool
    &rarr; System Tester subagent attempts to reproduce the bug
    &rarr; Evidence gathered, hypotheses ranked by likelihood
 

@@ -56,7 +56,7 @@ Present the scoping summary to the user before proceeding. Be concise — 5-8 li
 
 Spawn two subagents in parallel via the Task tool:
 
-**Researcher subagent** — internal codebase and technical research:
+**Explore subagent** — internal codebase and technical research:
 
 > Research topic: [topic from $ARGUMENTS]
 >

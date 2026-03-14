@@ -1,0 +1,14 @@
+{
+  "eval_id": 1,
+  "eval_name": "pricing-model-switch",
+  "prompt": "We're considering switching from a per-seat pricing model to usage-based pricing for our API product. Our current customers pay $50/seat/month but usage varies wildly — some seats generate 100x the API calls of others.",
+  "assertions": [
+    {"name": "no-implementation", "description": "Response does not contain actual implementation code"},
+    {"name": "identifies-3-plus-risks", "description": "Lists at least 3 distinct risks or failure modes of switching pricing models"},
+    {"name": "proposes-alternative", "description": "Suggests at least 1 meaningfully different pricing approach beyond the two mentioned"},
+    {"name": "quantifies-tradeoffs", "description": "Includes at least 1 specific number, metric, or concrete data point"},
+    {"name": "asks-probing-questions", "description": "Poses questions back to the user to deepen discussion"},
+    {"name": "takes-a-position", "description": "States a clear opinion rather than just listing pros/cons neutrally"},
+    {"name": "discussion-mode-signal", "description": "Makes clear this is an ongoing conversation, invites continued dialogue"}
+  ]
+}

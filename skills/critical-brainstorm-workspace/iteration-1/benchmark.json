@@ -1,0 +1,188 @@
+{
+  "metadata": {
+    "skill_name": "critical-brainstorm",
+    "skill_path": "/home/parallels/Projects/claude-marketplaces/ultra-claude/skills/critical-brainstorm",
+    "executor_model": "claude-opus-4-6",
+    "timestamp": "2026-03-14T00:00:00Z",
+    "evals_run": ["redis-vs-rabbitmq", "pricing-model-switch", "ci-cd-migration"],
+    "runs_per_configuration": 1
+  },
+  "runs": [
+    {
+      "eval_id": 0,
+      "eval_name": "redis-vs-rabbitmq",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "failed": 0,
+        "total": 7,
+        "time_seconds": 107.9,
+        "tokens": 22637,
+        "tool_calls": 10,
+        "errors": 0
+      },
+      "expectations": [
+        {"text": "No implementation code", "passed": true, "evidence": "Pure discussion"},
+        {"text": "Identifies 3+ risks", "passed": true, "evidence": "5+ risks with GOV.UK incident"},
+        {"text": "Proposes alternative", "passed": true, "evidence": "Hybrid Redis+RabbitMQ, SQS"},
+        {"text": "Quantifies tradeoffs", "passed": true, "evidence": "15K vs 25K msg/sec, 1GB/1M jobs"},
+        {"text": "Asks probing questions", "passed": true, "evidence": "4 pointed questions"},
+        {"text": "Takes a position", "passed": true, "evidence": "'Redis-as-queue is right for maybe one of your three workloads'"},
+        {"text": "Discussion mode signal", "passed": true, "evidence": "'What's your take?'"}
+      ]
+    },
+    {
+      "eval_id": 0,
+      "eval_name": "redis-vs-rabbitmq",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.43,
+        "passed": 3,
+        "failed": 4,
+        "total": 7,
+        "time_seconds": 44.5,
+        "tokens": 12966,
+        "tool_calls": 3,
+        "errors": 0
+      },
+      "expectations": [
+        {"text": "No implementation code", "passed": true, "evidence": "Advisory text only"},
+        {"text": "Identifies 3+ risks", "passed": true, "evidence": "4 risks identified"},
+        {"text": "Proposes alternative", "passed": false, "evidence": "Guardrails on same approach, not different alternative"},
+        {"text": "Quantifies tradeoffs", "passed": false, "evidence": "No specific benchmarks or numbers"},
+        {"text": "Asks probing questions", "passed": false, "evidence": "No direct questions posed"},
+        {"text": "Takes a position", "passed": true, "evidence": "'Use Redis, but with guardrails'"},
+        {"text": "Discussion mode signal", "passed": false, "evidence": "Ends with definitive advice, no dialogue invitation"}
+      ]
+    },
+    {
+      "eval_id": 1,
+      "eval_name": "pricing-model-switch",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "failed": 0,
+        "total": 7,
+        "time_seconds": 112.0,
+        "tokens": 22773,
+        "tool_calls": 9,
+        "errors": 0
+      },
+      "expectations": [
+        {"text": "No implementation code", "passed": true, "evidence": "Pure discussion"},
+        {"text": "Identifies 3+ risks", "passed": true, "evidence": "5 numbered risks"},
+        {"text": "Proposes alternative", "passed": true, "evidence": "Hybrid: platform fee + included usage + overage"},
+        {"text": "Quantifies tradeoffs", "passed": true, "evidence": "23% NDR, 38% growth, 78% unexpected charges"},
+        {"text": "Asks probing questions", "passed": true, "evidence": "6 questions"},
+        {"text": "Takes a position", "passed": true, "evidence": "'pure switch is the wrong move'"},
+        {"text": "Discussion mode signal", "passed": true, "evidence": "'What part of this do you want to dig into further?'"}
+      ]
+    },
+    {
+      "eval_id": 1,
+      "eval_name": "pricing-model-switch",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.71,
+        "passed": 5,
+        "failed": 2,
+        "total": 7,
+        "time_seconds": 54.4,
+        "tokens": 13233,
+        "tool_calls": 3,
+        "errors": 0
+      },
+      "expectations": [
+        {"text": "No implementation code", "passed": true, "evidence": "Advisory text only"},
+        {"text": "Identifies 3+ risks", "passed": true, "evidence": "4 risks"},
+        {"text": "Proposes alternative", "passed": true, "evidence": "Hybrid model proposed"},
+        {"text": "Quantifies tradeoffs", "passed": false, "evidence": "Hypothetical numbers only, no researched data"},
+        {"text": "Asks probing questions", "passed": true, "evidence": "5 questions"},
+        {"text": "Takes a position", "passed": true, "evidence": "Recommends hybrid"},
+        {"text": "Discussion mode signal", "passed": false, "evidence": "No invitation to continue discussing"}
+      ]
+    },
+    {
+      "eval_id": 2,
+      "eval_name": "ci-cd-migration",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "failed": 0,
+        "total": 7,
+        "time_seconds": 153.0,
+        "tokens": 26112,
+        "tool_calls": 13,
+        "errors": 0
+      },
+      "expectations": [
+        {"text": "No implementation code", "passed": true, "evidence": "Discussion only"},
+        {"text": "Identifies 3+ risks", "passed": true, "evidence": "Multiple risks + 4 assumptions challenged"},
+        {"text": "Proposes alternative", "passed": true, "evidence": "Drop-in runners: Blacksmith, Depot, RunsOn"},
+        {"text": "Quantifies tradeoffs", "passed": true, "evidence": "$1,050/mo, 30-90 eng days, EUR 300/yr, comparison table"},
+        {"text": "Asks probing questions", "passed": true, "evidence": "6 questions"},
+        {"text": "Takes a position", "passed": true, "evidence": "'over-engineering the solution'"},
+        {"text": "Discussion mode signal", "passed": true, "evidence": "'Convince me otherwise'"}
+      ]
+    },
+    {
+      "eval_id": 2,
+      "eval_name": "ci-cd-migration",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.57,
+        "passed": 4,
+        "failed": 3,
+        "total": 7,
+        "time_seconds": 79.0,
+        "tokens": 14284,
+        "tool_calls": 3,
+        "errors": 0
+      },
+      "expectations": [
+        {"text": "No implementation code", "passed": true, "evidence": "Illustrative YAML only"},
+        {"text": "Identifies 3+ risks", "passed": true, "evidence": "Gotchas section + validation concerns"},
+        {"text": "Proposes alternative", "passed": false, "evidence": "Accepts Buildkite premise, provides migration plan"},
+        {"text": "Quantifies tradeoffs", "passed": true, "evidence": "$15/user/mo, 60-70% spot savings, 6-8 weeks"},
+        {"text": "Asks probing questions", "passed": false, "evidence": "No questions posed to user"},
+        {"text": "Takes a position", "passed": true, "evidence": "'solid move'"},
+        {"text": "Discussion mode signal", "passed": false, "evidence": "Definitive guide, no dialogue"}
+      ]
+    }
+  ],
+  "run_summary": {
+    "with_skill": {
+      "pass_rate": {"mean": 1.0, "stddev": 0.0, "min": 1.0, "max": 1.0},
+      "time_seconds": {"mean": 124.3, "stddev": 19.7, "min": 107.9, "max": 153.0},
+      "tokens": {"mean": 23841, "stddev": 1580, "min": 22637, "max": 26112}
+    },
+    "without_skill": {
+      "pass_rate": {"mean": 0.57, "stddev": 0.11, "min": 0.43, "max": 0.71},
+      "time_seconds": {"mean": 59.3, "stddev": 14.5, "min": 44.5, "max": 79.0},
+      "tokens": {"mean": 13494, "stddev": 544, "min": 12966, "max": 14284}
+    },
+    "delta": {
+      "pass_rate": "+0.43",
+      "time_seconds": "+65.0",
+      "tokens": "+10347"
+    }
+  },
+  "notes": [
+    "Skill achieves 100% pass rate across all 3 evals vs 57% baseline — strong differentiation.",
+    "'No implementation code' passes 100% in both configurations — non-discriminating assertion.",
+    "'Identifies 3+ risks' passes 100% in both — Claude naturally identifies risks even without the skill.",
+    "Key differentiators: 'Quantifies tradeoffs' (skill 3/3 vs baseline 1/3), 'Discussion mode signal' (3/3 vs 0/3), 'Asks probing questions' (3/3 vs 1/3).",
+    "Skill uses ~2x more tokens and time due to web research, but delivers researched data points and citations vs baseline's generic advice.",
+    "Baseline pricing eval scored highest (5/7) because the topic naturally invites questions and alternatives. CI/CD baseline scored lowest (4/7) because it defaulted to a migration guide rather than challenging the premise.",
+    "The CI/CD with-skill response is notably strong — it discovered drop-in runner alternatives (Blacksmith, Depot, RunsOn) that completely reframe the decision. This is the kind of insight that justifies the research step."
+  ]
+}

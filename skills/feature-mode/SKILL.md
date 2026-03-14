@@ -70,13 +70,18 @@ Spawn Code Surveyor + Doc Surveyor in parallel:
 
 **Phase B — Targeted Deep Research (Conditional)**
 
-After surveyors return, evaluate whether a Researcher is needed. Spawn a Researcher (`uc:Researcher`) only if surveyors reveal:
-- External dependencies or integrations requiring investigation beyond structural overview
-- Conflicts with existing plans that need deeper analysis
-- External system context (from `context/` directory) that needs cross-referencing with codebase findings
-- Cross-component complexity where 3+ components interact in non-obvious ways
+After surveyors return, evaluate whether deeper research is needed. Two tools are available:
 
-If Phase B is not triggered, proceed to Phase 3 with surveyor output + direct reading. Do not spawn a Researcher by default.
+1. **Codebase gaps** — Spawn an Explore agent (`subagent_type: Explore`, thoroughness: `very thorough`) when surveyors reveal:
+   - Cross-component complexity where 3+ components interact in non-obvious ways
+   - Conflicts with existing plans that need deeper analysis
+   - External system context (from `context/` directory) that needs cross-referencing with codebase findings
+
+2. **External library gaps** — Call `/uc:tech-research` (using Ref.tools) for each library/framework that needs documentation beyond what surveyors found:
+   - External dependencies or integrations requiring investigation beyond structural overview
+   - Unfamiliar library APIs or patterns discovered by surveyors
+
+If Phase B is not triggered, proceed to Phase 3 with surveyor output + direct reading. Do not spawn Explore agents or call /tech-research unless surveyors reveal gaps.
 
 ### Phase 3: Documentation Update
 
@@ -88,7 +93,7 @@ Update the project's canonical documentation NOW — during this phase — with 
 
 **Process:**
 
-1. **Identify documentation gaps** — Compare what the Researcher found and what you read directly against the existing `documentation/technology/architecture/` and `documentation/product/requirements/` files. Ask:
+1. **Identify documentation gaps** — Compare what the Explore agent and tech research found alongside what you read directly against the existing `documentation/technology/architecture/` and `documentation/product/requirements/` files. Ask:
    - Does the feature depend on architectural concepts not yet documented?
    - Are there system behaviors discovered during research that contradict or are absent from architecture docs?
    - Does the feature introduce new product requirements not captured in requirements docs?
@@ -130,7 +135,7 @@ Update the project's canonical documentation NOW — during this phase — with 
 
 ### Phase 4: Plan Creation and Approval
 
-1. **Synthesize** all gathered context (Researcher findings + direct reading + documentation updates from Phase 3)
+1. **Synthesize** all gathered context (exploration and tech research findings + direct reading + documentation updates from Phase 3)
 2. **Derive plan name** from feature description
 3. **Scaffold plan directory**: `mkdir -p documentation/plans/{NNN}-{name}/shared documentation/plans/{NNN}-{name}/tasks`
 4. **Define tasks** — each task must have:

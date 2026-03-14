@@ -133,13 +133,12 @@ At the very beginning of execution (before spawning any teams):
   "task_name": "{Task title from plan}",
   "team_name": "task-{N}-team",
   "goal": "{Success criteria / goal from plan}",
-  "status": "pending|researching|planning|implementing|reviewing|testing|completed|escalated",
+  "status": "pending|planning|implementing|reviewing|testing|completed|escalated",
   "pipeline_mode": false,
   "started_at": "{ISO}",
   "ended_at": null,
   "elapsed_seconds": 0,
   "stages": {
-    "research":       { "started_at": null, "ended_at": null, "elapsed_seconds": 0 },
     "planning":       { "started_at": null, "ended_at": null, "elapsed_seconds": 0 },
     "implementation": { "started_at": null, "ended_at": null, "elapsed_seconds": 0 },
     "review":         { "started_at": null, "ended_at": null, "elapsed_seconds": 0 },
@@ -147,7 +146,6 @@ At the very beginning of execution (before spawning any teams):
   },
   "retry_count": 0,
   "members": [
-    { "name": "researcher-{N}", "role": "researcher", "model": "sonnet", "status": "active", "spawned_at": "{ISO}", "ended_at": null },
     { "name": "executor-{N}",   "role": "executor",   "model": "opus",   "status": "active", "spawned_at": "{ISO}", "ended_at": null },
     { "name": "reviewer-{N}",   "role": "reviewer",   "model": "sonnet", "status": "idle",   "spawned_at": "{ISO}", "ended_at": null },
     { "name": "tester-{N}",     "role": "tester",     "model": "sonnet", "status": "idle",   "spawned_at": "{ISO}", "ended_at": null }
@@ -284,7 +282,7 @@ REPEAT every 5 minutes:
   2. Read watchdog.log for any new events since your last check
   3. If watchdog reports stalls or rate limits, act on them (see below)
   4. Also do your own checks: read file modification times in tasks/task-N/ directories
-     - Use: stat -c '%Y %n' on pipeline artifacts (research.md, plan.md, impl.md)
+     - Use: stat -c '%Y %n' on pipeline artifacts (plan.md, impl.md)
      - Compare against current time
   5. For each active task-team, check if ANY artifact has been modified in the last 10 minutes
   6. If a task-team has gone silent (no file modifications for 10+ minutes):
@@ -300,7 +298,7 @@ REPEAT every 5 minutes:
 
 When a task-team has produced no file changes for 10+ minutes:
 
-1. **Ping the relevant team member**: SendMessage to the agent you suspect is stalled (could be executor, reviewer, tester, or researcher — whoever should be producing output based on the current stage):
+1. **Ping the relevant team member**: SendMessage to the agent you suspect is stalled (could be executor, reviewer, or tester — whoever should be producing output based on the current stage):
    "Status check — no activity detected for task {N} in the last 10 minutes. Are you blocked, waiting on a teammate, or still working? Reply with current status."
 2. **Update status**: Set the suspected member's status to `crashed` in `teams/task-N.json`. Append `stall_detected` event to `events.json`.
 3. **Wait 3 minutes** for a response
@@ -314,7 +312,6 @@ You can message any team member at any time to gather operational data you need 
 
 - Asking a reviewer: "How many review cycles has task {N} gone through so far?"
 - Asking a tester: "Are you currently blocked waiting for executor, or actively testing?"
-- Asking a researcher: "Did you find the architecture docs sufficient, or were there gaps?"
 
 These requests help you build an accurate operational picture. Keep them short, don't ask about technical content (that's not your domain), and don't interrupt agents mid-task with long conversations. One question, one answer.
 
@@ -361,38 +358,36 @@ While running the active monitoring loop, also track these for the final report:
 - Concurrency utilization
 
 **Communication Quality** (inferred from artifacts):
-- Research → implementation alignment (did plan.md reflect research.md findings?)
+- Planning → implementation alignment (did plan.md inform the implementation correctly?)
 - Review feedback quality (were failures specific and actionable?)
 - Scope creep signals (impl.md describing work beyond success criteria)
 
 **Token Efficiency:**
 Every agent burns tokens — your job is to assess whether those tokens produced value. Track these patterns:
 
-- **Idle agents burning context**: Reviewer and Tester are spawned at the same time as Researcher and Executor, but they sit idle until "ready for review"/"ready for test". During that wait they're reading context files, which is useful — but if a task has a 30-minute implementation phase, that's a long time for two agents to hold context. Note the idle duration per role.
-- **Research that went unused**: Compare research.md against plan.md and impl.md. If the executor ignored 50%+ of the research findings, those research tokens were partially wasted. Maybe the research scope was too broad, or the researcher explored tangents.
+- **Idle agents burning context**: Reviewer and Tester are spawned at the same time as Executor, but they sit idle until "ready for review"/"ready for test". During that wait they're reading context files, which is useful — but if a task has a 30-minute implementation phase, that's a long time for two agents to hold context. Note the idle duration per role.
 - **Review/test cycles as token cost**: Each retry cycle burns tokens across 3 agents (executor fixes, reviewer re-reviews, tester re-tests). A task with 5 retries might have cost 3x a task that passed first try. Were those retries catching real bugs or were they caused by unclear criteria?
-- **Researcher staying alive for nothing**: After delivering research, the researcher stays alive for follow-up questions. If no one asked anything, that agent burned tokens on context maintenance for zero value.
-- **Verbose artifacts**: Are research.md or plan.md files excessively long? A 500-line research file that could have been 100 lines means the researcher (and everyone who read it) burned tokens on noise.
+- **Knowledge agent utilization**: Track how often the knowledge agent was queried, by which executors, and how many NOT FOUND responses occurred. NOT FOUND responses indicate gaps in the Tech Stack section of the plan — topics that should have been listed but weren't.
+- **Verbose artifacts**: Are plan.md files excessively long? Verbose plans burn tokens for everyone who reads them.
 - **Model tier mismatch**: The executor uses Opus (expensive). If a task was trivial (simple config change, minor refactor), Opus was overkill. Note tasks where Sonnet would have sufficed.
-- **Spawn overhead**: Each team spawn loads the full plan, architecture docs, standards, and lead notes into 4 agents' contexts. For a 3-task plan that's 12 context loads of the same base documents. Note the base context cost.
+- **Spawn overhead**: Each team spawn loads the full plan, architecture docs, standards, and lead notes into 3 agents' contexts. For a 3-task plan that's 9 context loads of the same base documents. Note the base context cost.
 
 **Context Efficiency:**
-- Redundant research across task-teams
 - Architecture doc gaps causing review failures
 - Standards compliance issues
+- Knowledge agent NOT FOUND responses (indicating missing Tech Stack entries)
 
 **Repeated Work Detection:**
 This is one of the most important things you watch for. Read the artifacts across task-teams and look for:
-- **Duplicate research**: Did researcher-2 investigate the same libraries/patterns/files that researcher-1 already covered? Compare research.md files across tasks — if 60%+ of the content overlaps, that's wasted tokens.
 - **Duplicate utility code**: Did executor-2 write a helper function that executor-1 already wrote? Check impl.md notes and the codebase for similar patterns.
 - **Repeated review failures**: Did reviewer-2 flag the same issue that reviewer-1 flagged on a different task? That means the standards docs are missing something, or the executor didn't learn from the first failure.
-- **Same questions asked**: Did multiple researchers ask the same questions to external docs or codebase? That's a sign the plan should have included shared research.
+- **Duplicate knowledge queries**: Did multiple executors query the knowledge agent for the same topic? Track this to identify documentation the Lead should have included in shared notes.
 
-When you detect repeated work **during execution**, act on it directly: SendMessage to the relevant researcher pointing them to existing research (e.g., "researcher-3: auth patterns already covered in tasks/task-1/research.md — read that instead of re-researching"). Log the incident for the operational report.
+When you detect repeated work **during execution**, act on it directly: SendMessage to the relevant executor pointing them to existing work (e.g., "executor-3: auth patterns already implemented in task-1 — check impl.md for approach"). Log the incident for the operational report.
 
 **Task Size Assessment:**
 Track how each task flows through the pipeline and assess whether it was sized correctly:
-- **Too small signals**: Task completes in under 10 minutes total. Research is trivial (< 1 page). Reviewer/tester have almost nothing to check. The overhead of 4 agents (researcher, executor, reviewer, tester) exceeded the actual work. These should have been absorbed into a neighboring task.
+- **Too small signals**: Task completes in under 10 minutes total. Reviewer/tester have almost nothing to check. The overhead of 3 agents (executor, reviewer, tester) exceeded the actual work. These should have been absorbed into a neighboring task.
 - **Too large signals**: Task takes 3x+ longer than other tasks. Multiple review/test cycles (3+ retries). Executor discovers hidden sub-tasks mid-implementation. Success criteria are vague or cover multiple distinct behaviors. The task should have been split.
 - **Wrong boundaries signals**: Executor needs files that "belong" to another task. Reviewer flags dependencies on code that doesn't exist yet (from a later task). Research reveals the task can't be tested independently.
 
@@ -437,10 +432,10 @@ When the Lead sends "Execution complete — write operational report":
 
 ## Timeline
 
-| Task | Research | Planning | Implementation | Review | Testing | Total | Retries |
-|------|----------|----------|----------------|--------|---------|-------|---------|
-| task-1: {name} | ~Xm | ~Xm | ~Xm | ~Xm | ~Xm | ~Xm | N |
-| task-2: {name} | ~Xm | ~Xm | ~Xm | ~Xm | ~Xm | ~Xm | N |
+| Task | Planning | Implementation | Review | Testing | Total | Retries |
+|------|----------|----------------|--------|---------|-------|---------|
+| task-1: {name} | ~Xm | ~Xm | ~Xm | ~Xm | ~Xm | N |
+| task-2: {name} | ~Xm | ~Xm | ~Xm | ~Xm | ~Xm | N |
 
 **Total wall-clock time:** ~X minutes
 **Effective work time:** ~X minutes (excluding rate limit downtime)
@@ -467,24 +462,25 @@ When the Lead sends "Execution complete — write operational report":
 
 ### Per-Task Cost Breakdown
 
-| Task | Research | Planning | Impl | Review | Test | Retries | Idle Wait | Total Est. |
-|------|----------|----------|------|--------|------|---------|-----------|------------|
-| task-1 | {assessment} | {assessment} | {assessment} | {assessment} | {assessment} | x{N} | ~Xm | {relative} |
+| Task | Planning | Impl | Review | Test | Retries | Idle Wait | Total Est. |
+|------|----------|------|--------|------|---------|-----------|------------|
+| task-1 | {assessment} | {assessment} | {assessment} | {assessment} | x{N} | ~Xm | {relative} |
 
 Assessments: efficient / acceptable / wasteful — with brief reason.
 
 ### Waste Identified
-
-**Unused research:** {X}% of research content went unused across {N} tasks.
-- {task}: researcher explored {topic} (~X lines) but executor's plan.md shows no use of it
-- **Saving opportunity:** Tighter research scoping in spawn prompts. Estimate: ~{X}K tokens saved.
 
 **Idle agent time:**
 | Role | Avg Idle Time | Across Tasks | Assessment |
 |------|--------------|--------------|------------|
 | Reviewer | ~Xm | {N} tasks | {was the early reading useful or pure idle?} |
 | Tester | ~Xm | {N} tasks | {was the context prep useful or pure idle?} |
-| Researcher (post-delivery) | ~Xm | {N} tasks | {was it consulted? If never, it was pure waste} |
+
+**Knowledge agent utilization:**
+- Total queries received: {N}
+- NOT FOUND responses: {N} (topics: {list})
+- Queries by executor: {breakdown per executor}
+- Assessment: {was the knowledge agent well-loaded, or were there significant gaps?}
 
 **Retry cost:**
 - Total retry cycles: {N} across all tasks
@@ -503,10 +499,8 @@ Assessments: efficient / acceptable / wasteful — with brief reason.
 
 {Concrete, actionable suggestions ranked by estimated token savings. Examples:}
 1. **Lazy reviewer/tester spawn** (~{X}K tokens/plan): Don't spawn reviewer and tester at task start. Spawn reviewer when executor sends first progress update. Spawn tester when "ready for test" arrives. Eliminates idle context burn.
-2. **Research scope limits** (~{X}K tokens/plan): Spawn prompt should cap research to areas directly needed by the task. Current research is too exploratory for simple tasks.
-3. **Kill researcher after plan approval** (~{X}K tokens/plan): If no one asked the researcher a question within 5 minutes of plan approval, shut it down. It rarely gets consulted after that point.
-4. **Shared research phase** (~{X}K tokens/plan): For plans with 3+ tasks, run a single shared researcher first that covers common ground (architecture, patterns, dependencies). Per-task researchers then only cover task-specific areas.
-5. **Task complexity classification** (~{X}K tokens/plan): Simple tasks (config, minor refactor) don't need the full 4-agent team. A lightweight pipeline (executor + tester, Sonnet model) would suffice.
+2. **Knowledge agent Tech Stack completeness** (~{X}K tokens/plan): Ensure all external technologies are listed in the plan's Tech Stack section. NOT FOUND responses waste executor time and force fallback to slower research methods.
+3. **Task complexity classification** (~{X}K tokens/plan): Simple tasks (config, minor refactor) don't need the full 3-agent team. A lightweight pipeline (executor + tester, Sonnet model) would suffice.
 
 ## Pipeline Flow Analysis
 
@@ -521,8 +515,8 @@ Assessments: efficient / acceptable / wasteful — with brief reason.
 
 ## Communication Analysis
 
-### Research → Implementation Alignment
-{Did research get used? Were findings reflected in implementation plans?}
+### Planning → Implementation Alignment
+{Did executor plans translate effectively into implementation?}
 
 ### Review Feedback Quality
 {Were failures actionable? Did fixes address root causes?}
@@ -532,12 +526,15 @@ Assessments: efficient / acceptable / wasteful — with brief reason.
 
 ## Repeated Work Analysis
 
-### Cross-Task Research Overlap
-| Topic/Area | Researched By | Overlap % | Wasted Tokens (est.) |
-|------------|--------------|-----------|---------------------|
-| {e.g., auth patterns} | researcher-1, researcher-3 | ~70% | ~15K |
+### Knowledge Agent Utilization
+| Metric | Value |
+|--------|-------|
+| Total queries | {N} |
+| NOT FOUND responses | {N} |
+| Most queried topics | {list} |
+| Executors that queried | {list} |
 
-{What could have prevented this? Shared research phase? Lead notes with pointers?}
+{Were NOT FOUND responses avoidable? Should those technologies have been in the Tech Stack section?}
 
 ### Duplicate Code / Patterns
 {Did multiple executors write similar helpers, utilities, or patterns independently?}
@@ -546,7 +543,7 @@ Assessments: efficient / acceptable / wasteful — with brief reason.
 {Did the same issue type get flagged across multiple tasks? What's missing from standards?}
 
 ### Recommendations to Prevent Repeated Work
-{Specific suggestions: shared research artifacts, cross-task knowledge sharing, Lead notes improvements}
+{Specific suggestions: knowledge agent preloading, cross-task knowledge sharing, Lead notes improvements}
 
 ## Plan Quality Retrospective
 

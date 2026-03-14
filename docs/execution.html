@@ -28,10 +28,10 @@
 <tr><th>Mechanism</th><th>Purpose</th></tr>
 </thead>
 <tbody>
-<tr><td><strong>Per-Task Pipeline Teams</strong></td><td>Lead spawns a dedicated mini-team for each task. Each team has its own Researcher, Executor, Reviewer, and Tester. The team self-coordinates internally through all pipeline stages.</td></tr>
+<tr><td><strong>Per-Task Pipeline Teams</strong></td><td>Lead spawns a dedicated mini-team for each task. Each team has its own Executor, Reviewer, and Tester, plus access to a shared Tech Knowledge agent for external library docs. The team self-coordinates internally through all pipeline stages.</td></tr>
 <tr><td><strong>Shared Directory</strong> (<code>plans/{name}/shared/</code>)</td><td>Contains <code>lead.md</code> with plan overview, concurrency decisions, architectural constraints, and key decisions. Written by the Lead. Survives session death.</td></tr>
 <tr><td><strong>Plan README.md</strong></td><td>Source of truth for what needs to be done, task ordering, success criteria.</td></tr>
-<tr><td><strong>Per-Task Artifact Files</strong> (<code>plans/{name}/tasks/task-N/</code>)</td><td>Each task gets a subdirectory with <code>research.md</code>, <code>plan.md</code>, and <code>impl.md</code> &mdash; persistent context written by the task&rsquo;s pipeline team.</td></tr>
+<tr><td><strong>Per-Task Artifact Files</strong> (<code>plans/{name}/tasks/task-N/</code>)</td><td>Each task gets a subdirectory with <code>plan.md</code> and <code>impl.md</code> &mdash; persistent context written by the task&rsquo;s pipeline team.</td></tr>
 </tbody>
 </table>
 </div>
@@ -47,8 +47,7 @@
 </thead>
 <tbody>
 <tr><td><strong>All team members</strong></td><td>Plan README.md path, <code>shared/lead.md</code> path, task description from plan</td></tr>
-<tr><td><strong>Researcher</strong></td><td>+ architecture docs path (<code>documentation/technology/architecture/</code>), <code>.claude/app-context-for-research.md</code> (if exists), output path (<code>tasks/task-N/research.md</code>)</td></tr>
-<tr><td><strong>Task Executor</strong></td><td>+ architecture docs path, per-task research file path (<code>tasks/task-N/research.md</code>), coding standards path (<code>documentation/technology/standards/</code>), drives the review/test cycle via SendMessage</td></tr>
+<tr><td><strong>Task Executor</strong></td><td>+ architecture docs path (<code>documentation/technology/architecture/</code>), coding standards path (<code>documentation/technology/standards/</code>), drives the review/test cycle via SendMessage. Can spawn Explore subagents for codebase investigation and query the shared Tech Knowledge agent for external library docs.</td></tr>
 <tr><td><strong>Code Reviewer</strong></td><td>+ architecture docs path, coding standards path, SendMessage target (Executor) for feedback</td></tr>
 <tr><td><strong>Task Tester</strong></td><td>+ success criteria from plan, <code>.claude/system-test.md</code> (if exists), SendMessage target (Executor) for feedback</td></tr>
 </tbody>
@@ -61,7 +60,6 @@
 Read these files for context:<br>
 - Plan: documentation/plans/user-auth/README.md<br>
 - Lead notes: documentation/plans/user-auth/shared/lead.md<br>
-- Research: documentation/plans/user-auth/tasks/task-3/research.md<br>
 - Architecture: documentation/technology/architecture/<br>
 - Standards: documentation/technology/standards/<br>
 <br>
@@ -72,7 +70,7 @@ Write your implementation plan to tasks/task-3/plan.md. Write implementation not
 
 <p>Each task flows through pipeline stages. The Lead creates tasks with stage metadata:</p>
 
-<pre><code>Task stages: pending &rarr; planning &rarr; research &rarr; impl &rarr; review &rarr; test &rarr; done</code></pre>
+<pre><code>Task stages: pending &rarr; planning &rarr; impl &rarr; review &rarr; test &rarr; done</code></pre>
 
 <p><strong>How it flows:</strong></p>
 <ul>
@@ -80,8 +78,7 @@ Write your implementation plan to tasks/task-3/plan.md. Write implementation not
 <li>Lead spawns a per-task team for each task (respecting concurrency limits)</li>
 <li>Within each team, the Executor drives the pipeline:
 <ul>
-<li>Researcher gathers context &rarr; writes <code>tasks/task-N/research.md</code></li>
-<li>Executor implements &rarr; writes <code>tasks/task-N/impl.md</code></li>
+<li>Executor plans and implements &rarr; writes <code>tasks/task-N/plan.md</code> and <code>tasks/task-N/impl.md</code> (spawns Explore subagents for codebase investigation, queries Tech Knowledge agent for external library docs as needed)</li>
 <li>Executor sends &ldquo;ready for review&rdquo; to Reviewer</li>
 <li>Code Reviewer evaluates &rarr; PASS or FAIL with feedback to Executor</li>
 <li>Executor sends &ldquo;ready for test&rdquo; to Tester</li>
@@ -97,7 +94,7 @@ Write your implementation plan to tasks/task-3/plan.md. Write implementation not
 
 <h2 id="task-pipeline">Task Pipeline</h2>
 
-<p>Every task gets the full pipeline team: <strong>Researcher + Executor + Reviewer + Tester</strong>. There is no classification step &mdash; all tasks receive the same treatment.</p>
+<p>Every task gets the full pipeline team: <strong>Executor + Reviewer + Tester + Tech Knowledge</strong> (3 agents per task + 1 shared knowledge agent). There is no classification step &mdash; all tasks receive the same treatment.</p>
 
 <div class="table-wrap">
 <table>
@@ -105,7 +102,7 @@ Write your implementation plan to tasks/task-3/plan.md. Write implementation not
 <tr><th>Pipeline</th><th>Team</th></tr>
 </thead>
 <tbody>
-<tr><td>Research &rarr; Implementation &rarr; Review &rarr; Test</td><td>Researcher + Executor + Reviewer + Tester</td></tr>
+<tr><td>Planning &rarr; Implementation &rarr; Review &rarr; Test</td><td>Executor + Reviewer + Tester + Tech Knowledge (shared)</td></tr>
 </tbody>
 </table>
 </div>
@@ -120,17 +117,18 @@ Write your implementation plan to tasks/task-3/plan.md. Write implementation not
 +-- Creates shared/ directory with lead.md (plan overview, constraints, decisions)
 +-- Creates tasks/ subdirectories for each task
 |
++-- Tech Knowledge Agent (shared across all task teams)
+|   Model: sonnet | Tools: Read, WebFetch, WebSearch, mcp__ref
+|   - Provides external library/framework documentation on demand
+|   - Queried by Executors when they need external API context
+|
 +-- Per-Task Team 1 (spawned as agent team)
-|   |
-|   +-- Researcher (1)
-|   |   Model: sonnet | Tools: Read, Write, Grep, Glob, WebFetch, WebSearch, mcp__ref
-|   |   - Reads plan README.md + shared/lead.md
-|   |   - Gathers context for this specific task
-|   |   - Writes findings to tasks/task-N/research.md
 |   |
 |   +-- Task Executor (1)
 |   |   Model: opus | Tools: Read, Write, Edit, Glob, Grep, Bash
-|   |   - Reads research.md, shared/lead.md, architecture docs, standards
+|   |   - Reads shared/lead.md, architecture docs, standards
+|   |   - Spawns Explore subagents for codebase investigation
+|   |   - Queries shared Tech Knowledge agent for external library docs
 |   |   - Writes implementation plan to tasks/task-N/plan.md
 |   |   - Implements code, writes notes to tasks/task-N/impl.md
 |   |   - Drives review/test cycle via SendMessage
@@ -183,7 +181,7 @@ Write your implementation plan to tasks/task-3/plan.md. Write implementation not
 <tr><th>Role</th><th>Model</th><th>Rationale</th></tr>
 </thead>
 <tbody>
-<tr><td>Researcher</td><td>sonnet</td><td>Needs reasoning for context gathering, not raw power</td></tr>
+<tr><td>Tech Knowledge</td><td>sonnet</td><td>Shared agent for external library docs &mdash; lightweight, on-demand queries</td></tr>
 <tr><td>Task Executor</td><td>opus</td><td>Writing production code is the highest-stakes task &mdash; quality here reduces downstream review/test failures and retry loops</td></tr>
 <tr><td>Code Reviewer</td><td>sonnet</td><td>Pattern matching, quality analysis</td></tr>
 <tr><td>Task Tester</td><td>sonnet</td><td>Per-task test execution + final full test suite gate</td></tr>
@@ -205,7 +203,7 @@ Write your implementation plan to tasks/task-3/plan.md. Write implementation not
 <li><strong>Read/Glob/Grep</strong>: always allowed (read-only)</li>
 </ul>
 
-<p>Task Tester and Researcher are read-only for source code &mdash; they should NOT have Write/Edit on <code>src/</code>. Code Reviewer is fully read-only (Write, Edit, and Bash are all disallowed).</p>
+<p>Task Tester is read-only for source code &mdash; it should NOT have Write/Edit on <code>src/</code>. Code Reviewer is fully read-only (Write, Edit, and Bash are all disallowed). Tech Knowledge agent is read-only.</p>
 
 <h2 id="shared-directory">Shared Directory</h2>
 
@@ -226,11 +224,9 @@ Write your implementation plan to tasks/task-3/plan.md. Write implementation not
 
 <pre><code>plans/{name}/tasks/
   task-1/
-    research.md      # Researcher writes: context findings
     plan.md          # Executor writes: implementation plan
     impl.md          # Executor writes: implementation notes, integration points
   task-2/
-    research.md
     plan.md
     impl.md
   ...</code></pre>
@@ -266,7 +262,7 @@ Write your implementation plan to tasks/task-3/plan.md. Write implementation not
 </thead>
 <tbody>
 <tr><td>Task states and Lead decisions</td><td><code>plans/{name}/shared/lead.md</code></td><td>Updated by Lead as tasks complete, decisions are made</td></tr>
-<tr><td>Per-task artifacts</td><td><code>plans/{name}/tasks/task-N/{research,plan,impl}.md</code></td><td>Written by task teams during execution (already on disk)</td></tr>
+<tr><td>Per-task artifacts</td><td><code>plans/{name}/tasks/task-N/{plan,impl}.md</code></td><td>Written by task teams during execution (already on disk)</td></tr>
 </tbody>
 </table>
 </div>
@@ -298,7 +294,7 @@ Write your implementation plan to tasks/task-3/plan.md. Write implementation not
 </thead>
 <tbody>
 <tr><td><strong>Task failure</strong> (review/test fails)</td><td>Reviewer or Tester sends FAIL to Executor within the task team</td><td>Executor fixes code, re-triggers review/test (max 10 fix cycles). After 10 failures: Executor escalates to Lead with full context. Lead decides whether to adjust task or escalate to user.</td></tr>
-<tr><td><strong>Team crash</strong> (session crash, context overflow)</td><td>Lead detects stalled progress for a task team</td><td>Lead spawns a replacement team for the task. Per-task artifacts (<code>tasks/task-N/</code>) preserve context &mdash; new team reads existing research/plan/impl and continues.</td></tr>
+<tr><td><strong>Team crash</strong> (session crash, context overflow)</td><td>Lead detects stalled progress for a task team</td><td>Lead spawns a replacement team for the task. Per-task artifacts (<code>tasks/task-N/</code>) preserve context &mdash; new team reads existing plan/impl and continues.</td></tr>
 <tr><td><strong>Session death</strong> (everything dies)</td><td>User reruns <code>/uc:plan-execution {plan-name}</code></td><td>Lead finds latest checkpoint, shows resume prompt. New teams spawned, but task states + <code>shared/lead.md</code> + <code>tasks/</code> artifacts preserve all progress.</td></tr>
 </tbody>
 </table>
@@ -356,14 +352,10 @@ PHASE 2: PIPELINE ORCHESTRATION (per-task teams, self-coordinating)
   For each task (up to concurrency limit):
     Lead spawns a per-task agent team:
 
-    Researcher:
-      read plan + shared/lead.md + architecture docs -&gt;
-      gather context for this task -&gt;
-      write tasks/task-N/research.md -&gt;
-      signal Executor
-
     Executor:
-      read research.md + standards -&gt;
+      read shared/lead.md + architecture docs + standards -&gt;
+      spawn Explore subagents for codebase investigation -&gt;
+      query Tech Knowledge agent for external library docs -&gt;
       write tasks/task-N/plan.md -&gt;
       implement code -&gt;
       write tasks/task-N/impl.md -&gt;

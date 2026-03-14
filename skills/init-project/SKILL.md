@@ -137,7 +137,7 @@ The plan includes these task groups, in order:
 
 #### Group 2 — Configure project CLAUDE.md and `.claude/` files
 
-**Note:** `.claude/system-test.md` is no longer generated from a simple template in this group. It is produced by the Researcher→Executor pipeline in Phase 3 (Stages B and C). This group still derives the other `.claude/` config files.
+**Note:** `.claude/system-test.md` is no longer generated from a simple template in this group. It is produced by the Explore→Executor pipeline in Phase 3 (Stages B and C). This group still derives the other `.claude/` config files.
 
 **`CLAUDE.md`** (project root) — append an Ultra Claude section if not already present:
 
@@ -239,7 +239,7 @@ Present ALL candidates to user via AskUserQuestion with this format:
 
 For any topic where user selects "Create (I'll add context)" — follow up with AskUserQuestion to collect their additional context before proceeding to Phase 3.
 
-User must approve before any researchers spawn. Only an explicit approval counts — empty, blank, or ambiguous responses must be re-asked.
+User must approve before any Explore agents spawn. Only an explicit approval counts — empty, blank, or ambiguous responses must be re-asked.
 
 #### Group 3 — Bootstrap/migrate documentation
 
@@ -312,27 +312,25 @@ For very large projects (many files to move, 4+ task groups with significant wor
 
 #### Stage B: Research Phase (parallel with Stage A)
 
-For each approved standard topic + system-test.md, spawn a Researcher (subagent_type `uc:Researcher`). Run up to 5 researchers in parallel; batch if more.
+For each approved standard topic + system-test.md, spawn an Explore agent (subagent_type `Explore`, thoroughness: `very thorough`). Run up to 5 agents in parallel; batch if more.
 
-**Standards Researcher spawn prompt** (one per approved topic):
+**Standards Explore agent prompt** (one per approved topic):
 
-> You are researching coding standards for {topic} in this project.
+> Research coding standards for {topic} in this project.
 >
 > Context:
 > - Project: {name}, Tech stack: {stack}
 > - Code Surveyor findings: {relevant standards signals for this topic}
 > - User-provided context: {if any, from "I'll add context" responses}
 >
-> Process:
+> Focus on:
 > 1. Read all files identified in survey signals for this topic
 > 2. Grep for additional patterns related to {topic}
 > 3. Catalogue findings: file path, line, pattern description, whether it's a good pattern (→ rule) or bad pattern (→ FORBIDDEN)
 > 4. Cross-reference architecture docs in `documentation/technology/architecture/`
 > 5. Check for existing conventions files
 >
-> Write findings to: `documentation/technology/standards/{topic}-research.md`
->
-> Output format:
+> Return findings in this format:
 > ## Good Patterns Found
 > - {pattern}: {file:line} — {description}
 >
@@ -345,34 +343,34 @@ For each approved standard topic + system-test.md, spawn a Researcher (subagent_
 > ## Gaps / Missing Information
 > - {what couldn't be determined}
 
-**System-test Researcher spawn prompt:**
+**System-test Explore agent prompt:**
 
-> You are researching test infrastructure for this project.
+> Research test infrastructure for this project.
 >
 > Context:
 > - Project: {name}, Tech stack: {stack}, Domain: {domain}
 > - Test infra findings: {from Code Surveyor's Test Infrastructure section}
 >
-> Process:
+> Focus on:
 > 1. Read all test config files, CI pipelines, existing test files
 > 2. Catalog every test command (package.json scripts, Makefile targets, CI steps)
 > 3. Assess domain security needs (payment system → all categories; CRUD app → auth + validation)
 > 4. Document the test pyramid as it currently exists
 >
-> Write findings to: `.claude/system-test-research.md`
->
-> Output: test commands, frameworks, infra, security concerns, domain-specific risks, existing test patterns.
+> Return: test commands, frameworks, infra, security concerns, domain-specific risks, existing test patterns.
 
 #### Stage C: Standards Writing (after Stage B completes)
 
-Wait for all Stage B researchers to finish. Then, for each approved standard + system-test.md, spawn a Task Executor (subagent_type `uc:Task Executor`). Run up to 5 executors in parallel; batch if more.
+Wait for all Stage B Explore agents to finish. Then, for each approved standard + system-test.md, spawn a Task Executor (subagent_type `uc:Task Executor`). Run up to 5 executors in parallel; batch if more.
+
+Pass the Explore agent results directly into the executor spawn prompt — no intermediate research file needed since Explore agents return results inline.
 
 **Standards Executor spawn prompt** (one per approved topic):
 
-> You are a senior architect specializing in {topic} with deep expertise in {tech stack}. Using prompt-architect methodology, craft a coding standard document from research findings.
+> You are a senior architect specializing in {topic} with deep expertise in {tech stack}. Using prompt-architect methodology, craft a coding standard document from the exploration findings below.
 >
 > Inputs:
-> - Research file: `documentation/technology/standards/{topic}-research.md`
+> - Exploration findings: {paste the Explore agent results directly here}
 > - Template: `${CLAUDE_PLUGIN_ROOT}/templates/standard.md`
 > - Sibling standards being created: {list all approved topics}
 >
@@ -381,6 +379,7 @@ Wait for all Stage B researchers to finish. Then, for each approved standard + s
 > - CONTEXT: Ground every rule in the project's actual code. Reference file:line from the research.
 > - FEW-SHOT: Follow the template structure exactly. FORBIDDEN table must have real entries, not placeholders.
 > - CHAIN-OF-THOUGHT: For each rule, reason: "Pattern X was found in N files → this is the established convention → codify as rule"
+> - FEW-SHOT findings are provided inline in the prompt (from Explore agent results)
 >
 > Output Requirements:
 > 1. Header block: Title, Established {today}, Applies to {project + stack}
@@ -390,20 +389,19 @@ Wait for all Stage B researchers to finish. Then, for each approved standard + s
 > 5. Related: Link to sibling standards by filename.
 >
 > Quality gates:
-> - Every FORBIDDEN entry traceable to research findings or known pitfalls
+> - Every FORBIDDEN entry traceable to exploration findings or known pitfalls
 > - Code examples use project's actual language/framework/naming
 > - Rules specific enough for mechanical code review
-> - If research has < 3 concrete rules, write NOTE about thin evidence and produce minimal standard
+> - If findings have < 3 concrete rules, write NOTE about thin evidence and produce minimal standard
 >
 > Write to: `documentation/technology/standards/{topic}.md`
-> Delete research file after: `documentation/technology/standards/{topic}-research.md`
 
 **System-test Executor spawn prompt:**
 
-> You are a senior QA architect designing test strategies. Using prompt-architect methodology, craft system-test.md from research.
+> You are a senior QA architect designing test strategies. Using prompt-architect methodology, craft system-test.md from the exploration findings below.
 >
 > Inputs:
-> - Research: `.claude/system-test-research.md`
+> - Exploration findings: {paste the Explore agent results directly here}
 > - Project domain: {domain}
 >
 > Output structure for `.claude/system-test.md`:
@@ -418,13 +416,12 @@ Wait for all Stage B researchers to finish. Then, for each approved standard + s
 > Quality: Commands verified against config files. Security categories calibrated to domain. If no tests yet, recommend setup for tech stack.
 >
 > Write to: `.claude/system-test.md`
-> Delete research file after: `.claude/system-test-research.md`
 
 #### Parallelism Summary
 
 - **Stage A + Stage B**: Run in parallel (write to different paths)
-- **Stage C**: Waits for Stage B to complete (needs research files)
-- **Within Stage B**: All Researchers run in parallel (up to 5 at a time, batch if more)
+- **Stage C**: Waits for Stage B to complete (needs exploration results)
+- **Within Stage B**: All Explore agents run in parallel (up to 5 at a time, batch if more)
 - **Within Stage C**: All Executors run in parallel (up to 5 at a time, batch if more)
 
 After all stages complete, verify results and report.

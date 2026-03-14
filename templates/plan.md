@@ -18,6 +18,13 @@ References to the documentation that informs this plan. Prefer links over prose 
 - **RFCs:** [link to relevant RFC(s), if any]
 - **Other:** [any additional context references]
 
+## Tech Stack
+
+External libraries, frameworks, and services this plan depends on. The shared Tech Knowledge agent loads documentation for these at execution startup.
+
+- {technology 1}
+- {technology 2}
+
 ## Scope
 
 ### In Scope
@@ -34,7 +41,7 @@ References to the documentation that informs this plan. Prefer links over prose 
 
 ## Task List
 
-> Every task gets the full pipeline: research -> impl -> review -> test.
+> Every task gets the full pipeline: planning -> impl -> review -> test.
 > Tasks must deliver end-to-end testable user value — from database through backend to API/UI. A tester must be able to verify each task by simulating user behavior, not just checking technical artifacts.
 > Trivial work (config changes, doc updates, renames) MUST be absorbed into the nearest task — never listed standalone.
 > Sequential dependency chains MUST be merged into a single task.
@@ -42,12 +49,14 @@ References to the documentation that informs this plan. Prefer links over prose 
 ### Task 1: {Title}
 - **Description:** What needs to be done
 - **Files:** Expected files to create/modify
+- **Patterns:** Architecture/standards files the executor must follow (populated by Standards Review)
 - **Success criteria:** How to verify this task is done
 - **Dependencies:** Other tasks that must complete first
 
 ### Task 2: {Title}
 - **Description:** What needs to be done
 - **Files:** Expected files to create/modify
+- **Patterns:** Architecture/standards files the executor must follow (populated by Standards Review)
 - **Success criteria:** How to verify this task is done
 - **Dependencies:** Other tasks that must complete first
 

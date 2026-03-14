@@ -2,6 +2,7 @@
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2026.03.14-6 | 2026-03-14 | Add proactive standards review: plan-enhancer annotates tasks with specific pattern files, executor/reviewer use targeted patterns, tester gains test-writing capability |
 | 2026.03.14-5 | 2026-03-14 | Add `skills: [tech-research]` to Tech Knowledge agent — preloads research methodology into agent context at spawn |
 | 2026.03.14-4 | 2026-03-14 | Replace per-task Researchers with shared Tech Knowledge agent + Explore agents. Teams now 3 agents (Executor/Reviewer/Tester) + 1 shared knowledge agent. Executors do their own codebase research. |
 | 2026.03.14-3 | 2026-03-14 | Add critical-brainstorm skill: devil's advocate mode with web research, critical analysis, and interactive discussion |

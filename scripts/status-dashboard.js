@@ -218,7 +218,7 @@ const DASHBOARD_HTML = `<!DOCTYPE html>
 <div class="events-log" id="events"></div>
 
 <script>
-const STAGE_ORDER = ['research', 'planning', 'implementation', 'review', 'testing'];
+const STAGE_ORDER = ['planning', 'implementation', 'review', 'testing'];
 const STAGE_MAP = {
   researching: 'research', planning: 'planning', implementing: 'implementation',
   reviewing: 'review', testing: 'testing', completed: '_done', escalated: '_done', pending: '_pending'

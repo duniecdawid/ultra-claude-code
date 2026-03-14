@@ -50,7 +50,7 @@ ultra-claude/
 │   └── plugin.json                    # Plugin manifest (name, version, paths)
 ├── settings.json                      # Plugin settings (agent teams flag)
 ├── agents/                            # Agent definitions (flat .md with YAML frontmatter)
-│   ├── researcher.md
+│   ├── tech-knowledge.md
 │   ├── task-executor.md
 │   ├── task-tester.md
 │   ├── code-review.md

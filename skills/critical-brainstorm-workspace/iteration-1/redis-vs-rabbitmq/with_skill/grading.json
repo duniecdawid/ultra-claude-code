@@ -1,0 +1,45 @@
+{
+  "expectations": [
+    {
+      "text": "Response does not contain actual implementation code",
+      "passed": true,
+      "evidence": "No code blocks with implementation. Pure discussion with a comparison table."
+    },
+    {
+      "text": "Lists at least 3 distinct risks or failure modes",
+      "passed": true,
+      "evidence": "Identifies 5+ risks: memory contention (cache vs queue conflict), worker crash = lost job (cites GOV.UK incident), Redis restart data loss window, no native ack protocol, different job types have different reliability needs."
+    },
+    {
+      "text": "Suggests at least 1 meaningfully different approach",
+      "passed": true,
+      "evidence": "Proposes hybrid: 'Use RabbitMQ for email and webhook delivery. Use Redis (BullMQ) for image resizing.' Also suggests AWS SQS as second-best option."
+    },
+    {
+      "text": "Includes at least 1 specific number, metric, or concrete data point",
+      "passed": true,
+      "evidence": "Multiple: 'BullMQ: ~15,000 messages/sec, 5ms P50 latency, 25ms P99 latency' vs 'RabbitMQ: ~25,000 messages/sec', 'Queueing 1 million simple jobs consumes roughly 1 GB of RAM', GOV.UK lost job recovery incident."
+    },
+    {
+      "text": "Poses questions back to the user to deepen discussion",
+      "passed": true,
+      "evidence": "4 pointed questions: 'What happens when a webhook delivery job is permanently lost?', 'Have you sized the memory budget?', 'Are all 50 workers Node.js?', 'What's your Redis HA story?'"
+    },
+    {
+      "text": "States a clear opinion rather than just listing pros/cons neutrally",
+      "passed": true,
+      "evidence": "'I feel strongly that Redis-as-queue is the right call for maybe one of your three workloads, and a real risk for the other two.' Also: 'I think you're underweighting the risk.'"
+    },
+    {
+      "text": "Makes clear this is an ongoing conversation, invites continued dialogue",
+      "passed": true,
+      "evidence": "'What's your take? Am I overweighting the reliability concern for your use case, or does this change how you're thinking about it?'"
+    }
+  ],
+  "summary": {
+    "passed": 7,
+    "failed": 0,
+    "total": 7,
+    "pass_rate": 1.0
+  }
+}

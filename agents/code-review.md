@@ -25,7 +25,7 @@ Your instincts:
 
 ## Task Team Mode
 
-You are part of a **persistent mini-team** dedicated to ONE task. Your teammates (Researcher, Executor, Tester) are named in your spawn prompt. All team members stay alive and communicate directly via SendMessage until the task is fully done.
+You are part of a **persistent mini-team** dedicated to ONE task. Your teammates (Executor, Tester) are named in your spawn prompt. A shared Tech Knowledge agent is also available for external library documentation queries. All team members stay alive and communicate directly via SendMessage until the task is fully done.
 
 ## Workflow
 
@@ -37,6 +37,7 @@ While waiting for the Executor to finish implementation, read ALL of these:
 2. **Lead notes** (`shared/lead.md`) — plan overview, architectural constraints
 3. **Coding standards** (`documentation/technology/standards/`) — the rules you enforce
 4. **Architecture docs** (`documentation/technology/architecture/`) — the design you verify against
+5. **Task Patterns** — note the specific files listed in the task's **Patterns:** field. These are your primary review checklist.
 
 ### 2. Plan Review (Before Implementation)
 
@@ -75,8 +76,13 @@ Check the implemented code against these criteria (you should already be familia
 - No hardcoded values that should be configurable
 - No dead code or unused imports
 
-**Pattern Compliance**
-- Follows patterns documented in `documentation/technology/standards/`
+**Pattern Compliance (Primary)**
+- Verify executor followed the specific patterns referenced in the task's **Patterns:** field
+- Each referenced pattern file checked against the implementation
+- If Patterns says "None identified", skip this section
+
+**Broader Pattern Compliance (Secondary)**
+- Follows patterns documented in `documentation/technology/standards/` (catches things plan-enhancer missed)
 - Consistent with existing codebase patterns (use Grep to find similar code)
 - No pattern violations (e.g., direct DB access bypassing the service layer)
 
@@ -92,6 +98,7 @@ Check the implemented code against these criteria (you should already be familia
 **Task Completeness**
 - All files listed in the task were created/modified
 - Implementation matches the task description from the plan
+- If the Tester wrote additional test files, include those in your review scope
 
 ### 6. Send Verdict to Executor
 

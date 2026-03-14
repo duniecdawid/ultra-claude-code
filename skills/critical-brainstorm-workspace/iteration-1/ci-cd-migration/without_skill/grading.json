@@ -1,0 +1,45 @@
+{
+  "expectations": [
+    {
+      "text": "Response does not contain actual implementation code",
+      "passed": true,
+      "evidence": "Contains illustrative YAML examples (GHA to Buildkite translation) but these are educational comparisons, not implementation to run."
+    },
+    {
+      "text": "Lists at least 3 distinct risks or failure modes",
+      "passed": true,
+      "evidence": "Risks identified: decision validation concerns (rate limits may not be GHA's fault, slow builds may follow), common gotchas (5 specific migration pitfalls), operational cost underestimation. Also 'What You'll Lose' lists 3 items."
+    },
+    {
+      "text": "Suggests at least 1 meaningfully different approach",
+      "passed": false,
+      "evidence": "Accepts the Buildkite premise and provides a full migration plan. The 'Validate the Decision' section mentions GHA Enterprise/larger runners briefly but doesn't develop them as real alternatives — immediately follows with 'If you've already done this analysis and self-hosted Buildkite is the answer, read on.'"
+    },
+    {
+      "text": "Includes at least 1 specific number, metric, or concrete data point",
+      "passed": true,
+      "evidence": "'$15/user/month', '60-70%' spot savings, '6-8 week project', specific instance types (m6i.xlarge), '30-60 seconds' GHA queue time."
+    },
+    {
+      "text": "Poses questions back to the user to deepen discussion",
+      "passed": false,
+      "evidence": "No direct questions posed. Structured as a migration guide/plan, not a conversation."
+    },
+    {
+      "text": "States a clear opinion rather than just listing pros/cons neutrally",
+      "passed": true,
+      "evidence": "'This is a solid move if you're hitting GHA rate limits consistently' — takes a clear pro-migration stance."
+    },
+    {
+      "text": "Makes clear this is an ongoing conversation, invites continued dialogue",
+      "passed": false,
+      "evidence": "Ends with 'Bottom line' definitive advice. No invitation to discuss, challenge, or continue."
+    }
+  ],
+  "summary": {
+    "passed": 4,
+    "failed": 3,
+    "total": 7,
+    "pass_rate": 0.57
+  }
+}

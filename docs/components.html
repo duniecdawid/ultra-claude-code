@@ -16,10 +16,10 @@
 </thead>
 <tbody>
 <tr><td><strong>feature-mode</strong></td><td>&ldquo;new feature&rdquo;, &ldquo;plan feature&rdquo;, &ldquo;start feature&rdquo;</td><td>Yes &mdash; <code>/uc:feature-mode</code></td><td>Feature Mode: new features with product + architecture context. Includes optional RFC sub-mode for ambiguous/high-risk architecture decisions (AI persona review).</td></tr>
-<tr><td><strong>debug-mode</strong></td><td>&ldquo;debug&rdquo;, &ldquo;fix&rdquo;, &ldquo;investigate&rdquo;</td><td>Yes &mdash; <code>/uc:debug-mode</code></td><td>Debug Mode: issue investigation and fix planning. Spawns investigation team (Researcher + System Tester) during planning phase. Fix execution uses standard plan-execution team.</td></tr>
+<tr><td><strong>debug-mode</strong></td><td>&ldquo;debug&rdquo;, &ldquo;fix&rdquo;, &ldquo;investigate&rdquo;</td><td>Yes &mdash; <code>/uc:debug-mode</code></td><td>Debug Mode: issue investigation and fix planning. Spawns investigation team (Explore + System Tester) during planning phase. Fix execution uses standard plan-execution team.</td></tr>
 <tr><td><strong>doc-code-verification-mode</strong></td><td>&ldquo;verify docs&rdquo;, &ldquo;check doc-code gaps&rdquo;, &ldquo;sync docs&rdquo;</td><td>Yes &mdash; <code>/uc:doc-code-verification-mode</code></td><td>Doc &amp; Code Verification Mode: find and plan fixes for discrepancies</td></tr>
 <tr><td><strong>plan-enhancer</strong></td><td>Auto-loaded by all modes</td><td>No (internal)</td><td>Standardizes plan output: plan directory, README.md with embedded task list, end-to-end testable task sizing. Writes plan directly to <code>documentation/plans/{name}/README.md</code> before user approval. Ensures task list is embedded in the plan document.</td></tr>
-<tr><td><strong>plan-execution</strong></td><td><code>/uc:plan-execution</code></td><td>Yes &mdash; <code>/uc:plan-execution</code></td><td>Execution engine: reads plan directory, spawns per-task pipeline teams (Researcher/Executor/Reviewer/Tester), coordinates 5-phase execution (setup, pipeline orchestration, checkpoint, failure handling, completion). Each task gets a dedicated mini-team that self-coordinates internally.</td></tr>
+<tr><td><strong>plan-execution</strong></td><td><code>/uc:plan-execution</code></td><td>Yes &mdash; <code>/uc:plan-execution</code></td><td>Execution engine: reads plan directory, spawns per-task pipeline teams (Executor/Reviewer/Tester + shared Tech Knowledge agent), coordinates 5-phase execution (setup, pipeline orchestration, checkpoint, failure handling, completion). Each task gets a dedicated mini-team that self-coordinates internally.</td></tr>
 <tr><td><strong>discovery-mode</strong></td><td>&ldquo;discovery mode&rdquo;, &ldquo;research only&rdquo;</td><td>Yes &mdash; <code>/uc:discovery-mode</code></td><td>Discovery Mode: research only, coding disabled</td></tr>
 <tr><td><strong>docs-manager</strong></td><td>&ldquo;audit docs&rdquo;, &ldquo;reorganize docs&rdquo;, &ldquo;regenerate index&rdquo;</td><td>Yes &mdash; <code>/uc:docs-manager</code></td><td>Guards <code>documentation/</code> structure &mdash; enforces canonical layout, routes docs to correct directories, prevents structural drift. Also auto-activated by <code>.claude/docs-format</code> file.</td></tr>
 <tr><td><strong>checkpoint</strong></td><td><code>/uc:checkpoint</code></td><td>Yes &mdash; <code>/uc:checkpoint</code></td><td>Saves per-task pipeline stages, active team assignments, execution decisions, and blockers to <code>documentation/plans/{name}/checkpoint-{timestamp}.md</code> for session recovery</td></tr>
@@ -100,8 +100,9 @@ Read the following architecture docs before planning:
 <tr><th>Agent</th><th>Model</th><th>Tools</th><th>Disallowed Tools</th><th>Purpose</th><th>Spawned As</th><th>Spawn Context</th></tr>
 </thead>
 <tbody>
-<tr><td><strong>researcher</strong></td><td>sonnet</td><td>Read, Write, Grep, Glob, WebFetch, WebSearch, mcp__ref__ref_search_documentation, mcp__ref__ref_read_url</td><td>&mdash;</td><td>Generic context-gathering agent, parameterized by spawning mode. Dual-use as subagent (planning) or teammate (execution). Does not decide where to write &mdash; the spawning mode must specify output paths in the spawn prompt.</td><td>Subagent (planning) or Teammate (execution)</td><td><strong>Planning:</strong> output file paths, architecture docs path. <strong>Execution:</strong> + plan README.md, <code>shared/lead.md</code>, task description, output path (<code>tasks/task-N/research.md</code>).</td></tr>
-<tr><td><strong>task-executor</strong></td><td>opus</td><td>Read, Write, Edit, Glob, Grep, Bash</td><td>&mdash;</td><td>Team coordinator for per-task execution pipeline. Writes implementation plan for teammate feedback, writes code, drives review/test cycles via SendMessage, and exits the team when all stages pass.</td><td>Teammate (execution only)</td><td>Plan README.md, <code>shared/lead.md</code>, per-task research file (<code>tasks/task-N/research.md</code>), coding standards path, architecture docs path</td></tr>
+<tr><td><strong>tech-knowledge</strong></td><td>sonnet</td><td>Read, WebFetch, WebSearch, mcp__ref__ref_search_documentation, mcp__ref__ref_read_url</td><td>&mdash;</td><td>Shared agent for external library and framework documentation. Queried on demand by Executors during execution.</td><td>Teammate (execution, shared across task teams)</td><td>Query from Executor specifying library/framework and question.</td></tr>
+<tr><td><strong>explore</strong></td><td>sonnet</td><td>Read, Grep, Glob</td><td>&mdash;</td><td>Codebase investigation agent. Spawned by Executors or planning modes to explore code structure, find patterns, and gather internal codebase context.</td><td>Subagent (planning and execution)</td><td>Investigation target, specific questions about codebase.</td></tr>
+<tr><td><strong>task-executor</strong></td><td>opus</td><td>Read, Write, Edit, Glob, Grep, Bash</td><td>&mdash;</td><td>Team coordinator for per-task execution pipeline. Spawns Explore subagents for codebase investigation, queries shared Tech Knowledge agent for external library docs. Writes implementation plan for teammate feedback, writes code, drives review/test cycles via SendMessage, and exits the team when all stages pass.</td><td>Teammate (execution only)</td><td>Plan README.md, <code>shared/lead.md</code>, coding standards path, architecture docs path</td></tr>
 <tr><td><strong>task-tester</strong></td><td>sonnet</td><td>Read, Glob, Grep, Bash</td><td>Write, Edit</td><td>Testing gate in execution pipeline. Runs per-task tests and final full test suite gate. Read-only for source code. Bash restricted to running test commands and build tools.</td><td>Teammate (execution only)</td><td>Plan README.md, <code>shared/lead.md</code>, success criteria from plan, system test instructions (<code>.claude/system-test.md</code>), SendMessage target (Executor) for feedback</td></tr>
 <tr><td><strong>system-tester</strong></td><td>sonnet</td><td>Read, Glob, Grep, Bash</td><td>Write, Edit</td><td>Bug reproduction and fix validation in Debug Mode. Must not modify source code. Subagent only.</td><td>Subagent (Debug Mode planning)</td><td>System test instructions (<code>.claude/system-test.md</code>), bug description, reproduction steps</td></tr>
 <tr><td><strong>code-review</strong></td><td>sonnet</td><td>Read, Glob, Grep</td><td>Write, Edit, Bash</td><td>Code review gate in execution pipeline. Checks quality, patterns, architecture conformance. Completely read-only. <em>(Note: <code>name:</code> field in agent file is &ldquo;Code Reviewer&rdquo;.)</em></td><td>Teammate (execution only)</td><td>Plan README.md, <code>shared/lead.md</code>, coding standards path, architecture docs path, SendMessage target (Executor) for feedback</td></tr>
@@ -150,21 +151,19 @@ Read the following architecture docs before planning:
 <p><strong>Example agent file:</strong></p>
 
 <pre><code>---
-name: Researcher
-description: Generic context-gathering agent, parameterized by spawning mode
+name: Tech Knowledge
+description: Shared agent for external library and framework documentation
 model: sonnet
 tools:
   - Read
-  - Grep
-  - Glob
   - WebFetch
   - WebSearch
   - mcp__ref__ref_search_documentation
   - mcp__ref__ref_read_url
 ---
 
-You are a Researcher agent. Your job is to gather context from the codebase,
-documentation, and external sources as directed by your spawn prompt.
+You are a Tech Knowledge agent. Your job is to provide external library
+and framework documentation on demand when queried by Executors.
 
 [... rest of system prompt ...]</code></pre>
 
@@ -234,10 +233,10 @@ documentation, and external sources as directed by your spawn prompt.
 <tbody>
 <tr><td><code>.claude/docs-format</code></td><td>Activates docs-manager skill, sets output format (confluence/gitbook)</td><td>Project</td></tr>
 <tr><td><code>.claude/environments-info</code></td><td>How to access dev/staging/prod environments</td><td>Project</td></tr>
-<tr><td><code>.claude/app-context-for-research.md</code></td><td>Domain context for researcher agents</td><td>Project</td></tr>
+<tr><td><code>.claude/app-context-for-research.md</code></td><td>Domain context for Explore and Tech Knowledge agents</td><td>Project</td></tr>
 <tr><td><code>.claude/system-test.md</code></td><td>Instructions for system tester agent</td><td>Project</td></tr>
 <tr><td><code>documentation/plans/{name}/shared/lead.md</code></td><td>Lead-level shared notes. Contains plan overview, concurrency decisions, architectural constraints, and key decisions made during execution.</td><td>Plan</td></tr>
-<tr><td><code>documentation/plans/{name}/tasks/task-N/</code></td><td>Per-task pipeline artifacts: <code>research.md</code>, <code>plan.md</code>, <code>impl.md</code>. Written by each task&rsquo;s pipeline team.</td><td>Plan</td></tr>
+<tr><td><code>documentation/plans/{name}/tasks/task-N/</code></td><td>Per-task pipeline artifacts: <code>plan.md</code>, <code>impl.md</code>. Written by each task&rsquo;s pipeline team.</td><td>Plan</td></tr>
 <tr><td><code>documentation/plans/{name}/checkpoint-{timestamp}.md</code></td><td>Session state snapshot for recovery</td><td>Plan</td></tr>
 </tbody>
 </table>

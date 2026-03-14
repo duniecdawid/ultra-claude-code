@@ -1,5 +1,5 @@
 ---
-description: Investigate bugs and plan fixes. Analyzes issues, proposes hypotheses, spawns parallel investigation with Researcher and System Tester subagents. Use when debugging, fixing bugs, or investigating issues. Triggers on "debug", "fix", "investigate", "bug", "issue".
+description: Investigate bugs and plan fixes. Analyzes issues, proposes hypotheses, spawns parallel investigation with Explore and System Tester subagents. Use when debugging, fixing bugs, or investigating issues. Triggers on "debug", "fix", "investigate", "bug", "issue".
 argument-hint: "bug description or issue"
 user-invocable: true
 allowed-tools:
@@ -81,11 +81,11 @@ Present hypotheses to the user. They may confirm, reject, or add hypotheses base
 
 ### Phase 3: Parallel Investigation
 
-> **Research Dispatch override:** This phase replaces Phase B of the Research Dispatch Strategy. Instead of a single conditional Researcher, Debug Mode spawns per-hypothesis Researchers for independent, narrowly-scoped investigation. The System Tester is also unique to Debug Mode. No changes to the behavior below — this annotation documents the override relationship.
+> **Research Dispatch override:** This phase replaces Phase B of the Research Dispatch Strategy. Instead of a single conditional Explore agent, Debug Mode spawns per-hypothesis Explore agents for independent, narrowly-scoped investigation. The System Tester is also unique to Debug Mode. No changes to the behavior below — this annotation documents the override relationship.
 
-Spawn investigation agents in parallel via the Task tool:
+Spawn investigation agents in parallel via the Agent tool:
 
-**For each hypothesis** — Spawn a Researcher subagent:
+**For each hypothesis** — Spawn an Explore subagent (`subagent_type: Explore`, thoroughness: `very thorough`):
 
 > Investigate hypothesis: [hypothesis description]
 >

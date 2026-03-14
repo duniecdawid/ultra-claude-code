@@ -1,0 +1,45 @@
+{
+  "expectations": [
+    {
+      "text": "Response does not contain actual implementation code",
+      "passed": true,
+      "evidence": "No implementation code. Advisory text only."
+    },
+    {
+      "text": "Lists at least 3 distinct risks or failure modes",
+      "passed": true,
+      "evidence": "4 risks: message ack/redelivery failures, persistence gaps (fsync loss), backpressure/memory pressure from shared instance, routing complexity as job types grow."
+    },
+    {
+      "text": "Suggests at least 1 meaningfully different approach",
+      "passed": false,
+      "evidence": "Recommends 'Use Redis, but with guardrails' — this is guardrails on the same approach, not a meaningfully different alternative. Mentions RabbitMQ/Kafka only as a future 'revisit if requirements change' footnote."
+    },
+    {
+      "text": "Includes at least 1 specific number, metric, or concrete data point",
+      "passed": false,
+      "evidence": "No specific benchmarks, throughput numbers, or external data. Uses vague language like 'Redis can handle the throughput for this easily' and '50 workers is not a scary number' without quantifying."
+    },
+    {
+      "text": "Poses questions back to the user to deepen discussion",
+      "passed": false,
+      "evidence": "No direct questions posed to the user. Content is structured as definitive advice, not a conversation."
+    },
+    {
+      "text": "States a clear opinion rather than just listing pros/cons neutrally",
+      "passed": true,
+      "evidence": "'Redis is a reasonable choice' and 'Use Redis, but with guardrails' — takes a clear position recommending Redis."
+    },
+    {
+      "text": "Makes clear this is an ongoing conversation, invites continued dialogue",
+      "passed": false,
+      "evidence": "Ends with definitive advice ('The teams that get burned are usually the ones who...'). No invitation to continue discussing or challenge the recommendation."
+    }
+  ],
+  "summary": {
+    "passed": 3,
+    "failed": 4,
+    "total": 7,
+    "pass_rate": 0.43
+  }
+}

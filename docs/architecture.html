@@ -138,7 +138,7 @@
 <li><strong>Structuring</strong>: Creates <code>{system-name}/docs/</code> and <code>{system-name}/code/</code> directories for each external system. Ensures consistent layout across all context entries.</li>
 <li><strong>Aggregation</strong>: Collects and organizes information from multiple sources (API docs, specs, code samples) into the appropriate context subdirectory. Deduplicates and keeps context current.</li>
 <li><strong>Git submodules</strong>: Manages git submodules in <code>code/</code> directories &mdash; adding, updating, and tracking external code dependencies that agents need for integration work.</li>
-<li><strong>Agent-ready summaries</strong>: Maintains a <code>context/README.md</code> index so agents (especially Researcher) can quickly discover what external system knowledge is available before diving into files.</li>
+<li><strong>Agent-ready summaries</strong>: Maintains a <code>context/README.md</code> index so agents (especially Explore and Tech Knowledge) can quickly discover what external system knowledge is available before diving into files.</li>
 </ul>
 
 <h3 id="init-project-skill">Init Project Skill</h3>
@@ -162,7 +162,7 @@
 <li><strong>Execute</strong> &mdash; Three-stage pipeline after plan approval:
 <ul>
 <li><strong>Stage A</strong>: Core scaffolding, config, docs migration (Task Executor agents)</li>
-<li><strong>Stage B</strong>: Parallel Researcher agents gather evidence for each approved standard + system-test (runs in parallel with Stage A)</li>
+<li><strong>Stage B</strong>: Parallel Explore agents gather evidence for each approved standard + system-test (runs in parallel with Stage A)</li>
 <li><strong>Stage C</strong>: Parallel Task Executor agents write standards and system-test.md from research findings using prompt-architect principles (waits for Stage B)</li>
 </ul>
 </li>
@@ -186,7 +186,7 @@
 
 <h4 id="feature-mode">Feature Mode</h4>
 
-<p>For new features. Spawns Researcher subagent + loads Docs Manager skill to gather context about the codebase, existing architecture, and product requirements before planning.</p>
+<p>For new features. Spawns Explore agent + loads Docs Manager skill to gather context about the codebase, existing architecture, and product requirements before planning.</p>
 
 <ul>
 <li>Challenges scope, pushes for clarity, asks &ldquo;why?&rdquo;</li>
@@ -199,7 +199,7 @@
 
 <h4 id="debug-mode">Debug Mode</h4>
 
-<p>For fixing things. The mode skill itself handles planning &mdash; it analyzes the issue, proposes hypotheses, and spawns Researcher + System Tester subagents to investigate.</p>
+<p>For fixing things. The mode skill itself handles planning &mdash; it analyzes the issue, proposes hypotheses, and spawns Explore agent + System Tester subagents to investigate.</p>
 
 <ul>
 <li>Analyzes the issue, proposes hypotheses</li>
@@ -219,7 +219,7 @@
 
 <h3 id="discovery-mode">Discovery Mode (Optional Pre-Step)</h3>
 
-<p>Research only &mdash; coding is disabled. Operates as a Head of Product persona. Focused on building product vision, gathering requirements, defining user personas, exploring competitors, and researching technology options. Spawns Researcher + Market Analyzer subagents.</p>
+<p>Research only &mdash; coding is disabled. Operates as a Head of Product persona. Focused on building product vision, gathering requirements, defining user personas, exploring competitors, and researching technology options. Spawns Explore subagent + Market Analyzer subagents.</p>
 
 <p>Discovery feeds into planning but does not produce a plan itself. Output goes to <code>documentation/product/</code> &mdash; producing research reports (<code>research/</code>), distilled product descriptions (<code>description/</code>), requirements (<code>requirements/</code>), and user personas (<code>personas/</code>) as the topic demands.</p>
 
@@ -227,7 +227,7 @@
 
 <p>The execution engine is documented in detail in <a href="#execution" class="tab-link">Execution</a>.</p>
 
-<p>In summary: Plan Execution reads any plan README.md and runs it through per-task pipeline teams. The Lead spawns a dedicated mini-team for each task (Researcher, Executor, Reviewer, Tester &mdash; every task gets the full team), and tracks progress. Each team self-coordinates internally &mdash; the Executor drives the review/test cycle via SendMessage. Teams run concurrently up to the plan-size-based limit (2&ndash;4 teams). Persistent context lives in <code>shared/lead.md</code> and per-task <code>tasks/task-N/</code> artifact files.</p>
+<p>In summary: Plan Execution reads any plan README.md and runs it through per-task pipeline teams. The Lead spawns a dedicated mini-team for each task (Executor, Reviewer, Tester &mdash; 3 agents per task + 1 shared Tech Knowledge agent), and tracks progress. Each team self-coordinates internally &mdash; the Executor drives the review/test cycle via SendMessage, spawns Explore subagents for codebase investigation, and queries the shared Tech Knowledge agent for external library docs. Teams run concurrently up to the plan-size-based limit (2&ndash;4 teams). Persistent context lives in <code>shared/lead.md</code> and per-task <code>tasks/task-N/</code> artifact files.</p>
 
 <h2 id="agent-coordination">Agent Coordination</h2>
 
@@ -263,7 +263,7 @@
 
 <p>Agent teams enable patterns that subagents cannot:</p>
 <ul>
-<li>Researcher shares findings directly with Task Executor (no parent relay)</li>
+<li>Tech Knowledge agent provides external library docs to any Executor on demand</li>
 <li>Task Tester challenges Task Executor&rsquo;s work directly via SendMessage</li>
 <li>Code Reviewer sends specific feedback to Executor for fix cycles</li>
 <li>Per-task team members coordinate internally without Lead involvement</li>
@@ -288,8 +288,8 @@
 │   - Survey existing documentation
 │   - Return what's documented to Lead
 │
-├── Researcher subagent
-│   - Gathers codebase + architecture + product context
+├── Explore subagent
+│   - Investigates codebase + architecture + product context
 │   - Returns findings to Lead
 │
 └── Docs Manager skill (loaded in main context, not a subagent)</code></pre>
@@ -297,7 +297,7 @@
 <h4 id="debug-mode-structure">Debug Mode</h4>
 
 <pre><code>Lead (main session &mdash; Debug Mode skill handles planning)
-├── Researcher subagent(s)
+├── Explore subagent(s)
 │   - Each investigates a different hypothesis in parallel
 │   - Returns evidence to Lead
 │
@@ -323,9 +323,9 @@
 <h4 id="discovery-mode-structure">Discovery Mode</h4>
 
 <pre><code>Lead (main session &mdash; coding DISABLED)
-├── Researcher subagent
+├── Explore subagent
 │   - Deep code/docs research
-│   - Uses Ref.tools for external library docs
+│   - Investigates internal codebase and documentation
 │
 └── Market Analyzer subagent
     - Uses Perplexity/web for market research
@@ -335,7 +335,7 @@
 
 <p>The execution engine is the only mode that uses agent teams. See <a href="#execution" class="tab-link">Execution</a> for the full team structure, context bridge, shared memory, checkpoints, and error recovery.</p>
 
-<p>Lead + per-task pipeline teams. Each task gets a dedicated mini-team (Researcher, Task Executor, Code Reviewer, Task Tester) that self-coordinates internally through pipeline stages: research &rarr; implementation &rarr; review &rarr; test. Up to 2&ndash;4 task teams run concurrently depending on plan size.</p>
+<p>Lead + per-task pipeline teams + shared Tech Knowledge agent. Each task gets a dedicated mini-team (Task Executor, Code Reviewer, Task Tester &mdash; 3 agents per task) that self-coordinates internally through pipeline stages: planning &rarr; implementation &rarr; review &rarr; test. Executors spawn Explore subagents for codebase investigation and query the shared Tech Knowledge agent for external library docs. Up to 2&ndash;4 task teams run concurrently depending on plan size.</p>
 
 <h3 id="agent-team-constraints">Agent Team Constraints We Accept</h3>
 

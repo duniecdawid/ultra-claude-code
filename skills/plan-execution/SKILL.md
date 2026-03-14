@@ -1,5 +1,5 @@
 ---
-description: Executes approved plans through per-task pipeline teams. Each task gets a dedicated mini-team (Researcher/Executor/Reviewer/Tester) that self-coordinates internally. Lead spawns teams and tracks progress. Use when user says 'execute plan', 'run plan', 'start execution', or '/uc:plan-execution'. NEVER auto-trigger after plan approval — planning modes print the execution command for the user to run manually.
+description: Executes approved plans through per-task pipeline teams. Each task gets a dedicated mini-team (Executor/Reviewer/Tester) that self-coordinates internally, plus a shared Tech Knowledge agent for external library documentation. Lead spawns teams and tracks progress. Use when user says 'execute plan', 'run plan', 'start execution', or '/uc:plan-execution'. NEVER auto-trigger after plan approval — planning modes print the execution command for the user to run manually.
 argument-hint: "plan number or name (e.g., '1', '001-user-auth')"
 user-invocable: true
 ---
@@ -64,9 +64,7 @@ If `checkpoint-*.md` files exist:
 
 ### 1.3 Task Pipeline
 
-Every task gets the full pipeline team: **Researcher + Executor + Reviewer + Tester**. There is no classification step.
-
-Tasks with existing `tasks/task-N/research.md` files skip the Research phase (Researcher is still spawned but told to read existing research instead of generating new).
+Every task gets the full pipeline team: **Executor + Reviewer + Tester**. There is no classification step. A shared Tech Knowledge agent handles external library documentation for all tasks.
 
 ### 1.4 Concurrency Decision
 
@@ -78,28 +76,28 @@ Determine how many task-teams can run concurrently:
 | 4-8 tasks | 2-3 |
 | 9+ tasks  | 3-4 |
 
-Max ceiling: **4 concurrent task-teams** (each team = 4 agents: Researcher + Executor + Reviewer + Tester).
+Max ceiling: **4 concurrent task-teams** (each team = 3 agents: Executor + Reviewer + Tester), plus 1 shared knowledge agent.
 
 Each slot = 1 full task-team. All team members spawned together when a slot opens, all exit together when the task is done.
 
-**Pipeline-spawned tasks do NOT count against the concurrency limit** while in planning-only mode (research + planning, blocked from implementing). They count as a full slot only once implementation is approved. This allows successor tasks to get a head start on research/planning without blocking the pipeline. The PM tracks this distinction when making spawn requests.
+**Pipeline-spawned tasks do NOT count against the concurrency limit** while in planning-only mode (executor planning, blocked from implementing). They count as a full slot only once implementation is approved. This allows successor tasks to get a head start on planning without blocking the pipeline. The PM tracks this distinction when making spawn requests.
 
 ### Model Assignment
 
 | Role | Model | Rationale |
 |------|-------|-----------|
-| Researcher | sonnet | Research and context gathering |
-| **Executor** | **opus** | Code generation, architectural decisions — highest capability required |
+| **Executor** | **opus** | Code generation, architectural decisions, codebase research — highest capability required |
 | Reviewer | sonnet | Pattern recognition, architecture conformance |
 | Tester | sonnet | Test execution, failure diagnosis |
+| Tech Knowledge | sonnet | Documentation retrieval — shared across all tasks |
 | Project Manager | sonnet | Operational observation — read-only, low overhead |
 
 ### Permission Modes
 
 | Role | Mode | Rationale |
 |------|------|-----------|
-| Researcher | `bypassPermissions` | Read-only exploration, no approval needed |
 | **Executor** | **`bypassPermissions`** | **Writes code autonomously; plan reviewed by teammates before implementation** |
+| Tech Knowledge | `bypassPermissions` | Read-only documentation retrieval, no approval needed |
 | Reviewer | `bypassPermissions` | Read-only analysis, no approval needed |
 | Tester | `bypassPermissions` | Runs tests autonomously, no approval needed |
 | Project Manager | `bypassPermissions` | Read-only observation, no approval needed |
@@ -112,9 +110,10 @@ Present to user BEFORE spawning any teams:
 Plan: $ARGUMENTS
 Tasks: N total
 Concurrency: up to M task-teams in parallel
-Estimated cost: ~[N * 200]K tokens
+Estimated cost: ~[N * 150]K tokens
 
-Cost per task pipeline: ~200K tokens (Researcher + Executor + Reviewer + Tester)
+Cost per task pipeline: ~150K tokens (Executor + Reviewer + Tester)
+Tech Knowledge agent (plan-wide): ~100K tokens (shared documentation retrieval)
 Project Manager (plan-wide): ~50K tokens (observational, runs entire execution)
 
 Proceed? (yes/no)
@@ -132,7 +131,7 @@ TaskCreate({
   description: "Success criteria: ...\nFiles: src/middleware/auth.ts\n...",
   activeForm: "Processing task 1: Add JWT middleware",
   metadata: { "stage": "pending", "retry_count": 0 }
-  // stage values: "pending" | "planning" | "research" | "impl" | "review" | "test" | "done"
+  // stage values: "pending" | "planning" | "impl" | "review" | "test" | "done"
 })
 ```
 
@@ -158,7 +157,39 @@ Create `tasks/` directory. Per-task subdirs (`tasks/task-N/`) are created just-i
 
 ### 1.8 Proceed to Orchestration
 
-No agents are spawned during setup. Proceed directly to Phase 2.
+No task-team agents are spawned during setup. Proceed directly to Phase 1.9.
+
+### 1.9 Knowledge Agent Setup
+
+Before spawning any task-teams, set up the shared Tech Knowledge agent:
+
+1. Read plan README.md `## Tech Stack` section for the technology list
+2. Also scan `documentation/technology/architecture/` and `.claude/app-context-for-research.md` for additional technology references
+3. Spawn `knowledge-{PLAN_NAME}` using the Tech Knowledge agent:
+
+Agent: `${CLAUDE_PLUGIN_ROOT}/agents/tech-knowledge.md`
+Model: `sonnet` | Mode: `bypassPermissions`
+
+```
+You are the shared **Tech Knowledge** agent for the "$ARGUMENTS" plan execution.
+
+**Technologies to load documentation for:**
+{list from Tech Stack section + any additional technologies identified}
+
+**Architecture docs to read for context:**
+- `documentation/technology/architecture/`
+- `.claude/app-context-for-research.md` (if exists)
+
+**Lead name:** {lead name}
+
+Load documentation for all listed technologies using mcp__ref__ref_search_documentation and mcp__ref__ref_read_url. Read the architecture docs for project context. Then SendMessage to Lead: "Knowledge base ready — loaded docs for: {technology list}"
+
+You will receive QUERY and LOAD messages from team members throughout execution. Respond per your agent instructions.
+
+Exit only when shutdown_request arrives from Lead. Approve it to exit.
+```
+
+4. Wait for "Knowledge base ready" signal before proceeding to Phase 2.
 
 ---
 
@@ -171,8 +202,8 @@ Each task gets a dedicated mini-team that self-coordinates internally. The **Lea
 All members are spawned at once, stay alive, and communicate peer-to-peer. Executors report operational status directly to the Lead:
 
 ```
-Researcher: does research → tells Executor "research ready" → stays alive (consultable)
-Executor:   reads research → plans → sends plan to Lead for review
+Executor:   explores codebase → plans → sends plan to Lead for review
+            → queries knowledge-{PLAN_NAME} for external library docs as needed
             → sends per-file progress updates to Reviewer during implementation
             → signals Lead "implementation complete" (Lead handles pipeline decisions)
             → tells Reviewer "ready for review" AND Tester "ready for test" simultaneously
@@ -185,17 +216,18 @@ Both PASS:  Executor tells Lead "task done" → Lead sends shutdown_request → 
 ```
 
 **Key principles:**
-- **ONE dedicated team per task, NO sharing.** Task 1 gets its own Researcher-1, Executor-1, Reviewer-1, Tester-1. Task 2 gets its own set. They never cross.
+- **ONE dedicated team per task, NO sharing.** Task 1 gets its own Executor-1, Reviewer-1, Tester-1. Task 2 gets its own set. They never cross.
+- **Shared knowledge agent** — `knowledge-{PLAN_NAME}` is spawned once and serves all task teams with external library documentation.
 - **ALL team members stay alive** through the full task lifecycle — they communicate directly via SendMessage until the task passes all stages.
-- **Executor is the team coordinator** — it drives the pipeline sequence internally.
+- **Executor is the team coordinator** — it drives the pipeline sequence internally and does its own codebase research.
 - **Lead is the orchestrator** — spawns teams, shuts down teams, approves pipeline implementations, reviews plans for coherence, handles escalations.
 - **PM is the monitoring layer** — maintains the dashboard, detects stalls/rate limits, sends ALERTs to Lead with recommendations.
-- **Reviewer and Tester can consult Researcher** if they need clarification during their work.
+- **Reviewer and Tester can query the knowledge agent** if they need external library documentation during their work.
 - **Max 10 fix cycles** between executor/reviewer/tester before escalating to Lead → user.
 
 ### Team Composition
 
-Every task gets the same team: **Researcher + Executor + Reviewer + Tester**.
+Every task gets the same team: **Executor + Reviewer + Tester**. The shared Tech Knowledge agent (`knowledge-{PLAN_NAME}`) serves all tasks.
 
 ### Orchestration Loop
 
@@ -206,27 +238,27 @@ Phase 2 startup:
   1. Spawn the Project Manager (pm-{PLAN_NAME}) using the PM spawn prompt.
   2. Spawn initial task-teams to fill concurrency slots.
      For each slot: find next pending unblocked task, create tasks/task-N/ directory,
-     spawn all 4 team members at once into task-{N}-team.
-     After each spawn: SendMessage to PM "SPAWNED task-{N}: {task description}" then "STAGE task-{N} research"
+     spawn all 3 team members at once into task-{N}-team.
+     After each spawn: SendMessage to PM "SPAWNED task-{N}: {task description}" then "STAGE task-{N} planning"
 
 Lead loop:
 WAIT for messages. Process each message, then return to waiting.
 
   --- From Executors ---
   a. Executor "Task {N} done — all stages passed" →
-     Send shutdown_request to all team members (executor-{N}, researcher-{N}, reviewer-{N}, tester-{N}).
+     Send shutdown_request to all team members (executor-{N}, reviewer-{N}, tester-{N}).
      SendMessage to PM: "COMPLETED task-{N}" then "SHUTDOWN task-{N}"
      Check: does this task have a pipeline-spawned successor awaiting implementation approval?
        → If yes: SendMessage to successor executor-{M}: "Implementation approved — predecessor passed all stages. Proceed to implement."
          SendMessage to PM: "APPROVED-IMPL task-{M}"
      Check: does the freed slot allow spawning the next pending task?
-       → If yes: spawn next unblocked task, SendMessage to PM: "SPAWNED task-{M}: {description}" then "STAGE task-{M} research"
+       → If yes: spawn next unblocked task, SendMessage to PM: "SPAWNED task-{M}: {description}" then "STAGE task-{M} planning"
 
   b. Executor "Task {N} implementation complete — entering review/test phase" →
      SendMessage to PM: "STAGE task-{N} review"
      Check: does this task have dependent successors still in "pending" state?
-       → If yes: spawn successor in pipeline mode (research+planning only, implementation blocked).
-         SendMessage to PM: "PIPELINE-SPAWN task-{M}" then "STAGE task-{M} research"
+       → If yes: spawn successor in pipeline mode (planning only, implementation blocked).
+         SendMessage to PM: "PIPELINE-SPAWN task-{M}" then "STAGE task-{M} planning"
          Pipeline-spawned tasks in planning-only mode do NOT count against the concurrency limit.
 
   c. Executor "Task {N} plan ready for review" →
@@ -240,7 +272,7 @@ WAIT for messages. Process each message, then return to waiting.
 
   e. Executor "Task {N} escalation needed" → Escalate to user
 
-  f. Executor/Researcher "PLAN-INVALIDATING: ..." → Pause pipeline, evaluate, amend plan
+  f. Executor "PLAN-INVALIDATING: ..." → Pause pipeline, evaluate, amend plan
 
   --- From PM ---
   g. PM "Dashboard live at {URL}" → Output URL to user
@@ -264,51 +296,17 @@ WAIT for messages. Process each message, then return to waiting.
 
 All team members for a task are spawned at once. Each gets: task context, paths to read, output path, **names of ALL teammates**.
 
-Use the Agent tool with `team_name` set to the active team. **MANDATORY naming convention** — the `name` parameter MUST follow exactly `{role}-{N}` where role is one of `researcher`, `executor`, `reviewer`, `tester` and N is the task number:
+Use the Agent tool with `team_name` set to the active team. **MANDATORY naming convention** — the `name` parameter MUST follow exactly `{role}-{N}` where role is one of `executor`, `reviewer`, `tester` and N is the task number:
 
-| Task | Researcher | Executor | Reviewer | Tester |
-|------|-----------|----------|----------|--------|
-| 1 | `researcher-1` | `executor-1` | `reviewer-1` | `tester-1` |
-| 2 | `researcher-2` | `executor-2` | `reviewer-2` | `tester-2` |
-| N | `researcher-N` | `executor-N` | `reviewer-N` | `tester-N` |
+| Task | Executor | Reviewer | Tester |
+|------|----------|----------|--------|
+| 1 | `executor-1` | `reviewer-1` | `tester-1` |
+| 2 | `executor-2` | `reviewer-2` | `tester-2` |
+| N | `executor-N` | `reviewer-N` | `tester-N` |
 
-**NEVER** use alternative formats like `task-1-researcher`, `r1`, `Researcher_1`, or descriptive names. The `/uc:tmux-team-grid` skill depends on this exact `{role}-{N}` pattern to organize panes.
+**Shared (plan-wide):** `knowledge-{PLAN_NAME}` — spawned once, serves all tasks.
 
-#### Researcher Spawn
-
-Agent: `${CLAUDE_PLUGIN_ROOT}/agents/researcher.md`
-Model: `sonnet` | Mode: `bypassPermissions`
-
-```
-You are operating in **Task Team Mode** for task {N} of the "$ARGUMENTS" plan.
-
-**Your task:** {task description from plan}
-
-**Your teammates (use SendMessage to communicate):**
-- Executor: executor-{N}
-- Reviewer: reviewer-{N} (if applicable)
-- Tester: tester-{N}
-- Lead: {lead name} (for plan-invalidating discoveries)
-- Project Manager: pm-{PLAN_NAME} (may ping you for monitoring status — reply briefly)
-
-**Context files to read first:**
-- Plan: `documentation/plans/$ARGUMENTS/README.md`
-- Lead notes: `documentation/plans/$ARGUMENTS/shared/lead.md`
-- Architecture: `documentation/technology/architecture/`
-- Domain context: `.claude/app-context-for-research.md` (if exists)
-
-**Output path:** Write research findings to `documentation/plans/$ARGUMENTS/tasks/task-{N}/research.md`
-
-**Workflow:**
-1. Read context files above
-2. Research the task thoroughly
-3. Write findings to the output path
-4. SendMessage to executor-{N}: "Research ready — findings written to tasks/task-{N}/research.md"
-5. When executor-{N} sends you a plan review request, read `tasks/task-{N}/plan.md` and check whether the plan accounts for your research findings and addresses any risks you identified. Reply LGTM or CONCERNS with evidence from your research.
-6. If you discover something plan-invalidating, SendMessage to Lead ({lead name}): "PLAN-INVALIDATING: {evidence}". This is urgent.
-7. Stay alive — teammates and PM may ask follow-up questions
-8. Exit only when shutdown_request arrives from Lead. Approve it to exit.
-```
+**NEVER** use alternative formats like `task-1-executor`, `e1`, `Executor_1`, or descriptive names. The `/uc:tmux-team-grid` skill depends on this exact `{role}-{N}` pattern to organize panes.
 
 #### Executor Spawn
 
@@ -322,9 +320,9 @@ You are the **team coordinator** for task {N} of the "$ARGUMENTS" plan.
 **Success criteria:** {success criteria from plan}
 
 **Your teammates (use SendMessage to communicate):**
-- Researcher: researcher-{N}
 - Reviewer: reviewer-{N}
 - Tester: tester-{N}
+- Tech Knowledge: knowledge-{PLAN_NAME} (for external library/API documentation queries — send "QUERY: {question}")
 - Lead: {lead name} (for ALL operational messages — plan reviews, implementation complete, task done, escalations)
 - Project Manager: pm-{PLAN_NAME} (may ping you for monitoring status — reply briefly)
 
@@ -333,18 +331,19 @@ You are the **team coordinator** for task {N} of the "$ARGUMENTS" plan.
 **Context files to read first:**
 - Plan: `documentation/plans/$ARGUMENTS/README.md`
 - Lead notes: `documentation/plans/$ARGUMENTS/shared/lead.md`
-- Architecture: `documentation/technology/architecture/`
-- Standards: `documentation/technology/standards/`
+- Patterns: Read the files listed in your task's **Patterns:** field below
+
+**Patterns:** {patterns from plan task}
 
 **Output path:** Write implementation notes to `documentation/plans/$ARGUMENTS/tasks/task-{N}/impl.md`
 
 **Workflow:**
 1. Read context files above
-2. Wait for researcher-{N}'s "research ready" message, then read `tasks/task-{N}/research.md`
+2. Explore the codebase yourself using Read/Glob/Grep — understand existing patterns, related implementations, and integration points
 3. Write your implementation plan to `documentation/plans/$ARGUMENTS/tasks/task-{N}/plan.md`
-4. SendMessage to reviewer-{N} AND researcher-{N}: "Plan ready for feedback — written to tasks/task-{N}/plan.md. Review from your perspective. Reply LGTM or CONCERNS."
-5. Wait for feedback responses. If CONCERNS: address in plan, notify the teammate, then proceed.
-5.5 Before implementing, check if you have outstanding unknowns that qualify as research (see your agent instructions step 3.5). If so, delegate to researcher-{N} via SendMessage and begin implementing non-dependent parts while they research.
+4. SendMessage to reviewer-{N}: "Plan ready for feedback — written to tasks/task-{N}/plan.md. Review from your perspective. Reply LGTM or CONCERNS."
+5. Wait for feedback response. If CONCERNS: address in plan, notify the teammate, then proceed.
+5.5 For external library questions, query knowledge-{PLAN_NAME} with "QUERY: {question}". Begin implementing non-dependent parts while waiting for answers.
 5.7 SendMessage to Lead ({lead name}): "Task {N} plan ready for review — written to tasks/task-{N}/plan.md". Wait for Lead's approval or concerns before implementing.
 5.9 {If pipeline_spawned:} See your agent instructions step 3.9 — send "Planning complete — awaiting implementation approval" to Lead ({lead name}) and WAIT before implementing.
 6. Implement the task. As you complete each file, send a progress update to reviewer-{N}: "Progress: completed {file path} — you can start reading"
@@ -382,8 +381,8 @@ You are reviewing task {N} of the "$ARGUMENTS" plan.
 
 **Your teammates (use SendMessage to communicate):**
 - Executor: executor-{N}
-- Researcher: researcher-{N} (ask them questions if you need context)
 - Tester: tester-{N}
+- Tech Knowledge: knowledge-{PLAN_NAME} (for external library/API documentation queries — send "QUERY: {question}")
 - Project Manager: pm-{PLAN_NAME} (may ping you for monitoring status — reply briefly)
 
 **Context files to read (while waiting for Executor):**
@@ -391,6 +390,10 @@ You are reviewing task {N} of the "$ARGUMENTS" plan.
 - Lead notes: `documentation/plans/$ARGUMENTS/shared/lead.md`
 - Architecture: `documentation/technology/architecture/`
 - Standards: `documentation/technology/standards/`
+
+**Task Patterns (primary checklist):** {patterns from plan task}
+Verify compliance with these first, then check broader docs.
+Tester-written tests are in your review scope.
 
 **Workflow:**
 1. Read context files above while waiting
@@ -417,16 +420,18 @@ You are testing task {N} of the "$ARGUMENTS" plan.
 **Your teammates (use SendMessage to communicate):**
 - Executor: executor-{N}
 - Reviewer: reviewer-{N}
-- Researcher: researcher-{N} (ask them questions if you need context)
+- Tech Knowledge: knowledge-{PLAN_NAME} (for external library/API documentation queries — send "QUERY: {question}")
 - Project Manager: pm-{PLAN_NAME} (may ping you for monitoring status — reply briefly)
 
 **Context files to read (while waiting — these are your testing references):**
 - Plan: `documentation/plans/$ARGUMENTS/README.md` (PRIMARY — success criteria live here)
-- Product requirements: `documentation/product/requirements/` (original requirements)
-- Architecture: `documentation/technology/architecture/`
+- Product docs: `documentation/product/` (ALL product documentation)
 - System test instructions: `.claude/system-test.md` (if exists)
 
 **IMPORTANT:** Test against the plan's success criteria and product docs, NOT against the Executor's impl.md. You may read impl.md only to know which files were touched.
+
+**Test-writing:** You can create/modify TEST FILES ONLY (`*.test.*`, `*.spec.*`, `__tests__/`, `tests/`, `test/`).
+Write additional tests to cover success criteria gaps. Tests survive in the codebase.
 
 **IMPORTANT:** Each task should be end-to-end testable from the user's perspective. If you can only verify technical artifacts (a column exists, a method is defined, a type is exported) rather than user behavior (making requests, checking responses, observing system behavior), report this to the Executor as a task scoping issue.
 
@@ -480,7 +485,7 @@ You are the **Project Manager** for the "$ARGUMENTS" plan execution.
 **Lead name:** {lead name}
 **Total tasks:** {N}
 **Concurrency limit:** {M} concurrent task-teams
-**Team naming convention:** Task N team name: `task-{N}-team`. Members: researcher-N, executor-N, reviewer-N, tester-N
+**Team naming convention:** Task N team name: `task-{N}-team`. Members: executor-N, reviewer-N, tester-N. Shared: knowledge-{PLAN_NAME}
 
 **Task dependency graph:**
 {For each task, list its dependencies. Example:}
@@ -537,7 +542,7 @@ You are the **Project Manager** for the "$ARGUMENTS" plan execution.
 
 Executors write implementation plans to `tasks/task-N/plan.md` and request feedback at two levels:
 
-**Level 1 — Teammate review (advisory):** Executor sends plan to Reviewer + Researcher for technical feedback. This happens first and is advisory — teammates reply LGTM or CONCERNS, Executor addresses and proceeds.
+**Level 1 — Teammate review (advisory):** Executor sends plan to Reviewer for technical feedback. This happens first and is advisory — Reviewer replies LGTM or CONCERNS, Executor addresses and proceeds.
 
 **Level 2 — Lead review (domain/coherence gate):** After teammate feedback, Executor sends plan directly to Lead for domain and coherence review. The Lead checks:
 - Does this plan align with the overall plan objective and scope?
@@ -552,7 +557,8 @@ Executors write implementation plans to `tasks/task-N/plan.md` and request feedb
 
 **Two channels — orchestration (Lead) and monitoring (PM):**
 
-- **Team-internal**: Executor↔Reviewer, Executor↔Tester, anyone↔Researcher — direct peer-to-peer
+- **Team-internal**: Executor↔Reviewer, Executor↔Tester — direct peer-to-peer
+- **Knowledge queries**: Any team member → knowledge-{PLAN_NAME} — "QUERY: {question}" for external library docs
 - **Executor → Lead**: ALL operational status — "implementation complete", "task done", "escalation needed", plan reviews, plan-invalidating discoveries
 - **Lead → Executor**: Plan review responses (APPROVED/CONCERNS), implementation approvals for pipeline-spawned tasks, shutdown_request
 - **Lead → PM**: Terse status updates (`SPAWNED task-1: ...`, `COMPLETED task-2`, `STAGE task-3 review`, etc.)
@@ -584,8 +590,8 @@ Write to `documentation/plans/$ARGUMENTS/checkpoint-{YYYY-MM-DD-HHmm}.md`:
 
 | Task | Active Team Members | Notes |
 |------|---------------------|-------|
-| task-1 | R-1, E-1, Rev-1, T-1 | In review stage |
-| task-2 | R-2, E-2, Rev-2, T-2 | Implementing |
+| task-1 | E-1, Rev-1, T-1 | In review stage |
+| task-2 | E-2, Rev-2, T-2 | Implementing |
 
 ## Task Pipeline Status
 
@@ -600,7 +606,7 @@ Write to `documentation/plans/$ARGUMENTS/checkpoint-{YYYY-MM-DD-HHmm}.md`:
 ## Progress Summary
 
 - Done: N/{total} tasks
-- In pipeline: M tasks (planning: A, research: B, impl: C, review: D, test: E)
+- In pipeline: M tasks (planning: A, impl: B, review: C, test: D)
 - Pending: K tasks
 
 ## Decisions Made
@@ -722,14 +728,15 @@ Append to `documentation/plans/$ARGUMENTS/shared/lead.md`:
 1. All task-teams have already self-exited after their tasks passed
 2. Final Gate Tester exits after reporting
 3. Project Manager exits after delivering operational report
-4. Keep plan directory with all artifacts (including `operational-report.md`)
-5. Present summary to user — mention that the operational report is available at `documentation/plans/$ARGUMENTS/operational-report.md`
+4. Knowledge agent exits last (send shutdown_request to `knowledge-{PLAN_NAME}` after PM exits)
+5. Keep plan directory with all artifacts (including `operational-report.md`)
+6. Present summary to user — mention that the operational report is available at `documentation/plans/$ARGUMENTS/operational-report.md`
 
 ---
 
 ## Mid-Execution Plan Changes
 
-When a teammate discovers something that invalidates part of the plan (from executor or researcher directly):
+When a teammate discovers something that invalidates part of the plan (from executor directly):
 
 1. **Receive urgent message** with evidence
 2. **Pause pipeline** — do not spawn new task-teams
@@ -745,8 +752,10 @@ When a teammate discovers something that invalidates part of the plan (from exec
 
 | Channel | Direction | Use For |
 |---------|-----------|---------|
-| **Team-internal** | Executor↔Reviewer, Executor↔Tester, anyone↔Researcher | Direct peer-to-peer within the task team. Technical collaboration. |
-| **Plan review (teammate)** | Executor → Reviewer + Researcher | Advisory feedback on `tasks/task-N/plan.md`. Teammates reply LGTM/CONCERNS. |
+| **Team-internal** | Executor↔Reviewer, Executor↔Tester | Direct peer-to-peer within the task team. Technical collaboration. |
+| **Knowledge query** | Any team member → knowledge-{PLAN_NAME} | "QUERY: {question}" for external library docs. Returns verbatim excerpts. |
+| **Knowledge load** | Lead → knowledge-{PLAN_NAME} | "LOAD: {technology}" to add docs mid-execution. |
+| **Plan review (teammate)** | Executor → Reviewer | Advisory feedback on `tasks/task-N/plan.md`. Reviewer replies LGTM/CONCERNS. |
 | **Plan review (Lead)** | Executor → Lead | Domain/coherence review of plan. **Blocking gate.** Lead replies APPROVED/CONCERNS. |
 | **Operational status** | Executor → Lead | "Implementation complete", "task done", "escalation needed", "planning complete". Lead acts directly. |
 | **Lead spawns teams** | Lead → Agent tool | Lead spawns task-teams directly. |
@@ -755,7 +764,7 @@ When a teammate discovers something that invalidates part of the plan (from exec
 | **Lead → PM** | Lead → PM | Terse status updates (`SPAWNED`, `COMPLETED`, `STAGE`, `SHUTDOWN`, etc.) for dashboard. |
 | **PM → Lead** | PM → Lead | Dashboard URL (startup), health ALERTs (stalls, rate limits). |
 | **PM → team members** | PM → any agent | Status checks for monitoring purposes only. |
-| **Per-task files** | Persistent | `tasks/task-N/research.md`, `tasks/task-N/plan.md`, `tasks/task-N/impl.md` — pipeline artifacts. |
+| **Per-task files** | Persistent | `tasks/task-N/plan.md`, `tasks/task-N/impl.md` — pipeline artifacts. |
 
 ---
 
@@ -782,8 +791,7 @@ You are the **orchestrator and domain authority**. You spawn teams, manage shutd
 ### Anti-Patterns
 
 Real examples from past executions — do NOT produce output like this:
-- "Executor-1 is idle waiting for researcher-1's findings. Normal flow..."
-- "Researcher-1 has processed and is standing by"
+- "Executor-1 is idle waiting for knowledge agent response. Normal flow..."
 - "Tester-1 ready and waiting. All team members standing by"
 - "Plan looks solid." (unless formal APPROVED response to plan review)
 - "Executor-1 processing the approval"

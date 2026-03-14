@@ -965,7 +965,7 @@
             <div class="name">Discovery Mode</div>
             <div class="desc">Product descriptions, requirements, user personas. Head of Product persona. Coding disabled.</div>
             <div class="agents-used">
-              <span class="agent-badge">Researcher</span>
+              <span class="agent-badge">Explore</span>
               <span class="agent-badge">Market Anlz.</span>
             </div>
           </div>
@@ -979,7 +979,7 @@
           <div class="name">Feature Mode</div>
           <div class="desc">Architecture &amp; implementation planning. Head of Technology persona. RFC sub-mode.</div>
           <div class="agents-used">
-            <span class="agent-badge">Researcher</span>
+            <span class="agent-badge">Explore</span>
             <span class="agent-badge">Docs Mgr</span>
           </div>
         </div>
@@ -988,12 +988,12 @@
       <!-- Debug + Verification row -->
       <div class="modes-grid" style="grid-template-columns: repeat(2, 1fr); margin-top: 12px;">
         <!-- Debug Mode -->
-        <div class="mode-card" data-tip="Head of Technology persona. Analyzes the issue, proposes hypotheses, spawns Researcher + System Tester to investigate each one in parallel. Treats every bug as a symptom until proven otherwise.">
+        <div class="mode-card" data-tip="Head of Technology persona. Analyzes the issue, proposes hypotheses, spawns Explore + System Tester to investigate each one in parallel. Treats every bug as a symptom until proven otherwise.">
           <div class="icon">&#128270;</div>
           <div class="name">Debug Mode</div>
           <div class="desc">Investigate issues, plan fixes. Head of Technology persona. Hypothesis-driven.</div>
           <div class="agents-used">
-            <span class="agent-badge">Researcher</span>
+            <span class="agent-badge">Explore</span>
             <span class="agent-badge">Sys Tester</span>
           </div>
         </div>
@@ -1043,30 +1043,30 @@
 
       <div class="exec-engine">
         <!-- Lead -->
-        <div class="lead-box" data-tip="Main session. Creates 4 task lists from plan, spawns teammates, promotes tasks between lists, handles failures, checkpoints.">
+        <div class="lead-box" data-tip="Main session. Creates 3 task lists from plan, spawns teammates + shared Tech Knowledge agent, promotes tasks between lists, handles failures, checkpoints.">
           <div class="icon">&#128101;</div>
           <div class="name">Lead</div>
           <div class="desc">/uc:plan-execution</div>
-          <div class="desc" style="margin-top:8px; font-size:10px; color:var(--gray-400);">Creates 4 task lists from plan<br>Spawns teammates<br>Promotes tasks between lists<br>Handles failures &amp; checkpoints<br>Reports to user</div>
+          <div class="desc" style="margin-top:8px; font-size:10px; color:var(--gray-400);">Creates 3 task lists from plan<br>Spawns teammates + shared Tech Knowledge<br>Promotes tasks between lists<br>Handles failures &amp; checkpoints<br>Reports to user</div>
         </div>
 
         <!-- Agent Team -->
         <div class="team-container">
           <!-- Agent flow row -->
           <div class="team-flow">
-            <div class="agent-card" data-tip="Distinguished Engineer IC. Investigates codebase and docs per research task. Writes per-task findings to tasks/task-N/research.md.">
+            <div class="agent-card" data-tip="Shared agent for external library docs. Queried on demand by Executors. Not per-task — shared across all task teams.">
               <div class="icon">&#128218;</div>
-              <div class="name">Researcher</div>
+              <div class="name">Tech Knowledge</div>
               <div class="model">sonnet</div>
-              <div class="desc">Distinguished Engineer IC. Investigates codebase &amp; docs.</div>
-              <div class="tools">Read, Grep, Glob, WebFetch, WebSearch, Ref</div>
+              <div class="desc">External library docs. Shared across teams.</div>
+              <div class="tools">Read, WebFetch, WebSearch, Ref</div>
             </div>
 
             <div class="flow-connector">
               <svg width="36" height="24" viewBox="0 0 36 24"><path d="M2 12 L28 12 M22 6 L30 12 L22 18" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
 
-            <div class="agent-card" data-tip="Team coordinator for per-task execution pipeline. Writes implementation plan, writes code, drives review/test cycles via SendMessage. Writes notes to tasks/task-N/impl.md.">
+            <div class="agent-card" data-tip="Team coordinator for per-task execution pipeline. Spawns Explore subagents for codebase investigation, queries Tech Knowledge for external docs. Writes implementation plan, writes code, drives review/test cycles via SendMessage. Writes notes to tasks/task-N/impl.md.">
               <div class="icon">&#128736;</div>
               <div class="name">Executor</div>
               <div class="model">opus</div>
@@ -1109,7 +1109,7 @@
           <!-- Communication row -->
           <div class="comm-row">
             <div class="comm-arrows">
-              <span class="comm-path">Lead promotes: Research &#8594; Impl &#8594; Review &#8594; Test</span>
+              <span class="comm-path">Lead promotes: Planning &#8594; Impl &#8594; Review &#8594; Test</span>
             </div>
             <div class="comm-arrows" style="border: 1px dashed var(--red-border);">
               <span class="comm-path" style="color: var(--red);">FAIL &#8594; re-queue to Impl (max 2 retries)</span>
@@ -1141,7 +1141,7 @@
           <div class="tree-line"><span class="tree-prefix">│   └── </span><span class="tree-file">personas/</span></div>
           <div class="tree-line"><span class="tree-prefix">├── </span><span class="tree-dir">plans/</span><span class="tree-comment">one dir per initiative</span></div>
           <div class="tree-line"><span class="tree-prefix">│   ├── </span><span class="tree-file">README.md</span><span class="tree-comment">plan + task list</span></div>
-          <div class="tree-line"><span class="tree-prefix">│   ├── </span><span class="tree-file">research/</span></div>
+          <div class="tree-line"><span class="tree-prefix">│   ├── </span><span class="tree-file">tasks/</span><span class="tree-comment">per-task artifacts</span></div>
           <div class="tree-line"><span class="tree-prefix">│   └── </span><span class="tree-file">shared/</span><span class="tree-comment">per-role memory</span></div>
           <div class="tree-line"><span class="tree-prefix">└── </span><span class="tree-dir">dependencies/</span><span class="tree-comment">blockers &amp; open questions</span></div>
         </div>

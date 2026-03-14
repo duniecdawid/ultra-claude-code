@@ -23,10 +23,6 @@ Tasks that must complete before this one:
 
 -
 
-## Research
-
-Research file: `plans/{plan-name}/tasks/task-N/research.md`
-
 ## Review Notes
 
 > Filled in by Code Reviewer.

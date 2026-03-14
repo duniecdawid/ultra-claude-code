@@ -66,28 +66,31 @@ Spawn **Code Surveyor** + **Doc Surveyor** in parallel (both Sonnet, `uc:Code Su
 
 While surveyors work, the Lead does its own **direct reading** of key files (architecture docs, requirements, plans, app-context). The planning mode specifies which files to read directly.
 
-Surveyors return structured overviews (file lists, components, data structures, patterns, cross-references). This gives the Lead a structural map of the relevant codebase and documentation without the cost of a full Researcher agent.
+Surveyors return structured overviews (file lists, components, data structures, patterns, cross-references). This gives the Lead a structural map of the relevant codebase and documentation without the cost of spawning additional agents.
 
 ### Phase B — Targeted Deep Research (Conditional)
 
-Only spawn a **Researcher** (`uc:Researcher` agent type, Sonnet) when Phase A reveals gaps that require deep analysis. Specific triggers:
+Two tools are available for filling gaps identified by surveyors:
 
-- **External integrations**: Surveyors found references to external services, APIs, or dependencies that need investigation beyond structural overview
-- **Complex cross-component interactions**: Structural map shows the work touches 3+ components with non-obvious interaction patterns
-- **Undocumented patterns**: Code Surveyor found patterns or conventions with no corresponding documentation from Doc Surveyor
-- **Doc-code conflicts**: Doc Surveyor and Code Surveyor returned contradictory information about the same component
+1. **Codebase gaps** — Spawn an **Explore agent** (`Explore` subagent type) when Phase A reveals gaps requiring deep codebase analysis:
+   - **Complex cross-component interactions**: Structural map shows the work touches 3+ components with non-obvious interaction patterns
+   - **Undocumented patterns**: Code Surveyor found patterns or conventions with no corresponding documentation from Doc Surveyor
+   - **Doc-code conflicts**: Doc Surveyor and Code Surveyor returned contradictory information about the same component
 
-If none of these triggers fire, proceed to the next phase with surveyor output + direct reading only. Do not spawn a Researcher "just in case."
+2. **External library gaps** — Use `/uc:tech-research` (Ref.tools) or the shared Tech Knowledge agent when Phase A reveals:
+   - **External integrations**: Surveyors found references to external services, APIs, or dependencies that need documentation beyond structural overview
 
-When Phase B is triggered, scope the Researcher tightly to the identified gaps — not a broad re-survey of what the surveyors already covered. Reference specific findings from Phase A in the Researcher prompt.
+If none of these triggers fire, proceed to the next phase with surveyor output + direct reading only. Do not spawn an Explore agent "just in case."
+
+When Phase B is triggered, scope the Explore agent tightly to the identified gaps — not a broad re-survey of what the surveyors already covered. Reference specific findings from Phase A in the Explore agent prompt.
 
 ### Mode Override Table
 
 | Mode | Phase A | Phase B | Notes |
 |------|---------|---------|-------|
-| **Feature Mode** | Default (Code + Doc Surveyor) | Conditional — triggered by external deps, plan conflicts, external system context | Standard two-phase |
-| **Debug Mode** | Default, scoped to symptom-related code paths | **Override**: Per-hypothesis Researchers replace generic Phase B. Each hypothesis gets its own narrowly-scoped Researcher. System Tester also spawned (unique to Debug Mode). | Phase B override for targeted investigation |
-| **Doc-Code Verification** | Already uses surveyors natively | Uses Checkers instead of Researcher | Pre-existing, no change needed |
+| **Feature Mode** | Default (Code + Doc Surveyor) | Conditional — Explore agents for codebase gaps, /tech-research for external library gaps | Standard two-phase |
+| **Debug Mode** | Default, scoped to symptom-related code paths | **Override**: Per-hypothesis Explore agents replace generic Phase B. Each hypothesis gets its own narrowly-scoped Explore agent. System Tester also spawned (unique to Debug Mode). | Phase B override for targeted investigation |
+| **Doc-Code Verification** | Already uses surveyors natively | Uses Checkers instead of Explore agents | Pre-existing, no change needed |
 | **Init Project** | Already uses surveyors natively | N/A | Pre-existing, no change needed |
 | **Re-planning** | May skip Phase A if prior survey data is still valid | Default | Avoid redundant re-survey |
 
@@ -128,7 +131,7 @@ Derive the plan name and number:
 
 ## Task Pipeline
 
-Every task gets the full pipeline team: **Researcher + Executor + Reviewer + Tester**. There is no classification step — all tasks receive the same treatment. Research ensures the Executor has full context before implementing, regardless of perceived complexity.
+Every task gets the full pipeline team: **Executor + Reviewer + Tester** (+ shared Tech Knowledge agent for external library documentation). There is no classification step — all tasks receive the same treatment. The executor explores the codebase directly and queries the knowledge agent for external library docs.
 
 **Trivial work** (single-line changes, config/env vars, renames, typo fixes) is always absorbed into the nearest task — never a standalone task.
 
@@ -204,6 +207,7 @@ Over 5 tasks is a red flag — the plan is almost certainly sliced too thin. Ove
 Each task MUST have:
 - A clear description of what to build/change
 - Expected files to create or modify
+- Patterns (architecture/standards files the executor must follow — populated by Standards Review)
 - Success criteria (how to verify it's done)
 - Dependencies on other tasks (if any)
 
@@ -219,7 +223,8 @@ Use the loaded plan template (`templates/plan.md`) as the base structure. The pl
 
 1. **Objective** — What this plan accomplishes
 2. **Context** — Links to architecture docs, requirements, RFCs
-3. **Scope** — In scope / out of scope boundaries
+3. **Tech Stack** — External libraries, frameworks, and services the plan depends on (the shared Tech Knowledge agent loads documentation for these at execution startup)
+4. **Scope** — In scope / out of scope boundaries
 4. **Success Criteria** — Checkboxes for plan-level acceptance
 5. **Task List** — Every task with description, files, success criteria, dependencies
 6. **Documentation Changes** — Structured changelog of docs updated during planning, plus any remaining doc updates for execution
@@ -240,6 +245,20 @@ Use the loaded plan template (`templates/plan.md`) as the base structure. The pl
    b. Scan for sequential dependency chains (A→B→C where each depends on the previous). If found, STOP and merge the chain into one task. Sequential chains gain nothing from being separate.
    c. Count remaining tasks. If count exceeds the low end of the complexity range, justify each task — if you can't articulate why it MUST be separate (i.e., it enables real parallelism), merge it.
    d. For each task, verify the tester can verify it end-to-end from the user's perspective. If a task can only be verified by checking technical artifacts (schema exists, function defined, type exported), it's too small — merge it into the task it supports.
+6.5. **Standards Review** — For each task, identify which architecture and standards files apply:
+   a. Scan `documentation/technology/architecture/` and `documentation/technology/standards/` for pattern files. Gracefully handle missing or empty directories (skip if not found).
+   b. For each task: examine its description, files, and success criteria to determine which specific architecture/standards files are relevant.
+   c. Populate the task's `**Patterns:**` field with file paths and optional section hints, e.g.:
+      `documentation/technology/standards/error-handling.md` (API Error Responses section), `documentation/technology/architecture/auth.md`
+      If no patterns apply: `None identified`
+   d. If a task requires a pattern that isn't documented, draft the missing doc and flag it with ⚠️ in the summary.
+   e. Present a Standards Review summary in chat before approval:
+      ```
+      Standards Review:
+      - Task 1 → error-handling.md, auth.md
+      - Task 2 → api-conventions.md, database.md
+      - ⚠️ Drafted: documentation/technology/standards/api-conventions.md (new — review before approving)
+      ```
 7. **Write plan to `documentation/plans/{NNN}-{name}/README.md`** via the Write tool — this is the canonical copy that `/uc:plan-execution` reads from. The plan is on disk before the user reviews it.
 8. **Present a concise summary in chat** — NOT the full plan. Include: plan number, plan name, objective, task count, and the file path. The user can read the full plan from the file.
 9. **Ask for approval via AskUserQuestion** — Options: "Approve" / "Reject with feedback" / "Partially reject (specify changes)"
@@ -322,6 +341,7 @@ documentation/plans/001-user-auth/
 ### Task 1: Build JWT authentication system
 - **Description:** Add JWT_SECRET and TOKEN_EXPIRY to environment config. Create Express middleware that validates JWT tokens from HTTP-only cookies, extracts user claims, and attaches to request context. Includes token refresh logic. Create POST /api/auth/login, POST /api/auth/register, and POST /api/auth/logout endpoints. Login validates credentials and returns JWT in HTTP-only cookie. Register creates user with hashed password. Logout clears the token cookie.
 - **Files:** .env.example (modify), src/config.ts (modify), src/middleware/auth.ts (create), src/types/auth.ts (create), src/app.ts (modify), src/routes/auth.ts (create), src/services/auth.ts (create), src/models/user.ts (create)
+- **Patterns:** `documentation/technology/architecture/auth.md`, `documentation/technology/standards/error-handling.md` (API Error Responses section), `documentation/technology/standards/middleware.md`
 - **Success criteria:** Env vars documented and loaded; middleware validates tokens, rejects expired tokens, refreshes near-expiry tokens, attaches user to req.user; login returns 200 with token cookie on valid creds, 401 on invalid; register creates user and returns 201; logout clears cookie and returns 200
 - **Dependencies:** None
 ```

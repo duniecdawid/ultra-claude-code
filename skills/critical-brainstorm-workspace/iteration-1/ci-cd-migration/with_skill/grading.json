@@ -1,0 +1,45 @@
+{
+  "expectations": [
+    {
+      "text": "Response does not contain actual implementation code",
+      "passed": true,
+      "evidence": "No code. Comparison table and discussion only."
+    },
+    {
+      "text": "Lists at least 3 distinct risks or failure modes",
+      "passed": true,
+      "evidence": "Multiple risks: (1) rate limits follow you to Buildkite, (2) massive operational burden for 5-person team, (3) 3-6 month migration = 30-90 engineering days, plus 4 hidden assumptions challenged (speed, rate limits, team capacity, cost permanence)."
+    },
+    {
+      "text": "Suggests at least 1 meaningfully different approach",
+      "passed": true,
+      "evidence": "Proposes drop-in runner replacements (Blacksmith, Depot, RunsOn) as concrete alternative with detailed comparison table. Also suggests GitHub App tokens for rate limit fix."
+    },
+    {
+      "text": "Includes at least 1 specific number, metric, or concrete data point",
+      "passed": true,
+      "evidence": "Rich in specifics: '$1,050/month minimum', '30-90 engineering days', 'EUR 300/year', '$0.004/min', '1,000 MiB/s vs 145 MiB/s', '5,000 requests/hour vs 1,000', full comparison table."
+    },
+    {
+      "text": "Poses questions back to the user to deepen discussion",
+      "passed": true,
+      "evidence": "6 questions: build time profiling, specific rate limits, team bandwidth, larger runners tried, Docker usage, Buildkite champion on team."
+    },
+    {
+      "text": "States a clear opinion rather than just listing pros/cons neutrally",
+      "passed": true,
+      "evidence": "'I think migrating to self-hosted Buildkite for your situation is over-engineering the solution.' and 'it's wrong right now for the problem as you've described it.'"
+    },
+    {
+      "text": "Makes clear this is an ongoing conversation, invites continued dialogue",
+      "passed": true,
+      "evidence": "'Convince me otherwise: what am I missing about your situation that makes a full platform migration the right first move?'"
+    }
+  ],
+  "summary": {
+    "passed": 7,
+    "failed": 0,
+    "total": 7,
+    "pass_rate": 1.0
+  }
+}

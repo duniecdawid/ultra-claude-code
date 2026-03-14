@@ -112,7 +112,7 @@ Before starting: ensure your architecture docs exist in `documentation/technolog
 
 1. `/uc:debug-mode "Tests failing intermittently on staging"` — This will:
    - Analyze the issue and propose hypotheses
-   - Spawn Researcher agents to investigate each hypothesis
+   - Spawn Explore agents to investigate each hypothesis
    - Spawn System Tester to reproduce the failure
    - Produce a fix plan
 

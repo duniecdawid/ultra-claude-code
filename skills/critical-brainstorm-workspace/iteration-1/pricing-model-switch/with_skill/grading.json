@@ -1,0 +1,45 @@
+{
+  "expectations": [
+    {
+      "text": "Response does not contain actual implementation code",
+      "passed": true,
+      "evidence": "No code. Pure discussion with data-backed analysis."
+    },
+    {
+      "text": "Lists at least 3 distinct risks or failure modes",
+      "passed": true,
+      "evidence": "5 numbered risks: (1) revenue loss from best customers, (2) revenue predictability collapse, (3) bill shock kills trust, (4) billing infrastructure hidden cost, (5) sales motion changes completely."
+    },
+    {
+      "text": "Suggests at least 1 meaningfully different pricing approach",
+      "passed": true,
+      "evidence": "Proposes hybrid: 'Platform fee + included usage + overage pricing' with specific structure ($30-40/seat base + generous allocation + declining overage rates)."
+    },
+    {
+      "text": "Includes at least 1 specific number, metric, or concrete data point",
+      "passed": true,
+      "evidence": "Multiple researched stats: '23% more likely to report NDR above 120%', '38% faster revenue growth', '78% of IT leaders experienced unexpected charges', '61% cut projects', conversion rates 'from 14% to nearly 25%' with hard caps. All cited with sources."
+    },
+    {
+      "text": "Poses questions back to the user to deepen discussion",
+      "passed": true,
+      "evidence": "6 numbered questions covering: what's driving the change, usage distribution shape, churn data, product stickiness, top-20 customer modeling, billing infrastructure readiness."
+    },
+    {
+      "text": "States a clear opinion rather than just listing pros/cons neutrally",
+      "passed": true,
+      "evidence": "'I think a pure switch to usage-based pricing is the wrong move.' and 'Go hybrid. Keep the seat-based anchor for predictability, add usage-based components for fairness and expansion.'"
+    },
+    {
+      "text": "Makes clear this is an ongoing conversation, invites continued dialogue",
+      "passed": true,
+      "evidence": "'I have strong opinions on the specifics of how to structure the tiers and the migration plan. What part of this do you want to dig into further?'"
+    }
+  ],
+  "summary": {
+    "passed": 7,
+    "failed": 0,
+    "total": 7,
+    "pass_rate": 1.0
+  }
+}

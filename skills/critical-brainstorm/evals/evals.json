@@ -1,0 +1,23 @@
+{
+  "skill_name": "critical-brainstorm",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "I'm thinking of using Redis for our job queue instead of a proper message broker like RabbitMQ. We have about 50 workers processing async tasks — image resizing, email sending, webhook delivery. Redis is simpler and we already run it for caching.",
+      "expected_output": "Critical analysis of Redis vs RabbitMQ for job queuing, with researched tradeoffs, risks, and alternatives. Should stay in discussion mode.",
+      "files": []
+    },
+    {
+      "id": 1,
+      "prompt": "We're considering switching from a per-seat pricing model to usage-based pricing for our API product. Our current customers pay $50/seat/month but usage varies wildly — some seats generate 100x the API calls of others.",
+      "expected_output": "Critical analysis of pricing model change with business risks, customer impact, migration tradeoffs. Should stay in discussion mode.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "I want to move our entire CI/CD from GitHub Actions to self-hosted Buildkite. GHA keeps hitting rate limits and our builds are slow. We have about 30 repos and a 5-person platform team.",
+      "expected_output": "Critical analysis of CI/CD migration with operational risks, team capacity concerns, alternatives. Should stay in discussion mode.",
+      "files": []
+    }
+  ]
+}
