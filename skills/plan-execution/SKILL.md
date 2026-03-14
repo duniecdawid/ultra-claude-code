@@ -197,7 +197,7 @@ Phase 2 startup:
   2. Spawn initial task-teams to fill concurrency slots.
      For each slot: find next pending unblocked task, create tasks/task-N/ directory,
      spawn all 4 team members at once into task-{N}-team.
-     After each spawn: SendMessage to PM "SPAWNED task-{N}: {task description}"
+     After each spawn: SendMessage to PM "SPAWNED task-{N}: {task description}" then "STAGE task-{N} research"
 
 Lead loop:
 WAIT for messages. Process each message, then return to waiting.
@@ -210,18 +210,20 @@ WAIT for messages. Process each message, then return to waiting.
        → If yes: SendMessage to successor executor-{M}: "Implementation approved — predecessor passed all stages. Proceed to implement."
          SendMessage to PM: "APPROVED-IMPL task-{M}"
      Check: does the freed slot allow spawning the next pending task?
-       → If yes: spawn next unblocked task, SendMessage to PM: "SPAWNED task-{M}: {description}"
+       → If yes: spawn next unblocked task, SendMessage to PM: "SPAWNED task-{M}: {description}" then "STAGE task-{M} research"
 
   b. Executor "Task {N} implementation complete — entering review/test phase" →
      SendMessage to PM: "STAGE task-{N} review"
      Check: does this task have dependent successors still in "pending" state?
        → If yes: spawn successor in pipeline mode (research+planning only, implementation blocked).
-         SendMessage to PM: "PIPELINE-SPAWN task-{M}"
+         SendMessage to PM: "PIPELINE-SPAWN task-{M}" then "STAGE task-{M} research"
          Pipeline-spawned tasks in planning-only mode do NOT count against the concurrency limit.
 
   c. Executor "Task {N} plan ready for review" →
+     SendMessage to PM: "STAGE task-{N} planning"
      Read tasks/task-{N}/plan.md. Evaluate domain coherence, architectural alignment,
      scope correctness. Reply to executor: APPROVED or CONCERNS with specifics.
+     If APPROVED: SendMessage to PM: "STAGE task-{N} implementation"
 
   d. Executor "Task {N} planning complete — awaiting implementation approval" (pipeline-spawned) →
      Note it. Approval depends on predecessor completing — you will approve when predecessor passes.
