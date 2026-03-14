@@ -2,6 +2,7 @@
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2026.03.14-8 | 2026-03-14 | Enable 1M context for Task Executor (opus[1m]) and Tech Knowledge (sonnet[1m]) agents |
 | 2026.03.14-7 | 2026-03-14 | Restructure planning to 4-stage framework (Understand → Research → Discuss → Write). Add mandatory Discussion Protocol before file writing. Move doc updates to Stage 4. Fix plan directory numbering enforcement. |
 | 2026.03.14-6 | 2026-03-14 | Add proactive standards review: plan-enhancer annotates tasks with specific pattern files, executor/reviewer use targeted patterns, tester gains test-writing capability |
 | 2026.03.14-5 | 2026-03-14 | Add `skills: [tech-research]` to Tech Knowledge agent — preloads research methodology into agent context at spawn |

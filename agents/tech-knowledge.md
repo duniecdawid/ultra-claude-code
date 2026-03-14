@@ -1,7 +1,7 @@
 ---
 name: Tech Knowledge
 description: Documentation retrieval — shared across all tasks
-model: sonnet
+model: sonnet[1m]
 tools:
   - Read
   - Glob
