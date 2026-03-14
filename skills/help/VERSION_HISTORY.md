@@ -2,6 +2,8 @@
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2026.03.14-5 | 2026-03-14 | Add `skills: [tech-research]` to Tech Knowledge agent — preloads research methodology into agent context at spawn |
+| 2026.03.14-4 | 2026-03-14 | Replace per-task Researchers with shared Tech Knowledge agent + Explore agents. Teams now 3 agents (Executor/Reviewer/Tester) + 1 shared knowledge agent. Executors do their own codebase research. |
 | 2026.03.14-3 | 2026-03-14 | Add critical-brainstorm skill: devil's advocate mode with web research, critical analysis, and interactive discussion |
 | 2026.03.14-2 | 2026-03-14 | Add sequential numbering to plan folders (001-name format) with number-based execution references |
 | 2026.03.14-1 | 2026-03-14 | Fix missing pipeline stage updates: Lead now sends STAGE messages for research, planning, and implementation to PM dashboard |
