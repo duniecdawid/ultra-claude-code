@@ -2,6 +2,7 @@
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2026.03.14-13 | 2026-03-14 | tmux-team-grid: adaptive layouts (startup/execution/final-gate), cross-session isolation fixes, final-gate pane support; plan-execution: pane-diffing for knowledge/PM/final-gate spawns |
 | 2026.03.14-12 | 2026-03-14 | Fix 1M context not working: add [1m] suffix to spawn Model instructions in plan-execution skill (was overriding agent frontmatter); add pane title tracking to PM and tmux-team-grid improvements |
 | 2026.03.14-11 | 2026-03-14 | Remove Glob/Grep from Tech Knowledge agent to prevent codebase analysis; expand research brief template with verbatim doc excerpts for executors |
 | 2026.03.14-10 | 2026-03-14 | Add proactive technology research: Code Reviewer queries Tech Knowledge to verify external library usage against docs, Tech Knowledge sends research briefs to executors on task spawn, new [DOCS] failure category |

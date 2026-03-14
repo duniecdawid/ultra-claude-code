@@ -165,7 +165,9 @@ Before spawning any task-teams, set up the shared Tech Knowledge agent:
 
 1. Read plan README.md `## Tech Stack` section for the technology list
 2. Also scan `documentation/technology/architecture/` and `.claude/app-context-for-research.md` for additional technology references
-3. Spawn `knowledge-{PLAN_NAME}` using the Tech Knowledge agent:
+3. Use pane-diffing to capture the pane ID (see "Pane Title Tracking" section), then spawn `knowledge-{PLAN_NAME}`:
+4. After spawn, send PM the pane ID: `"SPAWNED knowledge-{PLAN_NAME} | pane: %XX"`
+5. Spawn using the Tech Knowledge agent:
 
 Agent: `${CLAUDE_PLUGIN_ROOT}/agents/tech-knowledge.md`
 Model: `sonnet[1m]` | Mode: `bypassPermissions`
@@ -189,7 +191,7 @@ You will receive QUERY and LOAD messages from team members throughout execution.
 Exit only when shutdown_request arrives from Lead. Approve it to exit.
 ```
 
-4. Wait for "Knowledge base ready" signal before proceeding to Phase 2.
+6. Wait for "Knowledge base ready" signal before proceeding to Phase 2.
 
 ---
 
@@ -721,6 +723,7 @@ When all tasks reach "done" stage (all task-teams have exited).
 ### 5.2 Final Gate
 
 Spawn a single Final Gate Tester (fresh agent) for full regression suite:
+- Use pane-diffing to capture the pane ID, then set the title directly: `tmux select-pane -t "$NEW_PANE" -T "final-gate"`
 - Use the Final Gate Tester spawn prompt above
 - If PASS: proceed to operational report
 - If FAIL: evaluate whether to re-spawn task-teams for specific fixes or report to user

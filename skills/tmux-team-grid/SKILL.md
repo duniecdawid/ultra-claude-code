@@ -33,12 +33,38 @@ Scans existing tmux panes by title and rearranges them into a structured grid. *
 
 If only some shared agents exist (e.g., knowledge but no PM), the left column adjusts — main gets ~60%, the single shared agent gets ~40%.
 
+### Adaptive Layouts
+
+The grid adapts to the current execution phase:
+
+**Startup (no task teams yet):** Only main + knowledge + PM. Left column stacked vertically (50%/25%/25%).
+```
+│ main context      │
+│───────────────────│
+│ tech-knowledge    │
+│───────────────────│
+│ project-manager   │
+```
+
+**Full execution:** Left column + task grid (the default layout above).
+
+**Final gate (all tasks done):** Only main + final-gate tester (+ possibly knowledge/PM still alive).
+```
+│ main         │ final-gate   │
+│ context      │              │
+│──────────────│              │
+│ (knowledge)  │              │
+│──────────────│              │
+│ (pm)         │              │
+```
+
 ## Pane Identification
 
 Panes are matched by their tmux pane title (`#{pane_title}`). Plan-execution is responsible for setting these titles after spawning each agent.
 
 **Title patterns recognized:**
 - Task agents: `executor-N`, `tester-N`, `reviewer-N` (N = task number)
+- Final gate: title starts with `final-gate`
 - Tech-knowledge: title starts with `knowledge` (e.g., `knowledge-user-auth`)
 - Project-manager: title starts with `pm` (e.g., `pm-user-auth`)
 
@@ -56,7 +82,7 @@ Get the main pane ID with `tmux display-message -p '#{pane_id}'`, then write `/t
 
 MAIN_PANE="__MAIN_PANE__"
 MAIN_WIDTH=70
-WINDOW=$(tmux display-message -p '#{window_id}')
+WINDOW=$(tmux display-message -t "$MAIN_PANE" -p '#{window_id}')
 
 # ── 0. Apply manifest titles if available ────────────────────────
 MANIFEST="/tmp/team-grid-manifest.json"
@@ -104,6 +130,10 @@ while IFS=' ' read -r pane_id pane_title; do
     TASK_ROLES_RAW+=("$role")
     TASK_NUMS_RAW+=("$num")
     ((MATCHED_PANES++))
+  # Final gate tester
+  elif [[ "$pane_title" =~ ^final-gate ]]; then
+    SHARED_MAP["final-gate"]="$pane_id"
+    ((MATCHED_PANES++))
   # Shared: knowledge-* or just "knowledge"
   elif [[ "$pane_title" =~ ^knowledge ]]; then
     SHARED_MAP["knowledge"]="$pane_id"
@@ -123,9 +153,9 @@ if [ "$TOTAL_PANES" -eq 0 ]; then
   exit 0
 fi
 
-if [ "$MATCHED_PANES" -lt 2 ]; then
-  echo "ABORT: Only $MATCHED_PANES pane(s) matched (need at least 2)."
-  echo "  Expected titles: executor-1, tester-1, reviewer-1, knowledge-*, pm-*"
+if [ "$MATCHED_PANES" -lt 1 ]; then
+  echo "ABORT: No panes matched."
+  echo "  Expected titles: executor-1, tester-1, reviewer-1, knowledge-*, pm-*, final-gate"
   echo "  Actual titles:"
   tmux list-panes -t "$WINDOW" -F '  #{pane_id}  #{pane_title}' | grep -v "^  $MAIN_PANE"
   echo ""
@@ -152,15 +182,20 @@ NUM_ROLES=${#ROLES[@]}
 NUM_COLS=${#NUMS[@]}
 KNOW_PANE="${SHARED_MAP[knowledge]:-}"
 PM_PANE="${SHARED_MAP[pm]:-}"
-NUM_SHARED=0
-[ -n "$KNOW_PANE" ] && ((NUM_SHARED++))
-[ -n "$PM_PANE" ] && ((NUM_SHARED++))
+GATE_PANE="${SHARED_MAP[final-gate]:-}"
+# Left-column shared agents (stacked below main)
+LEFT_SHARED=0
+[ -n "$KNOW_PANE" ] && ((LEFT_SHARED++))
+[ -n "$PM_PANE" ] && ((LEFT_SHARED++))
+# Total right-side columns = task columns + final-gate (if present)
+TOTAL_RIGHT_COLS=$NUM_COLS
+[ -n "$GATE_PANE" ] && ((TOTAL_RIGHT_COLS++))
 
-echo "Layout: ${NUM_COLS} tasks × ${NUM_ROLES} roles + ${NUM_SHARED} shared agent(s)"
-echo "  Roles: ${ROLES[*]}"
-echo "  Tasks: ${NUMS[*]}"
-[ -n "$KNOW_PANE" ] && echo "  Shared: tech-knowledge ($KNOW_PANE)"
-[ -n "$PM_PANE" ] && echo "  Shared: project-manager ($PM_PANE)"
+echo "Layout: ${NUM_COLS} tasks × ${NUM_ROLES} roles + ${LEFT_SHARED} shared + $([ -n "$GATE_PANE" ] && echo "final-gate" || echo "no gate")"
+[ "$NUM_COLS" -gt 0 ] && echo "  Roles: ${ROLES[*]}  Tasks: ${NUMS[*]}"
+[ -n "$KNOW_PANE" ] && echo "  Left: tech-knowledge ($KNOW_PANE)"
+[ -n "$PM_PANE" ] && echo "  Left: project-manager ($PM_PANE)"
+[ -n "$GATE_PANE" ] && echo "  Right: final-gate ($GATE_PANE)"
 [ "${#UNMATCHED[@]}" -gt 0 ] && echo "  Skipping ${#UNMATCHED[@]} unrecognized pane(s)"
 
 # ── 1b. Save layout snapshot for restore ────────────────────────
@@ -170,9 +205,9 @@ RESTORE_SCRIPT="/tmp/tmux-restore-layout.sh"
   echo "WINDOW=\"$WINDOW\""
   echo "MAIN_PANE=\"$MAIN_PANE\""
   echo ''
-  echo '# Remove resize hooks'
-  echo "tmux set-hook -wu window-layout-changed 2>/dev/null || true"
-  echo "tmux set-hook -u client-resized 2>/dev/null || true"
+  echo '# Remove resize hooks from the grid window'
+  echo "tmux set-hook -t \"\$WINDOW\" -u window-layout-changed 2>/dev/null || true"
+  echo "tmux set-hook -t \"\$WINDOW\" -u client-resized 2>/dev/null || true"
   echo ''
   echo '# Break all non-main panes to hidden windows'
   echo 'ALL_PANES=($(tmux list-panes -t "$WINDOW" -F "#{pane_id}" | grep -v "^${MAIN_PANE}$"))'
@@ -200,7 +235,7 @@ echo "Restore script saved: $RESTORE_SCRIPT"
 # ── 2. Break all non-main panes to hidden windows ───────────────
 ERRORS=0
 
-for role in knowledge pm; do
+for role in knowledge pm final-gate; do
   pid="${SHARED_MAP[$role]:-}"; [ -z "$pid" ] && continue
   tmux break-pane -d -s "$pid" 2>/dev/null || { echo "  WARN: break failed $role ($pid)"; ((ERRORS++)); }
 done
@@ -225,7 +260,7 @@ FIRST_COL_PANE=()
 JOIN_TARGET="$MAIN_PANE"
 FIRST_ROLE="${ROLES[0]:-}"
 
-# Phase 1: task columns (horizontal splits from main)
+# Phase 1: horizontal joins — task columns and/or final-gate
 if [ -n "$FIRST_ROLE" ] && [ "$NUM_COLS" -gt 0 ]; then
   for col_idx in "${!NUMS[@]}"; do
     num="${NUMS[$col_idx]}"
@@ -239,6 +274,17 @@ if [ -n "$FIRST_ROLE" ] && [ "$NUM_COLS" -gt 0 ]; then
     fi
     sleep 0.05
   done
+fi
+
+# Final gate gets its own column (full height, to the right)
+if [ -n "$GATE_PANE" ]; then
+  if tmux join-pane -h -t "$JOIN_TARGET" -s "$GATE_PANE" 2>/dev/null; then
+    FIRST_COL_PANE+=("$GATE_PANE")
+  else
+    echo "  ERROR: H-join failed final-gate ($GATE_PANE)"
+    ((ERRORS++))
+  fi
+  sleep 0.05
 fi
 
 # Phase 2a: left column — shared agents below main
@@ -283,25 +329,26 @@ done
 sleep 0.3
 tmux resize-pane -t "$MAIN_PANE" -x "$MAIN_WIDTH" 2>/dev/null
 
-TOTAL_W=$(tmux display-message -p '#{window_width}')
-TOTAL_H=$(tmux display-message -p '#{window_height}')
+TOTAL_W=$(tmux display-message -t "$MAIN_PANE" -p '#{window_width}')
+TOTAL_H=$(tmux display-message -t "$MAIN_PANE" -p '#{window_height}')
 
 # Left column heights: main ~50%, shared split the rest
-if [ "$NUM_SHARED" -eq 2 ]; then
+if [ "$LEFT_SHARED" -eq 2 ]; then
   MAIN_H=$(( TOTAL_H * 50 / 100 ))
   SHARED_H=$(( (TOTAL_H - MAIN_H) / 2 ))
   tmux resize-pane -t "$MAIN_PANE" -y "$MAIN_H" 2>/dev/null || true
   [ -n "$KNOW_PANE" ] && tmux resize-pane -t "$KNOW_PANE" -y "$SHARED_H" 2>/dev/null || true
-elif [ "$NUM_SHARED" -eq 1 ]; then
+elif [ "$LEFT_SHARED" -eq 1 ]; then
   MAIN_H=$(( TOTAL_H * 60 / 100 ))
   tmux resize-pane -t "$MAIN_PANE" -y "$MAIN_H" 2>/dev/null || true
 fi
 
-# Task grid: equal columns (skip last — gets remainder)
-if [ "$NUM_COLS" -gt 1 ]; then
+# Right-side columns: equal width (skip last — gets remainder)
+RIGHT_COLS=${#FIRST_COL_PANE[@]}
+if [ "$RIGHT_COLS" -gt 1 ]; then
   GRID_W=$(( TOTAL_W - MAIN_WIDTH - 1 ))
-  COL_W=$(( GRID_W / NUM_COLS ))
-  for (( i=0; i < ${#FIRST_COL_PANE[@]} - 1; i++ )); do
+  COL_W=$(( GRID_W / RIGHT_COLS ))
+  for (( i=0; i < RIGHT_COLS - 1; i++ )); do
     tmux resize-pane -t "${FIRST_COL_PANE[$i]}" -x "$COL_W" 2>/dev/null || true
   done
 fi
@@ -328,33 +375,34 @@ HOOK_HEAD
   echo "MAIN_WIDTH=$MAIN_WIDTH"
   echo "NUM_COLS=$NUM_COLS"
   echo "NUM_ROLES=$NUM_ROLES"
-  echo "NUM_SHARED=$NUM_SHARED"
+  echo "LEFT_SHARED=$LEFT_SHARED"
   [ -n "$KNOW_PANE" ] && echo "KNOW_PANE=\"$KNOW_PANE\""
   [ -n "$PM_PANE" ] && echo "PM_PANE=\"$PM_PANE\""
   echo ''
-  echo 'CURRENT=$(tmux display-message -p "#{window_id}" 2>/dev/null) || exit 0'
-  echo '[ "$CURRENT" != "$WINDOW" ] && exit 0'
+  echo '# Verify main pane still exists, skip if window was destroyed'
+  echo 'tmux display-message -t "$MAIN_PANE" -p "" 2>/dev/null || exit 0'
   echo ''
   echo 'tmux resize-pane -t "$MAIN_PANE" -x "$MAIN_WIDTH" 2>/dev/null || exit 0'
   echo ''
-  echo 'TOTAL_W=$(tmux display-message -p "#{window_width}")'
-  echo 'TOTAL_H=$(tmux display-message -p "#{window_height}")'
+  echo 'TOTAL_W=$(tmux display-message -t "$MAIN_PANE" -p "#{window_width}")'
+  echo 'TOTAL_H=$(tmux display-message -t "$MAIN_PANE" -p "#{window_height}")'
   echo ''
   # Left column
-  echo 'if [ "$NUM_SHARED" -eq 2 ]; then'
+  echo 'if [ "$LEFT_SHARED" -eq 2 ]; then'
   echo '  MAIN_H=$(( TOTAL_H * 50 / 100 ))'
   echo '  SHARED_H=$(( (TOTAL_H - MAIN_H) / 2 ))'
   echo '  tmux resize-pane -t "$MAIN_PANE" -y "$MAIN_H" 2>/dev/null || true'
   [ -n "$KNOW_PANE" ] && echo "  tmux resize-pane -t \"$KNOW_PANE\" -y \$SHARED_H 2>/dev/null || true"
-  echo 'elif [ "$NUM_SHARED" -eq 1 ]; then'
+  echo 'elif [ "$LEFT_SHARED" -eq 1 ]; then'
   echo '  MAIN_H=$(( TOTAL_H * 60 / 100 ))'
   echo '  tmux resize-pane -t "$MAIN_PANE" -y "$MAIN_H" 2>/dev/null || true'
   echo 'fi'
   echo ''
-  # Task columns
-  if [ "$NUM_COLS" -gt 1 ]; then
+  # Right-side columns
+  if [ "${#FIRST_COL_PANE[@]}" -gt 1 ]; then
+    echo "RIGHT_COLS=${#FIRST_COL_PANE[@]}"
     echo 'GRID_W=$(( TOTAL_W - MAIN_WIDTH - 1 ))'
-    echo 'COL_W=$(( GRID_W / NUM_COLS ))'
+    echo 'COL_W=$(( GRID_W / RIGHT_COLS ))'
     for (( i=0; i < ${#FIRST_COL_PANE[@]} - 1; i++ )); do
       echo "tmux resize-pane -t \"${FIRST_COL_PANE[$i]}\" -x \$COL_W 2>/dev/null || true"
     done
@@ -373,8 +421,8 @@ HOOK_HEAD
 } > "$RESIZE_SCRIPT"
 chmod +x "$RESIZE_SCRIPT"
 
-tmux set-hook -w window-layout-changed "run-shell '$RESIZE_SCRIPT'"
-tmux set-hook client-resized "run-shell '$RESIZE_SCRIPT'"
+tmux set-hook -t "$WINDOW" window-layout-changed "run-shell '$RESIZE_SCRIPT'"
+tmux set-hook -t "$WINDOW" client-resized "run-shell '$RESIZE_SCRIPT'"
 
 # ── 6. Labels and borders ──────────────────────────────────────
 tmux set-option -w pane-border-status top
@@ -385,29 +433,40 @@ tmux select-pane -t "$MAIN_PANE"
 [ "$ERRORS" -gt 0 ] && echo "" && echo "WARNING: $ERRORS errors during arrangement"
 
 echo ""
-echo "Grid arranged: ${NUM_COLS} tasks × ${NUM_ROLES} roles + ${NUM_SHARED} shared (resize hook installed)"
+DESC="${NUM_COLS} tasks × ${NUM_ROLES} roles"
+[ "$LEFT_SHARED" -gt 0 ] && DESC="$DESC + ${LEFT_SHARED} shared"
+[ -n "$GATE_PANE" ] && DESC="$DESC + final-gate"
+echo "Grid arranged: $DESC (resize hook installed)"
 echo ""
+
 # Visual grid
 printf "│ %-12s │" "main"
 for num in "${NUMS[@]}"; do printf " task %-3s │" "$num"; done
+[ -n "$GATE_PANE" ] && printf " gate     │"
 echo ""
-[ -n "$KNOW_PANE" ] && { printf "│ %-12s │" "knowledge"; for num in "${NUMS[@]}"; do printf " %-8s │" ""; done; echo ""; }
-[ -n "$PM_PANE" ] && { printf "│ %-12s │" "pm"; for num in "${NUMS[@]}"; do printf " %-8s │" ""; done; echo ""; }
-printf "│ %-12s │" ""
-for num in "${NUMS[@]}"; do printf "──────────│"; done
-echo ""
-for role in "${ROLES[@]}"; do
-  printf "│ %-12s │" "$role"
-  for num in "${NUMS[@]}"; do
-    pid="${TASK_MAP[$role,$num]:-}"
-    if [ -n "$pid" ]; then
-      printf " %-8s │" "$role-$num"
-    else
-      printf " %-8s │" "(empty)"
-    fi
-  done
+[ -n "$KNOW_PANE" ] && { printf "│ %-12s │" "knowledge"
+  for num in "${NUMS[@]}"; do printf " %-8s │" ""; done
+  [ -n "$GATE_PANE" ] && printf " %-8s │" ""
+  echo ""; }
+[ -n "$PM_PANE" ] && { printf "│ %-12s │" "pm"
+  for num in "${NUMS[@]}"; do printf " %-8s │" ""; done
+  [ -n "$GATE_PANE" ] && printf " %-8s │" ""
+  echo ""; }
+if [ "$NUM_COLS" -gt 0 ]; then
+  printf "│ %-12s │" ""
+  for num in "${NUMS[@]}"; do printf "──────────│"; done
+  [ -n "$GATE_PANE" ] && printf " final-   │"
   echo ""
-done
+  for role in "${ROLES[@]}"; do
+    printf "│ %-12s │" "$role"
+    for num in "${NUMS[@]}"; do
+      pid="${TASK_MAP[$role,$num]:-}"
+      [ -n "$pid" ] && printf " %-8s │" "$role-$num" || printf " %-8s │" "(empty)"
+    done
+    [ -n "$GATE_PANE" ] && printf " gate     │"
+    echo ""
+  done
+fi
 ```
 
 ### Step 2: Report
