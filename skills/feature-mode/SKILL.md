@@ -32,9 +32,9 @@ Your instincts:
 
 ## Process
 
-Execute these phases in order. Do not skip phases.
+Execute the 4 stages defined by Plan Enhancer in order. Do not skip stages. Feature Mode defines Stages 1-2; Plan Enhancer (loaded via context) governs Stages 3-4.
 
-### Phase 1: Scope Challenge
+### Stage 1: Understand — Scope Challenge
 
 Before any research or planning, challenge the feature request:
 
@@ -49,9 +49,13 @@ Before any research or planning, challenge the feature request:
 
 **Present your analysis (predictions, hypotheses, edge cases, risks) alongside scope questions via AskUserQuestion.** Don't just ask "what do you want?" — bring your own informed perspective: "I think X will be the hard part because Y. I'd suggest handling edge case Z this way. Do you agree, or do you see it differently?" The goal is a dialogue where the AI contributes its expertise, not just collects requirements. Never answer your own questions or assume the user's preferences. If you identify scope questions, you MUST use AskUserQuestion and wait for the user's actual response before proceeding. Do NOT proceed with unclear scope.
 
-**After the user answers:** React substantively per the Plan Enhancer's Conversational Planning rules. Agree, disagree, or ask follow-ups — don't just silently move to Phase 2. If their scope choices introduce risks or miss opportunities, say so. If their answer changes the shape of the work, explain how. This is a dialogue, not a form submission.
+**After the user answers:** React substantively per the Plan Enhancer's Conversational Planning Rules. Agree, disagree, or ask follow-ups — don't just silently move to Stage 2. If their scope choices introduce risks or miss opportunities, say so. If their answer changes the shape of the work, explain how. This is a dialogue, not a form submission.
 
-### Phase 2: Context Gathering
+When scope is sufficiently sharp and the user's answers give you enough to direct research:
+
+> **▶ PROCEED TO STAGE 2: RESEARCH**
+
+### Stage 2: Research — Configuration
 
 Follow the **Research Dispatch Strategy** from Plan Enhancer.
 
@@ -59,7 +63,7 @@ Follow the **Research Dispatch Strategy** from Plan Enhancer.
 
 Spawn Code Surveyor + Doc Surveyor in parallel:
 
-- **Code Surveyor** (`uc:Code Surveyor`): Scope to code packages identified during Phase 1 scope challenge — the components the feature will build on, extend, or interact with.
+- **Code Surveyor** (`uc:Code Surveyor`): Scope to code packages identified during Stage 1 scope challenge — the components the feature will build on, extend, or interact with.
 - **Doc Surveyor** (`uc:Doc Surveyor`): Scope to `documentation/technology/architecture/` and `documentation/product/requirements/`, plus any documentation directories relevant to the feature.
 
 **Direct Reading** (while surveyors work):
@@ -81,81 +85,56 @@ After surveyors return, evaluate whether deeper research is needed. Two tools ar
    - External dependencies or integrations requiring investigation beyond structural overview
    - Unfamiliar library APIs or patterns discovered by surveyors
 
-If Phase B is not triggered, proceed to Phase 3 with surveyor output + direct reading. Do not spawn Explore agents or call /tech-research unless surveyors reveal gaps.
+If Phase B is not triggered, proceed with surveyor output + direct reading.
 
-### Phase 3: Documentation Update
+When research is complete and you have sufficient context:
 
-Update the project's canonical documentation NOW — during this phase — with knowledge gained during context gathering. **Do the updates here. Do NOT defer them to the plan.**
+> **▶ PROCEED TO STAGE 3: DISCUSS**
 
-**Hard rule:** Documentation changes are NEVER plan tasks. If you find a doc gap, either fix it right now in this phase or drop it. The only acceptable outputs of Phase 3 are (a) actual file writes you make immediately, and (b) gaps you chose to skip, which go in the plan's informational "Documentation Changes" table. Never say "I'll add that as part of the plan" — that is the exact anti-pattern this phase prevents.
+### Stage 3: Discuss
 
-**Scope guard:** Only document what was learned in Phase 2. Maximum 3 documentation files created or updated. If more gaps exist, note them in the plan's "Documentation Changes" section for the user to address separately.
+Governed by Plan Enhancer's Discussion Protocol. Feature Mode does not override this stage.
 
-**Process:**
+For Feature Mode, the Stage 3 synthesis should include:
+- What the research revealed about existing architecture relevant to the feature
+- Recommended implementation approach with reasoning
+- Key constraints and dependencies discovered
+- Risks, trade-offs, and things intentionally excluded from scope
+- Any simpler alternatives to what was discussed in Stage 1
 
-1. **Identify documentation gaps** — Compare what the Explore agent and tech research found alongside what you read directly against the existing `documentation/technology/architecture/` and `documentation/product/requirements/` files. Ask:
-   - Does the feature depend on architectural concepts not yet documented?
-   - Are there system behaviors discovered during research that contradict or are absent from architecture docs?
-   - Does the feature introduce new product requirements not captured in requirements docs?
+### Stage 4: Write
 
-2. **Create or update architecture docs immediately** — For each undocumented architectural concept the feature depends on:
-   - Route to `documentation/technology/architecture/{component}.md` per Docs Manager routing rules (loaded via context)
-   - Use the architecture template from `templates/architecture.md`
-   - If the file exists, add or update the relevant section (do not rewrite the entire document)
-   - If the file does not exist, create it with the template structure, filling in only the sections relevant to what was learned
-   - If `documentation/technology/architecture/` does not exist, create it: `mkdir -p documentation/technology/architecture/`
+Governed by Plan Enhancer's Stage 4: Write Process.
 
-3. **Create or update requirements docs immediately** — For new formal requirements the feature introduces:
-   - Route to `documentation/product/requirements/{feature}.md` per Docs Manager routing rules
-   - Use the requirement template from `templates/requirement.md`
-   - If the directory does not exist, create it: `mkdir -p documentation/product/requirements/`
+Feature Mode contributes:
+- Plan content derived from Stage 1 scope + Stage 2 research + Stage 3 discussion consensus
+- Task definitions with descriptions, files, success criteria, dependencies
+- Documentation gaps identified during Stages 1-3 (for Stage 4 Step 1 to write)
+- Risk assessment specific to the feature
 
-4. **Track what you changed** — Maintain a running list of documentation changes for use in Phase 4 (Plan Creation). For each change, record:
-   - File path
-   - Action (created / updated)
-   - Summary of what was added (one sentence)
+Plan Enhancer handles: directory scaffolding, format validation, task granularity enforcement, standards review, file writing, summary presentation, approval gate, post-approval.
 
-5. **RFC sub-mode (if needed)** — If documentation updates reveal ambiguous or high-risk architecture decisions (multiple valid approaches, affects 3+ components, performance/security/reliability implications, user expresses uncertainty), trigger the RFC process:
+### Documentation Update Configuration (for Stage 4)
+
+When Plan Enhancer's Stage 4 Step 1 runs documentation updates, Feature Mode adds these review triggers:
+
+1. **Architecture review** — Does the feature depend on architectural concepts not yet documented in `documentation/technology/architecture/`? Are there system behaviors discovered during research that contradict or are absent from architecture docs?
+2. **Product review** — Does the feature introduce new product requirements not captured in `documentation/product/requirements/`? Does it change the product scope described in `documentation/product/`?
+3. **Requirements creation** — For new formal requirements the feature introduces, route to `documentation/product/requirements/{feature}.md` per Docs Manager routing rules.
+
+4. **RFC sub-mode (if needed)** — If documentation updates reveal ambiguous or high-risk architecture decisions (multiple valid approaches, affects 3+ components, performance/security/reliability implications, user expresses uncertainty), trigger the RFC process:
    1. Create RFC at `documentation/technology/rfcs/{NNN}-{topic}.md` using the RFC template
    2. Fill in: Problem Statement, Proposed Solution, Alternatives Considered, Trade-offs
    3. Run AI Persona Review (Devil's Advocate, Pragmatist, Security & Reliability, Cost-Conscious)
    4. Present all perspectives to the user with a recommendation
    5. Record the user's decision and rationale in the RFC Outcome section
    6. Update architecture documentation to reflect the decision
-   7. Continue to Phase 4
-
-6. **Phase 3 completion** — If you made doc updates, briefly list what you changed (file + one-sentence summary). If you found no gaps worth updating, say so and move on. Do NOT gate on approval here — proceed to Phase 4.
-
-**Constraints:**
-- Maximum 3 files created or updated. If more gaps exist, note them in the "Documentation Changes" section of the plan for the user to address separately.
-- Each update is a targeted section addition, not a full rewrite.
-- Follow Docs Manager routing rules for all file placement.
-- Do NOT update the documentation index (`documentation/README.md`) — that happens during plan execution.
-- **NEVER create a plan task for documentation.** This is a hard constraint repeated from Plan Enhancer.
-
-### Phase 4: Plan Creation and Approval
-
-1. **Synthesize** all gathered context (exploration and tech research findings + direct reading + documentation updates from Phase 3)
-2. **Derive plan name** from feature description
-3. **Scaffold plan directory**: `mkdir -p documentation/plans/{NNN}-{name}/shared documentation/plans/{NNN}-{name}/tasks`
-4. **Define tasks** — each task must have:
-   - Description of what to build/change
-   - Files to create or modify
-   - Success criteria
-   - Dependencies on other tasks
-   - **No task may have documentation as its primary purpose.** If you catch yourself writing a task that is essentially "update doc X", delete it — that work belongs in Phase 3 or the Documentation Changes table below.
-5. **Documentation changes** — list the docs created or updated in Phase 3, plus any remaining documentation gaps identified. Use the structured changelog format from the plan template. This is an informational record, not an execution task list.
-6. **Risk assessment** — what could go wrong and mitigations
-7. **Write the plan to `documentation/plans/{NNN}-{name}/README.md`** following Plan Enhancer format (plan template loaded via context) — the plan is on disk before the user reviews it
-8. **Present a concise summary in chat** — plan name, objective, task count, file path. Include any trade-offs you made, things you intentionally excluded, or risks worth discussing. Invite the user to review the full plan file.
-9. **Ask for approval via AskUserQuestion** — Options: "Approve" / "Reject with feedback" / "Partially reject (specify changes)". Only an explicit "Approve" counts — empty, blank, or ambiguous responses must be re-asked.
-
-Plan Enhancer handles post-approval (commit + execution command) and revision loops. If the user gives feedback without selecting reject — treat it as partial rejection, address their points, and re-ask.
+   7. Continue to Step 2 of Stage 4
 
 ## Edge Cases
 
 - **Scope creep during research** — If research reveals the feature is much larger than expected, flag this and suggest splitting into multiple plans.
-- **Missing architecture docs** — Phase 3 handles creating initial architecture docs. If more than 3 docs are needed, the remainder are noted in the plan's documentation gaps table for the user to address separately.
+- **Missing architecture docs** — Stage 4 Step 1 handles creating initial architecture docs. If more than 3 docs are needed, the remainder are noted in the plan's documentation gaps table for the user to address separately.
 - **Overlapping plans** — If an existing plan covers some of this work, reference it and avoid duplicating tasks.
 - **No clear requirements** — If the feature needs product requirements defined first, include requirement creation tasks before implementation tasks.
 - **RFC disagreement** — If AI personas reach no consensus, present all perspectives and let the user decide.
@@ -163,10 +142,11 @@ Plan Enhancer handles post-approval (commit + execution command) and revision lo
 ## Constraints
 
 - Do NOT write any implementation code — this is a planning mode
-- Do NOT skip the scope challenge phase
+- Do NOT skip the scope challenge (Stage 1)
 - Do NOT proceed with unclear scope without asking clarifying questions
+- Do NOT write any files before Stage 4 — research and discussion stay in conversation context
 - Do NOT create tasks that violate Plan Enhancer's sizing rules (loaded in context) — every task must be end-to-end testable from the user's perspective
 - Do NOT create tasks without success criteria
 - Always route documentation to correct locations per Docs Manager rules
-- Always persist the plan to `documentation/plans/{NNN}-{name}/README.md` after approval per Plan Enhancer rules
-- Do NOT create plan tasks whose sole purpose is updating documentation — all doc updates happen in Phase 3 during planning, not as execution tasks
+- Always persist the plan to `documentation/plans/{NNN}-{name}/README.md` per Plan Enhancer rules
+- Do NOT create plan tasks whose sole purpose is updating documentation — all doc updates happen in Stage 4 Step 1, not as execution tasks

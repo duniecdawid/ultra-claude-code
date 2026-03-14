@@ -32,9 +32,9 @@ Your instincts:
 
 ## Process
 
-Execute these phases in order.
+Execute the 4 stages defined by Plan Enhancer in order. Do not skip stages. Debug Mode defines Stages 1-2; Plan Enhancer (loaded via context) governs Stages 3-4.
 
-### Phase 1: Issue Analysis
+### Stage 1: Understand — Issue Analysis
 
 Parse the bug report and extract:
 
@@ -45,26 +45,28 @@ Parse the bug report and extract:
 
 If any of these are missing or unclear, ask the user for more details using AskUserQuestion before proceeding. A vague bug report produces vague fixes. Never assume or fabricate the user's answers — always wait for their actual response.
 
-**After the user answers:** React substantively per the Plan Enhancer's Conversational Planning rules. If their description changes your understanding of the issue, say what shifted. If you think they're describing a symptom rather than the root problem, say so. This is a dialogue — don't silently move to Phase 2.
+**After the user answers:** React substantively per the Plan Enhancer's Conversational Planning Rules. If their description changes your understanding of the issue, say what shifted. If you think they're describing a symptom rather than the root problem, say so. This is a dialogue — don't silently move to Stage 2.
 
-### Phase 2: Structural Survey + Hypothesis Generation
+When you have a clear understanding of the issue:
 
-**Phase A — Fast Survey** (Research Dispatch Strategy from Plan Enhancer)
+> **▶ PROCEED TO STAGE 2: RESEARCH**
 
-Before generating hypotheses, spawn Code Surveyor + Doc Surveyor in parallel to build a structural map of the affected area:
+### Stage 2: Research — Configuration
 
-- **Code Surveyor** (`uc:Code Surveyor`): Scope to code paths related to the reported symptoms — the components, modules, and files most likely involved based on Phase 1 analysis.
+Debug Mode uses a 3-phase research approach that overrides the standard Research Dispatch Strategy from Plan Enhancer.
+
+#### Phase 2A: Structural Survey + Hypothesis Generation
+
+**Fast Survey** — Spawn Code Surveyor + Doc Surveyor in parallel:
+
+- **Code Surveyor** (`uc:Code Surveyor`): Scope to code paths related to the reported symptoms — the components, modules, and files most likely involved based on Stage 1 analysis.
 - **Doc Surveyor** (`uc:Doc Surveyor`): Scope to `documentation/technology/architecture/` for expected system behavior documentation.
 
 **Direct Reading** (while surveyors work):
 - `documentation/technology/architecture/` — expected behavior of affected components
 - Recent `git log` (last 20 commits) — check for recent changes that could be regressions
 
-The structural map from surveyors informs better hypothesis quality — you'll know what components exist, how they connect, and what patterns they use before theorizing about what's broken.
-
-**Hypothesis Generation**
-
-Based on the symptoms and the structural survey results, generate 2-5 hypotheses ranked by likelihood:
+**Hypothesis Generation** — Based on the symptoms and the structural survey results, generate 2-5 hypotheses ranked by likelihood:
 
 ```
 Hypothesis 1 (most likely): [description]
@@ -79,9 +81,7 @@ Hypothesis 3: [description]
 
 Present hypotheses to the user. They may confirm, reject, or add hypotheses based on domain knowledge they have.
 
-### Phase 3: Parallel Investigation
-
-> **Research Dispatch override:** This phase replaces Phase B of the Research Dispatch Strategy. Instead of a single conditional Explore agent, Debug Mode spawns per-hypothesis Explore agents for independent, narrowly-scoped investigation. The System Tester is also unique to Debug Mode. No changes to the behavior below — this annotation documents the override relationship.
+#### Phase 2B: Parallel Investigation
 
 Spawn investigation agents in parallel via the Agent tool:
 
@@ -114,7 +114,7 @@ Spawn investigation agents in parallel via the Agent tool:
 >
 > Return a reproduction report with: steps executed, results, evidence (error messages, logs), and additional observations.
 
-### Phase 4: Evidence Synthesis
+#### Phase 2C: Evidence Synthesis
 
 After all agents return:
 
@@ -133,71 +133,47 @@ After all agents return:
 - Include fixes for all identified causes
 - Order by impact (most severe first)
 
-### Phase 4.5: Documentation Update (Conditional)
+When evidence synthesis is complete:
 
-If the investigation revealed undocumented system behavior or standards gaps, update documentation NOW — during this phase, not as a plan task. **Do the updates here. Do NOT defer them to the plan.**
+> **▶ PROCEED TO STAGE 3: DISCUSS**
 
-**Hard rule:** Documentation changes are NEVER fix tasks. If you find a doc gap, either fix it right now in this phase or drop it. Never say "I'll add that as part of the plan" — that is the exact anti-pattern this phase prevents.
+### Stage 3: Discuss
 
-**Trigger conditions** — Only perform this phase if at least one of these is true:
+Governed by Plan Enhancer's Discussion Protocol.
+
+For Debug Mode, the Stage 3 synthesis should include:
+- Ranked hypotheses with evidence strength for each
+- Root cause determination with supporting evidence
+- Reproduction results (was it reproduced? conditions? failure rate?)
+- Proposed fix scope and approach
+- Trade-offs in fix strategy (quick patch vs. deeper fix, blast radius concerns)
+- Whether the fix should make the system stronger (additional tests, better error handling) or just patch the immediate issue
+
+### Stage 4: Write
+
+Governed by Plan Enhancer's Stage 4: Write Process.
+
+Debug Mode contributes:
+- Fix plan content derived from evidence synthesis + discussion consensus
+- Fix tasks with evidence references, regression criteria, verification steps
+- Documentation gaps from investigation (for Stage 4 Step 1)
+- Risk assessment specific to the fix
+
+Each fix task must include:
+- Clear description of what to change and why (reference the evidence)
+- Files to modify
+- Success criteria (how to verify the fix works)
+- Regression criteria (what must NOT break)
+- Verification that includes the original issue from the user's perspective
+
+### Documentation Update Configuration (for Stage 4)
+
+When Plan Enhancer's Stage 4 Step 1 runs documentation updates, Debug Mode triggers if any of these are true:
 - Investigation revealed system behavior not documented in `documentation/technology/architecture/`
 - Root cause analysis revealed a missing or incorrect coding standard in `documentation/technology/standards/`
 - The bug exposed an undocumented integration or dependency
 
-If none of these conditions are met, skip directly to Phase 5.
-
-**Scope guard:** Only document findings from the investigation. Maximum 3 documentation files created or updated. If more gaps exist, note them in the plan's "Documentation Changes" section for the user to address separately.
-
-**Process:**
-
-1. **Identify documentation gaps from investigation** — Review the evidence synthesis. Ask:
-   - Did the investigation reveal how a component actually behaves, contradicting or absent from architecture docs?
-   - Did the root cause point to a missing standard that would have prevented this class of bug?
-   - Did the investigation uncover undocumented external dependencies or integration behaviors?
-
-2. **Update architecture docs** — For undocumented system behavior discovered during investigation:
-   - Route to `documentation/technology/architecture/{component}.md` per Docs Manager routing rules (loaded via context)
-   - Use the architecture template from `templates/architecture.md` for new files
-   - For existing files, add or update the relevant section only
-   - If `documentation/technology/architecture/` does not exist, create it: `mkdir -p documentation/technology/architecture/`
-
-3. **Update standards docs** — If the root cause reveals a standards gap:
-   - Route to `documentation/technology/standards/{area}.md` per Docs Manager routing rules
-   - If `documentation/technology/standards/` does not exist, create it: `mkdir -p documentation/technology/standards/`
-
-4. **Track what you changed** — Maintain a running list for use in Phase 5 (Fix Planning). For each change, record:
-   - File path
-   - Action (created / updated)
-   - Summary of what was added (one sentence)
-
-**Constraints:**
-- Maximum 3 files created or updated. If more gaps exist, note them in the plan's "Documentation Changes" section for the user to address separately.
-- Each update is a targeted section addition, not a full rewrite.
-- Follow Docs Manager routing rules for all file placement.
-- Do NOT update the documentation index — that happens during plan execution.
-- **NEVER create a fix task for documentation.** This is a hard constraint repeated from Plan Enhancer.
-
-5. **Phase 4.5 completion** — If you made doc updates, briefly list what you changed (file + one-sentence summary). If you found no gaps worth updating, say so and move on. Do NOT gate on approval here — proceed to Phase 5.
-
-### Phase 5: Fix Planning and Approval
-
-1. **Synthesize** investigation findings and documentation updates from Phase 4.5 into a targeted fix plan
-2. **Derive plan name** from the bug description (e.g., "fix-login-race-condition")
-3. **Scaffold plan directory**: `mkdir -p documentation/plans/{NNN}-{name}/shared documentation/plans/{NNN}-{name}/tasks`
-4. **Define fix tasks** — sized per Plan Enhancer rules (loaded in context). Each task must be end-to-end verifiable from the user's perspective:
-   - Clear description of what to change and why (reference the evidence)
-   - Files to modify
-   - Success criteria (how to verify the fix works)
-   - Regression criteria (what must NOT break)
-5. **Include verification within each fix task** — success criteria must confirm the fix resolves the original issue from the user's perspective
-6. **Include regression tests within each fix task** — tests preventing recurrence are part of the task, not standalone
-7. **Reference evidence** — link each fix task back to the hypothesis and evidence that supports it
-8. **Documentation changes** — list the docs created or updated in Phase 4.5, plus any remaining documentation gaps identified. Use the structured changelog format from the plan template. This is an informational record, not a fix task list.
-9. **Write the plan to `documentation/plans/{NNN}-{name}/README.md`** following Plan Enhancer format (plan template loaded via context) — the plan is on disk before the user reviews it
-10. **Present a concise summary in chat** — plan name, root cause, task count, file path. Flag any uncertainties in the diagnosis or trade-offs in the fix approach. Invite the user to review the full plan file.
-11. **Ask for approval via AskUserQuestion** — Options: "Approve" / "Reject with feedback" / "Partially reject (specify changes)". Only an explicit "Approve" counts — empty, blank, or ambiguous responses must be re-asked.
-
-Plan Enhancer handles post-approval (commit + execution command) and revision loops. If the user gives feedback without selecting reject — treat it as partial rejection, address their points, and re-ask.
+If none of these conditions are met, Stage 4 Step 1 skips documentation updates.
 
 ## Edge Cases
 
@@ -213,5 +189,6 @@ Plan Enhancer handles post-approval (commit + execution command) and revision lo
 - Do NOT skip hypothesis generation — jumping to solutions without evidence produces wrong fixes
 - Do NOT ignore System Tester results — reproduction evidence is critical
 - Do NOT plan a fix without evidence supporting the root cause
+- Do NOT write any files before Stage 4 — research and discussion stay in conversation context
 - Always include verification and regression tests as steps within fix tasks, not as separate standalone tasks
-- Do NOT create fix tasks whose sole purpose is updating documentation — doc updates happen in Phase 4.5 during planning, not as execution tasks
+- Do NOT create fix tasks whose sole purpose is updating documentation — doc updates happen in Stage 4 Step 1, not as execution tasks

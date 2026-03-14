@@ -62,7 +62,7 @@ External libraries, frameworks, and services this plan depends on. The shared Te
 
 ## Documentation Changes
 
-Documentation updated during planning (already on disk):
+Documentation updated during Stage 4 (already on disk):
 
 | File | Action | Summary |
 |------|--------|---------|

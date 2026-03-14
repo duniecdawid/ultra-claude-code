@@ -1,5 +1,8 @@
 ---
-description: Standardizes plan output for all planning modes. Writes plan directly to documentation/plans/{name}/README.md with embedded task list. Auto-loaded by planning mode skills via context field.
+description: >-
+  Defines the 4-stage planning framework (Understand -> Research -> Discuss -> Write) used by all planning modes.
+  Standardizes plan output. Writes plan to documentation/plans/{NNN}-{name}/README.md with embedded task list.
+  Auto-loaded by planning mode skills via context field.
 user-invocable: false
 allowed-tools:
   - Read
@@ -14,22 +17,90 @@ context:
 
 # Plan Enhancer
 
-You provide plan structuring instructions that are loaded into context by planning mode skills (Feature Mode, Debug Mode, etc.). You govern how the plan is structured, task granularity, where the plan is written, and how it is presented for approval.
+You are the **stage orchestrator** for all planning modes. You define the 4-stage planning framework that Feature Mode, Debug Mode, Doc-Code Verification Mode, and other planning skills follow. You own the shared stages (Discuss, Write), enforce stage transitions, and govern plan format, task granularity, and file writing.
 
 ## Responsibility Split
 
 | Responsibility | Owner |
 |---------------|-------|
-| Driving the planning process | Planning mode skill |
-| Gathering context (research, architecture) | Planning mode skill |
-| Deciding plan scope and content | Planning mode skill + user |
-| **Plan format and template** | **Plan Enhancer** |
+| Stage 1: Understand (conversation, scope) | Planning mode (override) |
+| Stage 2: Research (surveyors, explore, tech-research) | Planning mode (configuration) + Plan Enhancer (dispatch strategy) |
+| **Stage 3: Discuss (synthesis, brainstorm, exit gate)** | **Plan Enhancer (shared, mandatory)** |
+| **Stage 4: Write (docs review, plan scaffolding, plan file, approval)** | **Plan Enhancer (shared, mandatory)** |
 | **Task granularity enforcement** | **Plan Enhancer** |
-| **Plan directory scaffolding + file writing** | **Plan Enhancer** |
+| **Plan format and template** | **Plan Enhancer** |
 
-## Conversational Planning
+---
 
-Planning is a **dialogue with the user**, not a one-shot generation. Every planning mode that loads Plan Enhancer must build a real conversation — asking, listening, challenging, and iterating.
+## 4-Stage Planning Framework
+
+All planning modes follow these four stages in order. No stage may be skipped. No files are written until Stage 4.
+
+### Stage 1: Understand `<Mode-Defined>`
+
+The active planning mode defines this stage entirely. Plan Enhancer does not participate.
+
+**Purpose:** Back-and-forth conversation with the user until scope is sharp. The mode drives the questions, challenges assumptions, and surfaces edge cases.
+
+**Rules:**
+- No files written
+- No research agents spawned
+- Use AskUserQuestion for every question that needs user input
+- Exit only when the mode determines scope is sufficiently clear
+
+The mode signals completion with:
+
+> **▶ PROCEED TO STAGE 2: RESEARCH**
+
+### Stage 2: Research `<Mode-Configured>`
+
+The active planning mode configures what research to run. Plan Enhancer provides the Research Dispatch Strategy (below) as the default framework. Modes override or extend it.
+
+**Purpose:** Gather codebase and documentation context. Results stay in conversation context only.
+
+**Rules:**
+- No files written to disk
+- Research results remain in conversation context
+- The mode controls which surveyors to spawn, what to scope them to, and whether Phase B triggers
+- Direct reading of key files happens in parallel with surveyors
+
+The mode signals completion with:
+
+> **▶ PROCEED TO STAGE 3: DISCUSS**
+
+### Stage 3: Discuss `<Plan Enhancer, Mandatory>`
+
+Governed by the Discussion Protocol below. This stage is mandatory for ALL planning modes — no exceptions.
+
+**Purpose:** Claude synthesizes all findings from Stages 1-2, presents a summary with its own perspective, and brainstorms the approach with the user. This is a mandatory conversation gate before any files are written.
+
+**Rules:**
+- No files written
+- Claude MUST present its own perspective — not just ask questions
+- Goal is convergence toward an approach
+- Exit ONLY via the explicit AskUserQuestion exit gate (see Discussion Protocol)
+
+The stage signals completion with:
+
+> **▶ PROCEED TO STAGE 4: WRITE**
+
+### Stage 4: Write `<Plan Enhancer, Mandatory>`
+
+Governed by the Stage 4: Write Process below.
+
+**Purpose:** All file writing happens here — documentation updates, plan scaffolding, plan README. Then approval gate. Then post-approval (commit + print execution command + hard stop).
+
+**Rules:**
+- This is the ONLY stage where files are created or modified
+- Documentation updates that modes previously did in earlier phases now happen here (Step 1)
+- After plan file is written: approval gate via AskUserQuestion
+- After approval: commit, print execution command, STOP
+
+---
+
+## Conversational Planning Rules
+
+These rules apply across all stages — especially Stages 1 and 3. Planning is a **dialogue with the user**, not a one-shot generation.
 
 ### Core rules
 
@@ -53,16 +124,74 @@ Planning is a **dialogue with the user**, not a one-shot generation. Every plann
 - If the user selects "Other" with empty or unclear text, re-ask the question. Say: "I need an explicit approval, rejection, or feedback before proceeding."
 - Never skip or auto-approve the approval step. The plan is not approved until the user explicitly says so.
 
-## Research Dispatch Strategy
+---
 
-Planning modes need codebase context before building a plan. This section defines a two-phase research approach that all planning modes follow by default. Individual modes may override specific phases — overrides are documented in the table below.
+## Discussion Protocol (Stage 3)
+
+Stage 3 is mandatory for ALL planning modes. After research completes, Claude synthesizes findings and engages in focused discussion with the user before any plan is written.
+
+### Entering Stage 3
+
+When the active mode signals `▶ PROCEED TO STAGE 3: DISCUSS`, Claude must:
+
+1. **Synthesize findings** — Present a structured summary of what was learned in Stages 1-2:
+   - What the research revealed about the problem/feature/issue
+   - Key constraints and dependencies discovered
+   - Surprises, contradictions, or gaps found
+   - How findings relate to what was discussed in Stage 1
+
+2. **Present your perspective** — State your recommended approach with reasoning:
+   - "Based on what I found, I think the right approach is X because Y"
+   - Flag risks and concerns you see
+   - Name trade-offs explicitly
+   - If you see a simpler alternative to what was discussed in Stage 1, say so
+   - If the research contradicts assumptions from Stage 1, name them
+
+### Discussion Principles
+
+These are adapted from the Critical Brainstorm skill and tuned for planning context:
+
+- **Research first, opine second.** Your perspective must be grounded in Stage 2 findings, not assumptions. When you make a claim, reference what you found.
+- **Hold your ground on genuine concerns.** When you identify a real risk, don't fold because the user pushes back. Explain *why* you're worried. Cite evidence from the research. If they convince you with new information, acknowledge it honestly — but don't cave to pressure alone.
+- **Name uncomfortable things.** If the approach is over-engineered, say so. If the scope is unrealistic, say so. If a popular tool is wrong for this case, say so. The user's blind spots are what you're here to find.
+- **Think in time horizons.** A solution that works today might create pain in 3 months. Map out how the decision ages.
+- **Every response must advance the discussion.** Raise a new concern, deepen an existing one, propose an alternative, or ask a pointed question. Never just summarize or agree. If you have nothing new to add, it's time to exit.
+- **Present your own perspective — don't just ask questions.** The user wants a dialogue with a senior technical partner, not an interviewer collecting requirements.
+- **Goal is convergence toward an approach.** This is not open-ended brainstorming. Each exchange should narrow the space of possibilities. When you and the user agree on the shape of the solution, prompt the exit gate.
+
+### Mode-Specific Synthesis Content
+
+Each mode contributes different content to the Stage 3 synthesis. The mode's SKILL.md specifies what to include. If the mode does not specify, default to:
+- Summary of what research found
+- Recommended approach
+- Key risks and trade-offs
+- Open questions for the user
+
+### Exit Gate
+
+Stage 3 ends ONLY via an explicit AskUserQuestion with these options:
+- **"Proceed to plan"** — moves to Stage 4: Write
+- **"Keep discussing"** — continues Stage 3
+- **"Abandon"** — exits the planning mode entirely
+
+The user must explicitly select one. Empty, ambiguous, or non-committal responses trigger a re-ask: "I need you to choose: proceed to plan, keep discussing, or abandon."
+
+Do NOT auto-exit. Do NOT infer readiness from conversational cues like "sounds good" or "makes sense." Only an explicit selection of "Proceed to plan" advances to Stage 4.
+
+After each round of discussion (when the user selects "Keep discussing"), present the exit gate again when the conversation reaches a natural convergence point.
+
+---
+
+## Research Dispatch Strategy (Stage 2)
+
+This section provides the default research framework for Stage 2. The active planning mode configures which parts to use and may override specific phases. See the Mode Override Table for mode-specific behavior.
 
 ### Phase A — Structural Survey
 
 Spawn **Code Surveyor** + **Doc Surveyor** in parallel (both Sonnet, `uc:Code Surveyor` and `uc:Doc Surveyor` agent types):
 
-- **Code Surveyor**: Scoped to the code packages most relevant to the feature or bug. The planning mode determines the scope based on its Phase 1 analysis (e.g., Feature Mode uses scope challenge output; Debug Mode uses symptom-related code paths).
-- **Doc Surveyor**: Scoped to the documentation directories most relevant to the work — typically `documentation/technology/architecture/` and `documentation/product/requirements/`, plus any directories identified in Phase 1.
+- **Code Surveyor**: Scoped to the code packages most relevant to the feature or bug. The planning mode determines the scope based on its Stage 1 output.
+- **Doc Surveyor**: Scoped to the documentation directories most relevant to the work — typically `documentation/technology/architecture/` and `documentation/product/requirements/`, plus any directories identified in Stage 1.
 
 While surveyors work, the Lead does its own **direct reading** of key files (architecture docs, requirements, plans, app-context). The planning mode specifies which files to read directly.
 
@@ -80,7 +209,7 @@ Two tools are available for filling gaps identified by surveyors:
 2. **External library gaps** — Use `/uc:tech-research` (Ref.tools) or the shared Tech Knowledge agent when Phase A reveals:
    - **External integrations**: Surveyors found references to external services, APIs, or dependencies that need documentation beyond structural overview
 
-If none of these triggers fire, proceed to the next phase with surveyor output + direct reading only. Do not spawn an Explore agent "just in case."
+If none of these triggers fire, proceed with surveyor output + direct reading only. Do not spawn an Explore agent "just in case."
 
 When Phase B is triggered, scope the Explore agent tightly to the identified gaps — not a broad re-survey of what the surveyors already covered. Reference specific findings from Phase A in the Explore agent prompt.
 
@@ -94,15 +223,35 @@ When Phase B is triggered, scope the Explore agent tightly to the identified gap
 | **Init Project** | Already uses surveyors natively | N/A | Pre-existing, no change needed |
 | **Re-planning** | May skip Phase A if prior survey data is still valid | Default | Avoid redundant re-survey |
 
-## What You Do
+---
 
-1. **Standardize format** — All plans use the loaded plan template with embedded task list. The template includes an `Execute: /uc:plan-execution {NNN}` header so the user knows how to run it by number.
-2. **Ensure granularity** — Tasks must be right-sized for agentic execution. Err heavily toward fewer, larger tasks.
-3. **Write plan to disk** — Scaffold the plan directory and write `documentation/plans/{NNN}-{name}/README.md` before presenting for approval
+## Stage 4: Write Process
 
-## Plan Directory Structure
+When Stage 3 exits with "Proceed to plan," execute these steps in order. This is the ONLY stage where files are created or modified.
 
-When a plan is created, scaffold this structure:
+### Step 1: Documentation Review & Updates
+
+Before writing the plan, review existing documentation to verify it reflects the current understanding from Stages 1-3:
+
+1. **Review `documentation/technology/architecture/`** — Does it accurately describe the system as understood from research? Are there architectural concepts the plan depends on that are not yet documented?
+2. **Review `documentation/product/`** — Does the product description still reflect the current scope? Do requirements docs capture what this plan needs?
+
+If gaps exist, update them now:
+- Maximum 3 documentation files created or updated
+- Follow Docs Manager routing rules for all file placement
+- Each update is a targeted section addition, not a full rewrite
+- If the directory does not exist, create it: `mkdir -p documentation/technology/architecture/` or `mkdir -p documentation/product/requirements/`
+
+The active mode may define additional documentation review triggers in its "Documentation Update Configuration (for Stage 4)" section. Follow those triggers in addition to the default review above.
+
+**Hard rule:** Documentation changes are NEVER plan tasks. If you find a doc gap, update it here in Step 1 or skip it. Never say "I'll add that as part of the plan."
+
+Track what you changed for use in the plan's Documentation Changes table:
+- File path
+- Action (created / updated)
+- Summary of what was added (one sentence)
+
+### Step 2: Scaffold Plan Directory
 
 ```
 documentation/plans/{NNN}-{plan-name}/
@@ -111,7 +260,82 @@ documentation/plans/{NNN}-{plan-name}/
 └── tasks/             # Per-task pipeline artifacts (created empty, used during execution)
 ```
 
-Create the directories immediately. The `shared/` and `tasks/` directories start empty — they are populated during execution.
+```bash
+mkdir -p documentation/plans/{NNN}-{name}/shared documentation/plans/{NNN}-{name}/tasks
+```
+
+### Step 3: Build and Validate Plan
+
+1. **Derive plan name and number** from the feature description or `$ARGUMENTS`. Scan `documentation/plans/` for the next sequential number (see Plan Naming below).
+2. **Check for existing plan** — if `documentation/plans/*-{name}/` exists (suffix match), read it for revision context
+3. **Build the plan** — the planning mode provides the content; you ensure format compliance. Use the loaded plan template including the `Execute: /uc:plan-execution {NNN}` header.
+4. **Validate task sizes** — apply granularity rules to every task in the list
+5. **Validate — HARD GATE (do not skip):**
+   a. Scan for any task whose sole purpose is documentation, config/env changes, renames, or other trivial work. If found, STOP and absorb it into the nearest task.
+   b. Scan for sequential dependency chains (A→B→C where each depends on the previous). If found, STOP and merge the chain into one task.
+   c. Count remaining tasks. If count exceeds the low end of the complexity range, justify each task — if you can't articulate why it MUST be separate (i.e., it enables real parallelism), merge it.
+   d. For each task, verify the tester can verify it end-to-end from the user's perspective. If a task can only be verified by checking technical artifacts, it's too small — merge it.
+6. **Standards Review:**
+   a. Scan `documentation/technology/architecture/` and `documentation/technology/standards/` for pattern files. Gracefully handle missing or empty directories (skip if not found).
+   b. For each task: examine its description, files, and success criteria to determine which specific architecture/standards files are relevant.
+   c. Populate the task's `**Patterns:**` field with file paths and optional section hints, e.g.:
+      `documentation/technology/standards/error-handling.md` (API Error Responses section), `documentation/technology/architecture/auth.md`
+      If no patterns apply: `None identified`
+   d. If a task requires a pattern that isn't documented, draft the missing doc and flag it with a warning in the summary.
+   e. Present a Standards Review summary in chat before approval.
+
+### Step 4: Write Plan File
+
+Write to `documentation/plans/{NNN}-{name}/README.md` via the Write tool — this is the canonical copy that `/uc:plan-execution` reads from. The plan is on disk before the user reviews it.
+
+### Step 5: Present Summary and Request Approval
+
+**Present a concise summary in chat** — NOT the full plan. Include: plan number, plan name, objective, task count, and the file path. The user can read the full plan from the file.
+
+**Ask for approval via AskUserQuestion** — Options: "Approve" / "Reject with feedback" / "Partially reject (specify changes)"
+
+**Approval gate rules — strictly enforce:**
+- Only an explicit "Approve" selection counts as approval. Do NOT infer approval from empty, blank, ambiguous, or non-committal responses.
+- If the user selects "Other" with empty or unclear text, re-ask the question. Say: "I need an explicit approval, rejection, or feedback before proceeding."
+- Never skip or auto-approve this step. The plan is not approved until the user explicitly says so.
+
+### Step 6: Post-Approval — HARD STOP
+
+**CRITICAL: The planning conversation ENDS after these 3 steps. There is no step 4.**
+
+When the user explicitly approves the plan:
+
+1. **Commit plan files** — Stage all plan files (README.md, directories) and commit:
+   ```
+   git add documentation/plans/{NNN}-{name}/ && git commit -m "plan: {NNN}-{name}"
+   ```
+2. **Print execution command** — Display this exact message and nothing else after it:
+   ```
+   Plan committed. To execute, run:
+   /clear /uc:plan-execution {NNN}
+   ```
+   Clearing context before execution gives executor agents maximum working memory. Plans are on disk — nothing is lost.
+3. **STOP IMMEDIATELY** — Your job is done. Do NOT:
+   - Start executing the plan
+   - Spawn any agents or teams
+   - Invoke `/uc:plan-execution` or any other skill
+   - Write any more code or make any more changes
+   - Continue the conversation with implementation work
+
+   The user will start a fresh context and run the execution command themselves. This separation is intentional — execution needs a clean context window, not one filled with planning artifacts.
+
+### Plan Revision (if rejected)
+
+If the user rejects or partially rejects the plan:
+
+1. Read their feedback
+2. Edit the existing `documentation/plans/{NNN}-{name}/README.md` using the Edit tool to incorporate changes
+3. Re-present the concise summary with changes highlighted
+4. Re-ask for approval via AskUserQuestion
+
+Repeat until approved or the user abandons the plan.
+
+---
 
 ## Plan Naming
 
@@ -128,6 +352,17 @@ Derive the plan name and number:
    - Example: existing `001-user-auth`, `002-api-keys` → next is `003`
 
 3. **Final folder name**: `{NNN}-{semantic-name}` (e.g., `001-user-auth`)
+
+### Enforcement
+
+When creating a plan, ALWAYS verify:
+1. The folder name starts with a 3-digit zero-padded number followed by a hyphen
+2. The number is the next sequential after the highest existing numbered plan
+3. If `documentation/plans/` contains unnumbered directories, ignore them for sequencing purposes — do NOT retroactively number them, but DO start numbering from `001` if no numbered directories exist
+4. The `Execute:` header in the plan uses the number: `/uc:plan-execution {NNN}`
+5. The commit message includes the number: `plan: {NNN}-{name}`
+
+---
 
 ## Task Pipeline
 
@@ -156,8 +391,8 @@ Target task counts by plan complexity:
 | Complexity | Task Count | Example |
 |-----------|-----------|---------|
 | Simple | 1 | Add a settings page, fix a workflow bug, add a new API endpoint with tests |
-| Medium | 2–3 | User auth system, payment integration |
-| Complex | 3–5 | Multi-tenant support, real-time collaboration |
+| Medium | 2-3 | User auth system, payment integration |
+| Complex | 3-5 | Multi-tenant support, real-time collaboration |
 
 **Default to 1 task.** A single-task plan is the ideal outcome for most work. Only split into multiple tasks when the work genuinely has independent, parallelizable pieces or is too large for one agent to hold in context. Sequential dependency chains are a strong signal that tasks should be merged.
 
@@ -183,7 +418,7 @@ Over 5 tasks is a red flag — the plan is almost certainly sliced too thin. Ove
 
 **Rules:**
 
-1. **Documentation updates are NOT tasks.** They belong in the plan's "Documentation Changes" section. Never create a task whose primary purpose is updating docs.
+1. **Documentation updates are NOT tasks.** They belong in Stage 4 Step 1 or the plan's "Documentation Changes" section. Never create a task whose primary purpose is updating docs.
 2. **Config/env changes are NOT tasks.** Adding env vars, feature flags, or deployment config is setup work — include it as a step in the task that needs the config.
 3. **Renames, copy changes, and one-liners are NOT tasks.** Absorb them into the task that motivates the change.
 
@@ -225,84 +460,10 @@ Use the loaded plan template (`templates/plan.md`) as the base structure. The pl
 2. **Context** — Links to architecture docs, requirements, RFCs
 3. **Tech Stack** — External libraries, frameworks, and services the plan depends on (the shared Tech Knowledge agent loads documentation for these at execution startup)
 4. **Scope** — In scope / out of scope boundaries
-4. **Success Criteria** — Checkboxes for plan-level acceptance
-5. **Task List** — Every task with description, files, success criteria, dependencies
-6. **Documentation Changes** — Structured changelog of docs updated during planning, plus any remaining doc updates for execution
-7. **Risk Assessment** — Risks with likelihood, impact, mitigation
-
-## Plan Creation Process
-
-1. **Derive plan name and number** from the feature description or `$ARGUMENTS`. Scan `documentation/plans/` for the next sequential number (see Plan Naming above).
-2. **Check for existing plan** — if `documentation/plans/*-{name}/` exists (suffix match), read it for revision context
-3. **Scaffold plan directory**:
-   ```bash
-   mkdir -p documentation/plans/{NNN}-{name}/shared documentation/plans/{NNN}-{name}/tasks
-   ```
-4. **Build the plan** — the planning mode provides the content; you ensure format compliance. Use the loaded plan template including the `Execute: /uc:plan-execution {NNN}` header.
-5. **Validate task sizes** — apply granularity rules to every task in the list
-6. **Validate — HARD GATE (do not skip):**
-   a. Scan for any task whose sole purpose is documentation, config/env changes, renames, or other trivial work. If found, STOP and absorb it into the nearest task.
-   b. Scan for sequential dependency chains (A→B→C where each depends on the previous). If found, STOP and merge the chain into one task. Sequential chains gain nothing from being separate.
-   c. Count remaining tasks. If count exceeds the low end of the complexity range, justify each task — if you can't articulate why it MUST be separate (i.e., it enables real parallelism), merge it.
-   d. For each task, verify the tester can verify it end-to-end from the user's perspective. If a task can only be verified by checking technical artifacts (schema exists, function defined, type exported), it's too small — merge it into the task it supports.
-6.5. **Standards Review** — For each task, identify which architecture and standards files apply:
-   a. Scan `documentation/technology/architecture/` and `documentation/technology/standards/` for pattern files. Gracefully handle missing or empty directories (skip if not found).
-   b. For each task: examine its description, files, and success criteria to determine which specific architecture/standards files are relevant.
-   c. Populate the task's `**Patterns:**` field with file paths and optional section hints, e.g.:
-      `documentation/technology/standards/error-handling.md` (API Error Responses section), `documentation/technology/architecture/auth.md`
-      If no patterns apply: `None identified`
-   d. If a task requires a pattern that isn't documented, draft the missing doc and flag it with ⚠️ in the summary.
-   e. Present a Standards Review summary in chat before approval:
-      ```
-      Standards Review:
-      - Task 1 → error-handling.md, auth.md
-      - Task 2 → api-conventions.md, database.md
-      - ⚠️ Drafted: documentation/technology/standards/api-conventions.md (new — review before approving)
-      ```
-7. **Write plan to `documentation/plans/{NNN}-{name}/README.md`** via the Write tool — this is the canonical copy that `/uc:plan-execution` reads from. The plan is on disk before the user reviews it.
-8. **Present a concise summary in chat** — NOT the full plan. Include: plan number, plan name, objective, task count, and the file path. The user can read the full plan from the file.
-9. **Ask for approval via AskUserQuestion** — Options: "Approve" / "Reject with feedback" / "Partially reject (specify changes)"
-
-**Approval gate rules — strictly enforce:**
-- Only an explicit "Approve" selection counts as approval. Do NOT infer approval from empty, blank, ambiguous, or non-committal responses.
-- If the user selects "Other" with empty or unclear text, re-ask the question. Say: "I need an explicit approval, rejection, or feedback before proceeding."
-- Never skip or auto-approve this step. The plan is not approved until the user explicitly says so.
-
-### Post-Approval — HARD STOP (mandatory — all planning modes follow this)
-
-**CRITICAL: The planning conversation ENDS after these 3 steps. There is no step 4.**
-
-When the user explicitly approves the plan:
-
-1. **Commit plan files** — Stage all plan files (README.md, directories) and commit:
-   ```
-   git add documentation/plans/{NNN}-{name}/ && git commit -m "plan: {NNN}-{name}"
-   ```
-2. **Print execution command** — Display this exact message and nothing else after it:
-   ```
-   Plan committed. To execute, run:
-   /clear /uc:plan-execution {NNN}
-   ```
-   Clearing context before execution gives executor agents maximum working memory. Plans are on disk — nothing is lost.
-3. **STOP IMMEDIATELY** — Your job is done. Do NOT:
-   - Start executing the plan
-   - Spawn any agents or teams
-   - Invoke `/uc:plan-execution` or any other skill
-   - Write any more code or make any more changes
-   - Continue the conversation with implementation work
-
-   The user will start a fresh context and run the execution command themselves. This separation is intentional — execution needs a clean context window, not one filled with planning artifacts.
-
-### Plan Revision (if rejected)
-
-If the user rejects or partially rejects the plan:
-
-1. Read their feedback
-2. Edit the existing `documentation/plans/{NNN}-{name}/README.md` using the Edit tool to incorporate changes
-3. Re-present the concise summary with changes highlighted
-4. Re-ask for approval via AskUserQuestion
-
-Repeat until approved or the user abandons the plan.
+5. **Success Criteria** — Checkboxes for plan-level acceptance
+6. **Task List** — Every task with description, files, success criteria, dependencies
+7. **Documentation Changes** — Structured changelog of docs updated during Stage 4 Step 1, plus any remaining doc updates for execution
+8. **Risk Assessment** — Risks with likelihood, impact, mitigation
 
 ## Existing Plan Handling
 
@@ -316,9 +477,11 @@ If a plan directory matching `*-{name}` already exists (revision or re-planning)
 
 - Do NOT execute the plan — that is `/uc:plan-execution`'s job. After approval, commit and print the execution command, then STOP.
 - Do NOT create tasks without success criteria
+- Do NOT write any files before Stage 4 — research results and discussion stay in conversation context only
 - ALWAYS write the plan to `documentation/plans/{NNN}-{name}/README.md` BEFORE presenting for approval — this ensures the plan is on disk and cannot be lost
 - ALWAYS include the `Execute: /uc:plan-execution {NNN}` header in the plan document
 - ALWAYS follow the Post-Approval steps after the user approves — commit, print command, stop. No exceptions.
+- NEVER create plan tasks whose sole purpose is updating documentation — doc updates happen in Stage 4 Step 1
 
 ## Example
 

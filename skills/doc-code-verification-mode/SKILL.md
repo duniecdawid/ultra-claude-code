@@ -31,9 +31,9 @@ Your instincts:
 
 ## Process
 
-Execute these phases in order.
+Execute the 4 stages defined by Plan Enhancer in order. Do not skip stages. Verification Mode defines Stages 1-2; Plan Enhancer (loaded via context) governs Stages 3-4.
 
-### Phase 1: Scope Determination
+### Stage 1: Understand — Scope Determination
 
 Determine what to verify:
 
@@ -47,9 +47,17 @@ For scoped verification, identify:
 
 For full verification, list all major code packages and all documentation sections.
 
-### Phase 2: Survey (Parallel)
+When scope is clear:
 
-Spawn surveyor subagents in parallel via the Task tool:
+> **▶ PROCEED TO STAGE 2: RESEARCH**
+
+### Stage 2: Research — Configuration
+
+Verification Mode uses a 3-phase research approach that overrides the standard Research Dispatch Strategy from Plan Enhancer.
+
+#### Phase 2A: Survey
+
+Spawn surveyor subagents in parallel via the Agent tool:
 
 **Code Surveyor(s)** — one per major code directory in scope:
 
@@ -65,7 +73,7 @@ Spawn surveyor subagents in parallel via the Task tool:
 
 Spawn as many surveyors as needed to cover the scope. Use Code Surveyor for code directories, Doc Surveyor for documentation directories.
 
-### Phase 3: Cross-Reference and Check
+#### Phase 2B: Cross-Reference and Check
 
 After surveys return, build a verification matrix — documentation sections paired with the code they describe:
 
@@ -74,7 +82,7 @@ After surveys return, build a verification matrix — documentation sections pai
 | `technology/architecture/auth.md` | `src/auth/`, `src/middleware/auth.ts` | Authentication |
 | `technology/architecture/api.md` | `src/routes/` | API endpoints |
 
-For each verification pair, spawn a Checker subagent via the Task tool:
+For each verification pair, spawn a Checker subagent via the Agent tool:
 
 > Topic: [what to verify]
 > Code reference: [code path(s) from code surveyor]
@@ -85,7 +93,7 @@ For each verification pair, spawn a Checker subagent via the Task tool:
 
 Spawn multiple Checkers in parallel for independent verification pairs.
 
-### Phase 4: Discrepancy Synthesis
+#### Phase 2C: Discrepancy Synthesis
 
 Collect all Checker reports and synthesize:
 
@@ -98,33 +106,38 @@ Collect all Checker reports and synthesize:
 4. **Identify undocumented code** — code with no corresponding documentation (Major)
 5. **Identify phantom docs** — documentation describing features that don't exist in code (Critical)
 
-Present the discrepancy summary to the user with counts per severity level.
-
 **If no discrepancies found** — report clean verification status. No plan needed. Inform the user and exit.
 
-### Phase 5: Fix Planning and Approval
+If discrepancies found:
 
-If discrepancies exist:
+> **▶ PROCEED TO STAGE 3: DISCUSS**
 
-1. **Derive plan name** (e.g., "doc-code-sync-auth" or "full-verification-fix")
-2. **Scaffold plan directory**: `mkdir -p documentation/plans/{NNN}-{name}/shared documentation/plans/{NNN}-{name}/tasks`
-3. **Create fix tasks** sized per Plan Enhancer rules (loaded in context). Group discrepancies into end-to-end verifiable tasks — e.g., all discrepancies for a single component become one task. A tester should be able to verify each task by confirming the documentation accurately describes the code behavior for that component.
-   - Description: what's wrong and what the fix should be
-   - Fix type: update docs, update code, or needs decision
-   - Files to modify (both doc and code file:line references)
-   - Success criteria: documentation accurately describes code behavior for the affected component — a tester can read the docs, exercise the code, and confirm they match
-   - Trivial fixes (naming/typo) are absorbed into the nearest task, not listed standalone.
-5. **Flag "needs decision" items** — present these to user for resolution before including in plan
-6. **Write the plan to `documentation/plans/{NNN}-{name}/README.md`** following Plan Enhancer format (plan template loaded via context) — the plan is on disk before the user reviews it
-7. **Present a concise summary in chat** — plan name, discrepancy count by severity, task count, file path
-8. **Ask for approval via AskUserQuestion** — Options: "Approve" / "Reject with feedback" / "Partially reject (specify changes)". Only an explicit "Approve" counts — empty, blank, or ambiguous responses must be re-asked.
+### Stage 3: Discuss
 
-Plan Enhancer handles post-approval (commit + execution command) and revision loops.
+Governed by Plan Enhancer's Discussion Protocol.
+
+For Verification Mode, the Stage 3 synthesis should include:
+- Discrepancy summary with counts per severity level
+- Classification of each discrepancy (update docs / update code / needs decision)
+- **"Needs decision" items presented for user resolution** — these cannot be resolved without the user's input on which source of truth is correct
+- Recommended prioritization of fixes
+- Assessment of downstream impact — which discrepancies are most likely to mislead or cause failures?
+
+### Stage 4: Write
+
+Governed by Plan Enhancer's Stage 4: Write Process.
+
+Verification Mode contributes:
+- Fix plan grouping discrepancies into component-level tasks (all discrepancies for a single component become one task)
+- Each task with doc and code file:line references
+- Fix type per discrepancy (update docs, update code, or per user's decision)
+- Success criteria: documentation accurately describes code behavior for the affected component — a tester can read the docs, exercise the code, and confirm they match
+- Trivial fixes (naming/typo) absorbed into the nearest task, not listed standalone
 
 ## Edge Cases
 
-- **No discrepancies found** — Report clean verification status. This is a success case.
-- **Ambiguous discrepancy** — When unclear whether code or docs are correct, flag for user decision. Do NOT auto-resolve.
+- **No discrepancies found** — Report clean verification status. This is a success case. No plan needed.
+- **Ambiguous discrepancy** — When unclear whether code or docs are correct, flag for user decision during Stage 3 Discussion. Do NOT auto-resolve.
 - **Very large codebase** — If full verification would exceed reasonable scope, suggest scoped verification and present directory options.
 - **Missing documentation** — Code with no corresponding docs is a Major discrepancy (undocumented feature).
 - **Missing code** — Docs describing nonexistent features is a Critical discrepancy (phantom documentation).
@@ -133,8 +146,9 @@ Plan Enhancer handles post-approval (commit + execution command) and revision lo
 ## Constraints
 
 - Do NOT modify any code or documentation — this is a planning mode
-- Do NOT auto-resolve ambiguous discrepancies — flag for user decision
+- Do NOT auto-resolve ambiguous discrepancies — flag for user decision during Stage 3
 - Do NOT skip severity classification
+- Do NOT write any files before Stage 4 — research and discussion stay in conversation context
 - Always include exact file:line references in discrepancy reports
 - Always present the discrepancy summary before planning fixes
 - If no discrepancies found, do NOT create a plan — report success and exit
