@@ -239,7 +239,9 @@ Phase 2 startup:
   2. Spawn initial task-teams to fill concurrency slots.
      For each slot: find next pending unblocked task, create tasks/task-N/ directory,
      spawn all 3 team members at once into task-{N}-team.
-     After each spawn: SendMessage to PM "SPAWNED task-{N}: {task description}" then "STAGE task-{N} planning"
+     After each spawn:
+       SendMessage to PM "SPAWNED task-{N}: {task description}" then "STAGE task-{N} planning"
+       SendMessage to knowledge-{PLAN_NAME}: "TASK-START: Task {N} — {task title}\nDescription: {task description}\nSuccess criteria: {success criteria}\nExecutor: executor-{N}\nPlan path (when available): documentation/plans/$ARGUMENTS/tasks/task-{N}/plan.md"
 
 Lead loop:
 WAIT for messages. Process each message, then return to waiting.
@@ -259,6 +261,7 @@ WAIT for messages. Process each message, then return to waiting.
      Check: does this task have dependent successors still in "pending" state?
        → If yes: spawn successor in pipeline mode (planning only, implementation blocked).
          SendMessage to PM: "PIPELINE-SPAWN task-{M}" then "STAGE task-{M} planning"
+         SendMessage to knowledge-{PLAN_NAME}: "TASK-START: Task {M} — {task title}\nDescription: {task description}\nSuccess criteria: {success criteria}\nExecutor: executor-{M}\nPlan path (when available): documentation/plans/$ARGUMENTS/tasks/task-{M}/plan.md"
          Pipeline-spawned tasks in planning-only mode do NOT count against the concurrency limit.
 
   c. Executor "Task {N} plan ready for review" →
@@ -337,8 +340,10 @@ You are the **team coordinator** for task {N} of the "$ARGUMENTS" plan.
 
 **Output path:** Write implementation notes to `documentation/plans/$ARGUMENTS/tasks/task-{N}/impl.md`
 
+**Proactive research:** The Tech Knowledge agent has been notified about your task and may send you a RESEARCH BRIEF with relevant external documentation before you start. Read it — it contains current docs for the technologies your task involves, which may differ from what you remember from training data.
+
 **Workflow:**
-1. Read context files above
+1. Read context files above. Check for a RESEARCH BRIEF from the knowledge agent — if it arrived, read it before proceeding.
 2. Explore the codebase yourself using Read/Glob/Grep — understand existing patterns, related implementations, and integration points
 3. Write your implementation plan to `documentation/plans/$ARGUMENTS/tasks/task-{N}/plan.md`
 4. SendMessage to reviewer-{N}: "Plan ready for feedback — written to tasks/task-{N}/plan.md. Review from your perspective. Reply LGTM or CONCERNS."
@@ -754,6 +759,7 @@ When a teammate discovers something that invalidates part of the plan (from exec
 |---------|-----------|---------|
 | **Team-internal** | Executor↔Reviewer, Executor↔Tester | Direct peer-to-peer within the task team. Technical collaboration. |
 | **Knowledge query** | Any team member → knowledge-{PLAN_NAME} | "QUERY: {question}" for external library docs. Returns verbatim excerpts. |
+| **Knowledge task-start** | Lead → knowledge-{PLAN_NAME} | "TASK-START: Task {N} — ..." on task spawn. Knowledge agent proactively researches and sends RESEARCH BRIEF to executor. |
 | **Knowledge load** | Lead → knowledge-{PLAN_NAME} | "LOAD: {technology}" to add docs mid-execution. |
 | **Plan review (teammate)** | Executor → Reviewer | Advisory feedback on `tasks/task-N/plan.md`. Reviewer replies LGTM/CONCERNS. |
 | **Plan review (Lead)** | Executor → Lead | Domain/coherence review of plan. **Blocking gate.** Lead replies APPROVED/CONCERNS. |

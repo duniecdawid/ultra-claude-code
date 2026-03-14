@@ -2,6 +2,7 @@
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2026.03.14-10 | 2026-03-14 | Add proactive technology research: Code Reviewer queries Tech Knowledge to verify external library usage against docs, Tech Knowledge sends research briefs to executors on task spawn, new [DOCS] failure category |
 | 2026.03.14-9 | 2026-03-14 | Enable 1M context for Code Reviewer, Task Tester, and Project Manager (sonnet[1m]) agents |
 | 2026.03.14-8 | 2026-03-14 | Enable 1M context for Task Executor (opus[1m]) and Tech Knowledge (sonnet[1m]) agents |
 | 2026.03.14-7 | 2026-03-14 | Restructure planning to 4-stage framework (Understand → Research → Discuss → Write). Add mandatory Discussion Protocol before file writing. Move doc updates to Stage 4. Fix plan directory numbering enforcement. |
