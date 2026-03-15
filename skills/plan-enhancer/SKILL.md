@@ -253,20 +253,23 @@ Track what you changed for use in the plan's Documentation Changes table:
 
 ### Step 2: Scaffold Plan Directory
 
+**First**, derive the plan number and name (see Plan Naming section). The number MUST be a 3-digit zero-padded integer (e.g., `001`, `002`, `012`) — never a bare number like `1` or `2`.
+
 ```
-documentation/plans/{NNN}-{plan-name}/
+documentation/plans/001-user-auth/       # ← example with zero-padded number
 ├── README.md          # The plan document (task list embedded)
 ├── shared/            # Lead-level shared notes (created empty, used during execution)
 └── tasks/             # Per-task pipeline artifacts (created empty, used during execution)
 ```
 
 ```bash
+# Example: mkdir -p documentation/plans/002-api-keys/shared documentation/plans/002-api-keys/tasks
 mkdir -p documentation/plans/{NNN}-{name}/shared documentation/plans/{NNN}-{name}/tasks
 ```
 
 ### Step 3: Build and Validate Plan
 
-1. **Derive plan name and number** from the feature description or `$ARGUMENTS`. Scan `documentation/plans/` for the next sequential number (see Plan Naming below).
+1. **Derive plan name and number** from the feature description or `$ARGUMENTS`. Scan `documentation/plans/` for the next sequential 3-digit zero-padded number (see Plan Naming below).
 2. **Check for existing plan** — if `documentation/plans/*-{name}/` exists (suffix match), read it for revision context
 3. **Build the plan** — the planning mode provides the content; you ensure format compliance. Use the loaded plan template including the `Execute: /uc:plan-execution {NNN}` header.
 4. **Validate task sizes** — apply granularity rules to every task in the list
@@ -347,11 +350,13 @@ Derive the plan name and number:
    - No special characters
 
 2. **Sequential number** — scan `documentation/plans/` for directories matching `[0-9][0-9][0-9]-*`:
-   - Extract the highest number, increment by 1, zero-pad to 3 digits
+   - Extract the highest number, increment by 1, **always zero-pad to 3 digits**
    - If no numbered plans exist, start at `001`
-   - Example: existing `001-user-auth`, `002-api-keys` → next is `003`
+   - Example: existing `001-user-auth`, `002-api-keys` → next is `003-whatever`
+   - **Wrong:** `1-user-auth`, `2-api-keys`, `3-whatever` (bare numbers)
+   - **Right:** `001-user-auth`, `002-api-keys`, `003-whatever` (3-digit zero-padded)
 
-3. **Final folder name**: `{NNN}-{semantic-name}` (e.g., `001-user-auth`)
+3. **Final folder name**: `{NNN}-{semantic-name}` where NNN is **always 3 digits** (e.g., `001-user-auth`, `012-billing`)
 
 ### Enforcement
 

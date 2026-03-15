@@ -1,6 +1,6 @@
 # Plan: {Name}
 
-> **Execute:** `/uc:plan-execution {NNN}`
+> **Execute:** `/uc:plan-execution {NNN}`  <!-- NNN = 3-digit zero-padded number, e.g. 001 -->
 > Created: {date}
 > Status: Draft | Approved | In Progress | Completed
 > Source: Feature Mode | Debug Mode | Verification Mode | Migration

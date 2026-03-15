@@ -2,6 +2,7 @@
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2026.03.15-2 | 2026-03-15 | Reinforce 3-digit zero-padded plan numbering in plan-enhancer skill and plan template |
 | 2026.03.15-1 | 2026-03-15 | Docs-code sync: fix all HTML docs to match current agents/skills — fix agent tables (add project-manager, fix task-tester tools, remove phantom explore), add 4 missing skills, update workflows to 4-stage framework, add pipeline gate and PM coordination to execution docs, fix architecture claims and system overview diagram |
 | 2026.03.14-17 | 2026-03-14 | Global singleton PM dashboard: single persistent server aggregates all projects/plans on port 3847, PM registers/deregisters plans via API, one URL for all executions |
 | 2026.03.14-16 | 2026-03-14 | tmux-team-grid: fix Write tool error — skill only has Bash, must use cat heredoc to write script file |
