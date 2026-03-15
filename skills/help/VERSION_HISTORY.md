@@ -2,6 +2,7 @@
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2026.03.15-4 | 2026-03-15 | Dashboard staleness detection: show warning/critical banners on detail view and stale dots on homepage when PM stops updating status files (executing plans only) |
 | 2026.03.15-3 | 2026-03-15 | Add /uc:setup skill — one-time machine setup (1M context env vars, agent teams, tmux, node, optional Tailscale). Writes version marker to ~/.claude/uc-setup.json for quick currency checks. Plan-execution now checks setup marker and suggests /uc:setup when missing. |
 | 2026.03.15-2 | 2026-03-15 | Reinforce 3-digit zero-padded plan numbering in plan-enhancer skill and plan template |
 | 2026.03.15-1 | 2026-03-15 | Docs-code sync: fix all HTML docs to match current agents/skills — fix agent tables (add project-manager, fix task-tester tools, remove phantom explore), add 4 missing skills, update workflows to 4-stage framework, add pipeline gate and PM coordination to execution docs, fix architecture claims and system overview diagram |

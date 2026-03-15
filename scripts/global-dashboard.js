@@ -87,7 +87,14 @@ function discoverPlans() {
 // --- Plan data readers (parameterized by plan_dir) ---
 
 function readPlanProject(planDir) {
-  return readJSON(path.join(planDir, 'status', 'project.json'));
+  const filePath = path.join(planDir, 'status', 'project.json');
+  const data = readJSON(filePath);
+  if (!data) return null;
+  try {
+    const stat = fs.statSync(filePath);
+    data._last_modified_ms = stat.mtime.getTime();
+  } catch {}
+  return data;
 }
 
 function readPlanTeams(planDir) {
@@ -265,6 +272,9 @@ const HOMEPAGE_HTML = `<!DOCTYPE html>
   .hostname { color: #484f58; font-size: 0.85em; }
   .refresh-indicator { width: 8px; height: 8px; border-radius: 50%; background: #3fb950; display: inline-block; margin-right: 6px; animation: blink 5s ease-in-out infinite; }
   @keyframes blink { 0%, 90%, 100% { opacity: 1; } 95% { opacity: 0.2; } }
+  .stale-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-left: 6px; vertical-align: middle; }
+  .stale-dot-warning { background: #d29922; }
+  .stale-dot-critical { background: #f85149; }
 
   .status-badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.72em; font-weight: 600; text-transform: uppercase; white-space: nowrap; }
   .status-executing { background: #1f6feb33; color: #58a6ff; }
@@ -350,11 +360,18 @@ function renderCard(p) {
   const elapsed = fmtTime(live.elapsed_seconds);
   const isActive = p.active || status === 'executing';
 
+  let staleDot = '';
+  if (isActive && live._last_modified_ms) {
+    const age = (Date.now() - live._last_modified_ms) / 1000;
+    if (age > 300) staleDot = '<span class="stale-dot stale-dot-critical" title="Data stale (' + Math.round(age/60) + 'm)"></span>';
+    else if (age > 120) staleDot = '<span class="stale-dot stale-dot-warning" title="Data may be stale (' + Math.round(age/60) + 'm)"></span>';
+  }
+
   return '<a href="/plan/' + encodeURIComponent(p.project) + '/' + encodeURIComponent(p.plan) + '" style="text-decoration:none">' +
     '<div class="plan-card ' + (isActive ? 'active' : (sc === 'completed' ? 'completed' : '')) + '">' +
       '<div class="plan-card-head">' +
         '<span class="plan-project">' + esc(p.project) + '</span>' +
-        '<span class="status-badge status-' + sc + '">' + esc(status) + '</span>' +
+        '<span class="status-badge status-' + sc + '">' + esc(status) + '</span>' + staleDot +
       '</div>' +
       '<div class="plan-name">' + esc(p.plan) + '</div>' +
       '<div class="plan-meta">' +
@@ -504,6 +521,9 @@ function getPlanDetailHTML(project, planName) {
   .event-msg { color: #c9d1d9; }
   .refresh-indicator { width: 8px; height: 8px; border-radius: 50%; background: #3fb950; display: inline-block; margin-right: 6px; animation: blink 3s ease-in-out infinite; }
   @keyframes blink { 0%, 90%, 100% { opacity: 1; } 95% { opacity: 0.2; } }
+  .staleness-banner { display: none; padding: 8px 14px; border-radius: 6px; font-size: 0.85em; font-weight: 500; margin-bottom: 12px; }
+  .staleness-warning { display: block; background: #d2992233; color: #d29922; border: 1px solid #d2992255; }
+  .staleness-critical { display: block; background: #da363333; color: #f85149; border: 1px solid #da363355; }
   .description { font-size: 0.85em; color: #8b949e; margin-top: 4px; line-height: 1.4; }
   .dep-graph { font-family: monospace; font-size: 0.72em; color: #484f58; white-space: pre; line-height: 1.4; background: #161b22; border: 1px solid #21262d; border-radius: 8px; padding: 10px 12px; overflow-x: auto; }
   @media (min-width: 640px) {
@@ -519,6 +539,7 @@ function getPlanDetailHTML(project, planName) {
 </style>
 </head>
 <body>
+<div class="staleness-banner" id="staleness-banner"></div>
 <div class="breadcrumb"><a href="/">Dashboard</a> &rsaquo; <a href="/">${escapeHTML(project)}</a> &rsaquo; ${escapeHTML(planName)}</div>
 <div class="header">
   <div class="header-top">
@@ -562,6 +583,24 @@ function fmtEventTime(iso) {
   if (!iso) return '';
   try { const d = new Date(iso); return d.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }); }
   catch { return iso; }
+}
+
+function renderStaleness(p) {
+  const banner = document.getElementById('staleness-banner');
+  if (p.status !== 'executing' || !p._last_modified_ms) {
+    banner.style.display = 'none';
+    return;
+  }
+  const ageSeconds = (Date.now() - p._last_modified_ms) / 1000;
+  if (ageSeconds > 300) {
+    banner.className = 'staleness-banner staleness-critical';
+    banner.textContent = 'Data is stale (' + Math.round(ageSeconds / 60) + 'm old) \\u2014 PM agent may have crashed or hit a rate limit';
+  } else if (ageSeconds > 120) {
+    banner.className = 'staleness-banner staleness-warning';
+    banner.textContent = 'Data may be stale (' + Math.round(ageSeconds / 60) + 'm since last update)';
+  } else {
+    banner.style.display = 'none';
+  }
 }
 
 function renderProject(p) {
@@ -667,6 +706,7 @@ async function refresh() {
       fetch(API_BASE + '/plan').then(r => r.json())
     ]);
     renderProject(proj);
+    renderStaleness(proj);
     renderTasks(plan, teams);
     renderEvents(events);
   } catch (e) {
