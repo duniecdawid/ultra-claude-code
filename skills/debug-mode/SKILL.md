@@ -32,9 +32,9 @@ Your instincts:
 
 ## Process
 
-Execute the 4 stages defined by Plan Enhancer in order. Do not skip stages. Debug Mode defines Stages 1-2; Plan Enhancer (loaded via context) governs Stages 3-4.
+Always read Plan Enhancer first. This skill extends the fundamentals defined there.
 
-### Stage 1: Understand — Issue Analysis
+### Stage 1: Understand
 
 Parse the bug report and extract:
 
@@ -43,152 +43,37 @@ Parse the bug report and extract:
 3. **Reproduction context** — Environment, steps to reproduce, frequency (always, intermittent, once)
 4. **Impact** — Who/what is affected? Severity?
 
-If any of these are missing or unclear, ask the user for more details using AskUserQuestion before proceeding. A vague bug report produces vague fixes. Never assume or fabricate the user's answers — always wait for their actual response.
+If any of these are missing or unclear, ask the user via AskUserQuestion. A vague bug report produces vague fixes. If you think they're describing a symptom rather than the root problem, say so.
 
-**After the user answers:** React substantively per the Plan Enhancer's Conversational Planning Rules. If their description changes your understanding of the issue, say what shifted. If you think they're describing a symptom rather than the root problem, say so. This is a dialogue — don't silently move to Stage 2.
+### Stage 2: Research
 
-When you have a clear understanding of the issue:
+Use the base research skills to understand the affected code and expected system behavior. Also check recent `git log` — most bugs are regressions.
 
-> **▶ PROCEED TO STAGE 2: RESEARCH**
+After the initial survey, generate **2-5 hypotheses** ranked by likelihood. Present them to the user — they may confirm, reject, or add hypotheses based on domain knowledge.
 
-### Stage 2: Research — Configuration
+Then investigate in parallel:
+- **Per-hypothesis Explore agents** — one per hypothesis, scoped to the relevant code paths. Each should return evidence supporting or refuting the hypothesis with file:line references.
+- **System Tester** — attempt to reproduce the bug. Try the exact steps first, then variations to understand boundary conditions. Read `.claude/system-test.md` for project-specific test instructions if it exists.
 
-Debug Mode uses a 3-phase research approach that overrides the standard Research Dispatch Strategy from Plan Enhancer.
+After all agents return, synthesize evidence:
+- Rank hypotheses by evidence strength
+- Cross-reference — does evidence from multiple hypotheses point to the same root cause?
+- Assess reproduction results
+- Identify root cause and fix scope
 
-#### Phase 2A: Structural Survey + Hypothesis Generation
-
-**Fast Survey** — Spawn Code Surveyor + Doc Surveyor in parallel:
-
-- **Code Surveyor** (`uc:Code Surveyor`): Scope to code paths related to the reported symptoms — the components, modules, and files most likely involved based on Stage 1 analysis.
-- **Doc Surveyor** (`uc:Doc Surveyor`): Scope to `documentation/technology/architecture/` for expected system behavior documentation.
-
-**Direct Reading** (while surveyors work):
-- `documentation/technology/architecture/` — expected behavior of affected components
-- Recent `git log` (last 20 commits) — check for recent changes that could be regressions
-
-**Hypothesis Generation** — Based on the symptoms and the structural survey results, generate 2-5 hypotheses ranked by likelihood:
-
-```
-Hypothesis 1 (most likely): [description]
-  Evidence: [why you think this based on symptoms]
-
-Hypothesis 2: [description]
-  Evidence: [why you think this]
-
-Hypothesis 3: [description]
-  Evidence: [why you think this]
-```
-
-Present hypotheses to the user. They may confirm, reject, or add hypotheses based on domain knowledge they have.
-
-#### Phase 2B: Parallel Investigation
-
-Spawn investigation agents in parallel via the Agent tool:
-
-**For each hypothesis** — Spawn an Explore subagent (`subagent_type: Explore`, thoroughness: `very thorough`):
-
-> Investigate hypothesis: [hypothesis description]
->
-> Bug context:
-> - Symptoms: [symptoms]
-> - Expected behavior: [expected]
-> - Reproduction: [steps, environment, frequency]
->
-> Focus on:
-> 1. Code paths related to this hypothesis
-> 2. Known patterns that could cause this behavior
-> 3. Recent changes (git log) that could have introduced the bug
-> 4. Error handling and edge cases in relevant code
-> 5. Architecture documentation for expected behavior (`documentation/technology/architecture/`)
->
-> Return evidence supporting or refuting this hypothesis. Include file:line references for all code findings. Distinguish facts from inferences.
-
-**System Tester subagent** — Spawn one to reproduce the bug:
-
-> Bug: [description]
-> Reproduction steps: [steps from user]
->
-> Read `.claude/system-test.md` for project-specific test instructions if it exists.
->
-> Attempt to reproduce the bug. Try the exact steps first, then try variations to understand boundary conditions. Quantify the failure rate if intermittent.
->
-> Return a reproduction report with: steps executed, results, evidence (error messages, logs), and additional observations.
-
-#### Phase 2C: Evidence Synthesis
-
-After all agents return:
-
-1. **Rank hypotheses** by evidence strength — which has the most supporting evidence?
-2. **Cross-reference** — does evidence from multiple hypotheses point to the same root cause?
-3. **Assess reproduction** — was the bug reproduced? Under what conditions? What was the failure rate?
-4. **Identify root cause** — the most likely cause with the strongest evidence
-5. **Determine fix scope** — how many files/components need changes?
-
-**If the bug cannot be reproduced:**
-- Report what was tried and the results
-- Ask user for more context (environment details, logs, specific reproduction steps)
-- If still not reproducible after more context, report findings and suggest monitoring/logging additions as a plan
-
-**If multiple root causes are found:**
-- Include fixes for all identified causes
-- Order by impact (most severe first)
-
-When evidence synthesis is complete:
-
-> **▶ PROCEED TO STAGE 3: DISCUSS**
+If the bug cannot be reproduced, ask for more context. If still not reproducible, suggest monitoring/logging additions.
 
 ### Stage 3: Discuss
 
-Governed by Plan Enhancer's Discussion Protocol.
-
-For Debug Mode, the Stage 3 synthesis should include:
-- Ranked hypotheses with evidence strength for each
-- Root cause determination with supporting evidence
-- Reproduction results (was it reproduced? conditions? failure rate?)
-- Proposed fix scope and approach
-- Trade-offs in fix strategy (quick patch vs. deeper fix, blast radius concerns)
-- Whether the fix should make the system stronger (additional tests, better error handling) or just patch the immediate issue
+Governed by Plan Enhancer.
 
 ### Stage 4: Write
 
-Governed by Plan Enhancer's Stage 4: Write Process.
-
-Debug Mode contributes:
-- Fix plan content derived from evidence synthesis + discussion consensus
-- Fix tasks with evidence references, regression criteria, verification steps
-- Documentation gaps from investigation (for Stage 4 Step 1)
-- Risk assessment specific to the fix
-
-Each fix task must include:
-- Clear description of what to change and why (reference the evidence)
-- Files to modify
-- Success criteria (how to verify the fix works)
-- Regression criteria (what must NOT break)
-- Verification that includes the original issue from the user's perspective
-
-### Documentation Update Configuration (for Stage 4)
-
-When Plan Enhancer's Stage 4 Step 1 runs documentation updates, Debug Mode triggers if any of these are true:
-- Investigation revealed system behavior not documented in `documentation/technology/architecture/`
-- Root cause analysis revealed a missing or incorrect coding standard in `documentation/technology/standards/`
-- The bug exposed an undocumented integration or dependency
-
-If none of these conditions are met, Stage 4 Step 1 skips documentation updates.
-
-## Edge Cases
-
-- **Bug not reproducible** — Report investigation findings. Plan should include logging/monitoring additions to catch the issue in production.
-- **Multiple root causes** — Plan includes fixes for all causes, ordered by impact.
-- **Fix requires architectural change** — Flag this. If the fix violates existing architecture, suggest running Feature Mode instead for a proper design review.
-- **External dependency bug** — If the bug is in a third-party dependency, document the finding and plan workaround or upgrade tasks.
-- **Intermittent bug** — Include tasks to add deterministic reproduction (e.g., test with controlled timing, mock flaky dependencies).
+Each fix task should include:
+- Regression criteria (what must NOT break) alongside success criteria
+- A test that proves the bug exists before the fix is applied — the plan must include writing and running this test as the first step of the fix, so the team can verify the bug reproduces and confirm the fix resolves it
 
 ## Constraints
 
-- Do NOT write any fix code — this is a planning mode
 - Do NOT skip hypothesis generation — jumping to solutions without evidence produces wrong fixes
-- Do NOT ignore System Tester results — reproduction evidence is critical
 - Do NOT plan a fix without evidence supporting the root cause
-- Do NOT write any files before Stage 4 — research and discussion stay in conversation context
-- Always include verification and regression tests as steps within fix tasks, not as separate standalone tasks
-- Do NOT create fix tasks whose sole purpose is updating documentation — doc updates happen in Stage 4 Step 1, not as execution tasks

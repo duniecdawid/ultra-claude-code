@@ -14,6 +14,7 @@ What this plan accomplishes. One or two sentences.
 References to the documentation that informs this plan. Prefer links over prose — if the information lives in a doc, link to it rather than restating it here.
 
 - **Architecture:** [link to relevant architecture doc(s)]
+- **Product:** [link to product description in documentation/product/description/]
 - **Requirements:** [link to relevant requirements doc(s)]
 - **RFCs:** [link to relevant RFC(s), if any]
 - **Other:** [any additional context references]
@@ -41,13 +42,9 @@ External libraries, frameworks, and services this plan depends on. The shared Te
 
 ## Task List
 
-> Every task gets the full pipeline: planning -> impl -> review -> test.
-> Tasks must deliver end-to-end testable user value — from database through backend to API/UI. A tester must be able to verify each task by simulating user behavior, not just checking technical artifacts.
-> Trivial work (config changes, doc updates, renames) MUST be absorbed into the nearest task — never listed standalone.
-> Sequential dependency chains MUST be merged into a single task.
-
 ### Task 1: {Title}
 - **Description:** What needs to be done
+- **Product context:** Relevant product description or requirements files
 - **Files:** Expected files to create/modify
 - **Patterns:** Architecture/standards files the executor must follow (populated by Standards Review)
 - **Success criteria:** How to verify this task is done
@@ -55,6 +52,7 @@ External libraries, frameworks, and services this plan depends on. The shared Te
 
 ### Task 2: {Title}
 - **Description:** What needs to be done
+- **Product context:** Relevant product description or requirements files
 - **Files:** Expected files to create/modify
 - **Patterns:** Architecture/standards files the executor must follow (populated by Standards Review)
 - **Success criteria:** How to verify this task is done
