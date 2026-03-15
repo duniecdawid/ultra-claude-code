@@ -14,39 +14,51 @@
 
 <pre><code>User: /uc:feature-mode "Add user authentication"
 
-1. SCOPE CHALLENGE
-   &rarr; Feature Mode activates, challenges scope and pushes for clarity
-   &rarr; Asks "why?", ensures requirements are specific
+STAGE 1: UNDERSTAND (Scope Challenge)
+   &rarr; Feature Mode activates (Head of Technology persona)
+   &rarr; Challenges scope, asks "why?", surfaces edge cases, predicts implementation challenges
+   &rarr; Proposes hypotheses and risks for user to react to
+   &rarr; Interactive dialogue via AskUserQuestion until scope is sharp
+   &rarr; No files written, no research agents spawned
 
-2. CONTEXT GATHERING
+STAGE 2: RESEARCH
+   Phase A &mdash; Structural Survey (primary):
    &rarr; Code Surveyor + Doc Surveyor subagents scan codebase and documentation in parallel
-   &rarr; Explore subagent investigates deeper context (architecture, product docs, codebase)
+   &rarr; Direct reading of architecture/, requirements/, plans/ while surveyors work
    &rarr; Docs Manager skill loaded for documentation awareness
 
-3. DOCUMENTATION UPDATE
+   Phase B &mdash; Targeted Deep Research (conditional):
+   &rarr; Only triggered when Phase A reveals gaps:
+     &rarr; Explore agent for cross-component complexity or conflicts with existing plans
+     &rarr; /uc:tech-research for external library documentation gaps
+   &rarr; If Phase B not needed, proceeds with surveyor output + direct reading
+
+STAGE 3: DISCUSS (Synthesis &amp; Brainstorm)
+   &rarr; Claude synthesizes all findings from Stages 1-2
+   &rarr; Presents recommended approach with reasoning, constraints, trade-offs
+   &rarr; Interactive brainstorm with user until convergence
+   &rarr; Mandatory conversation gate before any files are written
+
+STAGE 4: WRITE (Documentation + Plan + Approval)
+   Step 1 &mdash; Documentation updates:
    &rarr; Architecture decisions written to documentation/technology/architecture/
-   &rarr; If architecture decision is ambiguous: suggests RFC mode
+   &rarr; Product requirements routed to documentation/product/requirements/
+   &rarr; If architecture decision is ambiguous: RFC sub-mode triggered
      &rarr; Creates documentation/technology/rfcs/{NNN}-auth-strategy.md
      &rarr; Runs AI persona review (Devil's Advocate, Pragmatist, etc.)
      &rarr; Outcome integrated into architecture doc, RFC archived
 
-4. PLAN CREATION
+   Step 2 &mdash; Plan creation:
    &rarr; Plan Enhancer scaffolds plan directory
    &rarr; Plan created in documentation/plans/user-auth/README.md (task list embedded)
    &rarr; Every task gets the full pipeline (Executor + Reviewer + Tester + Tech Knowledge)
 
-5. PLAN REVIEW
+   Step 3 &mdash; Plan review:
    &rarr; User reviews and approves plan
-   &rarr; If user rejects plan:
-     &rarr; User provides feedback on what to change
-     &rarr; Mode re-enters planning with feedback as additional context
-     &rarr; Revised plan generated and re-presented
-   &rarr; If user partially rejects:
-     &rarr; User specifies in chat which tasks to remove or modify
-     &rarr; Plan updated in place, task list adjusted
-     &rarr; Re-presented for final approval
+   &rarr; If user rejects: re-enters planning with feedback
+   &rarr; If user partially rejects: plan updated in place, re-presented
 
-6. EXECUTION
+   Post-approval:
    &rarr; /uc:plan-execution user-auth
    &rarr; Per-task pipeline teams run tasks from the plan (see Plan Execution below)</code></pre>
 
@@ -54,14 +66,14 @@
 <ul>
 <li><strong>RFC mode disagreement</strong> &mdash; If AI personas reach no consensus, Lead presents all perspectives and user decides.</li>
 <li><strong>Scope creep during planning</strong> &mdash; If research reveals the feature is much larger than expected, Claude flags this and suggests splitting into multiple plans.</li>
-<li><strong>Missing architecture docs</strong> &mdash; If architecture docs don&rsquo;t exist yet, Feature Mode creates them as part of the Documentation Update phase.</li>
+<li><strong>Missing architecture docs</strong> &mdash; If architecture docs don&rsquo;t exist yet, Feature Mode creates them as part of Stage 4 Step 1.</li>
 </ul>
 
 <h2 id="plan-execution">Plan Execution</h2>
 
 <p>See <a href="#execution" class="tab-link">Execution</a> for the complete 5-phase workflow.</p>
 
-<p><strong>Summary:</strong> <code>/uc:plan-execution {plan-name}</code> &rarr; Lead reads plan &rarr; spawns per-task pipeline teams (Executor, Reviewer, Tester for every task + shared Tech Knowledge agent) &rarr; each team self-coordinates internally through pipeline stages &rarr; up to 2&ndash;4 teams run concurrently &rarr; checkpoints at every 3 tasks, on user request, and before risky amendments &rarr; Tester runs final gate &rarr; summary report.</p>
+<p><strong>Summary:</strong> <code>/uc:plan-execution {plan-name}</code> &rarr; Lead reads plan &rarr; presents cost estimate and gets user confirmation &rarr; spawns shared Tech Knowledge agent + Project Manager &rarr; spawns per-task pipeline teams (Executor, Reviewer, Tester for every task) &rarr; each team self-coordinates internally through pipeline stages &rarr; concurrency based on plan size (1&ndash;2 teams for 1&ndash;3 tasks, 2&ndash;3 for 4&ndash;8, 3&ndash;4 for 9+) &rarr; pipeline gate allows dependent successors to start planning while predecessors are in review/test &rarr; checkpoints at every 3 tasks, on user request, and before risky amendments &rarr; Tester runs final gate (includes browser smoke test for frontend projects) &rarr; summary report.</p>
 
 <h2 id="discovery-mode">Discovery Mode</h2>
 
@@ -209,46 +221,52 @@
 
 <pre><code>User: /uc:debug-mode "Login fails intermittently on staging"
 
-1. ANALYSIS
-   &rarr; Debug Mode skill analyzes the issue description
-   &rarr; Identifies affected components, potential areas of concern
+STAGE 1: UNDERSTAND (Issue Analysis)
+   &rarr; Debug Mode skill activates (Head of Technology persona)
+   &rarr; Parses symptoms, expected behavior, reproduction context, impact
+   &rarr; Interactive dialogue via AskUserQuestion for missing details
+   &rarr; No files written, no research agents spawned
 
-2. STRUCTURAL SURVEY + HYPOTHESES
+STAGE 2: RESEARCH
+   Phase 2A &mdash; Structural Survey + Hypothesis Generation:
    &rarr; Code Surveyor + Doc Surveyor subagents scan relevant code and docs
-   &rarr; Proposes hypotheses based on survey findings (e.g., race condition, session expiry, cache stale)
+   &rarr; Direct reading of architecture docs + recent git log
+   &rarr; Generates 2-5 hypotheses ranked by likelihood
+   &rarr; Presents hypotheses to user for confirmation/rejection
 
-3. PARALLEL INVESTIGATION
-   &rarr; Spawns Explore subagents &mdash; one per hypothesis, investigating in parallel via Task tool
+   Phase 2B &mdash; Parallel Investigation:
+   &rarr; Spawns Explore subagents &mdash; one per hypothesis, investigating in parallel
    &rarr; System Tester subagent attempts to reproduce the bug
-   &rarr; Evidence gathered, hypotheses ranked by likelihood
+   &rarr; Evidence gathered for each hypothesis
 
-4. EVIDENCE SYNTHESIS
-   &rarr; Collects all investigation results
+   Phase 2C &mdash; Evidence Synthesis:
    &rarr; Ranks hypotheses by evidence strength
+   &rarr; Cross-references findings across hypotheses
+   &rarr; Identifies root cause with strongest evidence
+   &rarr; Determines fix scope
 
-4.5. DOCUMENTATION UPDATE
-   &rarr; Updates architecture or standards docs if investigation reveals undocumented behavior
-   &rarr; Mirrors Feature Mode's documentation update phase
+STAGE 3: DISCUSS (Synthesis &amp; Brainstorm)
+   &rarr; Claude synthesizes investigation results and presents root cause analysis
+   &rarr; Interactive brainstorm with user on fix approach
+   &rarr; Mandatory conversation gate before any files are written
 
-5. FIX PLANNING
-   &rarr; Plan created focused on the fix + verification steps
+STAGE 4: WRITE (Documentation + Plan + Approval)
+   Step 1 &mdash; Documentation updates (if investigation reveals undocumented behavior):
+   &rarr; Architecture or standards docs updated
+   &rarr; RFC sub-mode triggered if fix requires ambiguous architectural change
+
+   Step 2 &mdash; Fix plan creation:
    &rarr; Plan Enhancer scaffolds plan directory
+   &rarr; Plan focused on fix + verification steps
 
-6. PLAN REVIEW
+   Step 3 &mdash; Plan review:
    &rarr; User reviews and approves plan
-   &rarr; If user rejects plan:
-     &rarr; User provides feedback on what to change
-     &rarr; Mode re-enters planning with feedback as additional context
-     &rarr; Revised plan generated and re-presented
-   &rarr; If user partially rejects:
-     &rarr; User specifies in chat which tasks to remove or modify
-     &rarr; Plan updated in place, task list adjusted
-     &rarr; Re-presented for final approval
+   &rarr; If user rejects: re-enters planning with feedback
+   &rarr; If user partially rejects: plan updated in place, re-presented
 
-7. EXECUTION
+   Post-approval:
    &rarr; /uc:plan-execution {plan-name}
-   &rarr; Per-task pipeline teams implement the fix
-   &rarr; System Tester validates the fix resolves the original issue</code></pre>
+   &rarr; Per-task pipeline teams implement the fix</code></pre>
 
 <p><strong>Edge cases:</strong></p>
 <ul>

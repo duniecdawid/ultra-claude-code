@@ -20,7 +20,7 @@
 
 <h2 id="coordination-model">The Coordination Model</h2>
 
-<p>Three mechanisms work together:</p>
+<p>Five mechanisms work together:</p>
 
 <div class="table-wrap">
 <table>
@@ -29,9 +29,10 @@
 </thead>
 <tbody>
 <tr><td><strong>Per-Task Pipeline Teams</strong></td><td>Lead spawns a dedicated mini-team for each task. Each team has its own Executor, Reviewer, and Tester, plus access to a shared Tech Knowledge agent for external library docs. The team self-coordinates internally through all pipeline stages.</td></tr>
-<tr><td><strong>Shared Directory</strong> (<code>plans/{name}/shared/</code>)</td><td>Contains <code>lead.md</code> with plan overview, concurrency decisions, architectural constraints, and key decisions. Written by the Lead. Survives session death.</td></tr>
+<tr><td><strong>Shared Directory</strong> (<code>plans/{name}/shared/</code>)</td><td>Contains <code>lead.md</code> with plan overview, concurrency decisions, architectural constraints, task dependency graph, and key decisions. Written by the Lead. Survives session death.</td></tr>
 <tr><td><strong>Plan README.md</strong></td><td>Source of truth for what needs to be done, task ordering, success criteria.</td></tr>
 <tr><td><strong>Per-Task Artifact Files</strong> (<code>plans/{name}/tasks/task-N/</code>)</td><td>Each task gets a subdirectory with <code>plan.md</code> and <code>impl.md</code> &mdash; persistent context written by the task&rsquo;s pipeline team.</td></tr>
+<tr><td><strong>Project Manager</strong> (<code>pm-{PLAN_NAME}</code>)</td><td>Operational monitoring layer. Maintains a JSON status dashboard (exposed via Tailscale HTTPS for mobile access), runs a background watchdog script for stall and rate-limit detection, pings team members for status, sends ALERTs to Lead with recommendations (re-spawn, pause spawning), and produces a post-execution operational report. One PM per plan, spawned once before any task-teams.</td></tr>
 </tbody>
 </table>
 </div>
@@ -46,22 +47,26 @@
 <tr><th>Team Member</th><th>Receives in Spawn Prompt</th></tr>
 </thead>
 <tbody>
-<tr><td><strong>All team members</strong></td><td>Plan README.md path, <code>shared/lead.md</code> path, task description from plan</td></tr>
-<tr><td><strong>Task Executor</strong></td><td>+ architecture docs path (<code>documentation/technology/architecture/</code>), coding standards path (<code>documentation/technology/standards/</code>), drives the review/test cycle via SendMessage. Can spawn Explore subagents for codebase investigation and query the shared Tech Knowledge agent for external library docs.</td></tr>
-<tr><td><strong>Code Reviewer</strong></td><td>+ architecture docs path, coding standards path, SendMessage target (Executor) for feedback</td></tr>
-<tr><td><strong>Task Tester</strong></td><td>+ success criteria from plan, <code>.claude/system-test.md</code> (if exists), SendMessage target (Executor) for feedback</td></tr>
+<tr><td><strong>All team members</strong></td><td>Plan README.md path, <code>shared/lead.md</code> path, task description from plan, teammate names (Executor, Reviewer, Tester, <code>knowledge-{PLAN_NAME}</code>, <code>pm-{PLAN_NAME}</code>)</td></tr>
+<tr><td><strong>Task Executor</strong></td><td>+ task-specific pattern files from plan&rsquo;s Patterns field, Lead name for operational messages, drives the review/test cycle via SendMessage. Can spawn Explore subagents for codebase investigation and query <code>knowledge-{PLAN_NAME}</code> for external library docs.</td></tr>
+<tr><td><strong>Code Reviewer</strong></td><td>+ architecture docs path (<code>documentation/technology/architecture/</code>), coding standards path (<code>documentation/technology/standards/</code>), task-specific pattern files, SendMessage targets (Executor, Tester) for feedback</td></tr>
+<tr><td><strong>Task Tester</strong></td><td>+ success criteria from plan, <code>documentation/product/</code> (all product docs), <code>.claude/system-test.md</code> (if exists), SendMessage target (Executor) for feedback</td></tr>
 </tbody>
 </table>
 </div>
 
 <p><strong>Example spawn prompt (Task Executor):</strong></p>
 <blockquote>
-<p>&ldquo;You are a Task Executor for Task 3: Add user authentication middleware.<br>
-Read these files for context:<br>
+<p>&ldquo;You are the team coordinator for task 3 of the &lsquo;user-auth&rsquo; plan.<br>
+<br>
+Your task: Add user authentication middleware<br>
+<br>
+Your teammates: Reviewer: reviewer-3, Tester: tester-3, Tech Knowledge: knowledge-user-auth, Lead: {lead name}, PM: pm-user-auth<br>
+<br>
+Context files to read first:<br>
 - Plan: documentation/plans/user-auth/README.md<br>
 - Lead notes: documentation/plans/user-auth/shared/lead.md<br>
-- Architecture: documentation/technology/architecture/<br>
-- Standards: documentation/technology/standards/<br>
+- Patterns: {task-specific pattern files from plan}<br>
 <br>
 Write your implementation plan to tasks/task-3/plan.md. Write implementation notes to tasks/task-3/impl.md. Drive the review/test cycle by sending messages to your Reviewer and Tester teammates when ready. You have 10 fix cycles before escalating to Lead.&rdquo;</p>
 </blockquote>
@@ -114,42 +119,52 @@ Write your implementation plan to tasks/task-3/plan.md. Write implementation not
 <pre><code>Lead (main session -- user interacts here)
 |
 +-- Reads plan README.md, decides concurrency
-+-- Creates shared/ directory with lead.md (plan overview, constraints, decisions)
++-- Presents cost estimate, waits for user confirmation
++-- Creates shared/ directory with lead.md (plan overview, constraints, dependency graph)
 +-- Creates tasks/ subdirectories for each task
 |
-+-- Tech Knowledge Agent (shared across all task teams)
++-- Project Manager (pm-{PLAN_NAME}) -- spawned once, plan-wide
+|   Model: sonnet | Tools: Read, Write, Glob, Grep, Bash
+|   - Maintains JSON status dashboard (exposed via Tailscale HTTPS)
+|   - Runs background watchdog for stall/rate-limit detection
+|   - Pings team members for status, sends ALERTs to Lead
+|   - Produces post-execution operational report
+|
++-- Tech Knowledge Agent (knowledge-{PLAN_NAME}) -- shared across all task teams
 |   Model: sonnet | Tools: Read, WebFetch, WebSearch, mcp__ref
+|   Skills: tech-research (preloaded)
 |   - Provides external library/framework documentation on demand
-|   - Queried by Executors when they need external API context
+|   - Queried by Executors, Reviewers, and Testers
 |
 +-- Per-Task Team 1 (spawned as agent team)
 |   |
-|   +-- Task Executor (1)
+|   +-- Task Executor (executor-1)
 |   |   Model: opus | Tools: Read, Write, Edit, Glob, Grep, Bash
-|   |   - Reads shared/lead.md, architecture docs, standards
+|   |   - Reads shared/lead.md, task-specific pattern files
 |   |   - Spawns Explore subagents for codebase investigation
-|   |   - Queries shared Tech Knowledge agent for external library docs
+|   |   - Queries knowledge-{PLAN_NAME} for external library docs
 |   |   - Writes implementation plan to tasks/task-N/plan.md
 |   |   - Implements code, writes notes to tasks/task-N/impl.md
 |   |   - Drives review/test cycle via SendMessage
 |   |   - Max 10 fix cycles before escalating to Lead
 |   |
-|   +-- Code Reviewer (1)
+|   +-- Code Reviewer (reviewer-1)
 |   |   Model: sonnet | Tools: Read, Glob, Grep
 |   |   DisallowedTools: Write, Edit, Bash
 |   |   - Checks code quality, pattern compliance, architecture conformance
 |   |   - PASS/FAIL with specific file:line feedback to Executor
 |   |   - Completely read-only
 |   |
-|   +-- Task Tester (1)
-|       Model: sonnet | Tools: Read, Glob, Grep, Bash
-|       DisallowedTools: Write, Edit
+|   +-- Task Tester (tester-1)
+|       Model: sonnet | Tools: Read, Write, Edit, Glob, Grep, Bash + 12 Chrome tools
 |       - Runs relevant tests, checks success criteria from plan
+|       - For frontend tasks, launches app in Chrome to verify UI renders
+|       - Can create/modify test files (*.test.*, *.spec.*, __tests__/)
 |       - PASS/FAIL with feedback to Executor
-|       - Read-only for source code, Bash for test commands only
+|       - Read-only for source code
 |
 +-- Per-Task Team 2 (concurrent with Team 1)
-|   ... (same structure)
+|   ... (same structure, numbered executor-2, reviewer-2, tester-2)
 |
 +-- Per-Task Team N (up to concurrency limit)
     ... (same structure)</code></pre>
@@ -164,14 +179,27 @@ Write your implementation plan to tasks/task-3/plan.md. Write implementation not
 <tr><th>Plan Size (tasks)</th><th>Max Concurrent Teams</th></tr>
 </thead>
 <tbody>
-<tr><td>1&ndash;3</td><td>2</td></tr>
-<tr><td>4&ndash;8</td><td>3</td></tr>
-<tr><td>9+</td><td>4</td></tr>
+<tr><td>1&ndash;3</td><td>1&ndash;2</td></tr>
+<tr><td>4&ndash;8</td><td>2&ndash;3</td></tr>
+<tr><td>9+</td><td>3&ndash;4</td></tr>
 </tbody>
 </table>
 </div>
 
 <p>As each team completes its task and exits, the Lead spawns the next pending task&rsquo;s team. Teams are independent &mdash; no cross-team coordination needed.</p>
+
+<h3 id="pipeline-gate">Pipeline Gate (Early Successor Spawning)</h3>
+
+<p>When a task&rsquo;s Executor signals &ldquo;implementation complete&rdquo; (entering review/test), the Lead checks for dependent successors still in &ldquo;pending&rdquo; state. If found:</p>
+
+<ol>
+<li>Lead spawns the successor task-team in <strong>pipeline mode</strong> &mdash; the Executor can research and plan, but is <strong>blocked from implementing</strong> until the predecessor passes all stages.</li>
+<li>Pipeline-spawned tasks in planning-only mode do <strong>NOT</strong> count against the concurrency limit. They count as a full slot only once implementation is approved.</li>
+<li>When the predecessor task passes (both review and test), Lead sends &ldquo;Implementation approved&rdquo; to the successor Executor &mdash; it can then proceed to implement.</li>
+<li>The PM tracks pipeline-spawned tasks with a <code>PIPELINE-SPAWN</code> event type and <code>pipeline_mode</code> flag in the dashboard.</li>
+</ol>
+
+<p>This allows successor tasks to get a head start on planning without blocking the pipeline, reducing total execution time for plans with sequential dependencies.</p>
 
 <p>Model selection per role (these values correspond to the <code>model:</code> field in each agent&rsquo;s <code>.md</code> frontmatter &mdash; see <a href="#components" class="tab-link">Components</a>):</p>
 
@@ -181,10 +209,11 @@ Write your implementation plan to tasks/task-3/plan.md. Write implementation not
 <tr><th>Role</th><th>Model</th><th>Rationale</th></tr>
 </thead>
 <tbody>
-<tr><td>Tech Knowledge</td><td>sonnet</td><td>Shared agent for external library docs &mdash; lightweight, on-demand queries</td></tr>
-<tr><td>Task Executor</td><td>opus</td><td>Writing production code is the highest-stakes task &mdash; quality here reduces downstream review/test failures and retry loops</td></tr>
-<tr><td>Code Reviewer</td><td>sonnet</td><td>Pattern matching, quality analysis</td></tr>
-<tr><td>Task Tester</td><td>sonnet</td><td>Per-task test execution + final full test suite gate</td></tr>
+<tr><td>Task Executor</td><td>opus</td><td>Code generation, architectural decisions, codebase research &mdash; highest capability required</td></tr>
+<tr><td>Code Reviewer</td><td>sonnet</td><td>Pattern recognition, architecture conformance</td></tr>
+<tr><td>Task Tester</td><td>sonnet</td><td>Test execution, failure diagnosis</td></tr>
+<tr><td>Tech Knowledge</td><td>sonnet</td><td>Documentation retrieval &mdash; shared across all tasks</td></tr>
+<tr><td>Project Manager</td><td>sonnet</td><td>Operational observation &mdash; read-only, low overhead</td></tr>
 </tbody>
 </table>
 </div>
@@ -203,7 +232,7 @@ Write your implementation plan to tasks/task-3/plan.md. Write implementation not
 <li><strong>Read/Glob/Grep</strong>: always allowed (read-only)</li>
 </ul>
 
-<p>Task Tester is read-only for source code &mdash; it should NOT have Write/Edit on <code>src/</code>. Code Reviewer is fully read-only (Write, Edit, and Bash are all disallowed). Tech Knowledge agent is read-only.</p>
+<p>Task Tester has Write/Edit access for <strong>test files only</strong> (<code>*.test.*</code>, <code>*.spec.*</code>, <code>__tests__/</code>) &mdash; it should NOT modify source code. Code Reviewer is fully read-only (Write, Edit, and Bash are all disallowed). Tech Knowledge agent is read-only. Project Manager has Write for dashboard JSON files only.</p>
 
 <h2 id="shared-directory">Shared Directory</h2>
 
@@ -343,39 +372,55 @@ PHASE 1: SETUP (Lead actions)
   b. Check for checkpoint:
      - If checkpoint exists -&gt; show resume prompt
      - If resuming -&gt; skip completed tasks based on checkpoint
-  c. Create shared/ directory with initial lead.md
-  e. Create tasks/task-N/ subdirectories for each task
-  f. Determine concurrency (1-3 tasks: 2, 4-8: 3, 9+: 4 max teams)
+  c. Create shared/ directory with initial lead.md (includes dependency graph)
+  d. Create tasks/task-N/ subdirectories for each task
+  e. Determine concurrency (1-3 tasks: 1-2, 4-8: 2-3, 9+: 3-4 max teams)
+  f. Present cost estimate to user:
+     - Cost per task pipeline: ~150K tokens (Executor + Reviewer + Tester)
+     - Tech Knowledge (plan-wide): ~100K tokens
+     - Project Manager (plan-wide): ~50K tokens
+     Wait for explicit user confirmation before proceeding.
+  g. Spawn shared Tech Knowledge agent (knowledge-{PLAN_NAME})
+  h. Spawn Project Manager (pm-{PLAN_NAME}) -- plan-wide monitoring
 
 PHASE 2: PIPELINE ORCHESTRATION (per-task teams, self-coordinating)
 
   For each task (up to concurrency limit):
-    Lead spawns a per-task agent team:
+    Lead spawns a per-task agent team (executor-N, reviewer-N, tester-N):
 
     Executor:
-      read shared/lead.md + architecture docs + standards -&gt;
+      read shared/lead.md + task-specific pattern files -&gt;
       spawn Explore subagents for codebase investigation -&gt;
-      query Tech Knowledge agent for external library docs -&gt;
+      query knowledge-{PLAN_NAME} for external library docs -&gt;
       write tasks/task-N/plan.md -&gt;
+      send plan to Reviewer for feedback, then to Lead for review -&gt;
       implement code -&gt;
       write tasks/task-N/impl.md -&gt;
-      send "ready for review" to Reviewer
-      send "ready for test" to Tester
+      send "implementation complete" to Lead -&gt;
+      send "ready for review" to Reviewer AND "ready for test" to Tester
 
     Code Reviewer (parallel with Tester):
       check quality, patterns, architecture -&gt;
       PASS: signal Executor | FAIL: feedback to Executor
 
     Task Tester (parallel with Reviewer):
-      run tests, check criteria -&gt;
+      run tests, check criteria against plan + product docs -&gt;
       PASS: signal Executor | FAIL: feedback to Executor
 
     If FAIL (either):
-      Executor fixes, re-sends for review/test (up to 10 cycles)
+      Executor fixes, re-sends BOTH review AND test (up to 10 cycles)
     If PASS (both):
-      Team reports "task done" to Lead, team exits
+      Executor reports "task done" to Lead, Lead sends shutdown_request
+
+  Pipeline gate:
+    When Executor signals "implementation complete":
+      Lead checks for dependent successors in "pending" state
+      If found: spawn successor in pipeline mode (planning only, impl blocked)
+      Pipeline-spawned tasks don't count against concurrency while planning
+      When predecessor passes: Lead sends "Implementation approved" to successor
 
   As teams complete, Lead spawns next pending task's team.
+  Lead sends terse status updates to PM for dashboard.
 
 PHASE 3: CHECKPOINT (triggered by Lead)
   Triggers: every 3 completed tasks,
@@ -395,8 +440,10 @@ PHASE 5: COMPLETION (Lead actions)
   a. All task teams have reported done
   b. Lead asks a Tester to run full test suite (final gate)
      - Not per-task -- entire suite as regression check
+     - For frontend projects: includes browser smoke test via Chrome tools
      - If fail: Lead decides whether to re-queue or report
-  c. Produce summary: tasks, files changed, decisions, tests
-  d. Present summary to user</code></pre>
+  c. Lead tells PM to write operational report
+  d. Produce summary: tasks, files changed, decisions, tests
+  e. Present summary to user</code></pre>
 
 </div>

@@ -41,7 +41,7 @@
 
 <h2 id="plugin-structure">Plugin Structure</h2>
 
-<p>Ultra Claude is packaged as a Claude Code plugin &mdash; a directory with <code>.claude-plugin/plugin.json</code> as its manifest.</p>
+<p>Ultra Claude is packaged as a Claude Code plugin &mdash; a directory with <code>.claude-plugin/plugin.json</code> as its manifest. The manifest contains only <code>name</code>, <code>description</code>, and <code>author</code> fields &mdash; it identifies the plugin but does not declare structural content (skills/agents are discovered by directory convention).</p>
 
 <ul>
 <li><strong>Skills</strong> = subdirectories under <code>skills/</code>, each containing a <code>SKILL.md</code> with YAML frontmatter + system prompt body. Skills with <code>user-invocable: true</code> become slash commands namespaced as <code>/uc:{skill-name}</code>.</li>
@@ -172,7 +172,7 @@
 
 <h2 id="two-layers">Two Layers: Planning and Execution</h2>
 
-<p>Instead of a rigid multi-phase pipeline, there are <strong>three specialized planning modes</strong> that each produce structured plans for a specific use case, and <strong>one execution engine</strong> that runs any plan.</p>
+<p>Instead of a rigid multi-phase pipeline, there are <strong>four specialized planning modes</strong> that each produce structured plans or research artifacts for a specific use case, and <strong>one execution engine</strong> that runs any plan.</p>
 
 <h3 id="planning-layer">Planning Layer</h3>
 
@@ -186,15 +186,15 @@
 
 <h4 id="feature-mode">Feature Mode</h4>
 
-<p>For new features. Spawns Explore agent + loads Docs Manager skill to gather context about the codebase, existing architecture, and product requirements before planning.</p>
+<p>For new features. Follows the 4-stage framework. Stage 2 Research uses a two-phase approach: <strong>Phase A</strong> spawns Code Surveyor + Doc Surveyor as the primary structural survey; <strong>Phase B</strong> conditionally spawns an Explore agent only when Phase A reveals cross-component complexity, conflicts with existing plans, or external system context gaps. Docs Manager skill is loaded for documentation awareness.</p>
 
 <ul>
 <li>Challenges scope, pushes for clarity, asks &ldquo;why?&rdquo;</li>
 <li>Considers product requirements, architecture, and implementation in one pass</li>
-<li>When architecture decisions are ambiguous or high-risk, suggests <strong>RFC mode</strong> for structured review (AI personas: Devil&rsquo;s Advocate, Pragmatist, Security/Reliability, Cost-conscious &mdash; and/or human reviewers)</li>
+<li>When architecture decisions are ambiguous or high-risk, suggests <strong>RFC sub-mode</strong> during Stage 4 Step 1 for structured review (AI personas: Devil&rsquo;s Advocate, Pragmatist, Security/Reliability, Cost-conscious &mdash; and/or human reviewers)</li>
 <li>Produces a plan in <code>documentation/plans/{name}/</code></li>
 <li>Architecture decisions go to <code>documentation/technology/architecture/</code></li>
-<li>If RFC mode is triggered, RFC goes to <code>documentation/technology/rfcs/</code></li>
+<li>If RFC sub-mode is triggered, RFC goes to <code>documentation/technology/rfcs/</code></li>
 </ul>
 
 <h4 id="debug-mode">Debug Mode</h4>
@@ -217,19 +217,23 @@
 <li>Produces a plan to resolve them (update docs or update code)</li>
 </ul>
 
-<h3 id="discovery-mode">Discovery Mode (Optional Pre-Step)</h3>
+<h4 id="discovery-mode">Discovery Mode</h4>
 
-<p>Research only &mdash; coding is disabled. Operates as a Head of Product persona. Focused on building product vision, gathering requirements, defining user personas, exploring competitors, and researching technology options. Spawns Explore subagent + Market Analyzer subagents.</p>
+<p>For product research &mdash; coding is disabled. Operates as a Head of Product persona. Focused on building product vision, gathering requirements, defining user personas, exploring competitors, and researching technology options. Spawns Explore subagent + Market Analyzer subagents.</p>
 
-<p>Discovery feeds into planning but does not produce a plan itself. Output goes to <code>documentation/product/</code> &mdash; producing research reports (<code>research/</code>), distilled product descriptions (<code>description/</code>), requirements (<code>requirements/</code>), and user personas (<code>personas/</code>) as the topic demands.</p>
+<p>Discovery produces research artifacts (not execution plans) in <code>documentation/product/</code> &mdash; research reports (<code>research/</code>), distilled product descriptions (<code>description/</code>), requirements (<code>requirements/</code>), and user personas (<code>personas/</code>) as the topic demands. Output can optionally feed into Feature Mode as context for subsequent planning.</p>
 
 <h3 id="execution-layer">Execution Layer</h3>
 
 <p>The execution engine is documented in detail in <a href="#execution" class="tab-link">Execution</a>.</p>
 
-<p>In summary: Plan Execution reads any plan README.md and runs it through per-task pipeline teams. The Lead spawns a dedicated mini-team for each task (Executor, Reviewer, Tester &mdash; 3 agents per task + 1 shared Tech Knowledge agent), and tracks progress. Each team self-coordinates internally &mdash; the Executor drives the review/test cycle via SendMessage, spawns Explore subagents for codebase investigation, and queries the shared Tech Knowledge agent for external library docs. Teams run concurrently up to the plan-size-based limit (2&ndash;4 teams). Persistent context lives in <code>shared/lead.md</code> and per-task <code>tasks/task-N/</code> artifact files.</p>
+<p>In summary: Plan Execution reads any plan README.md and runs it through per-task pipeline teams. The Lead presents a cost estimate and gets user confirmation, then spawns a shared Tech Knowledge agent and a Project Manager (one per plan for operational monitoring). The Lead then spawns a dedicated mini-team for each task (Executor, Reviewer, Tester &mdash; 3 agents per task), and tracks progress. Each team self-coordinates internally &mdash; the Executor drives the review/test cycle via SendMessage, spawns Explore subagents for codebase investigation, and queries the shared Tech Knowledge agent for external library docs. Teams run concurrently based on plan size (1&ndash;2 for 1&ndash;3 tasks, 2&ndash;3 for 4&ndash;8, 3&ndash;4 for 9+). A pipeline gate allows dependent successors to start planning while predecessors are in review/test. Persistent context lives in <code>shared/lead.md</code> and per-task <code>tasks/task-N/</code> artifact files.</p>
 
 <h2 id="agent-coordination">Agent Coordination</h2>
+
+<blockquote>
+<p><strong>Built-in vs custom agents:</strong> Ultra Claude defines <strong>custom agents</strong> as <code>.md</code> files in the <code>agents/</code> directory (10 agents &mdash; see <a href="#components" class="tab-link">Components</a>). It also uses <strong>built-in Claude Code agent types</strong> like <code>Explore</code> (spawned via the Agent tool&rsquo;s <code>subagent_type: Explore</code> parameter) for codebase investigation. Built-in agents are Claude Code capabilities, not UC-defined files.</p>
+</blockquote>
 
 <p>Ultra Claude uses two coordination mechanisms depending on the stage:</p>
 
@@ -280,17 +284,23 @@
 <h4 id="feature-mode-structure">Feature Mode</h4>
 
 <pre><code>Lead (main session)
-├── Code Surveyor subagent(s)
-│   - Survey codebase structure and patterns
-│   - Return structural overview to Lead
 │
-├── Doc Surveyor subagent(s)
-│   - Survey existing documentation
-│   - Return what's documented to Lead
+├── Phase A — Structural Survey (always):
+│   ├── Code Surveyor subagent(s)
+│   │   - Survey codebase structure and patterns
+│   │   - Return structural overview to Lead
+│   │
+│   └── Doc Surveyor subagent(s)
+│       - Survey existing documentation
+│       - Return what's documented to Lead
 │
-├── Explore subagent
-│   - Investigates codebase + architecture + product context
-│   - Returns findings to Lead
+├── Phase B — Targeted Deep Research (conditional):
+│   ├── Explore subagent (when surveyors reveal cross-component complexity,
+│   │   conflicts with existing plans, or external system context gaps)
+│   │   - Investigates codebase + architecture + product context
+│   │   - Returns findings to Lead
+│   │
+│   └── /uc:tech-research (for external library documentation gaps)
 │
 └── Docs Manager skill (loaded in main context, not a subagent)</code></pre>
 
@@ -335,7 +345,7 @@
 
 <p>The execution engine is the only mode that uses agent teams. See <a href="#execution" class="tab-link">Execution</a> for the full team structure, context bridge, shared memory, checkpoints, and error recovery.</p>
 
-<p>Lead + per-task pipeline teams + shared Tech Knowledge agent. Each task gets a dedicated mini-team (Task Executor, Code Reviewer, Task Tester &mdash; 3 agents per task) that self-coordinates internally through pipeline stages: planning &rarr; implementation &rarr; review &rarr; test. Executors spawn Explore subagents for codebase investigation and query the shared Tech Knowledge agent for external library docs. Up to 2&ndash;4 task teams run concurrently depending on plan size.</p>
+<p>Lead + Project Manager (one per plan) + shared Tech Knowledge agent + per-task pipeline teams. Each task gets a dedicated mini-team (Task Executor, Code Reviewer, Task Tester &mdash; 3 agents per task) that self-coordinates internally through pipeline stages: planning &rarr; implementation &rarr; review &rarr; test. Executors spawn Explore subagents for codebase investigation and query the shared Tech Knowledge agent for external library docs. Concurrency based on plan size (1&ndash;2 for small plans, up to 3&ndash;4 for large plans). Pipeline gate allows dependent successors to start planning while predecessors are in review/test.</p>
 
 <h3 id="agent-team-constraints">Agent Team Constraints We Accept</h3>
 

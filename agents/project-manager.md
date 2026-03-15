@@ -98,30 +98,52 @@ At the very beginning of execution (before spawning any teams):
    }
    ```
 
-4. Launch the dashboard:
-
-   **CRITICAL:** The dashboard script uses `process.cwd()` as its data directory, so the node process MUST be started with the plan directory as its working directory. Use a subshell to ensure `cd` applies to the node process, not just the parent shell. `$PLAN_DIR` was set in step 1.
+4. Determine project identity:
    ```bash
-   (cd "$PLAN_DIR" && nohup node "${CLAUDE_PLUGIN_ROOT}/scripts/status-dashboard.js" > /dev/null 2>&1 &
-   echo $! > "$PLAN_DIR/status/dashboard.pid")
-   ```
-   Verify it started from the correct directory:
-   ```bash
-   DASH_PID=$(cat "$PLAN_DIR/status/dashboard.pid")
-   ls -l /proc/$DASH_PID/cwd 2>/dev/null | grep -q "$PLAN_DIR" && echo "OK: dashboard CWD correct" || echo "ERROR: dashboard CWD wrong"
+   PROJECT_ROOT=$(git -C "$PLAN_DIR" rev-parse --show-toplevel)
+   PROJECT_NAME=$(basename "$PROJECT_ROOT")
+   PLAN_NAME=$(basename "$PLAN_DIR")
    ```
 
-5. Expose via Tailscale (gives HTTPS + mobile access):
+5. Check if global dashboard is already running:
    ```bash
-   tailscale serve --bg 3847 2>&1 | tee /tmp/tailscale-serve-output.txt
+   DASHBOARD_PID_FILE="$HOME/.claude/dashboard.pid"
+   DASHBOARD_RUNNING=false
+   if [ -f "$DASHBOARD_PID_FILE" ]; then
+     DASH_PID=$(cat "$DASHBOARD_PID_FILE")
+     if kill -0 "$DASH_PID" 2>/dev/null && \
+        curl -sf http://localhost:3847/api/plans > /dev/null 2>&1; then
+       DASHBOARD_RUNNING=true
+     fi
+   fi
    ```
-   Extract the URL from the output (the `https://...ts.net/` line). If `tailscale serve` fails (not enabled, no permissions), fall back to `http://{tailscale-ip}:3847` — get the IP with:
+
+6. If not running, start it:
+   ```bash
+   if [ "$DASHBOARD_RUNNING" = "false" ]; then
+     nohup node "${CLAUDE_PLUGIN_ROOT}/scripts/global-dashboard.js" > /dev/null 2>&1 &
+     echo $! > "$DASHBOARD_PID_FILE"
+     sleep 1
+     tailscale serve --bg 3847 2>&1 | tee /tmp/tailscale-serve-output.txt
+   fi
+   ```
+   If `tailscale serve` fails (not enabled, no permissions), fall back to `http://{tailscale-ip}:3847` — get the IP with:
    ```bash
    tailscale ip -4
    ```
-   Save the resulting URL as `DASHBOARD_URL`.
 
-6. SendMessage to Lead: "Dashboard live at {DASHBOARD_URL} (also http://localhost:3847)"
+7. Register this plan with the global dashboard:
+   ```bash
+   curl -sf -X POST http://localhost:3847/api/register \
+     -H 'Content-Type: application/json' \
+     -d "{\"project\":\"$PROJECT_NAME\",\"plan\":\"$PLAN_NAME\",\"plan_dir\":\"$PLAN_DIR\",\"project_root\":\"$PROJECT_ROOT\"}"
+   ```
+   Save the dashboard URL:
+   ```
+   DASHBOARD_URL="https://code-vm.tailf017e.ts.net/plan/$PROJECT_NAME/$PLAN_NAME"
+   ```
+
+8. SendMessage to Lead: "Dashboard live at {DASHBOARD_URL} (also http://localhost:3847)"
    This is the ONE status message you send to Lead at startup — it gives the human the link they need to monitor execution from any device.
 
 ### JSON Schemas
@@ -207,10 +229,13 @@ Update the relevant JSON file(s) on every operational event. The dashboard polls
 
 ### Shutdown
 
-When execution completes, clean up the dashboard, Tailscale serve, and watchdog:
+When execution completes, mark the plan inactive and clean up the watchdog. The global dashboard stays running for other plans and historical viewing:
 ```bash
-tailscale serve --https=443 off 2>/dev/null
-kill "$(cat "$PLAN_DIR/status/dashboard.pid")" 2>/dev/null
+# Mark plan inactive (dashboard stays running)
+curl -sf -X POST http://localhost:3847/api/deregister \
+  -H 'Content-Type: application/json' \
+  -d "{\"project\":\"$PROJECT_NAME\",\"plan\":\"$PLAN_NAME\"}"
+# Kill watchdog only — dashboard and Tailscale persist
 kill "$(cat "$PLAN_DIR/watchdog.pid")" 2>/dev/null
 ```
 

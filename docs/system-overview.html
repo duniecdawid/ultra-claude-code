@@ -974,12 +974,14 @@
           <svg width="28" height="16" viewBox="0 0 28 16"><path d="M2 8 L20 8 M14 2 L22 8 L14 14" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           <div class="pair-connector-label">product/</div>
         </div>
-        <div class="mode-card" data-tip="Head of Technology persona. Challenges scope, designs architecture, plans implementation. Classifies architecture impact (Additive/Compatible/Breaking). Triggers RFC sub-mode for ambiguous decisions. Reads product/ from Discovery output.">
+        <div class="mode-card" data-tip="Head of Technology persona. Challenges scope, designs architecture, plans implementation. Phase A: Code Surveyor + Doc Surveyor (primary). Phase B: Explore agent (conditional). Triggers RFC sub-mode during Stage 4 for ambiguous decisions. Reads product/ from Discovery output.">
           <div class="icon">&#9881;</div>
           <div class="name">Feature Mode</div>
           <div class="desc">Architecture &amp; implementation planning. Head of Technology persona. RFC sub-mode.</div>
           <div class="agents-used">
-            <span class="agent-badge">Explore</span>
+            <span class="agent-badge">Code Surv.</span>
+            <span class="agent-badge">Doc Surv.</span>
+            <span class="agent-badge" style="background: var(--yellow-light); color: var(--yellow); border-color: var(--yellow-border);">Explore (cond.)</span>
             <span class="agent-badge">Docs Mgr</span>
           </div>
         </div>
@@ -1043,11 +1045,20 @@
 
       <div class="exec-engine">
         <!-- Lead -->
-        <div class="lead-box" data-tip="Main session. Creates 3 task lists from plan, spawns teammates + shared Tech Knowledge agent, promotes tasks between lists, handles failures, checkpoints.">
-          <div class="icon">&#128101;</div>
-          <div class="name">Lead</div>
-          <div class="desc">/uc:plan-execution</div>
-          <div class="desc" style="margin-top:8px; font-size:10px; color:var(--gray-400);">Creates 3 task lists from plan<br>Spawns teammates + shared Tech Knowledge<br>Promotes tasks between lists<br>Handles failures &amp; checkpoints<br>Reports to user</div>
+        <div style="display:flex; flex-direction:column; gap:10px; flex-shrink:0;">
+          <div class="lead-box" data-tip="Main session. Reads plan, decides concurrency, presents cost estimate, spawns teammates (Tech Knowledge + PM + per-task teams), manages pipeline gate, handles failures, checkpoints.">
+            <div class="icon">&#128101;</div>
+            <div class="name">Lead</div>
+            <div class="desc">/uc:plan-execution</div>
+            <div class="desc" style="margin-top:8px; font-size:10px; color:var(--gray-400);">Reads plan, decides concurrency<br>Spawns teammates + shared agents<br>Manages pipeline gate<br>Handles failures &amp; checkpoints<br>Reports to user</div>
+          </div>
+          <div class="agent-card" style="width:160px;" data-tip="Operational monitor. Maintains JSON status dashboard (Tailscale HTTPS), runs background watchdog for stall/rate-limit detection, sends ALERTs to Lead, produces operational report. One per plan.">
+            <div class="icon">&#128202;</div>
+            <div class="name">Project Manager</div>
+            <div class="model">sonnet</div>
+            <div class="desc">Dashboard, stall detection, operational report. One per plan.</div>
+            <div class="tools">Read, Write, Glob, Grep, Bash</div>
+          </div>
         </div>
 
         <!-- Agent Team -->
@@ -1090,12 +1101,12 @@
               <svg width="36" height="24" viewBox="0 0 36 24"><path d="M2 12 L28 12 M22 6 L30 12 L22 18" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
 
-            <div class="agent-card" data-tip="Principal QA Engineer IC. Runs per-task tests + final full suite gate. Cannot modify source code. FAIL re-queues to impl.">
+            <div class="agent-card" data-tip="Principal QA Engineer IC. Runs per-task tests + final full suite gate. For frontend tasks, launches app in Chrome to verify UI. Can create/modify test files. FAIL re-queues to impl.">
               <div class="icon">&#9889;</div>
               <div class="name">Tester</div>
               <div class="model">sonnet</div>
-              <div class="desc">Principal QA IC. Tests + full suite gate. Read-only.</div>
-              <div class="tools">Read, Glob, Grep, Bash</div>
+              <div class="desc">Principal QA IC. Tests + full suite gate + Chrome browser testing.</div>
+              <div class="tools">Read, Write, Edit, Glob, Grep, Bash + Chrome</div>
             </div>
           </div>
 
@@ -1135,8 +1146,9 @@
           <div class="tree-line"><span class="tree-prefix">│   ├── </span><span class="tree-file">architecture/</span></div>
           <div class="tree-line"><span class="tree-prefix">│   ├── </span><span class="tree-file">standards/</span></div>
           <div class="tree-line"><span class="tree-prefix">│   └── </span><span class="tree-file">rfcs/</span></div>
-          <div class="tree-line"><span class="tree-prefix">├── </span><span class="tree-dir">product/</span><span class="tree-comment">vision, requirements &amp; personas</span></div>
+          <div class="tree-line"><span class="tree-prefix">├── </span><span class="tree-dir">product/</span><span class="tree-comment">vision, research, requirements &amp; personas</span></div>
           <div class="tree-line"><span class="tree-prefix">│   ├── </span><span class="tree-file">description/</span></div>
+          <div class="tree-line"><span class="tree-prefix">│   ├── </span><span class="tree-file">research/</span></div>
           <div class="tree-line"><span class="tree-prefix">│   ├── </span><span class="tree-file">requirements/</span></div>
           <div class="tree-line"><span class="tree-prefix">│   └── </span><span class="tree-file">personas/</span></div>
           <div class="tree-line"><span class="tree-prefix">├── </span><span class="tree-dir">plans/</span><span class="tree-comment">one dir per initiative</span></div>
@@ -1178,16 +1190,10 @@
     <!-- Support Skills -->
     <div class="side-panel">
       <div class="section-label">Support Skills</div>
-      <div class="items-row">
-        <div class="side-item support-item" data-tip="Meta-skill with full system awareness. Advises how to accomplish tasks, guides extensions.">
-          <div class="name">Help</div>
-          <div class="desc">System advisor</div>
-        </div>
-        <div class="side-item support-item" data-tip="Saves task lists, teammate assignments, decisions, and blockers to checkpoint file for session recovery.">
-          <div class="name">Checkpoint</div>
-          <div class="desc">Saves state to file for recovery</div>
-        </div>
-        <div class="side-item support-item" data-tip="External library documentation via Ref.tools MCP. Focused ~500 token responses.">
+
+      <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:var(--gray-400); margin-bottom:8px;">Documentation &amp; Research</div>
+      <div class="items-row" style="margin-bottom:14px;">
+        <div class="side-item support-item" data-tip="External library documentation via Ref.tools MCP. Focused ~500-5k token responses.">
           <div class="name">Tech Research</div>
           <div class="desc">Library docs via Ref</div>
         </div>
@@ -1199,9 +1205,41 @@
           <div class="name">Context Management</div>
           <div class="desc">External system context</div>
         </div>
+        <div class="side-item support-item" data-tip="Critical brainstorming and devil's advocate mode. Challenges assumptions, finds risks, lists tradeoffs. Interactive discussion — no implementation.">
+          <div class="name">Critical Brainstorm</div>
+          <div class="desc">Devil&rsquo;s advocate mode</div>
+        </div>
+      </div>
+
+      <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:var(--gray-400); margin-bottom:8px;">Execution &amp; Recovery</div>
+      <div class="items-row" style="margin-bottom:14px;">
+        <div class="side-item support-item" data-tip="Saves task lists, teammate assignments, decisions, and blockers to checkpoint file for session recovery.">
+          <div class="name">Checkpoint</div>
+          <div class="desc">Saves state for recovery</div>
+        </div>
+        <div class="side-item support-item" data-tip="Organize existing tmux panes into a team grid layout for plan-execution teams. Left column: main + shared agents. Right: task grid. Never creates new panes.">
+          <div class="name">tmux Team Grid</div>
+          <div class="desc">Organize team panes</div>
+        </div>
+      </div>
+
+      <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:var(--gray-400); margin-bottom:8px;">System &amp; Infrastructure</div>
+      <div class="items-row" style="margin-bottom:14px;">
+        <div class="side-item support-item" data-tip="Meta-skill with full system awareness. Advises how to accomplish tasks, guides extensions.">
+          <div class="name">Help</div>
+          <div class="desc">System advisor</div>
+        </div>
         <div class="side-item support-item" data-tip="Universal onboarding skill. Handles any project state: greenfield, existing docs, mixed. Explores codebase, scaffolds canonical structure, derives config, migrates docs — all in one skill.">
           <div class="name">Init Project</div>
           <div class="desc">Onboard any project</div>
+        </div>
+        <div class="side-item support-item" data-tip="Configure VS Code settings for optimal Claude Code experience. Manages both remote (vscode-server) and client-side settings.">
+          <div class="name">VS Code Setup</div>
+          <div class="desc">Editor configuration</div>
+        </div>
+        <div class="side-item support-item" data-tip="Configure Tailscale for exposing local services (dashboards, dev servers) via HTTPS. Used by PM dashboard for mobile access.">
+          <div class="name">Tailscale Setup</div>
+          <div class="desc">Expose services via HTTPS</div>
         </div>
       </div>
     </div>
