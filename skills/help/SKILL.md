@@ -33,6 +33,7 @@ Then proceed with answering the user's question.
 
 When the user has a goal, recommend the right workflow. **This is the canonical skill list — use ONLY these skills. Do not reference any skill not listed here.**
 
+- **Setting up a new machine** -> `/uc:setup` — configures shell env vars (1M context, agent teams), checks prerequisites (tmux, node), optionally sets up Tailscale. Run once per machine, re-run after plugin updates.
 - **Onboarding any project (new or existing)** -> `/uc:init-project` — scaffolds docs, derives config, migrates existing docs. Handles greenfield, migration, and mixed states.
 - **Building a new feature** -> `/uc:feature-mode`
 - **Fixing a bug** -> `/uc:debug-mode`

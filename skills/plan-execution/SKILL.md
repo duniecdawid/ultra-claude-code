@@ -22,13 +22,15 @@ If no match is found, inform the user and stop. Store the resolved full director
 
 ## Prerequisites
 
+**Quick setup check:** Read `~/.claude/uc-setup.json`. If missing or `version` is older than the current plugin version (from `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json`), warn: "Run `/uc:setup` to configure your environment." Continue with the checks below regardless.
+
 Before starting, verify:
 
 1. Plan exists at `documentation/plans/$ARGUMENTS/README.md`
 2. Agent teams enabled (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS: "1"` in settings)
 3. tmux installed (required for agent teams)
 
-If any prerequisite is missing, inform the user and stop.
+If any prerequisite is missing, suggest running `/uc:setup` and stop.
 
 ---
 

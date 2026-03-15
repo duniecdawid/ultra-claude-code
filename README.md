@@ -32,13 +32,19 @@ It is NOT a framework, library, or runtime. It is a collection of **skills** and
 /plugin install uc@ultra-claude
 ```
 
-After installing, run the init skill in your target project to scaffold and configure everything:
+After installing, run setup to configure your machine (one-time):
+
+```
+/uc:setup
+```
+
+Then initialize your target project:
 
 ```
 /uc:init-project
 ```
 
-Then use `/uc:help` to see all available commands.
+Use `/uc:help` to see all available commands.
 
 ## Plugin Directory Structure
 
@@ -81,6 +87,8 @@ ultra-claude/
 │   ├── checkpoint/
 │   │   └── SKILL.md
 │   ├── help/
+│   │   └── SKILL.md
+│   ├── setup/
 │   │   └── SKILL.md
 │   └── tech-research/
 │       └── SKILL.md
