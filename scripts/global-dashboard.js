@@ -226,6 +226,13 @@ async function handleAPI(req, res) {
     const reg = readRegistry();
     const enriched = reg.plans.map(p => {
       const proj = readPlanProject(p.plan_dir);
+      if (proj && proj.status === 'executing') {
+        const teams = readPlanTeams(p.plan_dir);
+        const activeTeams = teams.filter(t => t.status && t.status !== 'completed' && t.status !== 'pending');
+        if (activeTeams.length > 0) {
+          proj._active_stages = activeTeams.map(t => ({ task_id: t.task_id, task_name: t.task_name, status: t.status }));
+        }
+      }
       return { ...p, live_status: proj };
     });
     res.end(JSON.stringify({ plans: enriched }));
@@ -272,6 +279,14 @@ const HOMEPAGE_HTML = `<!DOCTYPE html>
   .hostname { color: #484f58; font-size: 0.85em; }
   .refresh-indicator { width: 8px; height: 8px; border-radius: 50%; background: #3fb950; display: inline-block; margin-right: 6px; animation: blink 5s ease-in-out infinite; }
   @keyframes blink { 0%, 90%, 100% { opacity: 1; } 95% { opacity: 0.2; } }
+  .plan-stages { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+  .stage-chip { font-size: 0.7em; padding: 1px 6px; border-radius: 10px; font-weight: 500; font-family: monospace; }
+  .stage-chip-planning { background: #8b949e33; color: #8b949e; }
+  .stage-chip-implementing { background: #1f6feb33; color: #58a6ff; }
+  .stage-chip-reviewing { background: #d2a8ff33; color: #d2a8ff; }
+  .stage-chip-testing { background: #3fb95033; color: #3fb950; }
+  .stage-chip-completed { background: #23863533; color: #3fb950; }
+  .stage-chip-escalated { background: #da363333; color: #f85149; }
   .stale-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-left: 6px; vertical-align: middle; }
   .stale-dot-warning { background: #d29922; }
   .stale-dot-critical { background: #f85149; }
@@ -297,8 +312,9 @@ const HOMEPAGE_HTML = `<!DOCTYPE html>
   .plan-meta { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 6px; font-size: 0.78em; color: #8b949e; }
 
   /* Progress bar */
-  .progress-bar { flex: 1; max-width: 160px; height: 6px; background: #21262d; border-radius: 3px; overflow: hidden; }
-  .progress-fill { height: 100%; background: #3fb950; border-radius: 3px; transition: width 0.3s; }
+  .progress-bar { flex: 1; max-width: 160px; height: 6px; background: #21262d; border-radius: 3px; overflow: hidden; display: flex; }
+  .progress-done { height: 100%; background: #3fb950; transition: width 0.3s; }
+  .progress-active { height: 100%; background: repeating-linear-gradient(90deg, #1f6feb 0px, #1f6feb 4px, #1f6feb88 4px, #1f6feb88 8px); transition: width 0.3s; }
 
   /* Project groups */
   .project-group { margin-bottom: 16px; }
@@ -356,7 +372,14 @@ function renderCard(p) {
   const sc = statusClass(status);
   const total = live.total_tasks || 0;
   const done = live.completed_tasks || 0;
-  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  const donePct = total > 0 ? Math.round((done / total) * 100) : 0;
+  // Weighted progress for in-progress tasks
+  const stageWeight = { planning: 0.15, implementing: 0.5, reviewing: 0.75, testing: 0.9 };
+  let activeWeight = 0;
+  if (live._active_stages) {
+    live._active_stages.forEach(function(s) { activeWeight += (stageWeight[s.status] || 0.25); });
+  }
+  const activePct = total > 0 ? Math.min(100 - donePct, Math.round((activeWeight / total) * 100)) : 0;
   const elapsed = fmtTime(live.elapsed_seconds);
   const isActive = p.active || status === 'executing';
 
@@ -374,9 +397,14 @@ function renderCard(p) {
         '<span class="status-badge status-' + sc + '">' + esc(status) + '</span>' + staleDot +
       '</div>' +
       '<div class="plan-name">' + esc(p.plan) + '</div>' +
+      (live._active_stages && live._active_stages.length > 0
+        ? '<div class="plan-stages">' + live._active_stages.map(function(s) {
+            return '<span class="stage-chip stage-chip-' + esc(s.status) + '">' + esc(s.task_id) + ': ' + esc(s.status) + '</span>';
+          }).join(' ') + '</div>'
+        : '') +
       '<div class="plan-meta">' +
         (total > 0 ? '<span>' + done + '/' + total + ' tasks</span>' +
-          '<div class="progress-bar"><div class="progress-fill" style="width:' + pct + '%"></div></div>' : '') +
+          '<div class="progress-bar"><div class="progress-done" style="width:' + donePct + '%"></div><div class="progress-active" style="width:' + activePct + '%"></div></div>' : '') +
         (elapsed ? '<span>' + elapsed + '</span>' : '') +
         '<span>' + fmtDate(p.registered_at) + '</span>' +
       '</div>' +
