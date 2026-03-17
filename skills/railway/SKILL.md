@@ -10,7 +10,20 @@ Manage Railway.com projects via railway-cli with multi-account token support. No
 
 ## Why Tokens Matter
 
-Railway CLI normally requires `railway login` which opens a browser. When you manage multiple Railway accounts (personal, work, client projects), switching accounts means logging out and back in. Tokens solve this: each project directory maps to an account token, and the skill sets the right `RAILWAY_TOKEN` automatically before running any command.
+Railway CLI normally requires `railway login` which opens a browser. When you manage multiple Railway accounts (personal, work, client projects), switching accounts means logging out and back in. Tokens solve this: each project directory maps to an account token, and the skill sets the right token env var automatically before running any command.
+
+## Token Types — Critical Distinction
+
+Railway uses **two different environment variables** depending on token scope:
+
+| Token Type | Env Var | Where to Create | Scope |
+|-----------|---------|----------------|-------|
+| **API token** (account-level) | `RAILWAY_API_TOKEN` | Dashboard → Account Settings → Tokens | All projects in account/workspace |
+| **Project token** | `RAILWAY_TOKEN` | Dashboard → Project → Settings → Tokens | Single project only |
+
+**Use `RAILWAY_API_TOKEN` for multi-account workflows** — it works across all projects in the account. `RAILWAY_TOKEN` is only for project-scoped tokens (CI/CD, single-project automation).
+
+The config stores the token type so the right env var is used automatically.
 
 ## Config Location
 
@@ -59,19 +72,24 @@ Every railway-cli command must run with the correct account token. The flow is:
 1. **Determine the project directory** — use the current working directory
 2. **Look up the account** — read `~/.config/railway-cli/config.json`, find the project mapping for this directory
 3. **Get the token** — resolve the account name to its token
-4. **Run the command** — prefix with `RAILWAY_TOKEN=<token> railway <command>`
+4. **Run the command** — prefix with the correct env var based on token type:
+   - API tokens (account-level): `RAILWAY_API_TOKEN=<token> railway <command>`
+   - Project tokens: `RAILWAY_TOKEN=<token> railway <command>`
 
 If no mapping exists for the current directory, tell the user and offer to set one up (link the project to an account).
 
 ```bash
-# Example: deploy with the right account
-RAILWAY_TOKEN=<resolved-token> railway up
+# Example: deploy with account-level token (most common)
+RAILWAY_API_TOKEN=<resolved-token> railway up
 
 # Example: check logs
-RAILWAY_TOKEN=<resolved-token> railway logs
+RAILWAY_API_TOKEN=<resolved-token> railway logs
 
 # Example: list variables
-RAILWAY_TOKEN=<resolved-token> railway variable list
+RAILWAY_API_TOKEN=<resolved-token> railway variable list
+
+# Example: with project-scoped token (CI/CD)
+RAILWAY_TOKEN=<project-token> railway up
 ```
 
 ### First-Time Setup
@@ -98,6 +116,6 @@ These flags work with most railway commands — use them when the user targets a
 ## Important Notes
 
 - **Always verify the account** before destructive operations (deploy, delete, scale down). Show the user which account and project they're about to affect.
-- **Token types**: `RAILWAY_TOKEN` works for both project tokens and API tokens. Project tokens are scoped to one project; API tokens (account-level) work across all projects in that account.
+- **Token types matter**: `RAILWAY_API_TOKEN` for account/workspace tokens, `RAILWAY_TOKEN` for project-scoped tokens. Using the wrong env var causes "Unauthorized" errors even with a valid token.
 - **railway link** still works — after linking, the project remembers its Railway project ID locally. The token just handles auth.
 - If a command fails with auth errors, the token may be expired or revoked. Guide the user to generate a new one.

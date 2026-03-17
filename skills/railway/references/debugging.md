@@ -1,6 +1,6 @@
 # Logs & Debugging
 
-All commands below assume the token is resolved from config. Always prefix with `RAILWAY_TOKEN=<token>`.
+All commands below assume the token is resolved from config. Always prefix with `RAILWAY_API_TOKEN=<token>`.
 
 ## Logs
 
@@ -8,19 +8,19 @@ All commands below assume the token is resolved from config. Always prefix with 
 
 ```bash
 # Stream logs from the current service
-RAILWAY_TOKEN=<token> railway logs
+RAILWAY_API_TOKEN=<token> railway logs
 
 # Stream logs from a specific service
-RAILWAY_TOKEN=<token> railway logs -s api-server
+RAILWAY_API_TOKEN=<token> railway logs -s api-server
 
 # Show only the last N lines
-RAILWAY_TOKEN=<token> railway logs -n 100
+RAILWAY_API_TOKEN=<token> railway logs -n 100
 
 # View build logs (not runtime logs)
-RAILWAY_TOKEN=<token> railway logs --build
+RAILWAY_API_TOKEN=<token> railway logs --build
 
 # Target a specific environment
-RAILWAY_TOKEN=<token> railway logs -e staging
+RAILWAY_API_TOKEN=<token> railway logs -e staging
 ```
 
 ### Build Logs vs Runtime Logs
@@ -32,10 +32,10 @@ RAILWAY_TOKEN=<token> railway logs -e staging
 
 ```bash
 # Show current project, service, and environment info
-RAILWAY_TOKEN=<token> railway status
+RAILWAY_API_TOKEN=<token> railway status
 
 # Check which account the token belongs to
-RAILWAY_TOKEN=<token> railway whoami
+RAILWAY_API_TOKEN=<token> railway whoami
 ```
 
 ## Debugging Workflow
@@ -44,37 +44,37 @@ When something goes wrong, follow this sequence:
 
 ### 1. Check Status
 ```bash
-RAILWAY_TOKEN=<token> railway status
+RAILWAY_API_TOKEN=<token> railway status
 ```
 Confirm you're looking at the right project/service/environment.
 
 ### 2. Check Runtime Logs
 ```bash
-RAILWAY_TOKEN=<token> railway logs -n 200
+RAILWAY_API_TOKEN=<token> railway logs -n 200
 ```
 Look for crash messages, unhandled errors, connection failures.
 
 ### 3. Check Build Logs
 ```bash
-RAILWAY_TOKEN=<token> railway logs --build
+RAILWAY_API_TOKEN=<token> railway logs --build
 ```
 If the service never started, the issue is in the build phase.
 
 ### 4. Check Variables
 ```bash
-RAILWAY_TOKEN=<token> railway variable list
+RAILWAY_API_TOKEN=<token> railway variable list
 ```
 Missing or wrong environment variables are a top cause of failures — especially DATABASE_URL, API keys, and PORT.
 
 ### 5. SSH In (if running)
 ```bash
-RAILWAY_TOKEN=<token> railway ssh
+RAILWAY_API_TOKEN=<token> railway ssh
 ```
 If the service is running but misbehaving, SSH in to inspect the filesystem, check processes, or test connectivity.
 
 ### 6. Open Dashboard
 ```bash
-RAILWAY_TOKEN=<token> railway open
+RAILWAY_API_TOKEN=<token> railway open
 ```
 Sometimes the web dashboard has info not available via CLI — deployment history, metrics, resource usage.
 

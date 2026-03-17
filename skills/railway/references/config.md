@@ -8,16 +8,19 @@ The config file lives at `~/.config/railway-cli/config.json`:
 {
   "accounts": {
     "personal": {
-      "token": "railway-token-xxxx",
+      "token": "405cfcaf-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+      "type": "api",
       "description": "Personal Railway account"
     },
     "work": {
-      "token": "railway-token-yyyy",
+      "token": "abcdef12-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+      "type": "api",
       "description": "Company workspace"
     },
     "client-acme": {
-      "token": "railway-token-zzzz",
-      "description": "ACME Corp client project"
+      "token": "project-token-zzzz",
+      "type": "project",
+      "description": "ACME Corp client project (project-scoped)"
     }
   },
   "projects": {
@@ -39,7 +42,8 @@ The config file lives at `~/.config/railway-cli/config.json`:
 ### Fields
 
 **accounts** — Named Railway accounts, each with:
-- `token` — Railway API token or project token
+- `token` — The token value
+- `type` — **Critical**: `"api"` for account/workspace tokens (uses `RAILWAY_API_TOKEN`) or `"project"` for project-scoped tokens (uses `RAILWAY_TOKEN`). Default to `"api"` — most users want account-level tokens.
 - `description` — Human-readable label (optional but helpful)
 
 **projects** — Maps local directory paths to accounts, with optional defaults:
@@ -53,17 +57,23 @@ The config file lives at `~/.config/railway-cli/config.json`:
 
 Guide the user to create tokens from the Railway dashboard:
 
-### API Token (account-level, works across all projects)
-1. Go to Railway dashboard → Account Settings → Tokens
-2. Click "Create Token"
+### API Token (account-level, works across all projects) — RECOMMENDED
+1. Go to Railway dashboard → Account Settings → Tokens (under PERSONAL section in sidebar)
+2. Click "Create Token", give it a name
 3. Copy the token — it's only shown once
+4. **Env var**: `RAILWAY_API_TOKEN`
+5. **Config type**: `"api"`
 
 ### Project Token (scoped to one project)
 1. Go to Railway dashboard → Project → Settings → Tokens
 2. Click "Create Token"
 3. Copy the token
+4. **Env var**: `RAILWAY_TOKEN`
+5. **Config type**: `"project"`
 
 API tokens are more convenient for multi-project accounts. Project tokens are better for CI/CD or when you want tighter scope.
+
+**Common mistake**: Using `RAILWAY_TOKEN` with an account-level API token will return "Unauthorized". Always match the env var to the token type.
 
 ## Operations
 
@@ -76,7 +86,10 @@ cat ~/.config/railway-cli/config.json 2>/dev/null || echo '{"accounts":{},"proje
 # 2. Add the account (use python/jq to update JSON)
 # 3. Write back
 
-# 4. Verify the token works
+# 4. Verify the token works (use the right env var based on type!)
+# For API tokens (account-level):
+RAILWAY_API_TOKEN=<new-token> railway whoami
+# For project tokens:
 RAILWAY_TOKEN=<new-token> railway whoami
 ```
 
@@ -107,13 +120,13 @@ Projects using each:
 # From the project directory:
 # 1. Read config
 # 2. Add/update entry in "projects" for the current directory
-# 3. Optionally link the Railway project: RAILWAY_TOKEN=<token> railway link
+# 3. Optionally link the Railway project: RAILWAY_API_TOKEN=<token> railway link
 # 4. Optionally set default service/environment
 ```
 
 After mapping, verify with:
 ```bash
-RAILWAY_TOKEN=<token> railway status
+RAILWAY_API_TOKEN=<token> railway status
 ```
 
 ### Which Account Am I Using?
@@ -136,6 +149,6 @@ When the config file doesn't exist:
 2. Ask: "What name do you want for this account? (e.g., 'personal', 'work')"
 3. Ask: "Paste your Railway API token (get one from Railway dashboard → Account Settings → Tokens)"
 4. Create the config file with the account
-5. Verify with `RAILWAY_TOKEN=<token> railway whoami`
+5. Verify with `RAILWAY_API_TOKEN=<token> railway whoami`
 6. Ask: "Want to map the current project directory to this account?"
-7. If yes, add the project mapping and run `RAILWAY_TOKEN=<token> railway link`
+7. If yes, add the project mapping and run `RAILWAY_API_TOKEN=<token> railway link`

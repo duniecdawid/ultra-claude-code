@@ -1,21 +1,21 @@
 # Deployment
 
-All commands below assume the token is resolved from config. Always prefix with `RAILWAY_TOKEN=<token>`.
+All commands below assume the token is resolved from config. Always prefix with `RAILWAY_API_TOKEN=<token>`.
 
 ## Deploy Current Directory
 
 ```bash
 # Standard deploy — uploads code and builds on Railway
-RAILWAY_TOKEN=<token> railway up
+RAILWAY_API_TOKEN=<token> railway up
 
 # Deploy without waiting for logs (background)
-RAILWAY_TOKEN=<token> railway up --detach
+RAILWAY_API_TOKEN=<token> railway up --detach
 
 # Target a specific service (if project has multiple)
-RAILWAY_TOKEN=<token> railway up -s api-server
+RAILWAY_API_TOKEN=<token> railway up -s api-server
 
 # Target a specific environment
-RAILWAY_TOKEN=<token> railway up -e staging
+RAILWAY_API_TOKEN=<token> railway up -e staging
 ```
 
 `railway up` deploys the current directory. Railway auto-detects the language/framework and builds accordingly (Nixpacks). If a `Dockerfile` exists, it uses that instead.
@@ -24,10 +24,10 @@ RAILWAY_TOKEN=<token> railway up -e staging
 
 ```bash
 # Redeploy the latest deployment (same code, fresh build)
-RAILWAY_TOKEN=<token> railway redeploy
+RAILWAY_API_TOKEN=<token> railway redeploy
 
 # Redeploy a specific service
-RAILWAY_TOKEN=<token> railway redeploy -s api-server
+RAILWAY_API_TOKEN=<token> railway redeploy -s api-server
 ```
 
 Useful when you want to rebuild without pushing new code — e.g., after changing environment variables.
@@ -36,20 +36,20 @@ Useful when you want to rebuild without pushing new code — e.g., after changin
 
 ```bash
 # Restart the service (no rebuild, just restart the container)
-RAILWAY_TOKEN=<token> railway restart
+RAILWAY_API_TOKEN=<token> railway restart
 
 # Restart a specific service
-RAILWAY_TOKEN=<token> railway restart -s api-server
+RAILWAY_API_TOKEN=<token> railway restart -s api-server
 ```
 
 ## Take Down
 
 ```bash
 # Remove the deployment (service stays, but deployment is stopped)
-RAILWAY_TOKEN=<token> railway down
+RAILWAY_API_TOKEN=<token> railway down
 
 # Skip confirmation
-RAILWAY_TOKEN=<token> railway down -y
+RAILWAY_API_TOKEN=<token> railway down -y
 ```
 
 ## Deploy Workflow
