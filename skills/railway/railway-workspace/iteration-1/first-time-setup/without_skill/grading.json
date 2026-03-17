@@ -1,0 +1,10 @@
+{
+  "run_id": "first-time-setup-without_skill",
+  "expectations": [
+    {"text": "Recommends token-based auth instead of browser login", "passed": false, "evidence": "Step 1 says 'railway login' which opens a browser. Only uses tokens for the secondary account."},
+    {"text": "Guides creating a config file with multi-account structure", "passed": false, "evidence": "Uses .env + direnv per-project instead of a centralized config. No unified account management."},
+    {"text": "Shows how to add both accounts with distinct names/tokens", "passed": false, "evidence": "Only one account uses a token (the secondary). Primary uses browser-based railway login."},
+    {"text": "Includes token verification step (railway whoami or similar)", "passed": false, "evidence": "Mentions 'railway status' to check context but does not verify tokens with railway whoami."},
+    {"text": "Shows how to map project directories to specific accounts", "passed": true, "evidence": "Uses direnv .envrc files per project directory to auto-load the right RAILWAY_TOKEN."}
+  ]
+}

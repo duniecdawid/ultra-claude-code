@@ -1,0 +1,12 @@
+{
+  "eval_id": 1,
+  "eval_name": "first-time-setup",
+  "prompt": "I just installed railway-cli. I have two Railway accounts - one personal and one for my client project. Help me set this up so I can use both without having to log in and out via the browser each time.",
+  "assertions": [
+    {"id": "token-auth", "text": "Recommends token-based auth instead of browser login", "type": "boolean"},
+    {"id": "config-file", "text": "Guides creating a config file with multi-account structure", "type": "boolean"},
+    {"id": "two-accounts", "text": "Shows how to add both accounts with distinct names/tokens", "type": "boolean"},
+    {"id": "verify-token", "text": "Includes token verification step (railway whoami or similar)", "type": "boolean"},
+    {"id": "project-mapping", "text": "Shows how to map project directories to specific accounts", "type": "boolean"}
+  ]
+}

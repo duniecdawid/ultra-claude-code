@@ -1,0 +1,10 @@
+{
+  "run_id": "first-time-setup-with_skill",
+  "expectations": [
+    {"text": "Recommends token-based auth instead of browser login", "passed": true, "evidence": "Opens with 'This avoids browser logins entirely' and never suggests railway login"},
+    {"text": "Guides creating a config file with multi-account structure", "passed": true, "evidence": "Step 2 shows full config.json creation at ~/.config/railway-cli/config.json with accounts and projects sections"},
+    {"text": "Shows how to add both accounts with distinct names/tokens", "passed": true, "evidence": "Config example has 'personal' and 'client' accounts with separate tokens and descriptions"},
+    {"text": "Includes token verification step (railway whoami or similar)", "passed": true, "evidence": "Step 3 runs RAILWAY_TOKEN=... railway whoami for both tokens"},
+    {"text": "Shows how to map project directories to specific accounts", "passed": true, "evidence": "Step 4 adds project directory entries mapping to account names, Step 5 links each project"}
+  ]
+}

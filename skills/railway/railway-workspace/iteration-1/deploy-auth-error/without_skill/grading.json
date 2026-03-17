@@ -1,0 +1,10 @@
+{
+  "run_id": "deploy-auth-error-without_skill",
+  "expectations": [
+    {"text": "Checks which account is mapped to the project directory", "passed": false, "evidence": "No config-based mapping concept. Just checks railway whoami for the global session."},
+    {"text": "Verifies identity with railway whoami or similar", "passed": true, "evidence": "Step 1 runs railway whoami to check current account"},
+    {"text": "Shows how to fix the mapping or switch to correct account", "passed": false, "evidence": "Fix is railway logout + railway login (browser-based). No token/mapping approach."},
+    {"text": "Deploys with explicit RAILWAY_TOKEN= prefix", "passed": false, "evidence": "Deploys with plain 'railway up' — no RAILWAY_TOKEN prefix. Token only mentioned in CI/CD troubleshooting tip."},
+    {"text": "Verifies deployment succeeded after fix", "passed": true, "evidence": "Step 5 includes railway status to verify correct project linkage"}
+  ]
+}

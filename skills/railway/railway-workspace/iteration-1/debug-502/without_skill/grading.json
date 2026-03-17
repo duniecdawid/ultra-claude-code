@@ -1,0 +1,10 @@
+{
+  "run_id": "debug-502-without_skill",
+  "expectations": [
+    {"text": "Follows a systematic debugging flow (not random guessing)", "passed": true, "evidence": "7-step numbered flow starting with logs, then PORT, then recent changes, build/runtime, memory, redeploy, local repro"},
+    {"text": "Checks runtime logs (railway logs)", "passed": true, "evidence": "Step 1 uses 'railway logs' and 'railway logs --tail'"},
+    {"text": "Checks build logs (railway logs --build)", "passed": true, "evidence": "Step 4 distinguishes build logs vs deploy logs"},
+    {"text": "Checks environment variables as potential cause", "passed": true, "evidence": "Step 3 checks if env vars were deleted in the dashboard Variables tab"},
+    {"text": "Mentions Railway-specific causes (PORT, health checks, or similar)", "passed": true, "evidence": "Step 2 is entirely about PORT — detailed explanation of process.env.PORT requirement"}
+  ]
+}

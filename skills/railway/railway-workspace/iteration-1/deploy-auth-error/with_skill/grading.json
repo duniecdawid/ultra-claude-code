@@ -1,0 +1,10 @@
+{
+  "run_id": "deploy-auth-error-with_skill",
+  "expectations": [
+    {"text": "Checks which account is mapped to the project directory", "passed": true, "evidence": "Step 1-2 reads config.json and checks if /home/user/Projects/ClientApp has a mapping"},
+    {"text": "Verifies identity with railway whoami or similar", "passed": true, "evidence": "Step 3 runs RAILWAY_TOKEN=<token> railway whoami for each account"},
+    {"text": "Shows how to fix the mapping or switch to correct account", "passed": true, "evidence": "Step 4 has Option A (update mapping) and Option B (add new account + token)"},
+    {"text": "Deploys with explicit RAILWAY_TOKEN= prefix", "passed": true, "evidence": "Step 7 deploys with RAILWAY_TOKEN=<correct-token> railway up"},
+    {"text": "Verifies deployment succeeded after fix", "passed": true, "evidence": "Step 6 verifies with railway status before deploying, Step 7 mentions streaming logs"}
+  ]
+}

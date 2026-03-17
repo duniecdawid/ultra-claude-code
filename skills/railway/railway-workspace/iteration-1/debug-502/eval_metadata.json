@@ -1,0 +1,12 @@
+{
+  "eval_id": 3,
+  "eval_name": "debug-502",
+  "prompt": "My railway deployment is crashing. The API was working yesterday but now returns 502. Help me figure out what's wrong.",
+  "assertions": [
+    {"id": "systematic-flow", "text": "Follows a systematic debugging flow (not random guessing)", "type": "boolean"},
+    {"id": "runtime-logs", "text": "Checks runtime logs (railway logs)", "type": "boolean"},
+    {"id": "build-logs", "text": "Checks build logs (railway logs --build)", "type": "boolean"},
+    {"id": "check-variables", "text": "Checks environment variables as potential cause", "type": "boolean"},
+    {"id": "railway-specifics", "text": "Mentions Railway-specific causes (PORT, health checks, or similar)", "type": "boolean"}
+  ]
+}

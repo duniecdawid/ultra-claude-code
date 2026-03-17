@@ -1,0 +1,132 @@
+{
+  "metadata": {
+    "skill_name": "railway",
+    "skill_path": "/home/parallels/Projects/claude-marketplaces/ultra-claude/skills/railway",
+    "executor_model": "claude-sonnet-4-6",
+    "analyzer_model": "claude-opus-4-6",
+    "timestamp": "2026-03-17T10:17:22Z",
+    "evals_run": ["first-time-setup", "deploy-auth-error", "debug-502"],
+    "runs_per_configuration": 1
+  },
+  "runs": [
+    {
+      "configuration": "with_skill",
+      "eval_name": "first-time-setup",
+      "pass_rate": 1.0,
+      "passed": 5,
+      "total": 5,
+      "tokens": 17270,
+      "duration_seconds": 43.0,
+      "expectations": [
+        {"text": "Recommends token-based auth instead of browser login", "passed": true, "evidence": "Opens with 'This avoids browser logins entirely'"},
+        {"text": "Guides creating config file with multi-account structure", "passed": true, "evidence": "Full config.json creation with accounts and projects sections"},
+        {"text": "Shows how to add both accounts with distinct names/tokens", "passed": true, "evidence": "Config has 'personal' and 'client' with separate tokens"},
+        {"text": "Includes token verification step", "passed": true, "evidence": "Runs RAILWAY_TOKEN=... railway whoami for both"},
+        {"text": "Shows project directory-to-account mapping", "passed": true, "evidence": "Step 4 maps directories to accounts in config"}
+      ]
+    },
+    {
+      "configuration": "without_skill",
+      "eval_name": "first-time-setup",
+      "pass_rate": 0.2,
+      "passed": 1,
+      "total": 5,
+      "tokens": 13573,
+      "duration_seconds": 36.1,
+      "expectations": [
+        {"text": "Recommends token-based auth instead of browser login", "passed": false, "evidence": "Step 1 says 'railway login' which opens a browser"},
+        {"text": "Guides creating config file with multi-account structure", "passed": false, "evidence": "Uses .env + direnv, no centralized config"},
+        {"text": "Shows how to add both accounts with distinct names/tokens", "passed": false, "evidence": "Only secondary uses token; primary uses browser login"},
+        {"text": "Includes token verification step", "passed": false, "evidence": "No whoami verification of tokens"},
+        {"text": "Shows project directory-to-account mapping", "passed": true, "evidence": "direnv .envrc maps token per directory"}
+      ]
+    },
+    {
+      "configuration": "with_skill",
+      "eval_name": "deploy-auth-error",
+      "pass_rate": 1.0,
+      "passed": 5,
+      "total": 5,
+      "tokens": 18249,
+      "duration_seconds": 48.8,
+      "expectations": [
+        {"text": "Checks which account is mapped to the directory", "passed": true, "evidence": "Reads config.json to find mapping for /home/user/Projects/ClientApp"},
+        {"text": "Verifies identity with railway whoami", "passed": true, "evidence": "RAILWAY_TOKEN=<token> railway whoami for each account"},
+        {"text": "Shows how to fix mapping or switch account", "passed": true, "evidence": "Option A (update mapping) and Option B (new account + token)"},
+        {"text": "Deploys with explicit RAILWAY_TOKEN= prefix", "passed": true, "evidence": "RAILWAY_TOKEN=<correct-token> railway up"},
+        {"text": "Verifies deployment after fix", "passed": true, "evidence": "railway status before deploying, logs streaming after"}
+      ]
+    },
+    {
+      "configuration": "without_skill",
+      "eval_name": "deploy-auth-error",
+      "pass_rate": 0.4,
+      "passed": 2,
+      "total": 5,
+      "tokens": 13022,
+      "duration_seconds": 23.0,
+      "expectations": [
+        {"text": "Checks which account is mapped to the directory", "passed": false, "evidence": "No config-based mapping. Just global railway whoami."},
+        {"text": "Verifies identity with railway whoami", "passed": true, "evidence": "Step 1 runs railway whoami"},
+        {"text": "Shows how to fix mapping or switch account", "passed": false, "evidence": "Fix is logout + login (browser-based)"},
+        {"text": "Deploys with explicit RAILWAY_TOKEN= prefix", "passed": false, "evidence": "Plain 'railway up' — no RAILWAY_TOKEN prefix"},
+        {"text": "Verifies deployment after fix", "passed": true, "evidence": "railway status to verify project linkage"}
+      ]
+    },
+    {
+      "configuration": "with_skill",
+      "eval_name": "debug-502",
+      "pass_rate": 1.0,
+      "passed": 5,
+      "total": 5,
+      "tokens": 16517,
+      "duration_seconds": 44.2,
+      "expectations": [
+        {"text": "Follows systematic debugging flow", "passed": true, "evidence": "5-step numbered flow: status → logs → build → vars → dashboard"},
+        {"text": "Checks runtime logs", "passed": true, "evidence": "railway logs -n 200"},
+        {"text": "Checks build logs", "passed": true, "evidence": "railway logs --build"},
+        {"text": "Checks environment variables", "passed": true, "evidence": "railway variable list with specific vars to check"},
+        {"text": "Mentions Railway-specific causes", "passed": true, "evidence": "PORT warning, health check history mention"}
+      ]
+    },
+    {
+      "configuration": "without_skill",
+      "eval_name": "debug-502",
+      "pass_rate": 1.0,
+      "passed": 5,
+      "total": 5,
+      "tokens": 13452,
+      "duration_seconds": 35.7,
+      "expectations": [
+        {"text": "Follows systematic debugging flow", "passed": true, "evidence": "7-step numbered flow starting with logs"},
+        {"text": "Checks runtime logs", "passed": true, "evidence": "railway logs and railway logs --tail"},
+        {"text": "Checks build logs", "passed": true, "evidence": "Distinguishes build logs vs deploy logs"},
+        {"text": "Checks environment variables", "passed": true, "evidence": "Checks Variables tab for deleted env vars"},
+        {"text": "Mentions Railway-specific causes", "passed": true, "evidence": "Detailed PORT section with code example"}
+      ]
+    }
+  ],
+  "run_summary": {
+    "with_skill": {
+      "pass_rate": {"mean": 1.0, "stddev": 0.0},
+      "tokens": {"mean": 17345, "stddev": 868},
+      "duration_seconds": {"mean": 45.3, "stddev": 3.0}
+    },
+    "without_skill": {
+      "pass_rate": {"mean": 0.53, "stddev": 0.42},
+      "tokens": {"mean": 13349, "stddev": 280},
+      "duration_seconds": {"mean": 31.6, "stddev": 7.1}
+    },
+    "delta": {
+      "pass_rate": "+0.47 (100% vs 53%)",
+      "time_seconds": "+13.7s (43% more)",
+      "tokens": "+3996 (30% more)"
+    }
+  },
+  "notes": [
+    "debug-502 is non-discriminating: both configs pass all assertions. Debugging is general knowledge.",
+    "Skill's core value is the multi-account token config pattern — novel and not in baseline.",
+    "Baseline defaults to browser login for account management, exactly what user wants to avoid.",
+    "Token cost overhead is modest (30%) for a substantial quality gain on account management tasks."
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "eval_id": 2,
+  "eval_name": "deploy-auth-error",
+  "prompt": "Deploy this project to railway. I'm getting auth errors when I try to deploy, I think I'm using the wrong account. My project is in /home/user/Projects/ClientApp.",
+  "assertions": [
+    {"id": "check-mapping", "text": "Checks which account is mapped to the project directory", "type": "boolean"},
+    {"id": "verify-identity", "text": "Verifies identity with railway whoami or similar", "type": "boolean"},
+    {"id": "fix-mapping", "text": "Shows how to fix the mapping or switch to correct account", "type": "boolean"},
+    {"id": "token-prefix", "text": "Deploys with explicit RAILWAY_TOKEN= prefix", "type": "boolean"},
+    {"id": "verify-deploy", "text": "Verifies deployment succeeded after fix", "type": "boolean"}
+  ]
+}

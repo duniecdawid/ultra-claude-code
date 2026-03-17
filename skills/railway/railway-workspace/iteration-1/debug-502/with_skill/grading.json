@@ -1,0 +1,10 @@
+{
+  "run_id": "debug-502-with_skill",
+  "expectations": [
+    {"text": "Follows a systematic debugging flow (not random guessing)", "passed": true, "evidence": "Clear 5-step numbered flow: status → runtime logs → build logs → variables → dashboard"},
+    {"text": "Checks runtime logs (railway logs)", "passed": true, "evidence": "Step 2: RAILWAY_TOKEN=<token> railway logs -n 200 with specific patterns to look for"},
+    {"text": "Checks build logs (railway logs --build)", "passed": true, "evidence": "Step 3: RAILWAY_TOKEN=<token> railway logs --build"},
+    {"text": "Checks environment variables as potential cause", "passed": true, "evidence": "Step 4: railway variable list with specific vars to check (DATABASE_URL, PORT, API keys)"},
+    {"text": "Mentions Railway-specific causes (PORT, health checks, or similar)", "passed": true, "evidence": "Explicitly warns about PORT: 'your app should NOT set this manually; Railway injects it' and mentions health check history"}
+  ]
+}
