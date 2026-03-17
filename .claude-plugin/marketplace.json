@@ -10,7 +10,7 @@
       "name": "uc",
       "source": "./",
       "description": "Specification-driven development platform for Claude Code",
-      "version": "0.3.2",
+      "version": "0.3.3",
       "category": "development"
     }
   ]

@@ -1,0 +1,26 @@
+{
+  "skill_name": "railway",
+  "evals": [
+    {
+      "id": 1,
+      "name": "first-time-setup",
+      "prompt": "I just installed railway-cli. I have two Railway accounts - one personal and one for my client project. Help me set this up so I can use both without having to log in and out via the browser each time.",
+      "expected_output": "Should guide through creating config, adding both accounts with tokens, mapping projects, and verifying tokens work. Should NOT suggest browser login.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "deploy-auth-error",
+      "prompt": "Deploy this project to railway. I'm getting auth errors when I try to deploy, I think I'm using the wrong account. My project is in /home/user/Projects/ClientApp.",
+      "expected_output": "Should check which account is mapped to the directory, verify with railway whoami, help switch to the correct account, then deploy with the right token.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "debug-502",
+      "prompt": "My railway deployment is crashing. The API was working yesterday but now returns 502. Help me figure out what's wrong.",
+      "expected_output": "Should follow a systematic debugging flow: check status, check runtime logs, check build logs, check variables, suggest common causes. Should use the right token for the current directory.",
+      "files": []
+    }
+  ]
+}
