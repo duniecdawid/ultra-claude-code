@@ -62,6 +62,37 @@ The recommended flow when deploying:
 4. **Monitor** — watch the build logs that stream automatically, or use `railway logs` after `--detach`
 5. **Verify** — check the deployment URL or `railway status`
 
+## GitLab CI/CD Integration
+
+The official way to deploy from GitLab CI/CD (per [Railway blog](https://blog.railway.com/p/gitlab-ci-cd)):
+
+```yaml
+stages:
+  - deploy
+
+deploy:
+  stage: deploy
+  image: ghcr.io/railwayapp/cli:latest
+  only:
+    - master
+  script:
+    - railway up --service=$SVC_ID --detach
+  environment:
+    name: production
+```
+
+**Required GitLab CI/CD Variables:**
+- `RAILWAY_TOKEN` — **Project token** (not service deploy token). Create at Railway > Project > Settings > Tokens.
+- `SVC_ID` — Service ID or service name. Get via `Cmd/Ctrl+K` > "Copy Service ID" in Railway dashboard.
+
+**Critical gotchas learned the hard way:**
+- **Use the Railway CLI Docker image** (`ghcr.io/railwayapp/cli:latest`), NOT `npm install -g @railway/cli` on node:alpine. The npm-installed CLI silently fails with exit code 1 and no error output.
+- **`--service` flag is required** when using project tokens in CI. Without it, `railway up` doesn't know which service to deploy to.
+- **GitLab "Protected" variables** are only injected into protected branches. If your deploy branch isn't protected, uncheck "Protected" on the variable.
+- **GitLab "Masked" variables** must match `[a-zA-Z0-9+/=@:.~-]` and be 8+ chars. If the token doesn't match, it's silently set to empty.
+- **Don't re-declare** `RAILWAY_TOKEN` in the job's `variables:` block — GitLab CI/CD variables are already in the environment. Re-declaring can cause expansion issues.
+- **`RAILWAY_TOKEN`** is the env var name the CLI reads automatically. No `railway login` step is needed.
+
 ## Common Gotchas
 
 - **Wrong account**: Always verify with `railway status` before deploying. Deploying to the wrong account is the #1 mistake with multi-account setups.
