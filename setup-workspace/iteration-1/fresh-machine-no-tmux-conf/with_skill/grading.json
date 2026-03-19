@@ -1,0 +1,43 @@
+{
+  "eval_id": 0,
+  "eval_name": "fresh-machine-no-tmux-conf",
+  "configuration": "with_skill",
+  "expectations": [
+    {
+      "text": "Status table includes tmux.conf as a checked item",
+      "passed": true,
+      "evidence": "Status table line: 'tmux.conf             ✗ missing passthrough'"
+    },
+    {
+      "text": "tmux.conf is marked as MISSING or failing in the status table",
+      "passed": true,
+      "evidence": "Marked with ✗ and 'missing passthrough'"
+    },
+    {
+      "text": "Written tmux.conf contains 'allow-passthrough on'",
+      "passed": true,
+      "evidence": "Line 8: 'set -g allow-passthrough on'"
+    },
+    {
+      "text": "Written tmux.conf contains 'escape-time 0'",
+      "passed": true,
+      "evidence": "Line 11: 'set -sg escape-time 0'"
+    },
+    {
+      "text": "Written tmux.conf contains 'history-limit 250000'",
+      "passed": true,
+      "evidence": "Line 14: 'set -g history-limit 250000'"
+    },
+    {
+      "text": "Written tmux.conf contains all 11 settings from the skill template",
+      "passed": true,
+      "evidence": "All 11 settings present: mouse, allow-passthrough, escape-time, history-limit, extended-keys, terminal-features, set-clipboard, default-terminal, terminal-overrides, focus-events (mouse counts as 1, total = 11 lines of config)"
+    },
+    {
+      "text": "Marker JSON includes tmuxConf field in checks",
+      "passed": true,
+      "evidence": "marker.json contains '\"tmuxConf\": true'"
+    }
+  ],
+  "pass_rate": 1.0
+}

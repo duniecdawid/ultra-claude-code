@@ -1,5 +1,5 @@
 ---
-description: One-time machine setup for Ultra Claude. Checks and configures shell environment (1M context, agent teams), installs prerequisites (tmux, node), and optionally sets up Tailscale for remote dashboard access. Idempotent — safe to re-run. Writes version marker to ~/.claude/uc-setup.json so other skills can quickly check if setup is current. Use when onboarding a new machine, after Ultra Claude install, or when plan-execution reports missing prerequisites. Triggers on "setup", "machine setup", "environment setup", "configure machine", "setup 1m context", "enable agent teams".
+description: One-time machine setup for Ultra Claude. Checks and configures shell environment (1M context, agent teams), installs prerequisites (tmux, node), configures tmux for Claude Code (fixes screen tearing via DEC 2026 synchronized output passthrough), and optionally sets up Tailscale for remote dashboard access. Idempotent — safe to re-run. Writes version marker to ~/.claude/uc-setup.json so other skills can quickly check if setup is current. Use when onboarding a new machine, after Ultra Claude install, when plan-execution reports missing prerequisites, or when experiencing screen tearing/flickering in tmux. Triggers on "setup", "machine setup", "environment setup", "configure machine", "setup 1m context", "enable agent teams", "screen tearing", "tmux tearing", "flickering".
 user-invocable: true
 ---
 
@@ -63,7 +63,19 @@ node --version 2>/dev/null
 
 PASS if `node` is found (v18+ recommended for PM dashboard).
 
-### 3.5 Tailscale (optional)
+### 3.5 tmux.conf (Claude Code optimized)
+
+If tmux is installed, check `~/.tmux.conf` for the critical `allow-passthrough` setting:
+
+```bash
+grep -c 'allow-passthrough' ~/.tmux.conf 2>/dev/null
+```
+
+PASS if `allow-passthrough on` is found. This setting is essential because Claude Code's terminal UI relies on DEC 2026 synchronized output (BSU/ESU escape sequences) to batch screen draws. Without passthrough, tmux swallows these sequences, causing severe screen tearing — especially during streaming output which generates 4,000–6,700 scroll events per second.
+
+SKIP if tmux is not installed.
+
+### 3.6 Tailscale (optional)
 
 ```bash
 which tailscale 2>/dev/null && tailscale status --self --json 2>/dev/null
@@ -79,13 +91,14 @@ Display a status table:
 Ultra Claude Environment Check (plugin v{version})
 
   tmux                  ✓ installed (v3.4)
+  tmux.conf             ✗ missing passthrough
   Agent teams env var   ✗ missing
   1M context env vars   ✗ missing
   Node.js               ✓ v22.0.0
   Tailscale (optional)  — not installed
 ```
 
-If ALL required checks pass (1-4):
+If ALL required checks pass (3.1–3.5):
 - Write the marker file (Step 6)
 - Print "Environment ready! All prerequisites configured."
 - If Tailscale is not set up, mention: "Optional: Run `/uc:tailscale-setup` to enable remote dashboard access."
@@ -153,7 +166,48 @@ Recommended install methods:
     brew install node
 ```
 
-### 5.5 Fix: Tailscale
+### 5.5 Fix: tmux.conf (Claude Code optimized)
+
+Write or merge the following into `~/.tmux.conf`. If the file already exists, read it first and only add settings that are missing — don't duplicate lines. If conflicting values exist (e.g., `allow-passthrough off`), warn the user and ask before changing.
+
+Claude Code's terminal UI uses DEC 2026 synchronized output to batch screen draws and prevent tearing. Without these settings, tmux intercepts the escape sequences and the result is severe flickering during streaming output.
+
+```bash
+# ~/.tmux.conf — Claude Code optimized
+
+set -g mouse on
+
+# Fix Claude Code screen tearing (DEC 2026 synchronized output)
+# tmux defaults to blocking passthrough, which swallows the BSU/ESU
+# sequences Claude Code uses to batch screen draws
+set -g allow-passthrough on
+
+# Remove 500ms escape delay (causes input lag in Claude Code)
+set -sg escape-time 0
+
+# Handle Claude's massive scroll output (4k-6.7k events/sec)
+set -g history-limit 250000
+
+# Extended keys and clipboard
+set -g extended-keys on
+set -as terminal-features 'xterm*:extkeys'
+set -g set-clipboard on
+
+# Color and focus
+set -g default-terminal "tmux-256color"
+set -ag terminal-overrides ",xterm-256color:RGB"
+set -g focus-events on
+```
+
+After writing, reload the config if tmux is currently running:
+
+```bash
+tmux source-file ~/.tmux.conf 2>/dev/null
+```
+
+Tell the user: "If tearing persists, detach and reattach your tmux session — some terminal overrides only take effect on new attachments."
+
+### 5.6 Fix: Tailscale
 
 If the user selected Tailscale, invoke the existing skill:
 
@@ -175,6 +229,7 @@ After all fixes are applied, write `~/.claude/uc-setup.json`:
   "shellConfig": "{path to shell config file}",
   "checks": {
     "tmux": true/false,
+    "tmuxConf": true/false,
     "agentTeams": true/false,
     "context1m": true/false,
     "node": true/false,

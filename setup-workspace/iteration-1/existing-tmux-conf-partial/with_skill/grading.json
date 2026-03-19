@@ -1,0 +1,43 @@
+{
+  "eval_id": 2,
+  "eval_name": "existing-tmux-conf-partial",
+  "configuration": "with_skill",
+  "expectations": [
+    {
+      "text": "Merged tmux.conf preserves user's custom settings (base-index 1, status-bg, status-fg, bind r)",
+      "passed": true,
+      "evidence": "tmux_conf_written.txt lines 3-7 preserve base-index, status-bg, status-fg, and bind r. Original comment '# My custom tmux config' also preserved."
+    },
+    {
+      "text": "Conflict detected: screen-256color vs tmux-256color",
+      "passed": true,
+      "evidence": "conflict_warnings.txt: 'default-terminal: \"screen-256color\" vs \"tmux-256color\"' with explanation about legacy value causing rendering issues"
+    },
+    {
+      "text": "Conflict detected: history-limit 50000 vs 250000",
+      "passed": true,
+      "evidence": "conflict_warnings.txt: 'history-limit: 50000 vs 250000' with explanation about scroll overflow"
+    },
+    {
+      "text": "Conflict detected: escape-time 50 vs 0",
+      "passed": true,
+      "evidence": "conflict_warnings.txt: 'escape-time: 50 vs 0' with explanation about input lag"
+    },
+    {
+      "text": "Does NOT duplicate 'set -g mouse on' (already exists in original)",
+      "passed": true,
+      "evidence": "Only one 'mouse on' in tmux_conf_written.txt (line 2). Merge analysis table shows: 'Same — keep user's line, do not duplicate'"
+    },
+    {
+      "text": "Adds allow-passthrough on (missing from original)",
+      "passed": true,
+      "evidence": "tmux_conf_written.txt line 18: 'set -g allow-passthrough on'"
+    },
+    {
+      "text": "Transcript shows the agent warned the user about conflicts before changing values",
+      "passed": true,
+      "evidence": "Transcript shows 3 explicit user prompts with y/n for each conflict, e.g., 'Your tmux.conf sets default-terminal to \"screen-256color\"... Update? (y/n)'"
+    }
+  ],
+  "pass_rate": 1.0
+}

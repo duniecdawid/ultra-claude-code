@@ -2,6 +2,7 @@
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2026.03.19-1 | 2026-03-19 | Setup skill: add tmux.conf screen tearing fix — checks for DEC 2026 synchronized output passthrough, writes/merges optimized tmux config (allow-passthrough, escape-time 0, history-limit 250k), detects conflicts with existing settings |
 | 2026.03.15-5 | 2026-03-15 | Tech Knowledge agent: move constraints to top, add explicit "never read codebase" directive — agent should only research external docs, not browse project source |
 | 2026.03.15-4 | 2026-03-15 | Dashboard staleness detection: show warning/critical banners on detail view and stale dots on homepage when PM stops updating status files (executing plans only) |
 | 2026.03.15-3 | 2026-03-15 | Add /uc:setup skill — one-time machine setup (1M context env vars, agent teams, tmux, node, optional Tailscale). Writes version marker to ~/.claude/uc-setup.json for quick currency checks. Plan-execution now checks setup marker and suggests /uc:setup when missing. |

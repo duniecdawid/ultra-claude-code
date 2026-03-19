@@ -1,0 +1,8 @@
+Ultra Claude Environment Check (plugin v0.3.3)
+
+  tmux                  ✓ installed (v3.4)
+  tmux.conf             ✗ missing passthrough
+  Agent teams env var   ✗ missing
+  1M context env vars   ✗ missing
+  Node.js               ✓ v22.0.0
+  Tailscale (optional)  — not installed

@@ -1,0 +1,27 @@
+# My custom tmux config
+set -g mouse on
+set -g base-index 1
+set -g status-bg colour235
+set -g status-fg colour136
+set -g default-terminal "tmux-256color"
+bind r source-file ~/.tmux.conf \; display "Reloaded!"
+
+# Handle Claude's massive scroll output (4k-6.7k events/sec)
+set -g history-limit 250000
+
+# Remove 500ms escape delay (causes input lag in Claude Code)
+set -sg escape-time 0
+
+# Fix Claude Code screen tearing (DEC 2026 synchronized output)
+# tmux defaults to blocking passthrough, which swallows the BSU/ESU
+# sequences Claude Code uses to batch screen draws
+set -g allow-passthrough on
+
+# Extended keys and clipboard
+set -g extended-keys on
+set -as terminal-features 'xterm*:extkeys'
+set -g set-clipboard on
+
+# Color and focus
+set -ag terminal-overrides ",xterm-256color:RGB"
+set -g focus-events on

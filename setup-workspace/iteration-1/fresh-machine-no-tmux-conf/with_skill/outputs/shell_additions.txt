@@ -1,0 +1,6 @@
+# Ultra Claude: enable agent teams for plan execution
+export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
+
+# Ultra Claude: enable 1M context window for all opus/sonnet usage (including subagents)
+export ANTHROPIC_DEFAULT_OPUS_MODEL='claude-opus-4-6[1m]'
+export ANTHROPIC_DEFAULT_SONNET_MODEL='claude-sonnet-4-6[1m]'

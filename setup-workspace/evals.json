@@ -1,0 +1,26 @@
+{
+  "skill_name": "uc:setup",
+  "evals": [
+    {
+      "id": 0,
+      "name": "fresh-machine-no-tmux-conf",
+      "prompt": "Run /setup — I just got this machine and haven't configured anything yet for Claude Code",
+      "expected_output": "Should detect missing tmux.conf (or missing passthrough setting), show it as MISSING in the status table alongside other missing items, and offer to fix it. The tmux.conf fix should write the full optimized config including allow-passthrough, escape-time 0, history-limit 250000, etc.",
+      "files": []
+    },
+    {
+      "id": 1,
+      "name": "screen-tearing-complaint",
+      "prompt": "I'm getting really bad screen tearing and flickering when using Claude Code inside tmux over VS Code Remote SSH. Can you fix this?",
+      "expected_output": "Should trigger the setup skill (or at minimum recognize this as a tmux passthrough issue), check ~/.tmux.conf for the allow-passthrough setting, and apply the fix. Should explain why the tearing happens (DEC 2026 synchronized output being swallowed by tmux) and advise detach/reattach if needed.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "existing-tmux-conf-partial",
+      "prompt": "Run /setup to check my environment. I already have a ~/.tmux.conf with some custom settings.",
+      "expected_output": "Should read existing ~/.tmux.conf first, detect which Claude Code settings are missing, and merge only the missing ones without duplicating existing lines. Should warn if conflicting values are found (e.g., allow-passthrough off). Should NOT overwrite the user's custom settings.",
+      "files": []
+    }
+  ]
+}

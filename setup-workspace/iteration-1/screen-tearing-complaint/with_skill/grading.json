@@ -1,0 +1,38 @@
+{
+  "eval_id": 1,
+  "eval_name": "screen-tearing-complaint",
+  "configuration": "with_skill",
+  "expectations": [
+    {
+      "text": "Transcript explains DEC 2026 synchronized output as the root cause",
+      "passed": true,
+      "evidence": "Transcript section 'Root Cause Explanation': 'Claude Code's terminal UI uses DEC 2026 synchronized output — a protocol where the terminal batches all screen draws between a Begin Synchronized Update (BSU) and End Synchronized Update (ESU) escape sequence pair.'"
+    },
+    {
+      "text": "Transcript explains that tmux swallows BSU/ESU escape sequences by default",
+      "passed": true,
+      "evidence": "'tmux intercepts and swallows escape sequences it does not recognize by default. The BSU/ESU passthrough sequences never reach your actual terminal'"
+    },
+    {
+      "text": "Written tmux.conf preserves existing 'set -g mouse on' without duplicating it",
+      "passed": true,
+      "evidence": "Only one 'set -g mouse on' on line 1. Transcript confirms: 'mouse on — already present, kept in place, not duplicated'"
+    },
+    {
+      "text": "Written tmux.conf adds 'allow-passthrough on'",
+      "passed": true,
+      "evidence": "Line 6: 'set -g allow-passthrough on'"
+    },
+    {
+      "text": "Transcript mentions detach/reattach advice if tearing persists",
+      "passed": true,
+      "evidence": "'If tearing persists, detach and reattach your tmux session — some terminal overrides only take effect on new attachments.'"
+    },
+    {
+      "text": "Skill was triggered by the tearing complaint (not treated as generic troubleshooting)",
+      "passed": true,
+      "evidence": "Agent followed the full setup skill flow (Steps 1-7), identified tmux.conf passthrough as the sole failing check, and applied fix 5.5 specifically"
+    }
+  ],
+  "pass_rate": 1.0
+}

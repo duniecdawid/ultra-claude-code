@@ -1,0 +1,36 @@
+{
+  "eval_id": 1,
+  "eval_name": "screen-tearing-complaint",
+  "prompt": "I'm getting really bad screen tearing and flickering when using Claude Code inside tmux over VS Code Remote SSH. Can you fix this?",
+  "assertions": [
+    {
+      "text": "Transcript explains DEC 2026 synchronized output as the root cause",
+      "type": "content_check",
+      "target": "transcript.md"
+    },
+    {
+      "text": "Transcript explains that tmux swallows BSU/ESU escape sequences by default",
+      "type": "content_check",
+      "target": "transcript.md"
+    },
+    {
+      "text": "Written tmux.conf preserves existing 'set -g mouse on' without duplicating it",
+      "type": "merge_check",
+      "target": "tmux_conf_written.txt"
+    },
+    {
+      "text": "Written tmux.conf adds 'allow-passthrough on'",
+      "type": "file_contains",
+      "target": "tmux_conf_written.txt"
+    },
+    {
+      "text": "Transcript mentions detach/reattach advice if tearing persists",
+      "type": "content_check",
+      "target": "transcript.md"
+    },
+    {
+      "text": "Skill was triggered by the tearing complaint (not treated as generic troubleshooting)",
+      "type": "behavior_check"
+    }
+  ]
+}

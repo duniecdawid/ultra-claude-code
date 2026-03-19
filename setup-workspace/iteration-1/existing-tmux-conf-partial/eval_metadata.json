@@ -1,0 +1,42 @@
+{
+  "eval_id": 2,
+  "eval_name": "existing-tmux-conf-partial",
+  "prompt": "Run /setup to check my environment. I already have a ~/.tmux.conf with some custom settings.",
+  "assertions": [
+    {
+      "text": "Merged tmux.conf preserves user's custom settings (base-index 1, status-bg, status-fg, bind r)",
+      "type": "merge_check",
+      "target": "tmux_conf_written.txt"
+    },
+    {
+      "text": "Conflict detected: screen-256color vs tmux-256color",
+      "type": "conflict_detection",
+      "target": "conflict_warnings.txt"
+    },
+    {
+      "text": "Conflict detected: history-limit 50000 vs 250000",
+      "type": "conflict_detection",
+      "target": "conflict_warnings.txt"
+    },
+    {
+      "text": "Conflict detected: escape-time 50 vs 0",
+      "type": "conflict_detection",
+      "target": "conflict_warnings.txt"
+    },
+    {
+      "text": "Does NOT duplicate 'set -g mouse on' (already exists in original)",
+      "type": "no_duplicate_check",
+      "target": "tmux_conf_written.txt"
+    },
+    {
+      "text": "Adds allow-passthrough on (missing from original)",
+      "type": "file_contains",
+      "target": "tmux_conf_written.txt"
+    },
+    {
+      "text": "Transcript shows the agent warned the user about conflicts before changing values",
+      "type": "content_check",
+      "target": "transcript.md"
+    }
+  ]
+}

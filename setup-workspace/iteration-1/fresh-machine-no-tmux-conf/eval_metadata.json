@@ -1,0 +1,40 @@
+{
+  "eval_id": 0,
+  "eval_name": "fresh-machine-no-tmux-conf",
+  "prompt": "Run /setup — I just got this machine and haven't configured anything yet for Claude Code",
+  "assertions": [
+    {
+      "text": "Status table includes tmux.conf as a checked item",
+      "type": "output_contains"
+    },
+    {
+      "text": "tmux.conf is marked as MISSING or failing in the status table",
+      "type": "output_check"
+    },
+    {
+      "text": "Written tmux.conf contains 'allow-passthrough on'",
+      "type": "file_contains",
+      "target": "tmux_conf_written.txt"
+    },
+    {
+      "text": "Written tmux.conf contains 'escape-time 0'",
+      "type": "file_contains",
+      "target": "tmux_conf_written.txt"
+    },
+    {
+      "text": "Written tmux.conf contains 'history-limit 250000'",
+      "type": "file_contains",
+      "target": "tmux_conf_written.txt"
+    },
+    {
+      "text": "Written tmux.conf contains all 11 settings from the skill template",
+      "type": "completeness_check",
+      "target": "tmux_conf_written.txt"
+    },
+    {
+      "text": "Marker JSON includes tmuxConf field in checks",
+      "type": "file_contains",
+      "target": "marker.json"
+    }
+  ]
+}

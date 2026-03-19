@@ -1,0 +1,73 @@
+Conflicts Detected During tmux.conf Merge
+==========================================
+
+The following settings in your existing ~/.tmux.conf conflict with the
+Claude Code optimized values. Here is how each would be presented to the user:
+
+1. default-terminal: "screen-256color" vs "tmux-256color"
+   -------------------------------------------------------
+   Your config:   set -g default-terminal "screen-256color"
+   Recommended:   set -g default-terminal "tmux-256color"
+
+   Reason: "tmux-256color" provides proper RGB color support and correct
+   terminfo entries for tmux. "screen-256color" is a legacy value that
+   can cause rendering issues with modern terminal apps including Claude Code.
+
+   User prompt: "Your tmux.conf sets default-terminal to 'screen-256color'.
+   Claude Code works best with 'tmux-256color' for proper RGB color support.
+   Update to 'tmux-256color'? (y/n)"
+
+   Resolution for this test: Updated to "tmux-256color" (assuming user accepts).
+
+2. history-limit: 50000 vs 250000
+   --------------------------------
+   Your config:   set -g history-limit 50000
+   Recommended:   set -g history-limit 250000
+
+   Reason: Claude Code generates 4,000-6,700 scroll events per second during
+   streaming output. A 50k line buffer can overflow quickly, losing important
+   context. 250k provides adequate headroom.
+
+   User prompt: "Your tmux.conf sets history-limit to 50000. Claude Code's
+   heavy scroll output (4k-6.7k events/sec) benefits from a larger buffer
+   of 250000. Update history-limit to 250000? (y/n)"
+
+   Resolution for this test: Updated to 250000 (assuming user accepts).
+
+3. escape-time: 50 vs 0
+   -----------------------
+   Your config:   set -sg escape-time 50
+   Recommended:   set -sg escape-time 0
+
+   Reason: Any escape delay causes input lag in Claude Code. The 50ms value
+   is already low but still introduces perceptible latency. 0 eliminates it.
+
+   User prompt: "Your tmux.conf sets escape-time to 50. Claude Code works
+   best with escape-time 0 to eliminate input lag. Update to 0? (y/n)"
+
+   Resolution for this test: Updated to 0 (assuming user accepts).
+
+Non-Conflicting Existing Settings (Preserved As-Is)
+====================================================
+
+These user settings have no conflict with the Claude Code config and are
+preserved exactly as they are:
+
+  - set -g mouse on              (same as recommended — no change needed)
+  - set -g base-index 1          (user preference, not in recommended config)
+  - set -g status-bg colour235   (user preference, not in recommended config)
+  - set -g status-fg colour136   (user preference, not in recommended config)
+  - bind r source-file ~/.tmux.conf \; display "Reloaded!"
+                                 (user keybinding, not in recommended config)
+
+New Settings Added
+==================
+
+These settings were not present in the user's config and are appended:
+
+  - set -g allow-passthrough on
+  - set -g extended-keys on
+  - set -as terminal-features 'xterm*:extkeys'
+  - set -g set-clipboard on
+  - set -ag terminal-overrides ",xterm-256color:RGB"
+  - set -g focus-events on
