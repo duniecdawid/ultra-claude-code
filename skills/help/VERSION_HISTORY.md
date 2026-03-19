@@ -2,6 +2,7 @@
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2026.03.19-2 | 2026-03-19 | Help skill: show last 5 changes on startup, add system overview when invoked without arguments |
 | 2026.03.19-1 | 2026-03-19 | Setup skill: add tmux.conf screen tearing fix — checks for DEC 2026 synchronized output passthrough, writes/merges optimized tmux config (allow-passthrough, escape-time 0, history-limit 250k), detects conflicts with existing settings |
 | 2026.03.15-5 | 2026-03-15 | Tech Knowledge agent: move constraints to top, add explicit "never read codebase" directive — agent should only research external docs, not browse project source |
 | 2026.03.15-4 | 2026-03-15 | Dashboard staleness detection: show warning/critical banners on detail view and stale dots on homepage when PM stops updating status files (executing plans only) |

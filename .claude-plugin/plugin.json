@@ -1,6 +1,6 @@
 {
   "name": "uc",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "description": "Specification-driven development platform for Claude Code",
   "author": {
     "name": "Dawid Duniec"
