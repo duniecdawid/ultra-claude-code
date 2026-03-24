@@ -2,6 +2,7 @@
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2026.03.24-1 | 2026-03-24 | Plan-execution skill: restructure into multi-file skill with references/ (phase-1-setup, phase-2-spawn-prompts, phase-3-checkpoint, phase-4-failure-handling, phase-5-completion). Use "team member" terminology instead of "agent". Move PM + Knowledge setup to Phase 1. Lead owns all pane title setting. Checkpoint triggers stay in main SKILL.md, template in reference. |
 | 2026.03.19-2 | 2026-03-19 | Help skill: show last 5 changes on startup, add system overview when invoked without arguments |
 | 2026.03.19-1 | 2026-03-19 | Setup skill: add tmux.conf screen tearing fix — checks for DEC 2026 synchronized output passthrough, writes/merges optimized tmux config (allow-passthrough, escape-time 0, history-limit 250k), detects conflicts with existing settings |
 | 2026.03.15-5 | 2026-03-15 | Tech Knowledge agent: move constraints to top, add explicit "never read codebase" directive — agent should only research external docs, not browse project source |
