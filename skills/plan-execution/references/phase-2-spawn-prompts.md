@@ -16,50 +16,52 @@ Use TeamCreate with `team_name` set to the active team. **MANDATORY naming conve
 
 ## Pane Placement (MANDATORY)
 
-Team members must be spawned **one at a time** (not all 3 in a single message with parallel tool calls). After each spawn, diff the pane list to find the new pane, then **place it in its final grid position** using break+join and label it with `@agent-name`.
+All 3 task members are spawned **in parallel** (single message with 3 TeamCreate calls). Then diff the pane list to find all new panes, break them all out, and place them as a column.
 
 ```
-For EACH team member spawn:
+For each task-team spawn:
   1. Before: PANES_BEFORE=$(tmux list-panes -F '#{pane_id}' | sort)
-  2. Spawn the team member (single TeamCreate call)
+  2. Spawn all 3 members in parallel (executor-{N}, reviewer-{N}, tester-{N})
   3. After:  PANES_AFTER=$(tmux list-panes -F '#{pane_id}' | sort)
-  4. Find new pane: NEW_PANE=$(comm -13 <(echo "$PANES_BEFORE") <(echo "$PANES_AFTER"))
-  5. Place the pane (role-specific commands below)
-  6. Record the variable for subsequent placements
+  4. Find new panes: NEW_PANES=$(comm -13 <(echo "$PANES_BEFORE") <(echo "$PANES_AFTER"))
+  5. Break ALL new panes out, then place as a column (commands below)
 ```
 
-### Executor placement (first pane in a task column)
+### Place a task column
+
+After spawning all 3 and diffing to get their pane IDs (order doesn't matter — all get the same label):
 
 ```bash
-tmux break-pane -d -s $NEW_PANE
+# Break all 3 out to prevent layout disruption
+for p in $NEW_PANES; do tmux break-pane -d -s "$p"; done
+
+# Pick any pane as column head
+HEAD=$(echo $NEW_PANES | awk '{print $1}')
+MID=$(echo $NEW_PANES | awk '{print $2}')
+BOT=$(echo $NEW_PANES | awk '{print $3}')
+
+# Column head → full-height column to the right
 if [ $NUM_COLS -eq 0 ]; then
-  tmux join-pane -fh -s $NEW_PANE -t $MAIN_PANE
+  tmux join-pane -fh -s $HEAD -t $MAIN_PANE
 else
   LAST_COL_HEAD=$(echo $COLUMN_HEADS | awk '{print $NF}')
-  tmux join-pane -fh -s $NEW_PANE -t $LAST_COL_HEAD
+  tmux join-pane -fh -s $HEAD -t $LAST_COL_HEAD
 fi
-tmux set-option -p -t $NEW_PANE @agent-name "executor-{N}"
-# Track: TASK_N_EXEC=$NEW_PANE, append $NEW_PANE to COLUMN_HEADS, increment NUM_COLS
+# Track: append $HEAD to COLUMN_HEADS, increment NUM_COLS
+
+# Second pane → bottom 66% of column
+tmux join-pane -v -s $MID -t $HEAD -l 66%
+
+# Third pane → bottom 50% of remaining
+tmux join-pane -v -s $BOT -t $MID -l 50%
+
+# Label all 3 panes as "task-{N}"
+for p in $NEW_PANES; do
+  tmux set-option -p -t $p @agent-name "task-{N}"
+done
 ```
 
-### Reviewer placement (below executor in same column)
-
-```bash
-tmux break-pane -d -s $NEW_PANE
-tmux join-pane -v -s $NEW_PANE -t $TASK_N_EXEC -l 66%
-tmux set-option -p -t $NEW_PANE @agent-name "reviewer-{N}"
-# Track: TASK_N_REV=$NEW_PANE
-```
-
-### Tester placement (below reviewer, completes the column)
-
-```bash
-tmux break-pane -d -s $NEW_PANE
-tmux join-pane -v -s $NEW_PANE -t $TASK_N_REV -l 50%
-tmux set-option -p -t $NEW_PANE @agent-name "tester-{N}"
-```
-
-### After tester is placed — equalize all columns
+### After column is placed — equalize all columns
 
 Left column stays fixed at 70 cols. Remaining width is distributed equally across task columns. Two resize passes are required — tmux's resize cascades through the layout tree, so a single pass leaves middle columns at wrong widths.
 
@@ -76,7 +78,7 @@ for pass in 1 2; do
 done
 ```
 
-After all 3 placed and equalized, send to PM:
+After placed and equalized, send to PM:
 
 ```
 SendMessage to PM: "SPAWNED task-{N}: {description}"

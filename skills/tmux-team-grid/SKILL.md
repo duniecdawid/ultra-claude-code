@@ -41,7 +41,8 @@ MAIN_PANE="__MAIN_PANE__"
 LEFT_WIDTH=70
 
 # ── 1. Scan panes by @agent-name label ─────────────────────────
-declare -A ROLES  # ROLES[executor-1]=%XX
+# Labels: "task-N" (3 panes per task), "pm-*", "knowledge-*", "final-gate"
+declare -A TASK_PANES  # TASK_PANES[N]="pane1 pane2 pane3"
 PM_PANE=""
 TK_PANE=""
 GATE_PANE=""
@@ -53,10 +54,9 @@ while IFS=' ' read -r pane_id label; do
   [ "$pane_id" = "$MAIN_PANE" ] && continue
   [ -z "$label" ] && continue
 
-  if [[ "$label" =~ ^(executor|reviewer|tester)-([0-9]+)$ ]]; then
-    ROLES["$label"]="$pane_id"
-    num="${BASH_REMATCH[2]}"
-    # Collect unique task numbers
+  if [[ "$label" =~ ^task-([0-9]+)$ ]]; then
+    num="${BASH_REMATCH[1]}"
+    TASK_PANES["$num"]="${TASK_PANES[$num]:+${TASK_PANES[$num]} }$pane_id"
     if ! printf '%s\n' "${TASK_NUMS[@]}" | grep -qx "$num" 2>/dev/null; then
       TASK_NUMS+=("$num")
     fi
@@ -98,31 +98,29 @@ fi
 
 # ── 4. Rebuild task columns ────────────────────────────────────
 for num in "${TASK_NUMS[@]}"; do
-  exec_pane="${ROLES[executor-$num]:-}"
-  rev_pane="${ROLES[reviewer-$num]:-}"
-  test_pane="${ROLES[tester-$num]:-}"
+  panes=(${TASK_PANES[$num]})
+  [ ${#panes[@]} -eq 0 ] && continue
 
-  # Executor → new full-height column
-  if [ -n "$exec_pane" ]; then
-    if [ $NUM_COLS -eq 0 ]; then
-      tmux join-pane -fh -s "$exec_pane" -t "$MAIN_PANE" 2>/dev/null
-    else
-      LAST_COL=$(echo $COLUMN_HEADS | awk '{print $NF}')
-      tmux join-pane -fh -s "$exec_pane" -t "$LAST_COL" 2>/dev/null
-    fi
-    COLUMN_HEADS="$COLUMN_HEADS $exec_pane"
-    NUM_COLS=$((NUM_COLS + 1))
-
-    # Reviewer below executor
-    if [ -n "$rev_pane" ]; then
-      tmux join-pane -v -s "$rev_pane" -t "$exec_pane" -l 66% 2>/dev/null
-    fi
-    # Tester below reviewer (or executor if no reviewer)
-    if [ -n "$test_pane" ]; then
-      target="${rev_pane:-$exec_pane}"
-      tmux join-pane -v -s "$test_pane" -t "$target" -l 50% 2>/dev/null
-    fi
+  # First pane → column head (full-height)
+  HEAD="${panes[0]}"
+  if [ $NUM_COLS -eq 0 ]; then
+    tmux join-pane -fh -s "$HEAD" -t "$MAIN_PANE" 2>/dev/null
+  else
+    LAST_COL=$(echo $COLUMN_HEADS | awk '{print $NF}')
+    tmux join-pane -fh -s "$HEAD" -t "$LAST_COL" 2>/dev/null
   fi
+  COLUMN_HEADS="$COLUMN_HEADS $HEAD"
+  NUM_COLS=$((NUM_COLS + 1))
+
+  # Remaining panes → stack below
+  prev="$HEAD"
+  remaining=$((${#panes[@]} - 1))
+  for (( i=1; i<${#panes[@]}; i++ )); do
+    pct=$(( 100 * remaining / (remaining + 1) ))
+    tmux join-pane -v -s "${panes[$i]}" -t "$prev" -l ${pct}% 2>/dev/null
+    prev="${panes[$i]}"
+    remaining=$((remaining - 1))
+  done
 done
 
 # ── 5. Final gate column ──────────────────────────────────────
