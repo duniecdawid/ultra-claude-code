@@ -36,6 +36,22 @@ Before starting, read these reference files:
 
 This skill extends the fundamentals defined in Plan Enhancer.
 
+### Pre-Stage: Stub Plan Detection
+
+Before starting Stage 1, check if `$ARGUMENTS` matches an existing plan stub from `/uc:roadmap`:
+
+1. Scan `documentation/plans/` for directories matching `*-{ARGUMENTS}*` or where `{ARGUMENTS}` is a plan number (e.g., "001", "1")
+2. If a match is found, read its `README.md`
+3. If the README.md has `Status: Stub` AND `Source: Roadmap`:
+   - **This is a stub plan.** The scope boundary is already defined by the roadmap.
+   - Load the stub's Objective, Context, Scope, and Success Criteria into your working context
+   - In Stage 1, your job shifts from "discover scope" to "verify and refine scope" — present the stub's scope to the user: "This plan was scaffolded by /uc:roadmap with the following scope: [summary]. Let me verify this is still correct and dig into implementation details."
+   - You still ask at least 3 questions, but focus on implementation approach, edge cases within the defined scope, and technical decisions — not on what to build
+   - The stub's **Out of Scope** section is a hard boundary — do not expand scope beyond it without explicit user approval
+   - Read `documentation/plans/ROADMAP.md` if it exists, so you understand where this plan sits in the overall sequence and what prior plans provide
+4. If the plan exists but is NOT a stub (Status is Draft/Approved/In Progress), follow plan-enhancer's "Existing Plan Handling" rules
+5. If no match found, proceed with standard Stage 1 (fresh start)
+
 ### Stage 1: Understand
 
 Before any research or planning, challenge the feature request:

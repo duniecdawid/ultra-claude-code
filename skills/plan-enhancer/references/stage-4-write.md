@@ -41,7 +41,12 @@ This check exists because the most common failure mode is jumping from a detaile
 
 4. **Check for existing plan** — if `documentation/plans/*-{name}/` exists (suffix match), read it for revision context
 
-**Create the directory:**
+5. **Check for stub plan** — if the matched plan has `Status: Stub` and `Source: Roadmap`:
+   - Do NOT re-create the directory — it already exists with `shared/` and `tasks/`
+   - You will edit the existing `README.md` in place (Step 5) rather than overwriting it
+   - Skip to Step 2 (the plan number and directory are already determined)
+
+**Create the directory** (skip if editing an existing stub):
 
 ```bash
 mkdir -p documentation/plans/{NNN}-{name}/shared documentation/plans/{NNN}-{name}/tasks
@@ -85,6 +90,8 @@ Track:
 ## Step 4: Build and Validate Plan
 
 Build the plan using the loaded plan template including the `Execute: /uc:plan-execution {NNN}` header.
+
+**When upgrading a stub plan:** If you're working from a stub (`Status: Stub`, `Source: Roadmap`), use the stub's Objective, Scope, and Success Criteria as your starting point. Refine them based on what you learned in Stages 1-3, but preserve the spirit of the original scope boundary. Update the header fields: `Status: Stub → Draft` and `Source: Roadmap → Feature Mode`.
 
 Reference the documentation updated in Steps 2-3 — do not duplicate content. Each task's **Product context** and **Patterns** fields should point to the relevant files, not restate what's in them.
 
