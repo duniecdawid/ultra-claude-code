@@ -89,7 +89,7 @@ Phase 2 startup:
   1. Spawn initial task-teams to fill concurrency slots.
      For each slot: find next pending unblocked task, create tasks/task-N/ directory,
      spawn team members ONE AT A TIME (executor-N, then reviewer-N, then tester-N),
-     recording each pane ID via the diffing method after each spawn.
+     placing each pane in its final grid position via the diffing+placement method after each spawn.
      After spawning all 3:
        SendMessage to PM "SPAWNED task-{N}: {task description}" then "STAGE task-{N} planning"
        SendMessage to knowledge-{PLAN_NAME}: "TASK-START: Task {N} — {task title}\nDescription: {task description}\nSuccess criteria: {success criteria}\nExecutor: executor-{N}\nPlan path (when available): documentation/plans/$ARGUMENTS/tasks/task-{N}/plan.md"

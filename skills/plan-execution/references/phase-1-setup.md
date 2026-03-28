@@ -11,6 +11,24 @@ Read ALL files in `documentation/plans/$ARGUMENTS/`:
 
 You now have the full picture.
 
+### 1.1b Layout Initialization
+
+Capture the main pane ID, enable pane border labels, and set the main pane label:
+
+```bash
+MAIN_PANE=$(tmux display-message -p '#{pane_id}')
+tmux set-option -w pane-border-status top
+tmux set-option -w pane-border-format " #{@agent-name} "
+tmux set-option -p -t "$MAIN_PANE" @agent-name "main-context"
+```
+
+Track these variables across all spawns (remember values between Bash calls):
+- `MAIN_PANE` — your pane (never moves)
+- `PM_PANE` — after PM spawn
+- `TK_PANE` — after tech-kb spawn
+- `COLUMN_HEADS` — space-separated list of column-head pane IDs (for equalization)
+- `NUM_COLS` — number of task/final-gate columns (starts at 0)
+
 ### 1.2 Resume Detection
 
 If `checkpoint-*.md` files exist:
@@ -127,9 +145,22 @@ Before spawning any task-teams, set up both plan-wide shared team members: **Pro
 
 **Spawn order:**
 
-1. **Project Manager first** — spawn `pm-{PLAN_NAME}` using the PM spawn prompt. Use pane-diffing to capture the pane ID and set its title: `tmux select-pane -t "$NEW_PANE" -T "pm-{PLAN_NAME}"`
+1. **Project Manager first** — spawn `pm-{PLAN_NAME}` using the PM spawn prompt. Use pane-diffing to capture the pane ID, then place and label it:
+   ```bash
+   tmux break-pane -d -s $NEW_PANE
+   tmux join-pane -v -s $NEW_PANE -t $MAIN_PANE -l 50%
+   tmux set-option -p -t $NEW_PANE @agent-name "pm-{PLAN_NAME}"
+   # Track: PM_PANE=$NEW_PANE
+   ```
 
-2. **Tech Knowledge second** — read plan README.md `## Tech Stack` section for the technology list. Also scan `documentation/technology/architecture/` and `.claude/app-context-for-research.md` for additional technology references. Spawn `knowledge-{PLAN_NAME}` using the Tech Knowledge spawn prompt below. Use pane-diffing, set title: `tmux select-pane -t "$NEW_PANE" -T "knowledge-{PLAN_NAME}"`. Then send PM: `"SPAWNED knowledge-{PLAN_NAME} | pane: %XX"`
+2. **Tech Knowledge second** — read plan README.md `## Tech Stack` section for the technology list. Also scan `documentation/technology/architecture/` and `.claude/app-context-for-research.md` for additional technology references. Spawn `knowledge-{PLAN_NAME}` using the Tech Knowledge spawn prompt below. Use pane-diffing to capture the pane ID, then place and label it:
+   ```bash
+   tmux break-pane -d -s $NEW_PANE
+   tmux join-pane -v -s $NEW_PANE -t $PM_PANE -l 50%
+   tmux set-option -p -t $NEW_PANE @agent-name "knowledge-{PLAN_NAME}"
+   # Track: TK_PANE=$NEW_PANE
+   ```
+   Then send PM: `"SPAWNED knowledge-{PLAN_NAME}"`
 
    Agent: `${CLAUDE_PLUGIN_ROOT}/agents/tech-knowledge.md`
    Model: `sonnet` | Mode: `bypassPermissions`

@@ -12,15 +12,11 @@ Use TeamCreate with `team_name` set to the active team. **MANDATORY naming conve
 
 **Shared (plan-wide):** `knowledge-{PLAN_NAME}` — spawned once, serves all tasks.
 
-**NEVER** use alternative formats like `task-1-executor`, `e1`, `Executor_1`, or descriptive names. The `/uc:tmux-team-grid` skill depends on this exact `{role}-{N}` pattern to organize panes.
+**NEVER** use alternative formats like `task-1-executor`, `e1`, `Executor_1`, or descriptive names. Human monitoring depends on this exact `{role}-{N}` pattern for pane border labels.
 
-## Pane Title Tracking (MANDATORY)
+## Pane Placement (MANDATORY)
 
-Team members cannot reliably set their own tmux pane titles (some don't have Bash access, others skip the instruction). The **Lead** handles both pane ID capture and title setting.
-
-**Lead's responsibility — identify pane IDs and set titles:**
-
-Team members must be spawned **one at a time** (not all 3 in a single message with parallel tool calls). Between each spawn, diff the pane list to capture which new pane appeared, then set its title immediately:
+Team members must be spawned **one at a time** (not all 3 in a single message with parallel tool calls). After each spawn, diff the pane list to find the new pane, then **place it in its final grid position** using break+join and label it with `@agent-name`.
 
 ```
 For EACH team member spawn:
@@ -28,18 +24,63 @@ For EACH team member spawn:
   2. Spawn the team member (single TeamCreate call)
   3. After:  PANES_AFTER=$(tmux list-panes -F '#{pane_id}' | sort)
   4. Find new pane: NEW_PANE=$(comm -13 <(echo "$PANES_BEFORE") <(echo "$PANES_AFTER"))
-  5. Set title: tmux select-pane -t "$NEW_PANE" -T "{member-name}"
-  6. Record the mapping: {member-name} = {NEW_PANE}
+  5. Place the pane (role-specific commands below)
+  6. Record the variable for subsequent placements
 ```
 
-After spawning all members of a task-team, send the pane mapping to PM for dashboard tracking:
+### Executor placement (first pane in a task column)
+
+```bash
+tmux break-pane -d -s $NEW_PANE
+if [ $NUM_COLS -eq 0 ]; then
+  tmux join-pane -fh -s $NEW_PANE -t $MAIN_PANE
+else
+  LAST_COL_HEAD=$(echo $COLUMN_HEADS | awk '{print $NF}')
+  tmux join-pane -fh -s $NEW_PANE -t $LAST_COL_HEAD
+fi
+tmux set-option -p -t $NEW_PANE @agent-name "executor-{N}"
+# Track: TASK_N_EXEC=$NEW_PANE, append $NEW_PANE to COLUMN_HEADS, increment NUM_COLS
+```
+
+### Reviewer placement (below executor in same column)
+
+```bash
+tmux break-pane -d -s $NEW_PANE
+tmux join-pane -v -s $NEW_PANE -t $TASK_N_EXEC -l 66%
+tmux set-option -p -t $NEW_PANE @agent-name "reviewer-{N}"
+# Track: TASK_N_REV=$NEW_PANE
+```
+
+### Tester placement (below reviewer, completes the column)
+
+```bash
+tmux break-pane -d -s $NEW_PANE
+tmux join-pane -v -s $NEW_PANE -t $TASK_N_REV -l 50%
+tmux set-option -p -t $NEW_PANE @agent-name "tester-{N}"
+```
+
+### After tester is placed — equalize all columns
+
+Left column stays fixed at 70 cols. Remaining width is distributed equally across task columns. Two resize passes are required — tmux's resize cascades through the layout tree, so a single pass leaves middle columns at wrong widths.
+
+```bash
+LEFT_WIDTH=70
+win_width=$(tmux display-message -p '#{window_width}')
+right_width=$((win_width - LEFT_WIDTH - 1))
+col_width=$(( (right_width - (NUM_COLS - 1)) / NUM_COLS ))
+for pass in 1 2; do
+  for head in $COLUMN_HEADS; do
+    tmux resize-pane -t "$head" -x $col_width
+  done
+  tmux resize-pane -t $MAIN_PANE -x $LEFT_WIDTH
+done
+```
+
+After all 3 placed and equalized, send to PM:
 
 ```
-SendMessage to PM: "SPAWNED task-{N}: {description} | panes: executor-{N}=%XX reviewer-{N}=%YY tester-{N}=%ZZ"
+SendMessage to PM: "SPAWNED task-{N}: {description}"
 ```
-
-For shared team members, include pane IDs in their respective messages:
-- After spawning knowledge: `"SPAWNED knowledge-{PLAN_NAME} | pane: %XX"`
 
 ## Executor Spawn
 

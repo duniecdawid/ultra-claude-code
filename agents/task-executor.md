@@ -61,7 +61,18 @@ Before making ANY file changes:
    - Any risks or trade-offs
 3. **Request teammate feedback:** SendMessage to Reviewer: "Plan ready for feedback — written to tasks/task-N/plan.md. Review from your perspective. Reply LGTM or CONCERNS."
 4. **Wait for feedback response**
-5. If any teammate replies CONCERNS: read their feedback, address concerns in the plan, notify the teammate of changes, then proceed to implementation. Feedback is advisory — use your judgment. Formal code review and testing remain as hard gates.
+5. If any teammate replies CONCERNS: read their feedback, address concerns in the plan, notify the teammate of changes. Reviewer feedback is advisory — use your judgment. The hard gate is Lead approval (next step).
+
+### 3.7 Lead Plan Review (Blocking Gate)
+
+After Reviewer feedback is resolved:
+
+1. **SendMessage to Lead** (named in your spawn prompt): "Task {N} plan ready for review — written to tasks/task-N/plan.md"
+2. **Wait for Lead response** — Lead will reply APPROVED or CONCERNS with specifics
+3. If CONCERNS: address feedback, update plan.md, re-request approval from Lead
+4. **Do NOT proceed to step 3.5 or step 4 until you receive APPROVED from Lead**
+
+This is a **blocking gate** — the Lead checks domain coherence, scope alignment, and cross-task conflicts. Implementation cannot begin without Lead's explicit approval.
 
 ### 3.5 Resolve Remaining Unknowns
 
@@ -108,7 +119,7 @@ After ALL implementation files are written and `tasks/task-N/impl.md` is updated
 1. **SendMessage to Lead** (named in your spawn prompt): "Task {N} implementation complete — entering review/test phase"
 2. **Do NOT wait for a response** — proceed immediately to step 5 (Drive Review + Test)
 
-This is fire-and-forget. It tells the PM your code is written so it can request pipeline spawning of dependent successor tasks.
+This is fire-and-forget. It tells the Lead your code is written so it can trigger pipeline spawning of dependent successor tasks.
 
 ### 5. Drive Review + Test (Parallel)
 
