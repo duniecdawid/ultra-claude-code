@@ -1,5 +1,4 @@
 ---
-name: tmux-team-grid
 description: Organize existing tmux panes into a team grid layout for plan-execution teams. Left column stacks main context + shared agents (tech-knowledge, project-manager). Right side shows task grid (executor/tester/reviewer rows × task columns). Reads pane titles to identify agents. NEVER creates new panes. Use when user says "team grid", "tmux grid", "organize panes", "arrange team", or "team layout".
 user-invocable: true
 allowed-tools: [Bash]

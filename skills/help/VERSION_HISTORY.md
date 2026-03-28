@@ -2,6 +2,7 @@
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2026.03.28-5 | 2026-03-28 | Remove `name` frontmatter field from all 19 skill files — field is not required by the plugin schema |
 | 2026.03.28-4 | 2026-03-28 | Add `/uc:roadmap` skill — decomposes product into sequenced plan stubs with dependency graph. Creates stub plans (`Status: Stub`) that feature-mode consumes as starting points. Update feature-mode with Pre-Stage stub detection, plan-enhancer with stub-to-draft upgrade handling. |
 | 2026.03.28-3 | 2026-03-28 | Fix skill schema warnings: add `name` field to all 18 skills, remove unsupported `context:` file-list frontmatter (replace with explicit read instructions in body), add PlanMode conflict prevention to plan-enhancer constraints, strengthen debug-mode constraints (no direct fixes), update docs to reflect new patterns |
 | 2026.03.28-2 | 2026-03-28 | Fix stage skipping in debug-mode and plan-enhancer: add 3-point readiness check to Stage 1, remove "simple enough" escape hatch from Stage 2, make hypothesis generation a blocking AskUserQuestion gate, replace Stage 3 one-liner with concrete 4-point deliverable, add Stage Entry Check prerequisite to Stage 4, align persona with process discipline, enforce per-stage reference file reads |

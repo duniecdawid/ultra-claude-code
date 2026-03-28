@@ -1,5 +1,4 @@
 ---
-name: setup
 description: One-time machine setup for Ultra Claude. Checks and configures shell environment (1M context, agent teams), installs prerequisites (tmux, node), configures tmux for Claude Code (fixes screen tearing via DEC 2026 synchronized output passthrough), and optionally sets up Tailscale for remote dashboard access. Idempotent — safe to re-run. Writes version marker to ~/.claude/uc-setup.json so other skills can quickly check if setup is current. Use when onboarding a new machine, after Ultra Claude install, when plan-execution reports missing prerequisites, or when experiencing screen tearing/flickering in tmux. Triggers on "setup", "machine setup", "environment setup", "configure machine", "setup 1m context", "enable agent teams", "screen tearing", "tmux tearing", "flickering".
 user-invocable: true
 ---

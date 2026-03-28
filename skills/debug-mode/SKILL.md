@@ -1,5 +1,4 @@
 ---
-name: debug-mode
 description: Investigate bugs and plan fixes. Analyzes issues, proposes hypotheses, spawns parallel investigation with Explore and System Tester subagents. Use when debugging, fixing bugs, or investigating issues. Triggers on "debug", "fix", "investigate", "bug", "issue".
 argument-hint: "bug description or issue"
 user-invocable: true

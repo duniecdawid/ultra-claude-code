@@ -1,5 +1,4 @@
 ---
-name: feature-mode
 description: Plan new features with product, architecture, and implementation context. Challenges scope, ensures clarity, spawns research. Use when starting a new feature, adding functionality, or planning significant changes. Triggers on "new feature", "plan feature", "start feature", "add feature".
 argument-hint: "feature description"
 user-invocable: true

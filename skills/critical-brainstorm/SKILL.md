@@ -1,5 +1,4 @@
 ---
-name: critical-brainstorm
 description: >-
   Critical brainstorming and devil's advocate mode. Deeply researches the problem space,
   challenges assumptions, finds hidden risks, lists tradeoffs, and predicts future problems.

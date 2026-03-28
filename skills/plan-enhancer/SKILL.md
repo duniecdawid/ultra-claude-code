@@ -1,5 +1,4 @@
 ---
-name: plan-enhancer
 description: >-
   Defines the 4-stage planning framework (Understand -> Research -> Discuss -> Write) used by all planning modes.
   Standardizes plan output. Writes plan to documentation/plans/{NNN}-{name}/README.md with embedded task list.

@@ -1,5 +1,4 @@
 ---
-name: plan-execution
 description: Executes approved plans through per-task pipeline teams. Each task gets a dedicated mini-team (Executor/Reviewer/Tester) that self-coordinates internally, plus a shared Tech Knowledge team member for external library documentation. Lead spawns teams and tracks progress. Use when user says 'execute plan', 'run plan', 'start execution', or '/uc:plan-execution'. NEVER auto-trigger after plan approval — planning modes print the execution command for the user to run manually.
 argument-hint: "plan number or name (e.g., '1', '001-user-auth')"
 user-invocable: true

@@ -1,5 +1,4 @@
 ---
-name: vscode-setup
 description: Configure VS Code settings for optimal Claude Code experience. Manages both remote (vscode-server) and client-side settings. Use when setting up VS Code, tweaking editor behavior, or optimizing the Claude Code workflow. Triggers on "vscode setup", "vscode settings", "configure vscode", "optimize vscode", "vs code config".
 user-invocable: true
 argument-hint: "what to configure (optional)"

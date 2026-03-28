@@ -1,5 +1,4 @@
 ---
-name: roadmap
 description: >-
   Decompose a product into a sequenced series of plan stubs. Reads product and
   architecture docs, builds a dependency graph, scaffolds plan directories with

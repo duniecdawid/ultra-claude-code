@@ -1,5 +1,4 @@
 ---
-name: checkpoint
 description: Save execution state for session recovery. Captures per-task pipeline stages, active team assignments, decisions, and blockers to plan directory. Use when context is long, stopping mid-execution, or as periodic progress save.
 user-invocable: true
 argument-hint: "plan name (optional — auto-detected from active execution)"
