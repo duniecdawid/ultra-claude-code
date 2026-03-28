@@ -7,11 +7,11 @@ When all tasks reach "done" stage (all task-teams have exited).
 ### 5.2 Final Gate
 
 Spawn a single Final Gate Tester (fresh team member) for full regression suite:
-- Use pane-diffing to capture the pane ID, then place it as a new column using the helper script:
+- The Final Gate Tester uses the tester agent which has Bash, but it won't self-label (its spawn prompt doesn't include a labeling instruction). Use pane-diffing to find the new pane, then label it:
   ```bash
-  bash /tmp/place-pane.sh {NEW_PANE} {LAST_COL_HEAD} fh 0 "final-gate"
+  tmux set-option -p -t {NEW_PANE} @agent-name "final-gate"
   ```
-  Then run the equalize command from `references/phase-2-spawn-prompts.md` (append this pane to COLUMN_HEADS, increment NUM_COLS first).
+  The layout watcher will automatically detect the label and add a final-gate column.
 - Use the Final Gate Tester spawn prompt from `references/phase-2-spawn-prompts.md`
 - If PASS: proceed to operational report
 - If FAIL: evaluate whether to re-spawn task-teams for specific fixes or report to user

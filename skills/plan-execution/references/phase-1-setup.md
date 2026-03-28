@@ -11,52 +11,21 @@ Read ALL files in `documentation/plans/$ARGUMENTS/`:
 
 You now have the full picture.
 
-### 1.1b Layout Initialization
+### 1.1b Layout Watcher
 
-Capture the main pane ID, enable pane border labels, set the main pane label, and write the placement helper script:
+Start the background layout watcher. This script monitors pane `@agent-name` labels and automatically arranges panes into the team grid. **You do NOT run any tmux layout commands yourself** — just label panes and the watcher handles placement.
 
 ```bash
 MAIN_PANE=$(tmux display-message -p '#{pane_id}')
-tmux set-option -w pane-border-status top
-tmux set-option -w pane-border-format " #{@agent-name} "
-tmux set-option -p -t "$MAIN_PANE" @agent-name "main-context"
+WINDOW=$(tmux display-message -p '#{window_id}')
+nohup ${CLAUDE_PLUGIN_ROOT}/scripts/layout-watcher.sh "$WINDOW" "$MAIN_PANE" 2 > /tmp/layout-watcher.log 2>&1 &
+echo $! > /tmp/layout-watcher.pid
 ```
 
-Then write the placement helper script. This script handles all pane placement — you call it with arguments instead of running raw tmux commands. **Write it once** using Bash `cat` heredoc:
+The watcher sets `main-context` label on your pane, enables pane border labels, and polls every 2 seconds. When it detects new or changed `@agent-name` labels, it rearranges all panes into the grid layout (left column at 70 cols, task columns distributed equally). It also re-equalizes on window resize.
 
-```bash
-cat > /tmp/place-pane.sh << 'PLACESCRIPT'
-#!/bin/bash
-# Usage: bash /tmp/place-pane.sh <pane> <target> <direction> <size> <label>
-# direction: v (below target) or fh (full-height column to right of target)
-PANE=$1; TARGET=$2; DIR=$3; SIZE=$4; LABEL=$5
-tmux break-pane -d -s "$PANE" 2>/dev/null
-if [ "$DIR" = "fh" ]; then
-  tmux join-pane -fh -s "$PANE" -t "$TARGET"
-else
-  tmux join-pane -v -s "$PANE" -t "$TARGET" -l "$SIZE"
-fi
-tmux set-option -p -t "$PANE" @agent-name "$LABEL"
-# Verify placement
-actual_left=$(tmux display-message -t "$PANE" -p '#{pane_left}')
-target_left=$(tmux display-message -t "$TARGET" -p '#{pane_left}')
-echo "Placed $LABEL ($PANE) ${DIR} relative to $TARGET — left=$actual_left"
-if [ "$DIR" = "v" ] && [ "$actual_left" != "$target_left" ]; then
-  echo "WARNING: Misaligned (expected left=$target_left). Re-placing..."
-  tmux break-pane -d -s "$PANE" 2>/dev/null
-  tmux join-pane -v -s "$PANE" -t "$TARGET" -l "$SIZE"
-  echo "Re-placed: left=$(tmux display-message -t "$PANE" -p '#{pane_left}')"
-fi
-PLACESCRIPT
-chmod +x /tmp/place-pane.sh
-```
-
-Track these values across all spawns (remember between Bash calls):
-- `MAIN_PANE` — your pane (never moves)
-- `PM_PANE` — after PM spawn
-- `TK_PANE` — after tech-kb spawn
-- `COLUMN_HEADS` — space-separated list of column-head pane IDs (for equalization)
-- `NUM_COLS` — number of task/final-gate columns (starts at 0)
+Track only these values across spawns:
+- `MAIN_PANE` — your pane (for pane-diffing only)
 
 ### 1.2 Resume Detection
 
@@ -174,20 +143,15 @@ Before spawning any task-teams, set up both plan-wide shared team members: **Pro
 
 **Spawn order:**
 
-1. **Project Manager first** — spawn `pm-{PLAN_NAME}` using the PM spawn prompt. Use pane-diffing to capture the pane ID, then place it below main using the helper script. **Pass actual pane IDs as arguments — do NOT substitute variables into raw tmux commands:**
-   ```bash
-   bash /tmp/place-pane.sh {NEW_PANE} {MAIN_PANE} v 50% "pm-{PLAN_NAME}"
-   ```
-   Example: `bash /tmp/place-pane.sh %156 %155 v 50% "pm-myplan"`
-   Track: PM_PANE = the pane ID you just placed.
+1. **Project Manager first** — spawn `pm-{PLAN_NAME}` using the PM spawn prompt. The PM has Bash access and will self-label its pane on startup (the spawn prompt includes the labeling instruction). No tmux commands needed from you.
 
-2. **Tech Knowledge second** — read plan README.md `## Tech Stack` section for the technology list. Also scan `documentation/technology/architecture/` and `.claude/app-context-for-research.md` for additional technology references. Spawn `knowledge-{PLAN_NAME}` using the Tech Knowledge spawn prompt below. Use pane-diffing to capture the pane ID, then place it below PM:
+2. **Tech Knowledge second** — read plan README.md `## Tech Stack` section for the technology list. Also scan `documentation/technology/architecture/` and `.claude/app-context-for-research.md` for additional technology references. Spawn `knowledge-{PLAN_NAME}` using the Tech Knowledge spawn prompt below. Tech Knowledge does NOT have Bash access, so after spawning, use pane-diffing to find the new pane and label it:
    ```bash
-   bash /tmp/place-pane.sh {NEW_PANE} {PM_PANE} v 50% "knowledge-{PLAN_NAME}"
+   tmux set-option -p -t {NEW_PANE} @agent-name "knowledge-{PLAN_NAME}"
    ```
-   Example: `bash /tmp/place-pane.sh %157 %156 v 50% "knowledge-myplan"`
-   Track: TK_PANE = the pane ID you just placed.
    Then send PM: `"SPAWNED knowledge-{PLAN_NAME}"`
+
+   The layout watcher will automatically detect the new labels and arrange panes into the grid.
 
    Agent: `${CLAUDE_PLUGIN_ROOT}/agents/tech-knowledge.md`
    Model: `sonnet` | Mode: `bypassPermissions`

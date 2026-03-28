@@ -89,7 +89,7 @@ Phase 2 startup:
   1. Spawn initial task-teams to fill concurrency slots.
      For each slot: find next pending unblocked task, create tasks/task-N/ directory,
      spawn all 3 team members in parallel (executor-N, reviewer-N, tester-N),
-     then place their panes as a column via the diffing+placement method.
+     then label panes per the Pane Labeling section (the layout watcher arranges them automatically).
      After spawning all 3:
        SendMessage to PM "SPAWNED task-{N}: {task description}" then "STAGE task-{N} planning"
        SendMessage to knowledge-{PLAN_NAME}: "TASK-START: Task {N} — {task title}\nDescription: {task description}\nSuccess criteria: {success criteria}\nExecutor: executor-{N}\nPlan path (when available): documentation/plans/$ARGUMENTS/tasks/task-{N}/plan.md"

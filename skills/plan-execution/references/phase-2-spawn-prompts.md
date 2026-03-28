@@ -12,61 +12,52 @@ Use TeamCreate with `team_name` set to the active team. **MANDATORY naming conve
 
 **Shared (plan-wide):** `knowledge-{PLAN_NAME}` — spawned once, serves all tasks.
 
-**NEVER** use alternative formats like `task-1-executor`, `e1`, `Executor_1`, or descriptive names. Human monitoring depends on this exact `{role}-{N}` pattern for pane border labels.
+**NEVER** use alternative formats like `task-1-executor`, `e1`, `Executor_1`, or descriptive names.
 
-## Pane Placement (MANDATORY)
+## Pane Labeling (MANDATORY)
 
-All 3 task members are spawned **in parallel** (single message with 3 TeamCreate calls). Then diff the pane list to find all new panes, break them all out, and place them as a column.
+A background layout watcher automatically arranges panes based on `@agent-name` labels. **You do NOT run any tmux layout commands.** You only need to ensure panes get labeled correctly.
+
+### How labeling works
+
+- **Agents with Bash** (executor, tester, PM) self-label on startup — the instruction is in their spawn prompt
+- **Agents without Bash** (reviewer, tech-knowledge) need the Lead to label after spawning:
+  1. Diff the pane list before/after spawn to find the new pane ID
+  2. Set the label: `tmux set-option -p -t {NEW_PANE} @agent-name "task-{N}"`
+
+### Labeling convention
+
+| Agent | Label | Set by |
+|-------|-------|--------|
+| PM | `pm-{PLAN_NAME}` | Self (has Bash) |
+| Tech Knowledge | `knowledge-{PLAN_NAME}` | Lead (no Bash) |
+| Executor-N | `task-{N}` | Self (has Bash) |
+| Reviewer-N | `task-{N}` | Lead (no Bash) |
+| Tester-N | `task-{N}` | Self (has Bash) |
+| Final Gate | `final-gate` | Lead (no Bash) |
+
+All task members get the same `task-{N}` label — the watcher groups them into one column.
+
+### Spawning task teams
+
+All 3 task members are spawned **in parallel** (single message with 3 TeamCreate calls). The reviewer is the only one without Bash, so after spawning:
 
 ```
-For each task-team spawn:
+For each task-team:
   1. Before: PANES_BEFORE=$(tmux list-panes -F '#{pane_id}' | sort)
-  2. Spawn all 3 members in parallel (executor-{N}, reviewer-{N}, tester-{N})
+  2. Spawn all 3 in parallel (executor-{N}, reviewer-{N}, tester-{N})
   3. After:  PANES_AFTER=$(tmux list-panes -F '#{pane_id}' | sort)
   4. Find new panes: NEW_PANES=$(comm -13 <(echo "$PANES_BEFORE") <(echo "$PANES_AFTER"))
-  5. Break ALL new panes out, then place as a column (commands below)
+  5. Executor and tester self-label on startup (spawn prompt includes the instruction)
+  6. Label the remaining unlabeled pane (the reviewer):
+     for p in $NEW_PANES; do
+       label=$(tmux display-message -t "$p" -p '#{@agent-name}' 2>/dev/null)
+       [ -z "$label" ] && tmux set-option -p -t "$p" @agent-name "task-{N}"
+     done
+  7. The layout watcher detects the new labels and arranges the column automatically
 ```
 
-### Place a task column
-
-After spawning all 3 and diffing to get their pane IDs (order doesn't matter — all get the same label), run this **single bash block**. Replace `{NEW_PANES}` with the space-separated pane IDs, `{TARGET}` with MAIN_PANE (first column) or the last column head, `{N}` with the task number, and `{MAIN}`, `{PM}`, `{TK}` with your tracked pane IDs:
-
-```bash
-# Run as a single bash command — fill in the 6 values marked with {braces}
-NEW_PANES="{pane1} {pane2} {pane3}"; TARGET="{TARGET}"; N={N}; MAIN={MAIN}; PM={PM}; TK={TK}; \
-for p in $NEW_PANES; do tmux break-pane -d -s "$p" 2>/dev/null; done; \
-HEAD=$(echo $NEW_PANES | awk '{print $1}'); \
-MID=$(echo $NEW_PANES | awk '{print $2}'); \
-BOT=$(echo $NEW_PANES | awk '{print $3}'); \
-tmux join-pane -fh -s $HEAD -t $TARGET; \
-tmux join-pane -v -s $MID -t $HEAD -l 66%; \
-tmux join-pane -v -s $BOT -t $MID -l 50%; \
-for p in $NEW_PANES; do tmux set-option -p -t $p @agent-name "task-$N"; done; \
-echo "Placed task-$N column (head=$HEAD)"
-```
-
-Example: `NEW_PANES="%160 %161 %162"; TARGET="%155"; N=1; MAIN=%155; PM=%156; TK=%157; ...`
-
-For the second task column and beyond, set TARGET to the previous column's HEAD pane.
-
-Track: append HEAD to COLUMN_HEADS, increment NUM_COLS.
-
-### After column is placed — equalize all columns
-
-Run the equalize **in the same bash command** or immediately after. Replace `{COLUMN_HEADS}`, `{NUM_COLS}`, `{MAIN}`, `{PM}`, `{TK}` with your tracked values:
-
-```bash
-HEADS="{COLUMN_HEADS}"; NC={NUM_COLS}; MAIN={MAIN}; PM={PM}; TK={TK}; \
-W=$(tmux display-message -p '#{window_width}'); \
-CW=$(( (W - 70 - 1 - (NC - 1)) / NC )); \
-for pass in 1 2; do \
-  for h in $HEADS; do tmux resize-pane -t $h -x $CW 2>/dev/null; done; \
-  for lp in $MAIN $PM $TK; do tmux resize-pane -t $lp -x 70 2>/dev/null; done; \
-done; \
-echo "Equalized: $NC columns at ${CW}cols, left column at 70"
-```
-
-After placed and equalized, send to PM:
+After labeling, send to PM:
 
 ```
 SendMessage to PM: "SPAWNED task-{N}: {description}"
@@ -79,6 +70,8 @@ Model: `opus` | Mode: `bypassPermissions`
 
 ```
 You are the **team coordinator** for task {N} of the "$ARGUMENTS" plan.
+
+**On startup, immediately run:** `tmux set-option -p @agent-name "task-{N}"`
 
 **Your task:** {task description from plan}
 **Success criteria:** {success criteria from plan}
@@ -154,6 +147,8 @@ Model: `sonnet` | Mode: `bypassPermissions`
 ```
 You are testing task {N} of the "$ARGUMENTS" plan.
 
+**On startup, immediately run:** `tmux set-option -p @agent-name "task-{N}"`
+
 **Task being tested:** {task description from plan}
 **Success criteria:** {success criteria from plan}
 
@@ -210,6 +205,8 @@ Spawn **once** before any task-teams. The Project Manager runs for the entire pl
 
 ```
 You are the **Project Manager** for the "$ARGUMENTS" plan execution.
+
+**On startup, immediately run:** `tmux set-option -p @agent-name "pm-{PLAN_NAME}"`
 
 **Plan directory:** `documentation/plans/$ARGUMENTS/`
 **Lead name:** {lead name}
