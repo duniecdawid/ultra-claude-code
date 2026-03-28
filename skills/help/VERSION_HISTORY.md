@@ -2,6 +2,7 @@
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2026.03.28-7 | 2026-03-28 | Roadmap skill: enforce full-stack plans — a feature must never be split across plans by architectural layer (no backend/frontend pairs). Strengthen sizing-framework heuristic #2 with anti-pattern examples, add constraint to SKILL.md, reinforce in stub template. |
 | 2026.03.28-6 | 2026-03-28 | Replace tmux-team-grid post-hoc layout with incremental pane placement during spawning. Use `@agent-name` custom tmux options instead of pane titles (Claude Code overwrites titles). Two-pass column equalization. Left column fixed 70 cols, task columns distributed equally. tmux-team-grid becomes recovery-only tool. Remove PM pane-title-setting duties and pane IDs from SPAWNED messages. Add Lead plan review blocking gate to task-executor. |
 | 2026.03.28-5 | 2026-03-28 | Remove `name` frontmatter field from all 19 skill files — field is not required by the plugin schema |
 | 2026.03.28-4 | 2026-03-28 | Add `/uc:roadmap` skill — decomposes product into sequenced plan stubs with dependency graph. Creates stub plans (`Status: Stub`) that feature-mode consumes as starting points. Update feature-mode with Pre-Stage stub detection, plan-enhancer with stub-to-draft upgrade handling. |
