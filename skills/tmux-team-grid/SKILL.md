@@ -144,7 +144,10 @@ if [ $NUM_COLS -gt 0 ]; then
     for head in $COLUMN_HEADS; do
       tmux resize-pane -t "$head" -x $col_width 2>/dev/null || true
     done
-    tmux resize-pane -t "$MAIN_PANE" -x $LEFT_WIDTH 2>/dev/null || true
+    # Pin ALL left-column panes to LEFT_WIDTH
+    for lp in "$MAIN_PANE" "$PM_PANE" "$TK_PANE"; do
+      [ -n "$lp" ] && tmux resize-pane -t "$lp" -x $LEFT_WIDTH 2>/dev/null || true
+    done
   done
 fi
 

@@ -29,53 +29,41 @@ For each task-team spawn:
 
 ### Place a task column
 
-After spawning all 3 and diffing to get their pane IDs (order doesn't matter — all get the same label):
+After spawning all 3 and diffing to get their pane IDs (order doesn't matter — all get the same label), run this **single bash block**. Replace `{NEW_PANES}` with the space-separated pane IDs, `{TARGET}` with MAIN_PANE (first column) or the last column head, `{N}` with the task number, and `{MAIN}`, `{PM}`, `{TK}` with your tracked pane IDs:
 
 ```bash
-# Break all 3 out to prevent layout disruption
-for p in $NEW_PANES; do tmux break-pane -d -s "$p"; done
-
-# Pick any pane as column head
-HEAD=$(echo $NEW_PANES | awk '{print $1}')
-MID=$(echo $NEW_PANES | awk '{print $2}')
-BOT=$(echo $NEW_PANES | awk '{print $3}')
-
-# Column head → full-height column to the right
-if [ $NUM_COLS -eq 0 ]; then
-  tmux join-pane -fh -s $HEAD -t $MAIN_PANE
-else
-  LAST_COL_HEAD=$(echo $COLUMN_HEADS | awk '{print $NF}')
-  tmux join-pane -fh -s $HEAD -t $LAST_COL_HEAD
-fi
-# Track: append $HEAD to COLUMN_HEADS, increment NUM_COLS
-
-# Second pane → bottom 66% of column
-tmux join-pane -v -s $MID -t $HEAD -l 66%
-
-# Third pane → bottom 50% of remaining
-tmux join-pane -v -s $BOT -t $MID -l 50%
-
-# Label all 3 panes as "task-{N}"
-for p in $NEW_PANES; do
-  tmux set-option -p -t $p @agent-name "task-{N}"
-done
+# Run as a single bash command — fill in the 6 values marked with {braces}
+NEW_PANES="{pane1} {pane2} {pane3}"; TARGET="{TARGET}"; N={N}; MAIN={MAIN}; PM={PM}; TK={TK}; \
+for p in $NEW_PANES; do tmux break-pane -d -s "$p" 2>/dev/null; done; \
+HEAD=$(echo $NEW_PANES | awk '{print $1}'); \
+MID=$(echo $NEW_PANES | awk '{print $2}'); \
+BOT=$(echo $NEW_PANES | awk '{print $3}'); \
+tmux join-pane -fh -s $HEAD -t $TARGET; \
+tmux join-pane -v -s $MID -t $HEAD -l 66%; \
+tmux join-pane -v -s $BOT -t $MID -l 50%; \
+for p in $NEW_PANES; do tmux set-option -p -t $p @agent-name "task-$N"; done; \
+echo "Placed task-$N column (head=$HEAD)"
 ```
+
+Example: `NEW_PANES="%160 %161 %162"; TARGET="%155"; N=1; MAIN=%155; PM=%156; TK=%157; ...`
+
+For the second task column and beyond, set TARGET to the previous column's HEAD pane.
+
+Track: append HEAD to COLUMN_HEADS, increment NUM_COLS.
 
 ### After column is placed — equalize all columns
 
-Left column stays fixed at 70 cols. Remaining width is distributed equally across task columns. Two resize passes are required — tmux's resize cascades through the layout tree, so a single pass leaves middle columns at wrong widths.
+Run the equalize **in the same bash command** or immediately after. Replace `{COLUMN_HEADS}`, `{NUM_COLS}`, `{MAIN}`, `{PM}`, `{TK}` with your tracked values:
 
 ```bash
-LEFT_WIDTH=70
-win_width=$(tmux display-message -p '#{window_width}')
-right_width=$((win_width - LEFT_WIDTH - 1))
-col_width=$(( (right_width - (NUM_COLS - 1)) / NUM_COLS ))
-for pass in 1 2; do
-  for head in $COLUMN_HEADS; do
-    tmux resize-pane -t "$head" -x $col_width
-  done
-  tmux resize-pane -t $MAIN_PANE -x $LEFT_WIDTH
-done
+HEADS="{COLUMN_HEADS}"; NC={NUM_COLS}; MAIN={MAIN}; PM={PM}; TK={TK}; \
+W=$(tmux display-message -p '#{window_width}'); \
+CW=$(( (W - 70 - 1 - (NC - 1)) / NC )); \
+for pass in 1 2; do \
+  for h in $HEADS; do tmux resize-pane -t $h -x $CW 2>/dev/null; done; \
+  for lp in $MAIN $PM $TK; do tmux resize-pane -t $lp -x 70 2>/dev/null; done; \
+done; \
+echo "Equalized: $NC columns at ${CW}cols, left column at 70"
 ```
 
 After placed and equalized, send to PM:
