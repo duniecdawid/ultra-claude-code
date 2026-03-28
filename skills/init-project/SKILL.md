@@ -137,7 +137,7 @@ The plan includes these task groups, in order:
 
 #### Group 2 — Configure project CLAUDE.md and `.claude/` files
 
-**Note:** `.claude/system-test.md` is no longer generated from a simple template in this group. It is produced by the Explore→Executor pipeline in Phase 3 (Stages B and C). This group still derives the other `.claude/` config files.
+**Note:** Testing configuration is no longer a single `.claude/system-test.md` file. It is produced as a multi-file directory at `documentation/technology/testing/` by the Explore→Executor pipeline in Phase 3 (Stages B and C). This group still derives the other `.claude/` config files.
 
 **`CLAUDE.md`** (project root) — append an Ultra Claude section if not already present:
 
@@ -156,7 +156,7 @@ This project uses [Ultra Claude](https://github.com/duniecdawid/ultra-claude-cod
 - **Canonical documentation** lives in `documentation/` — do not create docs outside this structure.
 - **Plans** are stored in `documentation/plans/{NNN}-{name}/` with sequential numbering and embedded task lists.
 - **External system context** (API docs, SDK references) goes in `context/`.
-- **Project configuration** for Claude is in `.claude/` (app-context, system-test, environments-info).
+- **Project configuration** for Claude is in `.claude/` (app-context, environments-info). Testing config lives in `documentation/technology/testing/`.
 
 ### Key Commands
 
@@ -190,10 +190,13 @@ For each `.claude/` config file:
 - Key Technologies (frameworks, libraries, build tools)
 - External Integrations (APIs, databases, services)
 
-**`.claude/system-test.md`** — derived from detected test framework/commands:
-- Environment Setup (prerequisites, install commands)
-- Running Tests (test command, coverage command)
-- Test Patterns (framework, directory structure)
+**`documentation/technology/testing/`** — multi-file testing config derived from detected test framework/commands (produced by Phase 3 Stages B+C, not this group — shown here for reference):
+- `README.md` — test strategy overview (status, stack, test pyramid)
+- `commands.md` — exact test commands by type (unit, integration, e2e)
+- `infrastructure.md` — test infra policy (Testcontainers, docker-compose, mocks)
+- `security.md` — domain-calibrated security testing categories
+- `agent-rules.md` — base rules for all tester agents
+- `final-gate.md` — instructions for final-gate tester only
 
 **`.claude/environments-info`** — derived from CI config, environment files, docker-compose:
 - Development environment setup
@@ -223,9 +226,9 @@ Evidence strength determines recommendation:
 
 Present ALL candidates to user via AskUserQuestion with this format:
 
-> **Standards & System Test Approval**
+> **Standards & Testing Config Approval**
 >
-> Based on code analysis, here are candidate coding standards and the system-test plan. Please approve each:
+> Based on code analysis, here are candidate coding standards and the testing config plan. Please approve each:
 >
 > | # | Standard | Evidence | Recommendation | Your Choice |
 > |---|---|---|---|---|
@@ -233,7 +236,7 @@ Present ALL candidates to user via AskUserQuestion with this format:
 > | 2 | `error-handling.md` | Medium (3 patterns) | Create | Create / Skip / Create (I'll add context) |
 > | ... | | | | |
 >
-> **System-test.md**: Will generate comprehensive test strategy with {N} security categories based on {domain}. Approve? Yes / No / Modify
+> **Testing config** (`documentation/technology/testing/`): Will generate 6 files — test strategy, commands, infrastructure, security ({N} categories based on {domain}), agent rules, and final-gate instructions. Approve? Yes / No / Modify
 >
 > You may also add unlisted topics (e.g., "Also create a caching standard").
 
@@ -312,7 +315,7 @@ For very large projects (many files to move, 4+ task groups with significant wor
 
 #### Stage B: Research Phase (parallel with Stage A)
 
-For each approved standard topic + system-test.md, spawn an Explore agent (subagent_type `Explore`, thoroughness: `very thorough`). Run up to 5 agents in parallel; batch if more.
+For each approved standard topic + testing config, spawn an Explore agent (subagent_type `Explore`, thoroughness: `very thorough`). Run up to 5 agents in parallel; batch if more.
 
 **Standards Explore agent prompt** (one per approved topic):
 
@@ -343,7 +346,7 @@ For each approved standard topic + system-test.md, spawn an Explore agent (subag
 > ## Gaps / Missing Information
 > - {what couldn't be determined}
 
-**System-test Explore agent prompt:**
+**Testing config Explore agent prompt:**
 
 > Research test infrastructure for this project.
 >
@@ -361,7 +364,7 @@ For each approved standard topic + system-test.md, spawn an Explore agent (subag
 
 #### Stage C: Standards Writing (after Stage B completes)
 
-Wait for all Stage B Explore agents to finish. Then, for each approved standard + system-test.md, spawn a Task Executor (subagent_type `uc:Task Executor`). Run up to 5 executors in parallel; batch if more.
+Wait for all Stage B Explore agents to finish. Then, for each approved standard + testing config, spawn a Task Executor (subagent_type `uc:Task Executor`). Run up to 5 executors in parallel; batch if more.
 
 Pass the Explore agent results directly into the executor spawn prompt — no intermediate research file needed since Explore agents return results inline.
 
@@ -396,26 +399,45 @@ Pass the Explore agent results directly into the executor spawn prompt — no in
 >
 > Write to: `documentation/technology/standards/{topic}.md`
 
-**System-test Executor spawn prompt:**
+**Testing config Executor spawn prompt:**
 
-> You are a senior QA architect designing test strategies. Using prompt-architect methodology, craft system-test.md from the exploration findings below.
+> You are a senior QA architect designing test strategies. Using prompt-architect methodology, craft a multi-file testing configuration from the exploration findings below.
 >
 > Inputs:
 > - Exploration findings: {paste the Explore agent results directly here}
 > - Project domain: {domain}
 >
-> Output structure for `.claude/system-test.md`:
-> 1. **Status**: Current test suite state (what exists, what's missing)
-> 2. **Test Stack**: Frameworks, tools, versions (from actual config files)
-> 3. **Running Tests**: Exact commands by type (unit, integration, e2e)
-> 4. **Test Strategy**: Test pyramid — what each layer covers in this project
-> 5. **Security Testing Standards**: Domain-calibrated categories (payment system = all 9 categories; CRUD app = auth + validation + API security)
-> 6. **Test Infrastructure Policy**: Rules for actual infra (Testcontainers, docker-compose, test databases, mocking)
-> 7. **Tester Agent Rules**: Numbered rules for AI testers on this project — what to check, what to skip, how to validate
+> Write **6 files** to `documentation/technology/testing/`:
 >
-> Quality: Commands verified against config files. Security categories calibrated to domain. If no tests yet, recommend setup for tech stack.
+> 1. **`README.md`** — Test strategy overview:
+>    - Current test suite state (what exists, what's missing)
+>    - Test stack: frameworks, tools, versions (from actual config files)
+>    - Test pyramid: what each layer covers in this project
 >
-> Write to: `.claude/system-test.md`
+> 2. **`commands.md`** — Exact test commands:
+>    - Commands by type (unit, integration, e2e)
+>    - Dev server start command
+>    - Coverage command
+>    - Build/lint commands relevant to testing
+>
+> 3. **`infrastructure.md`** — Test infrastructure policy:
+>    - Rules for actual infra (Testcontainers, docker-compose, test databases, mocking)
+>    - Environment setup prerequisites
+>    - Test data management
+>
+> 4. **`security.md`** — Security testing standards:
+>    - Domain-calibrated categories (payment system = all 9 categories; CRUD app = auth + validation + API security)
+>
+> 5. **`agent-rules.md`** — Tester agent rules:
+>    - Numbered rules for AI testers on this project — what to check, what to skip, how to validate
+>
+> 6. **`final-gate.md`** — Final gate tester instructions:
+>    - Pages/routes to smoke test in browser
+>    - Acceptance thresholds (e.g., all tests must pass, no console errors)
+>    - Cross-task regression priorities
+>    - Manual verification checklist items specific to this project
+>
+> Quality: Commands verified against config files. Security categories calibrated to domain. If no tests yet, recommend setup for tech stack. If project has legacy `.claude/system-test.md`, migrate its content into the new files and note that the old file can be removed.
 
 #### Parallelism Summary
 
@@ -437,7 +459,7 @@ End with a concise report:
 - **Documented**: architecture/docs bootstrapped or migrated
 - **Migrated**: files moved to canonical locations (originals removed)
 - **Standards created**: {list of files with core principle for each}
-- **System test**: system-test.md with {N} security categories, {N} tester rules
+- **Testing config**: `documentation/technology/testing/` with 6 files — {N} security categories, {N} tester rules, final-gate instructions
 - **Standards gaps**: topics where evidence was thin (flagged with NOTE sections in the standard files)
 - **Gaps remaining**: canonical sections still using placeholders
 - **Next steps**:

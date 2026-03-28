@@ -117,7 +117,7 @@ Before starting: ensure your architecture docs exist in `documentation/technolog
    - Spawn System Tester to reproduce the failure
    - Produce a fix plan
 
-Before starting: ensure `.claude/system-test.md` has instructions for running tests and accessing staging.
+Before starting: ensure `documentation/technology/testing/` has instructions for running tests and accessing staging (run `/uc:init-project` to generate).
 
 ---
 

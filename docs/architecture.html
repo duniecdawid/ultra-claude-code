@@ -154,7 +154,7 @@
 <ul>
 <li>Scaffold missing canonical directories and template placeholders</li>
 <li>Derive <code>.claude/</code> config files from survey findings</li>
-<li><strong>Standards &amp; system-test approval</strong> &mdash; presents candidate standards (from code signals) for user approval with per-topic Create/Skip/Add-context options</li>
+<li><strong>Standards &amp; testing config approval</strong> &mdash; presents candidate standards (from code signals) for user approval with per-topic Create/Skip/Add-context options</li>
 <li>Bootstrap architecture docs (greenfield) or map existing docs to canonical locations (migration) or both (mixed)</li>
 <li>Regenerate <code>documentation/README.md</code> index</li>
 </ul>
@@ -162,8 +162,8 @@
 <li><strong>Execute</strong> &mdash; Three-stage pipeline after plan approval:
 <ul>
 <li><strong>Stage A</strong>: Core scaffolding, config, docs migration (Task Executor agents)</li>
-<li><strong>Stage B</strong>: Parallel Explore agents gather evidence for each approved standard + system-test (runs in parallel with Stage A)</li>
-<li><strong>Stage C</strong>: Parallel Task Executor agents write standards and system-test.md from research findings using prompt-architect principles (waits for Stage B)</li>
+<li><strong>Stage B</strong>: Parallel Explore agents gather evidence for each approved standard + testing config (runs in parallel with Stage A)</li>
+<li><strong>Stage C</strong>: Parallel Task Executor agents write standards and testing config files (<code>documentation/technology/testing/</code>) from research findings using prompt-architect principles (waits for Stage B)</li>
 </ul>
 </li>
 </ol>

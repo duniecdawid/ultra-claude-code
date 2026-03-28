@@ -34,6 +34,7 @@ documentation/
 ├── technology/
 │   ├── architecture/                  # System design, components, data flow, tech stack
 │   ├── standards/                     # Coding conventions, patterns, quality bars
+│   ├── testing/                       # Test strategy, commands, agent rules, security testing
 │   └── rfcs/                          # Structured reviews for ambiguous/high-risk decisions
 ├── product/
 │   ├── description/                   # Product briefs, vision, positioning
@@ -58,6 +59,7 @@ When any mode, agent, or user creates documentation, route it to the correct loc
 |-------------|-----------------|---------|
 | System design, component diagrams, data flow | `technology/architecture/` | Contains: architecture, design, component, system, data flow, tech stack |
 | Coding conventions, API standards, patterns | `technology/standards/` | Contains: convention, standard, pattern, style guide, coding rules |
+| Test strategy, commands, tester agent rules, security testing | `technology/testing/` | Contains: test strategy, test commands, tester rules, security testing, final gate, test infrastructure |
 | Decision reviews (problem, options, outcome) | `technology/rfcs/` | Contains: RFC, decision review, trade-off analysis, options evaluation |
 | Product vision, positioning, product briefs | `product/description/` | Contains: vision, positioning, product brief, description |
 | Market research, competitor analysis, technology landscape | `product/research/` | Contains: competitor, market, research, technology landscape, trends |
@@ -143,6 +145,9 @@ Maintain `documentation/README.md` as a navigable index of the entire documentat
 
 ### Standards
 - [Document Name](technology/standards/filename.md) — One-line description
+
+### Testing
+- [Document Name](technology/testing/filename.md) — One-line description
 
 ### RFCs
 - [Document Name](technology/rfcs/filename.md) — One-line description

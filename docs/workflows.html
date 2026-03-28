@@ -119,7 +119,7 @@ STAGE 4: WRITE (Documentation + Plan + Approval)
 <h2 id="init-project">Init Project</h2>
 
 <p><strong>Entry condition:</strong> User wants to onboard a project to Ultra Claude.<br>
-<strong>Exit condition:</strong> Project scaffolded with documentation structure, coding standards, and system-test.md.</p>
+<strong>Exit condition:</strong> Project scaffolded with documentation structure, coding standards, and testing configuration.</p>
 
 <pre><code>User: /uc:init-project
 
@@ -135,16 +135,16 @@ STAGE 4: WRITE (Documentation + Plan + Approval)
 
 3. PLAN
    &rarr; Groups 1-4: scaffold, configure, migrate, regenerate index
-   &rarr; Group 2.5: Standards &amp; System Test Approval
+   &rarr; Group 2.5: Standards &amp; Testing Config Approval
      &rarr; Presents candidate standards table with evidence strength
      &rarr; Per-topic options: Create / Skip / Create (I'll add context)
-     &rarr; System-test.md outline for approval
+     &rarr; Testing config (documentation/technology/testing/) outline for approval
      &rarr; User must explicitly approve before research agents spawn
 
 4. EXECUTE (three-stage pipeline)
    &rarr; Stage A (parallel): Core scaffolding — Task Executors handle Groups 1-4
-   &rarr; Stage B (parallel with A): Explore agents gather evidence per approved standard + system-test
-   &rarr; Stage C (after B): Task Executors write standards + system-test.md from research
+   &rarr; Stage B (parallel with A): Explore agents gather evidence per approved standard + testing config
+   &rarr; Stage C (after B): Task Executors write standards + testing config files from research
      &rarr; Standards use prompt-architect methodology (persona, context, few-shot, chain-of-thought)
      &rarr; Each standard follows templates/standard.md structure
      &rarr; Research files deleted after standard is written
@@ -152,13 +152,13 @@ STAGE 4: WRITE (Documentation + Plan + Approval)
 5. SUMMARY
    &rarr; Reports: scaffolded dirs, configured files, migrated docs
    &rarr; Lists created standards with core principles
-   &rarr; Notes system-test.md security categories and tester rules
+   &rarr; Notes testing config security categories and tester rules
    &rarr; Flags thin-evidence standards for review</code></pre>
 
 <p><strong>Edge cases:</strong></p>
 <ul>
-<li><strong>No standards signals detected</strong> &mdash; If Code Surveyor finds no recognizable patterns, Group 2.5 is skipped and no standards are generated. System-test.md is still produced if test infrastructure is found.</li>
-<li><strong>User skips all standards</strong> &mdash; Stages B and C for standards are skipped entirely. Only system-test.md research/writing runs if approved.</li>
+<li><strong>No standards signals detected</strong> &mdash; If Code Surveyor finds no recognizable patterns, Group 2.5 is skipped and no standards are generated. Testing config is still produced if test infrastructure is found.</li>
+<li><strong>User skips all standards</strong> &mdash; Stages B and C for standards are skipped entirely. Only testing config research/writing runs if approved.</li>
 <li><strong>Thin evidence</strong> &mdash; Standards with &lt; 3 concrete rules include a NOTE section about limited evidence. User is prompted to add examples post-init.</li>
 </ul>
 

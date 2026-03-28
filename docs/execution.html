@@ -50,7 +50,7 @@
 <tr><td><strong>All team members</strong></td><td>Plan README.md path, <code>shared/lead.md</code> path, task description from plan, teammate names (Executor, Reviewer, Tester, <code>knowledge-{PLAN_NAME}</code>, <code>pm-{PLAN_NAME}</code>)</td></tr>
 <tr><td><strong>Task Executor</strong></td><td>+ task-specific pattern files from plan&rsquo;s Patterns field, Lead name for operational messages, drives the review/test cycle via SendMessage. Can spawn Explore subagents for codebase investigation and query <code>knowledge-{PLAN_NAME}</code> for external library docs.</td></tr>
 <tr><td><strong>Code Reviewer</strong></td><td>+ architecture docs path (<code>documentation/technology/architecture/</code>), coding standards path (<code>documentation/technology/standards/</code>), task-specific pattern files, SendMessage targets (Executor, Tester) for feedback</td></tr>
-<tr><td><strong>Task Tester</strong></td><td>+ success criteria from plan, <code>documentation/product/</code> (all product docs), <code>.claude/system-test.md</code> (if exists), SendMessage target (Executor) for feedback</td></tr>
+<tr><td><strong>Task Tester</strong></td><td>+ success criteria from plan, <code>documentation/product/</code> (all product docs), <code>documentation/technology/testing/</code> (all files; skips <code>final-gate.md</code> for per-task testing), SendMessage target (Executor) for feedback</td></tr>
 </tbody>
 </table>
 </div>
