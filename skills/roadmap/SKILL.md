@@ -251,3 +251,4 @@ See documentation/plans/ROADMAP.md for the full dependency graph.
 - Do NOT start executing or detailing any plan after scaffolding
 - Do NOT skip the user approval step in Phase 2
 - Do NOT create plans for scope already covered by existing plans (incremental)
+- Do NOT split a single feature across multiple plans by architectural layer — no "X-backend" / "X-frontend" pairs. All layers of a feature (API, UI, database) belong in one plan. A plan can contain multiple cohesive features, but a feature must never span multiple plans.

@@ -33,7 +33,9 @@ A stub plan uses the standard plan template (`templates/plan.md`) with specific 
 
 ### In Scope
 
-- {Capability or feature this plan delivers}
+<!-- Each capability spans all layers (API, UI, database). Never split a feature across plans. -->
+
+- {Capability or feature this plan delivers — full-stack, not layer-specific}
 - {Another capability}
 - {Keep to scope boundaries, not implementation details}
 
@@ -67,3 +69,4 @@ A stub plan uses the standard plan template (`templates/plan.md`) with specific 
 - Out of Scope should cross-reference other plans in the series, creating clear boundaries
 - Success Criteria should be high-level and verifiable, not implementation-specific
 - Scope items describe capabilities ("User can log in"), not tasks ("Create login endpoint")
+- Scope items describe full-stack capabilities, not layer-specific work — a feature must never be split across plans

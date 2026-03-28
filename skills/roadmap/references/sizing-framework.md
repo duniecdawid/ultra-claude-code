@@ -12,7 +12,17 @@ Apply in order:
 
 1. **Infrastructure first.** If the project needs scaffolding (project structure, build system, CI/CD, deployment config, database setup), that is always the first plan. This is the foundation everything else builds on.
 
-2. **Split by user-facing capability, not technical layer.** "User authentication" is a plan. "Backend API" is not (too broad). "Database schema" is not (it's infrastructure or part of a feature). Each plan should deliver something a user or stakeholder can see or use.
+2. **Split by user-facing capability, not technical layer.** A feature must never be split across multiple plans. All architectural layers for a feature — frontend, backend, database, API — belong in one plan. A plan *can* bundle multiple cohesive features, but a single feature must never span multiple plans.
+
+   **Anti-pattern (never do this):**
+   - `003-dashboard-backend` + `004-dashboard-frontend` — WRONG. This is one feature split by layer.
+   - `005-search-api` + `006-search-ui` — WRONG. Same problem.
+
+   **Correct:**
+   - `003-user-dashboard` — includes API endpoints, React components, database queries, everything needed for the dashboard to work end-to-end.
+   - `005-search` — includes search service, indexing, API, and UI all in one plan.
+
+   Why this matters: layer splits create artificial dependencies between plans, make scope boundaries ambiguous (where does "backend" end?), and prevent each plan from delivering independently testable value. A plan that only produces API endpoints with no UI delivers nothing a user can verify.
 
 3. **One plan per major requirement.** Map each P0 requirement (from `documentation/product/requirements/`) to its own plan. Related P1/P2 requirements can share a plan if they're cohesive and wouldn't overshoot the size target.
 
