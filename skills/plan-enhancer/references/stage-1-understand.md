@@ -8,9 +8,9 @@ The active planning mode defines this stage. Plan Enhancer does not participate.
 
 - No files written
 - No research agents spawned
-- Ask at least 3 questions via AskUserQuestion before moving on — even if the request seems clear, there are always scope edges, trade-offs, and assumptions to surface
-- Use AskUserQuestion for every question that needs user input
-- AI decides when it has enough context to move to Stage 2 — no user permission needed for this transition
+- Ask at least 3 questions via AskUserQuestion and receive answers before moving on — even when the user provides a detailed report with clear symptoms, reproduction steps, and a suggested cause. A detailed report makes your questions *better*, not unnecessary. You are probing for what the reporter doesn't know they missed: unstated assumptions, scope boundaries, environmental factors, and second-order effects.
+- Use AskUserQuestion for every question that needs user input. If the user declines to answer or says "just move on," acknowledge it but still ask your remaining minimum questions — reframe them as shorter yes/no confirmations if needed. You need at least 3 answered questions (not just 3 asked) to have confidence in your understanding.
+- AI decides when it has enough context to move to Stage 2 — no user permission needed for this transition. But "enough context" means you can articulate: (a) the exact scope boundary of what is and isn't being investigated, (b) at least one assumption from the report you verified or challenged, and (c) who/what is affected. If you cannot state all three, you are not ready.
 
 ## Stage Transition
 

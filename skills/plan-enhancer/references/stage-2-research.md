@@ -10,7 +10,7 @@ These are always available and run when applicable.
 - **`doc-surveyor`** — structural survey of relevant documentation sections
 - **`tech-research`** — external library/framework documentation via Ref.tools
 
-Spawn all applicable research skills in parallel unless the issue is simple enough that only one is needed. For most work, launch `code-surveyor` + `doc-surveyor` together, and add `tech-research` when external libraries are involved.
+Spawn all applicable research skills in parallel. At minimum, always launch `code-surveyor` + `doc-surveyor` together — even for seemingly simple issues, because doc-surveyor frequently reveals context that changes your understanding of "simple." Add `tech-research` when external libraries are involved. If you genuinely believe only one surveyor applies (e.g., pure documentation change with zero code impact), state which one you are skipping and why in your stage transition message.
 
 ## Rules
 
@@ -20,6 +20,8 @@ Spawn all applicable research skills in parallel unless the issue is simple enou
 - The active mode's SKILL.md defines what extensions it adds on top of these base rules
 
 ## Stage Transition
+
+Before transitioning, verify: (a) you spawned at least code-surveyor + doc-surveyor (or stated why one was skipped), and (b) you synthesized their results into findings you can discuss. If using debug-mode, also verify your hypothesis list was presented to the user and investigated.
 
 The mode signals completion with:
 

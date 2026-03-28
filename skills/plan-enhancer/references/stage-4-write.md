@@ -4,6 +4,15 @@ Mandatory for ALL planning modes — no exceptions.
 
 **Purpose:** All file writing happens here — documentation updates, plan scaffolding, plan README. Then approval gate. Then post-approval (commit + print execution command + hard stop).
 
+## Stage Entry Check
+
+Before beginning any Stage 4 work, verify you actually completed the prior stages. If any of these are false, go back — do not proceed:
+- **Stage 1 happened:** You asked the user questions via AskUserQuestion and received answers. (If you cannot point to at least one AskUserQuestion call and response in this conversation, Stage 1 was skipped.)
+- **Stage 2 happened:** You spawned research agents or surveyors and synthesized their results. (If there are no agent results in context, Stage 2 was skipped.)
+- **Stage 3 happened:** You presented your synthesis, the user engaged in discussion, and you used the Stage 3 exit gate (AskUserQuestion with Proceed/Keep discussing/Abandon). (If there was no exit gate interaction, Stage 3 was skipped.)
+
+This check exists because the most common failure mode is jumping from a detailed user request straight to writing a plan. A detailed request makes Stages 1-3 faster, not unnecessary — fast research still catches things the user missed, and fast discussion still validates your approach.
+
 ## Rules
 
 - This is the ONLY stage where files are created or modified
