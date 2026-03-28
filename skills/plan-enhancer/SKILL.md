@@ -1,8 +1,9 @@
 ---
+name: plan-enhancer
 description: >-
   Defines the 4-stage planning framework (Understand -> Research -> Discuss -> Write) used by all planning modes.
   Standardizes plan output. Writes plan to documentation/plans/{NNN}-{name}/README.md with embedded task list.
-  Auto-loaded by planning mode skills via context field.
+  Loaded by planning mode skills as a dependency.
 user-invocable: false
 allowed-tools:
   - Read
@@ -11,8 +12,6 @@ allowed-tools:
   - Glob
   - Grep
   - Bash
-context:
-  - ${CLAUDE_PLUGIN_ROOT}/templates/plan.md
 ---
 
 # Plan Enhancer
@@ -21,6 +20,7 @@ Plan Enhancer is the starting point and framework for all planning modes. Modes 
 
 ## Constraints
 
+- Do NOT enter Claude Code's built-in PlanMode (EnterPlanMode/ExitPlanMode) — this skill IS the planning framework. The built-in PlanMode is a separate system that conflicts with this workflow.
 - Do NOT execute the plan — that is `/uc:plan-execution`'s job. After approval, commit and print the execution command, then STOP.
 - Do NOT create tasks without success criteria
 - Do NOT write any files before Stage 4 — research results and discussion stay in conversation context only
@@ -56,6 +56,8 @@ Mandatory conversation gate. Claude synthesizes findings, presents perspective, 
 ### Stage 4: Write
 
 All file writing happens here — docs, plan scaffolding, plan README, approval gate, post-approval hard stop.
+
+Before writing the plan, read the plan template: `${CLAUDE_PLUGIN_ROOT}/templates/plan.md`
 
 → Read `references/stage-4-write.md`
 

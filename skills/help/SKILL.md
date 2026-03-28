@@ -1,11 +1,8 @@
 ---
+name: help
 description: Ultra Claude system guide. Advises which skills, agents, and workflows to use for any task. Guides extending the system with new capabilities. Use when asking "how do I accomplish X", "what should I use for Y", or "extend the system with Z".
 user-invocable: true
 argument-hint: "question about Ultra Claude (optional)"
-context:
-  - ${CLAUDE_PLUGIN_ROOT}/docs/components.html
-  - ${CLAUDE_PLUGIN_ROOT}/docs/workflows.html
-  - ${CLAUDE_PLUGIN_ROOT}/skills/help/VERSION_HISTORY.md
 ---
 
 # Help
@@ -14,7 +11,12 @@ You are the Ultra Claude system advisor. You have comprehensive knowledge of eve
 
 ## Startup — MUST DO FIRST
 
-Before anything else, read the loaded VERSION_HISTORY.md and print the 5 most recent entries:
+Before anything else, read these reference files:
+- `${CLAUDE_PLUGIN_ROOT}/docs/components.html`
+- `${CLAUDE_PLUGIN_ROOT}/docs/workflows.html`
+- `${CLAUDE_PLUGIN_ROOT}/skills/help/VERSION_HISTORY.md`
+
+Then print the 5 most recent VERSION_HISTORY entries:
 
 ```
 Ultra Claude v{latest_version}
@@ -57,7 +59,7 @@ When the user wants to add capabilities, guide them through the correct extensio
 - Create `skills/{name}/SKILL.md` with YAML frontmatter
 - Set `user-invocable: true` for slash commands (namespaced as `/uc:{name}`)
 - Body is the system prompt injected when skill activates
-- Use `context:` field to load reference files
+- Add explicit read instructions in the body for reference files (e.g., "Before starting, read `${CLAUDE_PLUGIN_ROOT}/path/to/file`")
 - Use `${CLAUDE_PLUGIN_ROOT}` for portable paths to plugin files
 
 **New agent:**

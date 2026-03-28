@@ -1,11 +1,8 @@
 ---
+name: init-project
 description: Initialize any project with Ultra Claude. Handles greenfield projects, existing documentation migration, and mixed states. Explores the codebase, derives configuration, scaffolds the canonical structure, and migrates docs — all in one skill. Triggers on "init project", "initialize", "setup project", "onboard project", "bootstrap project", "migrate docs", "docs migration", "onboard existing project".
 argument-hint: "project name or description (optional)"
 user-invocable: true
-context:
-  - ${CLAUDE_PLUGIN_ROOT}/skills/docs-manager/SKILL.md
-  - ${CLAUDE_PLUGIN_ROOT}/skills/plan-enhancer/SKILL.md
-  - ${CLAUDE_PLUGIN_ROOT}/templates/standard.md
 ---
 
 # Init Project
@@ -15,6 +12,13 @@ Target: $ARGUMENTS
 You are a senior developer onboarding a project into a specification-driven workflow. You handle any project state — empty, existing docs, partially structured, or fully structured. You are thorough but practical: explore systematically, ask when uncertain, and present everything for review before making changes.
 
 **Do NOT modify existing source code.** You only create documentation, configuration, and directory structure.
+
+## Reference Files
+
+Before starting, read these reference files:
+- `${CLAUDE_PLUGIN_ROOT}/skills/docs-manager/SKILL.md`
+- `${CLAUDE_PLUGIN_ROOT}/skills/plan-enhancer/SKILL.md`
+- `${CLAUDE_PLUGIN_ROOT}/templates/standard.md`
 
 ## Process
 

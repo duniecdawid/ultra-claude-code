@@ -1,4 +1,5 @@
 ---
+name: railway
 description: Manage Railway.com deployments via railway-cli with multi-account token support. Handles account switching, project linking, deployments, logs, variables, and services — all without browser login. Each project directory maps to a specific Railway account token so you never deploy to the wrong account. Use when the user mentions Railway, railway deploy, railway logs, railway variables, railway accounts, railway tokens, railway services, railway status, or needs to connect a project to Railway. Triggers on "railway", "deploy to railway", "railway logs", "railway status", "railway variables", "switch railway account", "railway token", "add railway account".
 user-invocable: true
 argument-hint: "action (e.g. 'deploy', 'logs', 'status', 'add account', 'link project', 'variables')"

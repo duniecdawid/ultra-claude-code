@@ -1,4 +1,5 @@
 ---
+name: feature-mode
 description: Plan new features with product, architecture, and implementation context. Challenges scope, ensures clarity, spawns research. Use when starting a new feature, adding functionality, or planning significant changes. Triggers on "new feature", "plan feature", "start feature", "add feature".
 argument-hint: "feature description"
 user-invocable: true
@@ -10,9 +11,6 @@ allowed-tools:
   - Write
   - Bash
   - AskUserQuestion
-context:
-  - ${CLAUDE_PLUGIN_ROOT}/skills/plan-enhancer/SKILL.md
-  - ${CLAUDE_PLUGIN_ROOT}/skills/docs-manager/SKILL.md
 ---
 
 # Feature Mode
@@ -32,7 +30,11 @@ Your instincts:
 
 ## Process
 
-Always read Plan Enhancer first. This skill extends the fundamentals defined there.
+Before starting, read these reference files:
+- `${CLAUDE_PLUGIN_ROOT}/skills/plan-enhancer/SKILL.md`
+- `${CLAUDE_PLUGIN_ROOT}/skills/docs-manager/SKILL.md`
+
+This skill extends the fundamentals defined in Plan Enhancer.
 
 ### Stage 1: Understand
 

@@ -1,4 +1,5 @@
 ---
+name: doc-code-verification-mode
 description: Find and plan fixes for discrepancies between documentation and code. Spawns surveyor and checker subagents to compare doc claims against code reality. Supports scoped verification. Use when verifying docs, checking doc-code gaps, syncing documentation. Triggers on "verify docs", "check doc-code gaps", "sync docs", "doc verification".
 argument-hint: "scope (optional — specific directory or 'all')"
 user-invocable: true
@@ -10,9 +11,6 @@ allowed-tools:
   - Write
   - Bash
   - AskUserQuestion
-context:
-  - ${CLAUDE_PLUGIN_ROOT}/skills/plan-enhancer/SKILL.md
-  - ${CLAUDE_PLUGIN_ROOT}/skills/docs-manager/SKILL.md
 ---
 
 # Doc & Code Verification Mode
@@ -30,7 +28,11 @@ Your instincts:
 
 ## Process
 
-Always read Plan Enhancer first. This skill extends the fundamentals defined there.
+Before starting, read these reference files:
+- `${CLAUDE_PLUGIN_ROOT}/skills/plan-enhancer/SKILL.md`
+- `${CLAUDE_PLUGIN_ROOT}/skills/docs-manager/SKILL.md`
+
+This skill extends the fundamentals defined in Plan Enhancer.
 
 ### Stage 1: Understand
 

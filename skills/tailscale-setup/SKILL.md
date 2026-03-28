@@ -1,4 +1,5 @@
 ---
+name: tailscale-setup
 description: Configure Tailscale for exposing local services (dashboards, dev servers) via HTTPS. Checks installation, connection, operator mode, and serve/funnel readiness. Fixes what it can automatically, guides the user through manual steps. Use when setting up Tailscale, exposing a local port, troubleshooting serve/funnel, or preparing for PM dashboard access. Triggers on "tailscale setup", "tailscale serve", "tailscale funnel", "expose port", "expose local service", "tailscale config", "mobile access".
 user-invocable: true
 argument-hint: "what to configure (optional, e.g. 'serve', 'funnel', 'full setup')"
