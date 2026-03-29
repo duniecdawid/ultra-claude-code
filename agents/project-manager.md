@@ -121,8 +121,7 @@ At the very beginning of execution (before spawning any teams):
 6. If not running, start it:
    ```bash
    if [ "$DASHBOARD_RUNNING" = "false" ]; then
-     nohup node "${CLAUDE_PLUGIN_ROOT}/scripts/global-dashboard.js" > /dev/null 2>&1 &
-     echo $! > "$DASHBOARD_PID_FILE"
+     node "${CLAUDE_PLUGIN_ROOT}/scripts/ultra-dashboard/index.js" --ensure
      sleep 1
      tailscale serve --bg 3847 2>&1 | tee /tmp/tailscale-serve-output.txt
    fi
@@ -229,14 +228,11 @@ Update the relevant JSON file(s) on every operational event. The dashboard polls
 
 ### Shutdown
 
-When execution completes, mark the plan inactive and clean up the watchdog. The global dashboard stays running for other plans and historical viewing:
+When execution completes, mark the plan inactive. The dashboard stays running for other plans and historical viewing:
 ```bash
-# Mark plan inactive (dashboard stays running)
 curl -sf -X POST http://localhost:3847/api/deregister \
   -H 'Content-Type: application/json' \
   -d "{\"project\":\"$PROJECT_NAME\",\"plan\":\"$PLAN_NAME\"}"
-# Kill watchdog only — dashboard and Tailscale persist
-kill "$(cat "$PLAN_DIR/watchdog.pid")" 2>/dev/null
 ```
 
 Do NOT shut down until the human has had time to review the final state. Wait for the Lead's shutdown signal.
@@ -282,21 +278,11 @@ The Lead sends you terse status messages as it orchestrates. Process each into t
 
 ### Background Watchdog
 
-At startup, launch the watchdog script that runs independently of Claude agents. This is critical because if YOU hit a rate limit, the watchdog keeps running and logging.
-
-```bash
-nohup ${CLAUDE_PLUGIN_ROOT}/scripts/pipeline-watchdog.sh "$PLAN_DIR" 300 > /dev/null 2>&1 &
-echo $! > "$PLAN_DIR/watchdog.pid"
-```
-
-The watchdog writes two files you should read regularly:
+The Ultra Dashboard (started by Lead) handles health monitoring independently. It writes two files you should read regularly:
 - `watchdog-status.json` — current health snapshot (stalled tasks, rate limit suspected)
 - `watchdog.log` — timestamped event log (stalls, rate limit start/recovery)
 
-When execution completes, kill the watchdog:
-```bash
-kill "$(cat documentation/plans/{PLAN_NAME}/watchdog.pid)" 2>/dev/null
-```
+These are written by the dashboard process (not a Claude agent), so they keep updating even if you hit a rate limit.
 
 ### Monitoring Loop
 

@@ -11,16 +11,15 @@ Read ALL files in `documentation/plans/$ARGUMENTS/`:
 
 You now have the full picture.
 
-### 1.1b Layout Watcher
+### 1.1b Ultra Dashboard
 
-Start the background layout watcher. This script monitors pane `@agent-name` labels and automatically arranges panes into the team grid. **You do NOT run any tmux layout commands yourself** — just label panes and the watcher handles placement.
+Ensure the Ultra Dashboard is running. It handles tmux layout management, plan health monitoring, and the web UI — all in one process.
 
 ```bash
-nohup ${CLAUDE_PLUGIN_ROOT}/scripts/layout-watcher.sh > /tmp/layout-watcher.log 2>&1 &
-echo $! > /tmp/layout-watcher.pid
+node ${CLAUDE_PLUGIN_ROOT}/scripts/ultra-dashboard/index.js --ensure
 ```
 
-The watcher auto-detects the current window and pane, sets `main-context` label on your pane, enables pane border labels, and polls every 2 seconds. When it detects new or changed `@agent-name` labels, it rearranges all panes into the grid layout (left column at 70 cols, task columns distributed equally). It also re-equalizes on window resize.
+This is idempotent — if the dashboard is already running, it exits immediately. The dashboard auto-discovers your tmux window (via `main-context` label), arranges panes as agents spawn and label themselves, monitors plan health for stalls/rate limits, and serves the web dashboard on port 3847. **You do NOT run any tmux layout commands yourself** — just label panes.
 
 ### 1.2 Resume Detection
 

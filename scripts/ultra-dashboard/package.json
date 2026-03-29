@@ -1,0 +1,13 @@
+{
+  "name": "ultra-dashboard",
+  "version": "1.0.0",
+  "description": "Ultra Claude Dashboard — unified layout, health monitoring, and web UI",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "ensure": "node index.js --ensure"
+  },
+  "dependencies": {
+    "express": "^4.21.0"
+  }
+}

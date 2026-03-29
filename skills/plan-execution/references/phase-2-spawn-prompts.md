@@ -235,11 +235,7 @@ You are the **Project Manager** for the "$ARGUMENTS" plan execution.
 - "ALERT: Rate limit suspected — recommend pause spawning"
 - "ALERT: {member}-{N} unresponsive after rate limit recovery, recommend re-spawn"
 
-**Watchdog startup:**
-```bash
-nohup ${CLAUDE_PLUGIN_ROOT}/scripts/pipeline-watchdog.sh "documentation/plans/$ARGUMENTS" 300 > /dev/null 2>&1 &
-echo $! > "documentation/plans/$ARGUMENTS/watchdog.pid"
-```
+The Ultra Dashboard (started by Lead) handles health monitoring automatically — no watchdog startup needed.
 
 Follow the workflow in your team member instructions.
 ```

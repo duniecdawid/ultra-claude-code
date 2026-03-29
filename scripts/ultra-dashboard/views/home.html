@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ultra Claude Dashboard</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #0d1117; color: #c9d1d9; padding: 12px; }
+  a { color: #58a6ff; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  h1 { font-size: 1.3em; color: #58a6ff; margin-bottom: 4px; }
+  h2 { font-size: 1em; color: #8b949e; margin: 20px 0 10px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
+  .header { margin-bottom: 16px; border-bottom: 1px solid #21262d; padding-bottom: 12px; }
+  .header-top { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px; }
+  .header-right { font-size: 0.82em; color: #8b949e; }
+  .hostname { color: #484f58; font-size: 0.85em; }
+  .refresh-indicator { width: 8px; height: 8px; border-radius: 50%; background: #3fb950; display: inline-block; margin-right: 6px; animation: blink 5s ease-in-out infinite; }
+  @keyframes blink { 0%, 90%, 100% { opacity: 1; } 95% { opacity: 0.2; } }
+  .plan-stages { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+  .stage-chip { font-size: 0.7em; padding: 1px 6px; border-radius: 10px; font-weight: 500; font-family: monospace; }
+  .stage-chip-planning { background: #8b949e33; color: #8b949e; }
+  .stage-chip-implementing { background: #1f6feb33; color: #58a6ff; }
+  .stage-chip-reviewing { background: #d2a8ff33; color: #d2a8ff; }
+  .stage-chip-testing { background: #3fb95033; color: #3fb950; }
+  .stage-chip-completed { background: #23863533; color: #3fb950; }
+  .stage-chip-escalated { background: #da363333; color: #f85149; }
+  .stale-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-left: 6px; vertical-align: middle; }
+  .stale-dot-warning { background: #d29922; }
+  .stale-dot-critical { background: #f85149; }
+  .status-badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.72em; font-weight: 600; text-transform: uppercase; white-space: nowrap; }
+  .status-executing { background: #1f6feb33; color: #58a6ff; }
+  .status-completed { background: #23863533; color: #3fb950; }
+  .status-aborted { background: #da363333; color: #f85149; }
+  .status-pending { background: #21262d; color: #8b949e; }
+  .no-plans { color: #484f58; padding: 20px; text-align: center; }
+  .plan-cards { display: flex; flex-direction: column; gap: 8px; }
+  .plan-card { background: #161b22; border: 1px solid #21262d; border-radius: 8px; padding: 12px 14px; transition: border-color 0.2s; }
+  .plan-card:hover { border-color: #30363d; }
+  .plan-card.active { border-color: #1f6feb; }
+  .plan-card.completed { border-color: #238636; }
+  .plan-card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .plan-project { font-size: 0.78em; color: #8b949e; font-family: monospace; }
+  .plan-name { font-weight: 500; font-size: 0.95em; color: #e6edf3; }
+  .plan-card:not(.active):not(.completed) .plan-name { color: #8b949e; }
+  .plan-meta { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 6px; font-size: 0.78em; color: #8b949e; }
+  .progress-bar { flex: 1; max-width: 160px; height: 6px; background: #21262d; border-radius: 3px; overflow: hidden; display: flex; }
+  .progress-done { height: 100%; background: #3fb950; transition: width 0.3s; }
+  .progress-active { height: 100%; background: repeating-linear-gradient(90deg, #1f6feb 0px, #1f6feb 4px, #1f6feb88 4px, #1f6feb88 8px); transition: width 0.3s; }
+  .project-group { margin-bottom: 16px; }
+  .project-heading { font-size: 0.9em; color: #c9d1d9; font-weight: 600; margin-bottom: 8px; padding-left: 2px; }
+  @media (min-width: 640px) { body { padding: 20px; } h1 { font-size: 1.5em; } .plan-card { padding: 14px 18px; } }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-top">
+    <div>
+      <h1>Ultra Claude Dashboard</h1>
+      <div class="hostname" id="hostname"></div>
+    </div>
+    <div class="header-right">
+      <span class="refresh-indicator"></span>Auto-refresh 5s
+    </div>
+  </div>
+</div>
+<div id="active-section"></div>
+<div id="projects-section"></div>
+
+<script>
+document.getElementById('hostname').textContent = location.hostname;
+
+function statusClass(s) {
+  if (!s) return 'pending';
+  if (['executing','researching','planning','implementing','reviewing','testing'].includes(s)) return 'executing';
+  if (s === 'completed') return 'completed';
+  if (s === 'escalated' || s === 'aborted') return 'aborted';
+  return 'pending';
+}
+
+function fmtTime(sec) {
+  if (!sec || sec < 0) return '';
+  if (sec < 60) return sec + 's';
+  if (sec < 3600) return Math.floor(sec/60) + 'm ' + (sec%60) + 's';
+  return Math.floor(sec/3600) + 'h ' + Math.floor((sec%3600)/60) + 'm';
+}
+
+function fmtDate(iso) {
+  if (!iso) return '';
+  try { return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }); }
+  catch { return iso; }
+}
+
+function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function renderCard(p) {
+  const live = p.live_status || {};
+  const status = live.status || (p.active ? 'executing' : 'completed');
+  const sc = statusClass(status);
+  const total = live.total_tasks || 0;
+  const done = live.completed_tasks || 0;
+  const donePct = total > 0 ? Math.round((done / total) * 100) : 0;
+  const stageWeight = { planning: 0.15, implementing: 0.5, reviewing: 0.75, testing: 0.9 };
+  let activeWeight = 0;
+  if (live._active_stages) {
+    live._active_stages.forEach(function(s) { activeWeight += (stageWeight[s.status] || 0.25); });
+  }
+  const activePct = total > 0 ? Math.min(100 - donePct, Math.round((activeWeight / total) * 100)) : 0;
+  const elapsed = fmtTime(live.elapsed_seconds);
+  const isActive = p.active || status === 'executing';
+
+  let staleDot = '';
+  if (isActive && live._last_modified_ms) {
+    const age = (Date.now() - live._last_modified_ms) / 1000;
+    if (age > 300) staleDot = '<span class="stale-dot stale-dot-critical" title="Data stale (' + Math.round(age/60) + 'm)"></span>';
+    else if (age > 120) staleDot = '<span class="stale-dot stale-dot-warning" title="Data may be stale (' + Math.round(age/60) + 'm)"></span>';
+  }
+
+  return '<a href="/plan/' + encodeURIComponent(p.project) + '/' + encodeURIComponent(p.plan) + '" style="text-decoration:none">' +
+    '<div class="plan-card ' + (isActive ? 'active' : (sc === 'completed' ? 'completed' : '')) + '">' +
+      '<div class="plan-card-head">' +
+        '<span class="plan-project">' + esc(p.project) + '</span>' +
+        '<span class="status-badge status-' + sc + '">' + esc(status) + '</span>' + staleDot +
+      '</div>' +
+      '<div class="plan-name">' + esc(p.plan) + '</div>' +
+      (live._active_stages && live._active_stages.length > 0
+        ? '<div class="plan-stages">' + live._active_stages.map(function(s) {
+            return '<span class="stage-chip stage-chip-' + esc(s.status) + '">' + esc(s.task_id) + ': ' + esc(s.status) + '</span>';
+          }).join(' ') + '</div>'
+        : '') +
+      '<div class="plan-meta">' +
+        (total > 0 ? '<span>' + done + '/' + total + ' tasks</span>' +
+          '<div class="progress-bar"><div class="progress-done" style="width:' + donePct + '%"></div><div class="progress-active" style="width:' + activePct + '%"></div></div>' : '') +
+        (elapsed ? '<span>' + elapsed + '</span>' : '') +
+        '<span>' + fmtDate(p.registered_at) + '</span>' +
+      '</div>' +
+    '</div>' +
+  '</a>';
+}
+
+async function refresh() {
+  try {
+    const data = await fetch('/api/plans').then(r => r.json());
+    const plans = data.plans || [];
+
+    const active = plans.filter(p => {
+      const ls = p.live_status;
+      return p.active || (ls && ls.status === 'executing');
+    });
+    const activeEl = document.getElementById('active-section');
+    activeEl.innerHTML = active.length > 0
+      ? '<h2>Active Plans</h2><div class="plan-cards">' + active.map(renderCard).join('') + '</div>'
+      : '<h2>Active Plans</h2><div class="no-plans">No active plans</div>';
+
+    const groups = {};
+    plans.forEach(p => { if (!groups[p.project]) groups[p.project] = []; groups[p.project].push(p); });
+    const projectsEl = document.getElementById('projects-section');
+    if (Object.keys(groups).length === 0) {
+      projectsEl.innerHTML = '<h2>All Projects</h2><div class="no-plans">No plans registered yet</div>';
+    } else {
+      let html = '<h2>All Projects</h2>';
+      for (const [proj, projPlans] of Object.entries(groups).sort()) {
+        html += '<div class="project-group"><div class="project-heading">' + esc(proj) + ' (' + projPlans.length + ')</div><div class="plan-cards">' + projPlans.map(renderCard).join('') + '</div></div>';
+      }
+      projectsEl.innerHTML = html;
+    }
+  } catch (e) { console.error('Refresh failed:', e); }
+}
+
+refresh();
+setInterval(refresh, 5000);
+</script>
+</body>
+</html>
