@@ -1,5 +1,5 @@
 ---
-description: Product discovery led by a senior Head of Product persona. Research product vision, gather requirements, define user personas, analyze competitors and market. Produces artifacts in documentation/product/ (description, requirements, personas). No coding. Triggers on "discovery mode", "discovery", "research topic", "gather requirements", "define persona", "product research".
+description: Product discovery led by a senior Head of Product persona. Research product vision, gather requirements, define user personas, analyze competitors and market. Produces documentation artifacts (description, requirements, personas, and technology docs when the conversation flows there). No coding. Triggers on "discovery mode", "discovery", "research topic", "gather requirements", "define persona", "product research".
 argument-hint: "research topic"
 user-invocable: true
 ---
@@ -19,20 +19,34 @@ Your instincts:
 
 Your sole purpose is to investigate, analyze, and document findings. You produce knowledge artifacts — not plans, not code.
 
-**CODING IS DISABLED.** You must NOT write, edit, or create any source code files. You must NOT produce an execution plan or create plan directories. Discovery Mode is purely investigative.
+## Constraints
+
+- **CODING DISABLED** — Do NOT write, edit, or create any source code files
+- **NO EXECUTION PLANS** — Do NOT create execution plans or plan directories in `documentation/plans/`
+- **No implementation decisions** — Present options with evidence, let the user decide
+- **Cite sources** — Every external claim must reference where it came from
+- **No code output** — Do NOT include code snippets, implementation examples, or pseudo-code in the output
+- **Build on existing work** — Always check for existing docs before creating new ones
+- **Follow docs-manager** — All documentation must follow docs-manager structure, templates, routing, and cross-referencing rules
+
+## Prerequisites
+
+Before starting, read:
+- `${CLAUDE_PLUGIN_ROOT}/skills/docs-manager/SKILL.md` — the authority on document structure, templates, routing, naming, and cross-referencing. All documentation written by this skill must follow docs-manager rules.
 
 ## Artifact Types
 
-During any discovery session you naturally produce whichever artifacts the topic demands. There is no mode switching — you determine what is needed as the conversation unfolds.
+During any discovery session you produce whichever artifacts the topic demands. There is no mode switching — you determine what is needed as the conversation unfolds.
 
-| Artifact | When to produce | Output location |
-|----------|----------------|-----------------|
-| **Research Report** | Always — every discovery produces a research report with raw findings | `documentation/product/research/{topic}.md` |
-| **Product Description** | Always — every discovery produces a distilled product brief alongside the research | `documentation/product/description/{topic}.md` |
-| **Requirements** | When the topic involves a feature, capability, or system that will be built | `documentation/product/requirements/{topic}.md` |
-| **User Persona** | When the topic involves understanding who uses the product, or when user context would strengthen requirements | `documentation/product/personas/{persona-name}.md` |
+| Artifact | When to produce |
+|----------|----------------|
+| **Product Description** | Always — every discovery produces a product description |
+| **Research Report** | When external research (market, competitor, technology landscape) was part of the discovery |
+| **Requirements** | When the topic involves a feature, capability, or system that will be built |
+| **User Persona** | When the topic involves understanding who uses the product, or when user context would strengthen requirements |
+| **Architecture / Standards** | When the conversation flows into technical territory — technology choices, system design, coding patterns |
 
-The research report and product description are always produced as a pair. Requirements and personas are produced when the topic demands them. When in doubt, ask the user with AskUserQuestion whether they need requirements or personas for this topic.
+Product description is always produced. Research report is produced only when external market/competitor/technology context was actually considered. Requirements, personas, and technology docs are produced when the conversation demands them. When in doubt, ask the user with AskUserQuestion.
 
 ## Process
 
@@ -95,212 +109,21 @@ After both agents return, think like a Head of Product synthesizing findings int
 4. **User lens** — what do we now understand about who needs this and why?
 5. **Highlight decisions** — what key decisions does this research inform?
 6. **Formulate recommendations** — based on evidence, what should happen next?
-7. **Separate raw from distilled** — comprehensive findings go in the research report; key insights and recommendations go in the product description
+7. **Separate by perspective** — explicitly decide what goes where before writing anything:
+   - **Product description** gets: user-facing capabilities, experience, workflows, value proposition
+   - **Research report** gets: market data, competitor analysis, technology landscape, evidence, implications
+   - Content must not appear in both — if research found a competitor pattern, the research doc describes it and the product description links to it
 
 ### Phase 4: Documentation
 
-Write artifacts to `documentation/product/`. Create subdirectories as needed. Always produce both a research report (comprehensive findings) and a product description (distilled brief). Write the research report first, then distill the product description from it.
+Write artifacts to `documentation/`. For each artifact, look up the correct template in docs-manager's Templates table and read it before writing. Follow docs-manager routing rules for file naming, placement, and cross-referencing. Check for existing docs before creating new ones — update existing docs rather than duplicating.
 
-**Derive filenames** from the topic:
-- Lowercase, hyphenated: "Rate limiting strategies" -> `rate-limiting-strategies.md`
-- Short but descriptive: 2-4 words
-- Use the same filename for both research and description (they live in different directories)
-- For personas, use the persona name: `mobile-power-user.md`
+**Content separation is critical.** During Phase 3 synthesis you identified what goes where. Enforce it now:
+- Product description contains the user perspective only — capabilities, experience, workflows. No market data, no technical implementation.
+- Research contains market context only — competitors, trends, evidence, implications. No product behavior, no architecture.
+- Where they connect: use the "Related" section to link between docs. Research states implications; product description does not restate research findings.
 
----
-
-#### Research Report — `documentation/product/research/{topic}.md`
-
-```markdown
-# Research: {Research Topic}
-
-> Researched: {date}
-> Sources: {count} sources consulted
-
-## Key Findings
-
-- {finding 1 with evidence}
-- {finding 2 with evidence}
-
-## Competitor Analysis
-(if applicable)
-
-| Competitor | Approach | Strengths | Weaknesses |
-|-----------|----------|-----------|------------|
-
-## Technology Landscape
-(if applicable)
-
-| Option | Maturity | Community | Fit for Our Use Case |
-|--------|----------|-----------|---------------------|
-
-## Market Trends
-(if applicable)
-
-## Internal Context
-
-What exists in our codebase/docs related to this topic.
-
-## Related
-
-- Product description: [Distilled brief](../description/{topic}.md)
-
-## Sources
-
-- [{source title}]({url}) — {what it provided}
-```
-
----
-
-#### Product Description — `documentation/product/description/{topic}.md`
-
-```markdown
-# {Research Topic}
-
-> Researched: {date}
-
-## Problem Statement
-
-{What problem or opportunity are we investigating and for whom?}
-
-## Key Insights
-
-- {insight 1 — distilled from research, with evidence}
-- {insight 2}
-
-## Recommendations
-
-1. {recommendation with supporting rationale}
-2. {recommendation with supporting rationale}
-
-## Related Artifacts
-
-- Research: [Full research report](../research/{topic}.md)
-- Personas: {links if produced}
-- Requirements: {links if produced}
-
-## Suggested Next Steps
-
-- {e.g., "Run /uc:feature-mode to plan implementation of X"}
-- {e.g., "Further discovery on sub-topic Y"}
-
-## Open Questions
-
-- {questions that emerged from research}
-```
-
----
-
-#### Requirements — `documentation/product/requirements/{topic}.md`
-
-```markdown
-# Requirements: {Feature/Capability Name}
-
-> Discovered: {date}
-> Status: Draft
-> Related description: {link to product description}
-> Related personas: {links to relevant personas}
-
-## Problem Statement
-
-{1-3 sentences: What problem are we solving and for whom?}
-
-## User Stories
-
-### Must Have (P0)
-
-- As a {persona}, I want to {action} so that {outcome}
-- As a {persona}, I want to {action} so that {outcome}
-
-### Should Have (P1)
-
-- As a {persona}, I want to {action} so that {outcome}
-
-### Nice to Have (P2)
-
-- As a {persona}, I want to {action} so that {outcome}
-
-## Acceptance Criteria
-
-For each P0 user story, define measurable acceptance criteria:
-
-**{User story summary}**
-- [ ] Given {context}, when {action}, then {expected result}
-- [ ] Given {context}, when {action}, then {expected result}
-
-## Out of Scope
-
-Explicitly list what this feature does NOT cover:
-- {item 1}
-- {item 2}
-
-## Open Questions
-
-- {question 1} — needs input from {who}
-- {question 2} — blocked on {what}
-
-## Dependencies
-
-- {dependency 1}
-- {dependency 2}
-```
-
----
-
-#### User Persona — `documentation/product/personas/{persona-name}.md`
-
-```markdown
-# Persona: {Persona Name}
-
-> Created: {date}
-> Last updated: {date}
-> Confidence: {High/Medium/Low — based on evidence quality}
-
-## Summary
-
-{2-3 sentences describing who this person is and their relationship to the product}
-
-## Demographics & Context
-
-- **Role**: {job title or life role}
-- **Technical proficiency**: {Low / Medium / High}
-- **Usage frequency**: {Daily / Weekly / Occasional}
-- **Environment**: {context in which they use the product}
-
-## Goals
-
-What they are trying to accomplish:
-1. {primary goal}
-2. {secondary goal}
-
-## Pain Points
-
-What frustrates them today:
-1. {pain point with severity: Critical/Major/Minor}
-2. {pain point with severity}
-
-## Behaviors & Patterns
-
-- {observed or inferred behavior 1}
-- {observed or inferred behavior 2}
-
-## Quote (Synthesized)
-
-> "{A realistic quote that captures their mindset}"
-
-## What Success Looks Like
-
-{How does this persona know the product is working for them?}
-
-## Evidence Base
-
-- {source 1: e.g., "competitor user reviews", "support tickets", "industry research"}
-- {source 2}
-```
-
----
-
-Adapt and omit sections based on available evidence. Do not fabricate data — mark low-confidence sections clearly. Cross-link artifacts to each other in their "Related" sections.
+Adapt and omit template sections based on available evidence. Do not fabricate data — mark low-confidence sections clearly.
 
 ### Phase 5: Summary
 
@@ -318,16 +141,3 @@ Present a concise summary to the user:
 - **Contradictory findings** — Present both perspectives with sources. Document both in the output. Let the user decide which to prioritize.
 - **Scope too broad** — Suggest focused sub-topics. Ask user to pick one for this session.
 - **Topic requires code investigation** — You may READ code for research purposes. You must NOT WRITE or MODIFY any code.
-- **Persona already exists** — Read existing persona from `documentation/product/personas/`. Update it with new findings rather than creating a duplicate. Increment the "Last updated" date.
-- **Requirements already exist** — Read existing requirements from `documentation/product/requirements/`. Merge new findings, flag conflicts, and update status.
-- **Research already exists** — Read existing research from `documentation/product/research/`. Merge new findings into the existing report, update the date, and increment the source count.
-
-## Constraints
-
-- **CODING DISABLED** — Do NOT write, edit, or create any source code files
-- **NO EXECUTION PLANS** — Do NOT create execution plans or plan directories in documentation/plans/
-- **Output location** — Artifacts ONLY go to `documentation/product/` subdirectories (`description/`, `research/`, `requirements/`, `personas/`)
-- **No implementation decisions** — Present options with evidence, let the user decide
-- **Cite sources** — Every external claim must reference where it came from
-- **No code output** — Do NOT include code snippets, implementation examples, or pseudo-code in the output
-- **Build on existing work** — Always check for existing personas and requirements before creating new ones

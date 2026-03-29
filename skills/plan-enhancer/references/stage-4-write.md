@@ -59,30 +59,42 @@ documentation/plans/001-user-auth/
 └── tasks/             # Per-task pipeline artifacts (created empty, used during execution)
 ```
 
-## Step 2: Update Product Documentation
+## Step 2: Update Product Documentation — Mandatory
 
-This is when you update product documentation — do it now, not as part of the plan you are building.
+Documentation is not optional. This step ensures product docs exist and are current for the feature area being planned. Do it now, not as part of the plan you are building.
 
-Any changes in system behavior or requirements discovered during Stages 1-3 must be captured in:
-- **`documentation/product/description/`** — product description files
-- **`documentation/product/requirements/`** — requirements files
+### Process
 
-Update existing files if they already contain related content. Create new files if needed.
+1. **Scan** `documentation/product/description/` and `documentation/product/requirements/` for docs covering the feature area
+2. **If no relevant docs exist** — create them. Look up the correct template in docs-manager's Templates table and read it before writing.
+3. **If docs exist** — review against Stage 1-3 findings and update with any new information
+4. **Follow docs-manager** routing rules for file naming, placement, and cross-referencing between doc types
 
-Track what you changed for use in the plan's Documentation Changes table:
+Skipping this step requires explicit justification: state what you scanned, what exists, and why no changes are needed. "Nothing changed" without evidence is not acceptable.
+
+### Track Changes
+
+Record what you changed for use in the plan's Documentation Changes table:
 - File path
 - Action (created / updated)
 - Summary of what was added (one sentence)
 
-## Step 3: Review Architecture & Standards
+## Step 3: Review Architecture & Standards — Mandatory
 
-Read all files from `documentation/technology/architecture/` and `documentation/technology/standards/`. Gracefully handle missing or empty directories (skip if not found).
+Architecture and standards docs must exist and be current for the area being planned. This is also when you challenge the approach — does it fit the existing architecture? Are there better alternatives?
 
-Update architecture if there was a decision during Stages 1-3 that changes the system design, or if the plan requires architectural elements that are not yet documented. This is also a moment to challenge yourself and the user — does the proposed approach fit the existing architecture? Are there better alternatives? Design the technological changes that will be part of the plan.
+### Process
 
-Update existing files if they already contain related content. Create new files if needed.
+1. **Scan** `documentation/technology/architecture/` and `documentation/technology/standards/` for docs covering the area. Gracefully handle missing or empty directories.
+2. **If no relevant docs exist** — create them. Look up the correct template in docs-manager's Templates table and read it before writing.
+3. **If docs exist** — review against Stage 1-3 findings. Update if decisions during discussion changed the system design, or if the plan requires architectural elements that are not yet documented.
+4. **Follow docs-manager** routing rules for file naming, placement, and cross-referencing between doc types
 
-Track:
+Design the technological changes that will be part of the plan. Skipping this step requires explicit justification: state what you scanned, what exists, and why no changes are needed.
+
+### Track Changes
+
+Record:
 - What you changed in architecture/standards docs
 - Which standards are relevant to the plan (will populate each task's Patterns field)
 - Which architecture elements are relevant to the plan

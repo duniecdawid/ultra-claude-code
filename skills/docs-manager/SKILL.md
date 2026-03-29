@@ -74,8 +74,9 @@ When you see a document being created:
 
 1. **Classify** — Determine the content type from the document's content and filename
 2. **Route** — Map to the correct subdirectory using the routing table
-3. **Reject violations** — If a write targets the wrong location, redirect it
-4. **Create directory** — If the target subdirectory doesn't exist, create it
+3. **Apply template** — For new documents, read and apply the matching template from `templates/`
+4. **Reject violations** — If a write targets the wrong location, redirect it
+5. **Create directory** — If the target subdirectory doesn't exist, create it
 
 ### Common Violations to Catch
 
@@ -84,6 +85,57 @@ When you see a document being created:
 - `documentation/todo.md` — Wrong: not documentation. Plans go to `plans/`
 - `docs/` or `doc/` — Wrong directory name. Must be `documentation/`
 - Architecture content in `product/` — Wrong category. Route to `technology/architecture/`
+
+## Templates
+
+Every document created under `documentation/` must use the corresponding template. Templates live at `${CLAUDE_PLUGIN_ROOT}/skills/docs-manager/templates/`.
+
+Before creating any new document, read the template for the target content type:
+
+| Content Type | Template | Target Directory |
+|-------------|----------|-----------------|
+| System design, components, data flow | `templates/architecture.md` | `technology/architecture/` |
+| Coding conventions, patterns | `templates/standard.md` | `technology/standards/` |
+| Test strategy, commands, agent rules | `templates/testing.md` | `technology/testing/` |
+| Decision reviews | `templates/rfc.md` | `technology/rfcs/` |
+| Product vision, positioning | `templates/product-description.md` | `product/description/` |
+| Market research, competitor analysis | `templates/research.md` | `product/research/` |
+| Formal requirements, user stories | `templates/requirement.md` | `product/requirements/` |
+| User personas | `templates/persona.md` | `product/personas/` |
+| Blocking questions, external deps | `templates/dependency.md` | `dependencies/` |
+
+Template paths are relative to this skill's directory (`skills/docs-manager/`).
+
+### Template Rules
+
+1. **New documents** — Read the template, fill in all sections. Remove sections that genuinely don't apply (don't leave empty placeholders).
+2. **Existing documents** — Do not reformat to match the template. Use the template as a reference for what sections might be missing.
+3. **Plans** — Plan documents use a separate template (`${CLAUDE_PLUGIN_ROOT}/templates/plan.md`), not managed by this skill.
+
+## Document Relationships
+
+Each document type has a distinct perspective. Content must not be duplicated across types — instead, documents cross-reference each other.
+
+| Doc Type | Perspective | Contains | Does NOT contain |
+|----------|------------|----------|-----------------|
+| Product description | **User** — how the platform works | Capabilities, user experience, workflows | Technical implementation, market data |
+| Requirements | **Goals** — what problems to solve | Success criteria, acceptance criteria, priorities | How it's built, market context |
+| Research | **Market** — external context and data | Competitors, trends, evidence, implications | Platform behavior, architecture details |
+| Architecture | **Builder** — how the platform is built | Components, data flow, tech stack, interfaces | User experience, market analysis |
+| Standards | **Quality** — how code should be written | Conventions, patterns, anti-patterns | Product behavior, market data |
+| Testing | **Verification** — how to prove it works | Strategy, commands, coverage, agent rules | Product behavior, architecture design |
+
+### Cross-Reference Pattern
+
+Documents link to related docs of other types rather than restating their content:
+
+- **Product description** → links to architecture (how it's built), research (why these capabilities matter), requirements (what must be achieved)
+- **Architecture** → links to product description (what it enables), requirements (what it must achieve), standards (how to build it)
+- **Requirements** → links to product description (what's being required), research (evidence for priorities), personas (who needs this)
+- **Research** → links to product description (what it informs), requirements (implications for priorities)
+- **Personas** → links to product description (what they use), requirements (what's built for them)
+
+Each template includes a "Related" section with these cross-reference slots. When creating or updating a document, populate the Related section with actual links — not placeholders.
 
 ## Structure Enforcement
 

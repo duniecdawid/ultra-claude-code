@@ -25,6 +25,11 @@ Your instincts:
 - Distinguish between "docs are wrong" and "code is wrong" — the fix is never obvious without evidence
 - Flag ambiguity rather than resolving it yourself — when it's unclear which source of truth is correct, the human decides
 
+## Constraints
+
+- Do NOT auto-resolve ambiguous discrepancies — flag for user decision
+- If no discrepancies found, do NOT create a plan — report success and exit
+
 ## Process
 
 Before starting, read these reference files:
@@ -45,7 +50,9 @@ For very large codebases, suggest scoped verification instead of full.
 
 ### Stage 2: Research
 
-Use the base research skills to survey code and documentation in scope. Then:
+Use the base research skills to survey code and documentation in scope. Then run two verification dimensions:
+
+#### Code-Documentation Accuracy
 
 1. **Build a verification matrix** — pair documentation sections with the code they describe
 2. **Spawn Checker agents** for each pair — compare code implementation against documentation claims. Each Checker returns discrepancies with severity and file:line references.
@@ -54,19 +61,30 @@ Use the base research skills to survey code and documentation in scope. Then:
    - Classify severity: **Critical** (phantom docs describing nonexistent code), **Major** (undocumented code, significant drift), **Minor** (naming, formatting)
    - Classify fix type: **Update docs** (code is correct), **Update code** (docs are correct), **Needs decision** (unclear — flag for user)
 
+#### Documentation Structure Adherence
+
+Verify that documentation follows docs-manager's framework (loaded in prerequisites). Check:
+
+1. **Routing compliance** — all docs under `documentation/` are in the correct directories per routing rules
+2. **Template conformance** — each document follows its type's template structure (has the expected sections)
+3. **Cross-references** — documents link to related docs of other types (product description links to architecture, etc.)
+4. **Content separation** — no content duplication across doc types (e.g., market data in product descriptions, implementation details in requirements)
+
+Classify structural issues:
+- **Critical** — document in wrong directory (routing violation)
+- **Major** — document missing key template sections, missing cross-references between related docs, content duplicated across doc types
+- **Minor** — formatting deviations from template
+
 **If no discrepancies found** — report clean verification status and exit. No plan needed.
 
 ### Stage 3: Discuss
 
-Walk through every discrepancy one by one with the user. For each one, present the evidence (what docs say vs what code does, with file:line references) and ask for a decision via AskUserQuestion: update docs, update code, or skip. Allow discussion between items — the user may want to debate, ask questions, or change their mind on a previous decision before moving to the next.
+Walk through all findings — both code-documentation discrepancies and structural adherence issues — with the user. For each one, present the evidence (what docs say vs what code does, or what's wrong structurally, with file:line references) and ask for a decision via AskUserQuestion: update docs, update code, fix structure, or skip. Allow discussion between items — the user may want to debate, ask questions, or change their mind on a previous decision before moving to the next.
 
 ### Stage 4: Write
 
-Don't try to fix everything in one go. The plan should focus on the discrepancies the user decided to fix during Stage 3.
+Don't try to fix everything in one go. The plan should focus on the discrepancies and structural issues the user decided to fix during Stage 3. Structural fixes include: moving docs to correct directories, adding missing template sections, adding cross-references, and separating duplicated content.
+
+When fixing structural issues, read the relevant docs-manager template before rewriting a document to ensure the fix conforms to the expected structure.
 
 Separately, create an additional list of **features described in documentation but not implemented at all**. These are not part of the fix plan — they are a backlog of unimplemented features for the user to prioritize independently.
-
-## Constraints
-
-- Do NOT auto-resolve ambiguous discrepancies — flag for user decision
-- If no discrepancies found, do NOT create a plan — report success and exit

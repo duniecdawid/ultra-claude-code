@@ -69,9 +69,10 @@ When the user wants to add capabilities, guide them through the correct extensio
 - Follow principle of least privilege for tool access
 
 **New template:**
-- Add to `templates/` directory
+- Documentation templates: add to `skills/docs-manager/templates/`
+- Plan/task templates: add to `templates/`
+- Documentation templates are managed by docs-manager and used by all planning/discovery skills
 - Templates are copied into target projects by `/uc:init-project`
-- Used as starting points for documentation in `documentation/`
 
 ### 3. "What's the most efficient path?"
 

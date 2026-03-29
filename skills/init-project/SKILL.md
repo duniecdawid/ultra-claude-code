@@ -17,7 +17,7 @@ You are a senior developer onboarding a project into a specification-driven work
 Before starting, read these reference files:
 - `${CLAUDE_PLUGIN_ROOT}/skills/docs-manager/SKILL.md`
 - `${CLAUDE_PLUGIN_ROOT}/skills/plan-enhancer/SKILL.md`
-- `${CLAUDE_PLUGIN_ROOT}/templates/standard.md`
+- `${CLAUDE_PLUGIN_ROOT}/skills/docs-manager/templates/standard.md`
 
 ## Process
 
@@ -133,7 +133,7 @@ The plan includes these task groups, in order:
 #### Group 1 — Scaffold canonical structure
 
 - Create each missing directory in the canonical `documentation/` tree (see Docs Manager for the full layout)
-- Copy template placeholders from `${CLAUDE_PLUGIN_ROOT}/templates/` where no file exists yet
+- Copy documentation templates from `${CLAUDE_PLUGIN_ROOT}/skills/docs-manager/templates/` and plan/task templates from `${CLAUDE_PLUGIN_ROOT}/templates/` where no file exists yet
 - Generate `documentation/README.md` index if missing
 - Create `context/` directory if missing
 - Only create what doesn't already exist — never overwrite
@@ -377,7 +377,7 @@ Pass the Explore agent results directly into the executor spawn prompt — no in
 >
 > Inputs:
 > - Exploration findings: {paste the Explore agent results directly here}
-> - Template: `${CLAUDE_PLUGIN_ROOT}/templates/standard.md`
+> - Template: `${CLAUDE_PLUGIN_ROOT}/skills/docs-manager/templates/standard.md`
 > - Sibling standards being created: {list all approved topics}
 >
 > Prompt-Architect Principles Applied:

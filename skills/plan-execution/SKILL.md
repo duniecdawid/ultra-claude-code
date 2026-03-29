@@ -26,7 +26,10 @@ If no match is found, inform the user and stop. Store the resolved full director
 
 **Quick setup check:** Read `~/.claude/uc-setup.json`. If missing or `version` is older than the current plugin version (from `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json`), warn: "Run `/uc:setup` to configure your environment." Continue with the checks below regardless.
 
-Before starting, verify:
+Before starting, read:
+- `${CLAUDE_PLUGIN_ROOT}/skills/docs-manager/SKILL.md` — task executors write to `documentation/` and must follow docs-manager structure, templates, and routing rules.
+
+Then verify:
 
 1. Plan exists at `documentation/plans/$ARGUMENTS/README.md`
 2. Agent teams enabled (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS: "1"` in settings)

@@ -27,7 +27,7 @@ These are adapted from the Critical Brainstorm skill and tuned for planning cont
 
 When the discussion reveals an architectural challenge — multiple valid approaches, significant trade-offs, affects multiple components, or the user is uncertain about direction — create an RFC before proceeding to the plan.
 
-1. Create RFC at `documentation/technology/rfcs/{NNN}-{topic}.md` using the RFC template (`templates/rfc.md`)
+1. Create RFC at `documentation/technology/rfcs/{NNN}-{topic}.md` — look up the RFC template in docs-manager's Templates table and read it before writing
 2. Fill in: Problem Statement, Proposed Solution, Alternatives Considered, Trade-offs
 3. Present the alternatives to the user with your recommendation and reasoning
 4. Record the user's decision and rationale in the RFC Outcome section
