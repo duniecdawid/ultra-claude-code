@@ -27,12 +27,12 @@ Your sole purpose is to investigate, analyze, and document findings. You produce
 - **Cite sources** — Every external claim must reference where it came from
 - **No code output** — Do NOT include code snippets, implementation examples, or pseudo-code in the output
 - **Build on existing work** — Always check for existing docs before creating new ones
-- **Follow docs-manager** — All documentation must follow docs-manager structure, templates, routing, and cross-referencing rules
+- **Follow docs-manager** — All documentation must follow docs-manager structure, references, routing, and cross-referencing rules
 
 ## Prerequisites
 
 Before starting, read:
-- `${CLAUDE_PLUGIN_ROOT}/skills/docs-manager/SKILL.md` — the authority on document structure, templates, routing, naming, and cross-referencing. All documentation written by this skill must follow docs-manager rules.
+- `${CLAUDE_PLUGIN_ROOT}/skills/docs-manager/SKILL.md` — the authority on document structure, references, routing, naming, and cross-referencing. All documentation written by this skill must follow docs-manager rules.
 
 ## Artifact Types
 
@@ -116,7 +116,7 @@ After both agents return, think like a Head of Product synthesizing findings int
 
 ### Phase 4: Documentation
 
-Write artifacts to `documentation/`. For each artifact, look up the correct template in docs-manager's Templates table and read it before writing. Follow docs-manager routing rules for file naming, placement, and cross-referencing. Check for existing docs before creating new ones — update existing docs rather than duplicating.
+Write artifacts to `documentation/`. For each artifact, look up the correct reference in docs-manager's Document Type References table and read it before writing. Follow docs-manager routing rules for file naming, placement, and cross-referencing. Check for existing docs before creating new ones — update existing docs rather than duplicating.
 
 **Content separation is critical.** During Phase 3 synthesis you identified what goes where. Enforce it now:
 - Product description contains the user perspective only — capabilities, experience, workflows. No market data, no technical implementation.

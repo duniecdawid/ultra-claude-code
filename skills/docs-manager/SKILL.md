@@ -74,7 +74,7 @@ When you see a document being created:
 
 1. **Classify** — Determine the content type from the document's content and filename
 2. **Route** — Map to the correct subdirectory using the routing table
-3. **Apply template** — For new documents, read and apply the matching template from `templates/`
+3. **Apply reference** — For new documents, read the matching reference guide from `references/` and use the embedded template
 4. **Reject violations** — If a write targets the wrong location, redirect it
 5. **Create directory** — If the target subdirectory doesn't exist, create it
 
@@ -86,30 +86,30 @@ When you see a document being created:
 - `docs/` or `doc/` — Wrong directory name. Must be `documentation/`
 - Architecture content in `product/` — Wrong category. Route to `technology/architecture/`
 
-## Templates
+## Document Type References
 
-Every document created under `documentation/` must use the corresponding template. Templates live at `${CLAUDE_PLUGIN_ROOT}/skills/docs-manager/templates/`.
+Each document type has a reference guide that explains how to create it — purpose, perspective, guidance on what to include, common pitfalls, and a template. References live at `${CLAUDE_PLUGIN_ROOT}/skills/docs-manager/references/`.
 
-Before creating any new document, read the template for the target content type:
+Before creating any new document, read the reference for the target content type:
 
-| Content Type | Template | Target Directory |
+| Content Type | Reference | Target Directory |
 |-------------|----------|-----------------|
-| System design, components, data flow | `templates/architecture.md` | `technology/architecture/` |
-| Coding conventions, patterns | `templates/standard.md` | `technology/standards/` |
-| Test strategy, commands, agent rules | `templates/testing.md` | `technology/testing/` |
-| Decision reviews | `templates/rfc.md` | `technology/rfcs/` |
-| Product vision, positioning | `templates/product-description.md` | `product/description/` |
-| Market research, competitor analysis | `templates/research.md` | `product/research/` |
-| Formal requirements, user stories | `templates/requirement.md` | `product/requirements/` |
-| User personas | `templates/persona.md` | `product/personas/` |
-| Blocking questions, external deps | `templates/dependency.md` | `dependencies/` |
+| System design, components, data flow | `references/architecture.md` | `technology/architecture/` |
+| Coding conventions, patterns | `references/standard.md` | `technology/standards/` |
+| Test strategy, commands, agent rules | `references/testing.md` | `technology/testing/` |
+| Decision reviews | `references/rfc.md` | `technology/rfcs/` |
+| Product vision, positioning | `references/product-description.md` | `product/description/` |
+| Market research, competitor analysis | `references/research.md` | `product/research/` |
+| Formal requirements, user stories | `references/requirement.md` | `product/requirements/` |
+| User personas | `references/persona.md` | `product/personas/` |
+| Blocking questions, external deps | `references/dependency.md` | `dependencies/` |
 
-Template paths are relative to this skill's directory (`skills/docs-manager/`).
+Reference paths are relative to this skill's directory (`skills/docs-manager/`).
 
-### Template Rules
+### Rules
 
-1. **New documents** — Read the template, fill in all sections. Remove sections that genuinely don't apply (don't leave empty placeholders).
-2. **Existing documents** — Do not reformat to match the template. Use the template as a reference for what sections might be missing.
+1. **New documents** — Read the reference guide for that doc type. Follow the guidance and use the embedded template as a starting point. Remove sections that genuinely don't apply.
+2. **Existing documents** — Do not reformat to match the template. Use the reference as a guide for what sections might be missing or what content belongs elsewhere.
 3. **Plans** — Plan documents use a separate template (`${CLAUDE_PLUGIN_ROOT}/templates/plan.md`), not managed by this skill.
 
 ## Document Relationships

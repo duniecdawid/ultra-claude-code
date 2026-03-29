@@ -66,7 +66,7 @@ Documentation is not optional. This step ensures product docs exist and are curr
 ### Process
 
 1. **Scan** `documentation/product/description/` and `documentation/product/requirements/` for docs covering the feature area
-2. **If no relevant docs exist** — create them. Look up the correct template in docs-manager's Templates table and read it before writing.
+2. **If no relevant docs exist** — create them. Look up the correct reference in docs-manager's Document Type References table and read it before writing.
 3. **If docs exist** — review against Stage 1-3 findings and update with any new information
 4. **Follow docs-manager** routing rules for file naming, placement, and cross-referencing between doc types
 
@@ -86,7 +86,7 @@ Architecture and standards docs must exist and be current for the area being pla
 ### Process
 
 1. **Scan** `documentation/technology/architecture/` and `documentation/technology/standards/` for docs covering the area. Gracefully handle missing or empty directories.
-2. **If no relevant docs exist** — create them. Look up the correct template in docs-manager's Templates table and read it before writing.
+2. **If no relevant docs exist** — create them. Look up the correct reference in docs-manager's Document Type References table and read it before writing.
 3. **If docs exist** — review against Stage 1-3 findings. Update if decisions during discussion changed the system design, or if the plan requires architectural elements that are not yet documented.
 4. **Follow docs-manager** routing rules for file naming, placement, and cross-referencing between doc types
 

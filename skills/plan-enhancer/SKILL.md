@@ -33,7 +33,7 @@ Plan Enhancer is the starting point and framework for all planning modes. Modes 
 ## Prerequisites
 
 Before starting Stage 4, read:
-- `${CLAUDE_PLUGIN_ROOT}/skills/docs-manager/SKILL.md` — the authority on document structure, templates, routing, naming, and cross-referencing. All documentation written in Steps 2-3 must follow docs-manager rules.
+- `${CLAUDE_PLUGIN_ROOT}/skills/docs-manager/SKILL.md` — the authority on document structure, references, routing, naming, and cross-referencing. All documentation written in Steps 2-3 must follow docs-manager rules.
 
 ## 4-Stage Planning Framework
 

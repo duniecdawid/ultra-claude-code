@@ -66,14 +66,14 @@ Use the base research skills to survey code and documentation in scope. Then run
 Verify that documentation follows docs-manager's framework (loaded in prerequisites). Check:
 
 1. **Routing compliance** — all docs under `documentation/` are in the correct directories per routing rules
-2. **Template conformance** — each document follows its type's template structure (has the expected sections)
+2. **Reference conformance** — each document follows its type's expected structure (has the expected sections per the reference guide)
 3. **Cross-references** — documents link to related docs of other types (product description links to architecture, etc.)
 4. **Content separation** — no content duplication across doc types (e.g., market data in product descriptions, implementation details in requirements)
 
 Classify structural issues:
 - **Critical** — document in wrong directory (routing violation)
-- **Major** — document missing key template sections, missing cross-references between related docs, content duplicated across doc types
-- **Minor** — formatting deviations from template
+- **Major** — document missing key sections per reference guide, missing cross-references between related docs, content duplicated across doc types
+- **Minor** — formatting deviations from reference structure
 
 **If no discrepancies found** — report clean verification status and exit. No plan needed.
 
@@ -83,8 +83,8 @@ Walk through all findings — both code-documentation discrepancies and structur
 
 ### Stage 4: Write
 
-Don't try to fix everything in one go. The plan should focus on the discrepancies and structural issues the user decided to fix during Stage 3. Structural fixes include: moving docs to correct directories, adding missing template sections, adding cross-references, and separating duplicated content.
+Don't try to fix everything in one go. The plan should focus on the discrepancies and structural issues the user decided to fix during Stage 3. Structural fixes include: moving docs to correct directories, adding missing sections, adding cross-references, and separating duplicated content.
 
-When fixing structural issues, read the relevant docs-manager template before rewriting a document to ensure the fix conforms to the expected structure.
+When fixing structural issues, read the relevant docs-manager reference guide before rewriting a document to ensure the fix conforms to the expected structure.
 
 Separately, create an additional list of **features described in documentation but not implemented at all**. These are not part of the fix plan — they are a backlog of unimplemented features for the user to prioritize independently.
