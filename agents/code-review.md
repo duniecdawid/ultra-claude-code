@@ -6,10 +6,10 @@ tools:
   - Read
   - Glob
   - Grep
+  - Bash
 disallowedTools:
   - Write
   - Edit
-  - Bash
 ---
 
 # Code Reviewer Agent

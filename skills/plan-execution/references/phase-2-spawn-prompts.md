@@ -14,50 +14,19 @@ Use TeamCreate with `team_name` set to the active team. **MANDATORY naming conve
 
 **NEVER** use alternative formats like `task-1-executor`, `e1`, `Executor_1`, or descriptive names.
 
-## Pane Labeling (MANDATORY)
+## Pane Labeling
 
-A background layout watcher automatically arranges panes based on `@agent-name` labels. **You do NOT run any tmux layout commands.** You only need to ensure panes get labeled correctly.
+The **PM handles all pane labeling**. A background layout watcher arranges panes based on `@agent-name` labels. Every agent reports its tmux pane ID to PM on startup. PM sets the label. The layout watcher detects new labels and arranges the grid automatically.
 
-### How labeling works
-
-- **Agents with Bash** (executor, tester, PM) self-label on startup — the instruction is in their spawn prompt
-- **Agents without Bash** (reviewer, tech-knowledge) need the Lead to label after spawning:
-  1. Diff the pane list before/after spawn to find the new pane ID
-  2. Set the label: `tmux set-option -p -t {NEW_PANE} @agent-name "task-{N}"`
-
-### Labeling convention
-
-| Agent | Label | Set by |
-|-------|-------|--------|
-| PM | `pm-{PLAN_NAME}` | Self (has Bash) |
-| Tech Knowledge | `knowledge-{PLAN_NAME}` | Lead (no Bash) |
-| Executor-N | `task-{N}` | Self (has Bash) |
-| Reviewer-N | `task-{N}` | Lead (no Bash) |
-| Tester-N | `task-{N}` | Self (has Bash) |
-| Final Gate | `final-gate` | Lead (no Bash) |
+**Lead does NOT run any tmux labeling commands** except labeling its own pane in phase 1.1b. No pane-diffing needed.
 
 All task members get the same `task-{N}` label — the watcher groups them into one column.
 
 ### Spawning task teams
 
-All 3 task members are spawned **in parallel** (single message with 3 TeamCreate calls). The reviewer is the only one without Bash, so after spawning:
+All 3 task members are spawned **in parallel** (single message with 3 TeamCreate calls). Each agent reports its pane to PM on startup — no lead intervention needed.
 
-```
-For each task-team:
-  1. Before: PANES_BEFORE=$(tmux list-panes -F '#{pane_id}' | sort)
-  2. Spawn all 3 in parallel (executor-{N}, reviewer-{N}, tester-{N})
-  3. After:  PANES_AFTER=$(tmux list-panes -F '#{pane_id}' | sort)
-  4. Find new panes: NEW_PANES=$(comm -13 <(echo "$PANES_BEFORE") <(echo "$PANES_AFTER"))
-  5. Executor and tester self-label on startup (spawn prompt includes the instruction)
-  6. Label the remaining unlabeled pane (the reviewer):
-     for p in $NEW_PANES; do
-       label=$(tmux display-message -t "$p" -p '#{@agent-name}' 2>/dev/null)
-       [ -z "$label" ] && tmux set-option -p -t "$p" @agent-name "task-{N}"
-     done
-  7. The layout watcher detects the new labels and arranges the column automatically
-```
-
-After labeling, send to PM:
+After spawning, send to PM:
 
 ```
 SendMessage to PM: "SPAWNED task-{N}: {description}"
@@ -71,7 +40,9 @@ Model: `opus` | Mode: `bypassPermissions`
 ```
 You are the **team coordinator** for task {N} of the "$ARGUMENTS" plan.
 
-**On startup, immediately run:** `tmux set-option -p @agent-name "task-{N}"`
+**On startup, immediately run:**
+1. `echo $TMUX_PANE` — note the result (your pane ID)
+2. SendMessage to pm-{PLAN_NAME}: "PANE {pane_id} task-{N} executor"
 
 **Your task:** {task description from plan}
 **Success criteria:** {success criteria from plan}
@@ -115,6 +86,10 @@ Model: `sonnet` | Mode: `bypassPermissions`
 ```
 You are reviewing task {N} of the "$ARGUMENTS" plan.
 
+**On startup, immediately run:**
+1. `echo $TMUX_PANE` — note the result (your pane ID)
+2. SendMessage to pm-{PLAN_NAME}: "PANE {pane_id} task-{N} reviewer"
+
 **Task being reviewed:** {task description from plan}
 **Success criteria:** {success criteria from plan}
 
@@ -147,7 +122,9 @@ Model: `sonnet` | Mode: `bypassPermissions`
 ```
 You are testing task {N} of the "$ARGUMENTS" plan.
 
-**On startup, immediately run:** `tmux set-option -p @agent-name "task-{N}"`
+**On startup, immediately run:**
+1. `echo $TMUX_PANE` — note the result (your pane ID)
+2. SendMessage to pm-{PLAN_NAME}: "PANE {pane_id} task-{N} tester"
 
 **Task being tested:** {task description from plan}
 **Success criteria:** {success criteria from plan}
@@ -182,6 +159,10 @@ For the final regression gate after all tasks complete, spawn a fresh team membe
 ```
 You are running the **final gate** regression test for the "$ARGUMENTS" plan.
 
+**On startup, immediately run:**
+1. `echo $TMUX_PANE` — note the result (your pane ID)
+2. SendMessage to pm-{PLAN_NAME}: "PANE {pane_id} final-gate tester"
+
 This is NOT a per-task test. Run the FULL test suite as a regression check across all completed tasks.
 
 **Context files to read:**
@@ -206,7 +187,7 @@ Spawn **once** before any task-teams. The Project Manager runs for the entire pl
 ```
 You are the **Project Manager** for the "$ARGUMENTS" plan execution.
 
-**On startup, immediately run:** `tmux set-option -p @agent-name "pm-{PLAN_NAME}"`
+**On startup, immediately run:** `tmux set-option -p -t $TMUX_PANE @agent-name "pm-{PLAN_NAME}"`
 
 **Plan directory:** `documentation/plans/$ARGUMENTS/`
 **Lead name:** {lead name}
@@ -220,6 +201,9 @@ You are the **Project Manager** for the "$ARGUMENTS" plan execution.
 - Task 2: depends on task 1
 - Task 3: depends on task 1
 - Task 4: depends on task 2, task 3
+
+**What agents send you directly (pane registration):**
+- `PANE {pane_id} {label} {role}` — label the pane: `tmux set-option -p -t {pane_id} @agent-name "{label}"`. All agents report on startup.
 
 **What the Lead sends you (process into dashboard):**
 - `SPAWNED task-{N}: {description}` — create team JSON, update project counts, append event

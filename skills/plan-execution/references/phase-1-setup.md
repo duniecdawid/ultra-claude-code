@@ -17,9 +17,12 @@ Ensure the Ultra Dashboard is running. It handles tmux layout management, plan h
 
 ```bash
 node ${CLAUDE_PLUGIN_ROOT}/scripts/ultra-dashboard/index.js --ensure
+tmux set-option -p -t $TMUX_PANE @agent-name "main-context"
+tmux set-option -w pane-border-status top
+tmux set-option -w pane-border-format " #{@agent-name} "
 ```
 
-This is idempotent — if the dashboard is already running, it exits immediately. The dashboard auto-discovers your tmux window (via `main-context` label), arranges panes as agents spawn and label themselves, monitors plan health for stalls/rate limits, and serves the web dashboard on port 3847. **You do NOT run any tmux layout commands yourself** — just label panes.
+The first command is idempotent — if the dashboard is already running, it exits immediately. The remaining commands label your pane as the main context (so the layout watcher discovers and manages this window) and enable pane border labels (so agent names are visible immediately, not just after the first arrangement). The dashboard arranges panes as agents spawn and report their panes to PM, monitors plan health for stalls/rate limits, and serves the web dashboard on port 3847. **You do NOT run any tmux commands yourself** — PM handles all other pane labeling.
 
 ### 1.2 Resume Detection
 
@@ -139,19 +142,19 @@ Before spawning any task-teams, set up both plan-wide shared team members: **Pro
 
 1. **Project Manager first** — spawn `pm-{PLAN_NAME}` using the PM spawn prompt. The PM has Bash access and will self-label its pane on startup (the spawn prompt includes the labeling instruction). No tmux commands needed from you.
 
-2. **Tech Knowledge second** — read plan README.md `## Tech Stack` section for the technology list. Also scan `documentation/technology/architecture/` and `.claude/app-context-for-research.md` for additional technology references. Spawn `knowledge-{PLAN_NAME}` using the Tech Knowledge spawn prompt below. Tech Knowledge does NOT have Bash access, so after spawning, use pane-diffing to find the new pane and label it:
-   ```bash
-   tmux set-option -p -t {NEW_PANE} @agent-name "knowledge-{PLAN_NAME}"
-   ```
-   Then send PM: `"SPAWNED knowledge-{PLAN_NAME}"`
+2. **Tech Knowledge second** — read plan README.md `## Tech Stack` section for the technology list. Also scan `documentation/technology/architecture/` and `.claude/app-context-for-research.md` for additional technology references. Spawn `knowledge-{PLAN_NAME}` using the Tech Knowledge spawn prompt below. Tech Knowledge reports its pane to PM on startup — no labeling needed from you.
 
-   The layout watcher will automatically detect the new labels and arrange panes into the grid.
+   After spawning, send PM: `"SPAWNED knowledge-{PLAN_NAME}"`
 
    Agent: `${CLAUDE_PLUGIN_ROOT}/agents/tech-knowledge.md`
    Model: `sonnet` | Mode: `bypassPermissions`
 
    ```
    You are the shared **Tech Knowledge** team member for the "$ARGUMENTS" plan execution.
+
+   **On startup, immediately run:**
+   1. `echo $TMUX_PANE` — note the result (your pane ID)
+   2. SendMessage to pm-{PLAN_NAME}: "PANE {pane_id} knowledge-{PLAN_NAME} knowledge"
 
    **Technologies to load documentation for:**
    {list from Tech Stack section + any additional technologies identified}

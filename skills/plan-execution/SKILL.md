@@ -92,7 +92,7 @@ Phase 2 startup:
   1. Spawn initial task-teams to fill concurrency slots.
      For each slot: find next pending unblocked task, create tasks/task-N/ directory,
      spawn all 3 team members in parallel (executor-N, reviewer-N, tester-N),
-     then label panes per the Pane Labeling section (the layout watcher arranges them automatically).
+     (each agent reports its pane to PM on startup for labeling — the layout watcher arranges them automatically).
      After spawning all 3:
        SendMessage to PM "SPAWNED task-{N}: {task description}" then "STAGE task-{N} planning"
        SendMessage to knowledge-{PLAN_NAME}: "TASK-START: Task {N} — {task title}\nDescription: {task description}\nSuccess criteria: {success criteria}\nExecutor: executor-{N}\nPlan path (when available): documentation/plans/$ARGUMENTS/tasks/task-{N}/plan.md"
@@ -239,6 +239,7 @@ When a teammate discovers something that invalidates part of the plan (from exec
 | **Lead spawns teams** | Lead → TeamCreate | Lead spawns task-teams directly. |
 | **Lead shuts down teams** | Lead → team members | Lead sends shutdown_request directly after executor reports "task done". |
 | **Lead approves pipeline** | Lead → Executor | Lead approves pipeline implementations when predecessor passes. |
+| **Pane registration** | Any agent → PM | `"PANE {pane_id} {label} {role}"` on startup. PM labels the pane via tmux. |
 | **Lead → PM** | Lead → PM | Terse status updates (`SPAWNED`, `COMPLETED`, `STAGE`, `SHUTDOWN`, etc.) for dashboard. |
 | **PM → Lead** | PM → Lead | Dashboard URL (startup), health ALERTs (stalls, rate limits). |
 | **PM → team members** | PM → any team member | Status checks for monitoring purposes only. |

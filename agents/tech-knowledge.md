@@ -4,6 +4,7 @@ description: Documentation retrieval — shared across all tasks
 model: sonnet
 tools:
   - Read
+  - Bash
   - WebFetch
   - WebSearch
   - mcp__ref__ref_search_documentation
