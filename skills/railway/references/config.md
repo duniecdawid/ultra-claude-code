@@ -35,7 +35,8 @@ The config file lives at `~/.config/railway-cli/config.json`:
       "environment": "production"
     }
   },
-  "default_account": "personal"
+  "default_account": "personal",
+  "default_region": "eu-west"
 }
 ```
 
@@ -52,6 +53,8 @@ The config file lives at `~/.config/railway-cli/config.json`:
 - `environment` — Default environment (optional, avoids `-e` flag every time)
 
 **default_account** — Fallback when a directory has no mapping
+
+**default_region** — Default Railway region for new deployments and services. Used when creating projects or configuring services. Railway regions: `us-west1`, `us-east4`, `eu-west`, `asia-southeast1`. Defaults to `eu-west` (Netherlands) if not set.
 
 ## Getting Tokens
 
@@ -148,7 +151,8 @@ When the config file doesn't exist:
 1. "Looks like this is your first time using Railway with token management. Let's set up your first account."
 2. Ask: "What name do you want for this account? (e.g., 'personal', 'work')"
 3. Ask: "Paste your Railway API token (get one from Railway dashboard → Account Settings → Tokens)"
-4. Create the config file with the account
-5. Verify with `RAILWAY_API_TOKEN=<token> railway whoami`
-6. Ask: "Want to map the current project directory to this account?"
-7. If yes, add the project mapping and run `RAILWAY_API_TOKEN=<token> railway link`
+4. Ask: "Which region should be the default for new deployments? (us-west1, us-east4, eu-west, asia-southeast1)" — if the user doesn't specify or skips, default to `eu-west` (Netherlands)
+5. Create the config file with the account and `default_region`
+6. Verify with `RAILWAY_API_TOKEN=<token> railway whoami`
+7. Ask: "Want to map the current project directory to this account?"
+8. If yes, add the project mapping and run `RAILWAY_API_TOKEN=<token> railway link`

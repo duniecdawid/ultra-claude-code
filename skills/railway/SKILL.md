@@ -97,8 +97,9 @@ RAILWAY_TOKEN=<project-token> railway up
 If `~/.config/railway-cli/config.json` doesn't exist, guide the user through initial setup:
 
 1. Ask them to create a project token or API token from the Railway dashboard
-2. Create the config file with their first account
-3. Map the current project directory to that account
+2. Ask which region should be the default for new deployments (options: `us-west1`, `us-east4`, `eu-west`, `asia-southeast1`). If no preference given, default to `eu-west` (Netherlands)
+3. Create the config file with their first account and default region
+4. Map the current project directory to that account
 
 Read `references/config.md` for the detailed setup flow.
 
@@ -112,6 +113,8 @@ These flags work with most railway commands — use them when the user targets a
 | `-e, --environment <name>` | Target a specific environment |
 | `--json` | Output as JSON (useful for parsing) |
 | `-y, --yes` | Skip confirmation prompts |
+
+The `default_region` in config is used when creating new projects or services — pass it to Railway dashboard guidance or API calls that accept a region parameter.
 
 ## Important Notes
 

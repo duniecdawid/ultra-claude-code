@@ -2,6 +2,7 @@
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2026.03.29-1 | 2026-03-29 | Railway skill: add default region to config schema, first-time setup flow, and config script (set-region/get-region commands). Defaults to eu-west (Netherlands) when not specified. |
 | 2026.03.28-7 | 2026-03-28 | Roadmap skill: enforce full-stack plans — a feature must never be split across plans by architectural layer (no backend/frontend pairs). Strengthen sizing-framework heuristic #2 with anti-pattern examples, add constraint to SKILL.md, reinforce in stub template. |
 | 2026.03.28-6 | 2026-03-28 | Replace tmux-team-grid post-hoc layout with incremental pane placement during spawning. Use `@agent-name` custom tmux options instead of pane titles (Claude Code overwrites titles). Two-pass column equalization. Left column fixed 70 cols, task columns distributed equally. tmux-team-grid becomes recovery-only tool. Remove PM pane-title-setting duties and pane IDs from SPAWNED messages. Add Lead plan review blocking gate to task-executor. |
 | 2026.03.28-5 | 2026-03-28 | Remove `name` frontmatter field from all 19 skill files — field is not required by the plugin schema |

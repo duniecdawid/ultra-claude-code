@@ -14,6 +14,8 @@
 #   list-accounts
 #   list-projects
 #   set-default <account-name>
+#   set-region <region>               Set default region (eu-west, us-west1, us-east4, asia-southeast1)
+#   get-region                        Get default region
 
 set -euo pipefail
 
@@ -23,7 +25,7 @@ CONFIG_FILE="$CONFIG_DIR/config.json"
 ensure_config() {
   if [[ ! -f "$CONFIG_FILE" ]]; then
     mkdir -p "$CONFIG_DIR"
-    echo '{"accounts":{},"projects":{},"default_account":""}' > "$CONFIG_FILE"
+    echo '{"accounts":{},"projects":{},"default_account":"","default_region":"eu-west"}' > "$CONFIG_FILE"
     echo "Created config at $CONFIG_FILE"
   fi
 }
@@ -238,6 +240,35 @@ print('Default account set to: $name')
 "
     ;;
 
+  set-region)
+    ensure_config
+    region="${2:?Usage: set-region <region>}"
+    valid_regions="us-west1 us-east4 eu-west asia-southeast1"
+    if ! echo "$valid_regions" | grep -qw "$region"; then
+      echo "ERROR: Invalid region '$region'. Valid: $valid_regions" >&2
+      exit 1
+    fi
+    python3 -c "
+import json
+with open('$CONFIG_FILE') as f:
+    cfg = json.load(f)
+cfg['default_region'] = '$region'
+with open('$CONFIG_FILE', 'w') as f:
+    json.dump(cfg, f, indent=2)
+print('Default region set to: $region')
+"
+    ;;
+
+  get-region)
+    ensure_config
+    python3 -c "
+import json
+with open('$CONFIG_FILE') as f:
+    cfg = json.load(f)
+print(cfg.get('default_region', 'eu-west'))
+"
+    ;;
+
   help|*)
     echo "Railway multi-account config manager"
     echo ""
@@ -253,5 +284,7 @@ print('Default account set to: $name')
     echo "  list-accounts                           List all accounts"
     echo "  list-projects                           List all project mappings"
     echo "  set-default <name>                      Set default account"
+    echo "  set-region <region>                     Set default region (eu-west, us-west1, us-east4, asia-southeast1)"
+    echo "  get-region                              Get default region"
     ;;
 esac
