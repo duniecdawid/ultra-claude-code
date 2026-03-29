@@ -155,6 +155,25 @@ arrange_layout() {
     done
   fi
 
+  # ── 6b. Enforce left column heights ─────────────────────────
+  # main=50%, pm=25%, tk=25% of window height
+  local win_height
+  win_height=$(tmux display-message -t "$MAIN_PANE" -p '#{window_height}' 2>/dev/null) || true
+  if [ -n "$win_height" ] && [ "$win_height" -gt 0 ] 2>/dev/null; then
+    local left_count=1
+    [ -n "$pm_pane" ] && left_count=$((left_count + 1))
+    [ -n "$tk_pane" ] && left_count=$((left_count + 1))
+    if [ $left_count -eq 3 ]; then
+      local main_h=$((win_height * 50 / 100))
+      local shared_h=$(( (win_height - main_h) / 2 ))
+      tmux resize-pane -t "$MAIN_PANE" -y $main_h 2>/dev/null || true
+      tmux resize-pane -t "$pm_pane" -y $shared_h 2>/dev/null || true
+    elif [ $left_count -eq 2 ]; then
+      local main_h=$((win_height * 60 / 100))
+      tmux resize-pane -t "$MAIN_PANE" -y $main_h 2>/dev/null || true
+    fi
+  fi
+
   # ── 7. Ensure borders show labels ───────────────────────────
   tmux set-option -w -t "$WINDOW" pane-border-status top 2>/dev/null || true
   tmux set-option -w -t "$WINDOW" pane-border-format " #{@agent-name} " 2>/dev/null || true
@@ -180,19 +199,19 @@ while true; do
 
   # Snapshot current labels (only labeled panes)
   CURRENT=$(tmux list-panes -t "$WINDOW" -F '#{pane_id} #{@agent-name}' 2>/dev/null | grep -v ' $' | sort)
-  CURRENT_WIDTH=$(tmux display-message -t "$WINDOW" -p '#{window_width}' 2>/dev/null)
+  CURRENT_SIZE=$(tmux display-message -t "$WINDOW" -p '#{window_width}x#{window_height}' 2>/dev/null)
 
   if [ "$CURRENT" != "$LAST_SNAPSHOT" ]; then
     arrange_layout
     # Re-snapshot after arrangement
     LAST_SNAPSHOT=$(tmux list-panes -t "$WINDOW" -F '#{pane_id} #{@agent-name}' 2>/dev/null | grep -v ' $' | sort)
-    LAST_WIDTH="$CURRENT_WIDTH"
-  elif [ "$CURRENT_WIDTH" != "$LAST_WIDTH" ]; then
-    # Window resized — re-equalize without full rearrange
-    log "Window resized to ${CURRENT_WIDTH} — re-equalizing"
+    LAST_SIZE="$CURRENT_SIZE"
+  elif [ "$CURRENT_SIZE" != "$LAST_SIZE" ]; then
+    # Window resized — re-arrange (fixes both widths and heights)
+    log "Window resized to ${CURRENT_SIZE} — re-arranging"
     arrange_layout
     LAST_SNAPSHOT=$(tmux list-panes -t "$WINDOW" -F '#{pane_id} #{@agent-name}' 2>/dev/null | grep -v ' $' | sort)
-    LAST_WIDTH="$CURRENT_WIDTH"
+    LAST_SIZE="$CURRENT_SIZE"
   fi
 
   sleep "$POLL_INTERVAL"
