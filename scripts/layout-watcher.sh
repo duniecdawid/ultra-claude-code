@@ -65,10 +65,17 @@ arrange_layout() {
   local num_tasks=${#task_nums[@]}
   log "Arranging: ${num_tasks} tasks, pm=${pm_pane:--}, tk=${tk_pane:--}, gate=${gate_pane:--}"
 
-  # ── 2. Break all non-main panes to hidden windows ─────────────
-  local all_panes
-  all_panes=$(tmux list-panes -t "$WINDOW" -F '#{pane_id}' 2>/dev/null | grep -v "^${MAIN_PANE}$")
-  for pid in $all_panes; do
+  # ── 2. Break only LABELED non-main panes to hidden windows ────
+  # Unlabeled panes are left untouched — they haven't been claimed yet.
+  # Once an agent labels a pane, the watcher will pick it up on the next poll.
+  local labeled_panes=""
+  [ -n "$pm_pane" ] && labeled_panes="$labeled_panes $pm_pane"
+  [ -n "$tk_pane" ] && labeled_panes="$labeled_panes $tk_pane"
+  [ -n "$gate_pane" ] && labeled_panes="$labeled_panes $gate_pane"
+  for num in "${task_nums[@]}"; do
+    labeled_panes="$labeled_panes ${task_panes[$num]}"
+  done
+  for pid in $labeled_panes; do
     tmux break-pane -d -s "$pid" 2>/dev/null || true
   done
   sleep 0.2
