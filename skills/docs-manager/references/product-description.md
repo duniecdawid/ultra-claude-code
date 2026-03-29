@@ -19,11 +19,14 @@ Then add as many descriptive sections as needed. There is no fixed set of sectio
 
 End with constraints (limitations, boundaries, intentional exclusions) and cross-references to related docs.
 
+**Relationship with requirements:** Product descriptions and requirements are closely connected — they describe the same feature from different angles. The description says *how it works* for the user; requirements say *what it must achieve* with measurable criteria. They should reference each other heavily, but not duplicate. If the description says "users can filter by date range," the requirement says "FR-003: Date range filter must support ranges up to 12 months, response time < 200ms." Don't restate the requirement's acceptance criteria in the description or the description's behavior in the requirement.
+
 **Common pitfalls:**
 - Restating research findings instead of linking to the research doc
 - Including implementation details that belong in architecture
 - Writing a marketing pitch instead of describing actual behavior
 - Being too abstract — describe what the user actually sees and does
+- Duplicating requirements — describe behavior, don't restate acceptance criteria
 
 ## Template
 

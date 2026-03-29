@@ -25,7 +25,7 @@ Every external claim must cite its source. Research without sources is opinion.
 - Restating product description content — research says what the *market* does, not what *our product* does
 - Missing sources — unsourced claims are opinions, not research
 - No implications section — raw data without interpretation isn't actionable
-- Mixing research with recommendations about what to build — that belongs in requirements
+- Mixing research with recommendations about what to build — what to build goes in product descriptions. The exception is when research uncovers external constraints (regulations, compliance, standards) that force specific requirements — those implications belong here and should be linked from requirements.
 
 ## Template
 
