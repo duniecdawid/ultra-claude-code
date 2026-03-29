@@ -16,16 +16,11 @@ You now have the full picture.
 Start the background layout watcher. This script monitors pane `@agent-name` labels and automatically arranges panes into the team grid. **You do NOT run any tmux layout commands yourself** — just label panes and the watcher handles placement.
 
 ```bash
-MAIN_PANE=$(tmux display-message -p '#{pane_id}')
-WINDOW=$(tmux display-message -p '#{window_id}')
-nohup ${CLAUDE_PLUGIN_ROOT}/scripts/layout-watcher.sh "$WINDOW" "$MAIN_PANE" 2 > /tmp/layout-watcher.log 2>&1 &
+nohup ${CLAUDE_PLUGIN_ROOT}/scripts/layout-watcher.sh > /tmp/layout-watcher.log 2>&1 &
 echo $! > /tmp/layout-watcher.pid
 ```
 
-The watcher sets `main-context` label on your pane, enables pane border labels, and polls every 2 seconds. When it detects new or changed `@agent-name` labels, it rearranges all panes into the grid layout (left column at 70 cols, task columns distributed equally). It also re-equalizes on window resize.
-
-Track only these values across spawns:
-- `MAIN_PANE` — your pane (for pane-diffing only)
+The watcher auto-detects the current window and pane, sets `main-context` label on your pane, enables pane border labels, and polls every 2 seconds. When it detects new or changed `@agent-name` labels, it rearranges all panes into the grid layout (left column at 70 cols, task columns distributed equally). It also re-equalizes on window resize.
 
 ### 1.2 Resume Detection
 

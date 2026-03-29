@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Layout Watcher — monitors tmux pane @agent-name labels and arranges the grid
 #
-# Usage: ./layout-watcher.sh <window-id> <main-pane-id> [poll-interval-seconds]
+# Usage: ./layout-watcher.sh [window-id] [main-pane-id] [poll-interval-seconds]
+#   All arguments are optional — auto-detects from the current tmux context if omitted.
+# Example: ./layout-watcher.sh
 # Example: ./layout-watcher.sh @8 %155 2
 #
 # What it does:
@@ -16,9 +18,14 @@
 set -uo pipefail
 # No set -e — individual tmux commands may fail (dead panes, etc.)
 
-WINDOW="${1:?Usage: layout-watcher.sh <window-id> <main-pane-id> [poll-interval]}"
-MAIN_PANE="${2:?Usage: layout-watcher.sh <window-id> <main-pane-id> [poll-interval]}"
+WINDOW="${1:-$(tmux display-message -p '#{window_id}' 2>/dev/null)}"
+MAIN_PANE="${2:-$(tmux display-message -p '#{pane_id}' 2>/dev/null)}"
 POLL_INTERVAL="${3:-2}"
+
+if [ -z "$WINDOW" ] || [ -z "$MAIN_PANE" ]; then
+  echo "Error: Could not auto-detect tmux window/pane. Pass them as arguments or run inside tmux." >&2
+  exit 1
+fi
 LEFT_WIDTH=70
 
 LAST_SNAPSHOT=""
