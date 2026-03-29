@@ -2,6 +2,7 @@
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2026.03.29-3 | 2026-03-29 | docs-manager: replace bare templates with reference guides. Each doc type now has a full reference (purpose, perspective, how-to, pitfalls, embedded template) instead of just a skeleton. Rename templates/ to references/. Product description template made fluid — free-form sections instead of rigid structure. |
 | 2026.03.29-2 | 2026-03-29 | docs-manager: single authority for documentation templates. Move 5 templates to skills/docs-manager/templates/, create 4 new (product-description, testing, persona, research). Add Templates and Document Relationships sections. Mandatory doc gates in plan-enhancer Steps 2-3. Strip discovery-mode inline templates, allow technology docs. Add structural adherence verification to doc-code-verification-mode. All doc-producing skills now load docs-manager. |
 | 2026.03.29-1 | 2026-03-29 | Railway skill: add default region to config schema, first-time setup flow, and config script (set-region/get-region commands). Defaults to eu-west (Netherlands) when not specified. |
 | 2026.03.28-7 | 2026-03-28 | Roadmap skill: enforce full-stack plans — a feature must never be split across plans by architectural layer (no backend/frontend pairs). Strengthen sizing-framework heuristic #2 with anti-pattern examples, add constraint to SKILL.md, reinforce in stub template. |
