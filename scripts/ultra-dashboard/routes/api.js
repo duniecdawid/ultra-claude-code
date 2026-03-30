@@ -168,12 +168,7 @@ router.get('/usage', (req, res) => {
     if (data.accounts) {
       const accounts = Object.values(data.accounts)
         .filter(a => a.rate_limits)
-        .sort((a, b) => {
-          // Active account first, then by updated_at descending
-          if (a.email === activeEmail) return -1;
-          if (b.email === activeEmail) return 1;
-          return (b.updated_at || '').localeCompare(a.updated_at || '');
-        });
+        .sort((a, b) => (a.email || '').localeCompare(b.email || ''));
       return res.json({ accounts, active_email: activeEmail, updated_at: data.updated_at });
     }
 

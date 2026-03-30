@@ -17,14 +17,20 @@ function fmtCountdown(epoch) {
   return 'resets in ' + h + 'h' + (m > 0 ? ' ' + m + 'm' : '');
 }
 
-function ubItem(label, pct, resetEpoch) {
+function ubItem(label, pct, resetEpoch, isOver) {
   if (pct == null) return '';
   var p = Math.round(pct);
   var color = usageBarColor(p);
+  var bar;
+  if (isOver) {
+    bar = '<span class="ub-overlimit">OVER LIMIT</span>';
+  } else {
+    bar = '<div class="ub-track"><div class="ub-fill" style="width:' + Math.min(p, 100) + '%;background:' + color + '"></div></div>' +
+      '<span class="ub-pct" style="color:' + color + '">' + p + '%</span>';
+  }
   return '<div class="ub-item">' +
     '<span class="ub-label">' + esc(label) + '</span>' +
-    '<div class="ub-track"><div class="ub-fill" style="width:' + Math.min(p, 100) + '%;background:' + color + '"></div></div>' +
-    '<span class="ub-pct" style="color:' + color + '">' + p + '%</span>' +
+    bar +
     (resetEpoch ? '<span class="ub-reset">' + fmtCountdown(resetEpoch) + '</span>' : '') +
   '</div>';
 }
@@ -42,30 +48,26 @@ function fmtAge(isoStr) {
 function renderAccountRow(account, isCurrent, isActive) {
   var rl = account.rate_limits || {};
   var items = '';
-  var overLimit = false;
   var nowEpoch = Date.now() / 1000;
   if (rl.five_hour) {
     var fhOver = rl.five_hour.used_percentage > 100 && (!rl.five_hour.resets_at || rl.five_hour.resets_at > nowEpoch);
-    if (fhOver) overLimit = true;
-    items += ubItem('5h', fhOver ? rl.five_hour.used_percentage : Math.min(rl.five_hour.used_percentage, 100), rl.five_hour.resets_at);
+    items += ubItem('5h', rl.five_hour.used_percentage, rl.five_hour.resets_at, fhOver);
   }
   if (rl.seven_day) {
     var sdOver = rl.seven_day.used_percentage > 100 && (!rl.seven_day.resets_at || rl.seven_day.resets_at > nowEpoch);
-    if (sdOver) overLimit = true;
-    items += ubItem('7d', sdOver ? rl.seven_day.used_percentage : Math.min(rl.seven_day.used_percentage, 100), rl.seven_day.resets_at);
+    items += ubItem('7d', rl.seven_day.used_percentage, rl.seven_day.resets_at, sdOver);
   }
-  if (overLimit) items += '<span class="ub-overlimit">OVER LIMIT</span>';
   var age = fmtAge(account.updated_at);
   var ageSec = account.updated_at ? (Date.now() - new Date(account.updated_at).getTime()) / 1000 : 0;
   var staleClass = ageSec > 600 ? ' ub-stale' : '';
   var acct = '<span class="ub-account">' + esc(account.email || '');
   if (account.orgName) acct += ' <span class="ub-org">' + esc(account.orgName) + '</span>';
-  if (age) acct += ' <span class="ub-age' + staleClass + '">' + age + '</span>';
+  acct += ' <span class="ub-age' + staleClass + '">' + age + '</span>';
   acct += '</span>';
   var cls = 'ub-row';
   if (isCurrent) cls += ' current';
   if (!isActive) cls += ' inactive';
-  return '<div class="' + cls + '">' + items + acct + '</div>';
+  return '<div class="' + cls + '">' + acct + '<span class="ub-limits">' + items + '</span></div>';
 }
 
 async function refreshUsage() {
