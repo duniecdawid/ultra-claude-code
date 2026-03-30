@@ -66,6 +66,7 @@ const { startLayoutManager } = require('./lib/tmux-layout');
 const { startHealthMonitor } = require('./lib/plan-health');
 const { discoverPlans, REGISTRY_FILE } = require('./lib/registry');
 const apiRoutes = require('./routes/api');
+const docsRoutes = require('./routes/docs');
 const pageRoutes = require('./routes/pages');
 
 const app = express();
@@ -76,7 +77,9 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
+app.use('/public', express.static(path.join(__dirname, 'public')));
 app.use('/api', apiRoutes);
+app.use('/docs', docsRoutes);
 app.use('/', pageRoutes);
 
 // Write PID file

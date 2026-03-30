@@ -212,11 +212,9 @@ function tick() {
 
 function startLayoutManager(opts = {}) {
   const interval = opts.interval || 2000;
-  // Set main-context label on the pane that started us (if running inside tmux)
-  const currentPane = tmux('display-message -p "#{pane_id}"');
-  if (currentPane) {
-    tmux(`set-option -p -t ${currentPane} @agent-name "main-context"`);
-  }
+  // Note: the dashboard runs as a background daemon with no tmux context.
+  // The main-context label must be set by the caller (e.g., plan-execution phase-1)
+  // on the tmux pane that should be treated as the main pane.
   intervalId = setInterval(tick, interval);
   console.log(`Layout manager started (${interval}ms poll)`);
 }

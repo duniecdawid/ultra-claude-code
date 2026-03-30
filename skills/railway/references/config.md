@@ -32,7 +32,12 @@ The config file lives at `~/.config/railway-cli/config.json`:
     "/home/user/Projects/WorkAPI": {
       "account": "work",
       "service": "api-server",
-      "environment": "production"
+      "environment": "production",
+      "tailscale": {
+        "hostname": "anirec-router",
+        "service": "ts-router",
+        "tailnet": "duniecdawid@gmail.com"
+      }
     }
   },
   "default_account": "personal",
@@ -51,6 +56,10 @@ The config file lives at `~/.config/railway-cli/config.json`:
 - `account` — Which account name to use
 - `service` — Default service to target (optional, avoids `-s` flag every time)
 - `environment` — Default environment (optional, avoids `-e` flag every time)
+- `tailscale` — Optional. Tracks the Tailscale subnet router for this project (see `references/tailscale.md`):
+  - `hostname` — Tailscale machine name (e.g. `anirec-router`)
+  - `service` — Railway service name running the router (e.g. `ts-router`)
+  - `tailnet` — Tailscale account/tailnet the router belongs to (e.g. `duniecdawid@gmail.com`) — essential when the machine has multiple Tailscale accounts
 
 **default_account** — Fallback when a directory has no mapping
 

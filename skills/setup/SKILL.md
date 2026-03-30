@@ -1,5 +1,5 @@
 ---
-description: One-time machine setup for Ultra Claude. Checks and configures shell environment (1M context, agent teams), installs prerequisites (tmux, node), configures tmux for Claude Code (fixes screen tearing via DEC 2026 synchronized output passthrough), and optionally sets up Tailscale for remote dashboard access. Idempotent — safe to re-run. Writes version marker to ~/.claude/uc-setup.json so other skills can quickly check if setup is current. Use when onboarding a new machine, after Ultra Claude install, when plan-execution reports missing prerequisites, or when experiencing screen tearing/flickering in tmux. Triggers on "setup", "machine setup", "environment setup", "configure machine", "setup 1m context", "enable agent teams", "screen tearing", "tmux tearing", "flickering".
+description: One-time machine setup for Ultra Claude. Checks and configures shell environment (1M context, agent teams), installs prerequisites (tmux, node), configures tmux for Claude Code (fixes screen tearing via DEC 2026 synchronized output passthrough), sets up the Ultra Dashboard (project docs via Docsify, multi-account rate limit monitoring, plan execution tracking), configures the statusline for per-account usage tracking, and optionally sets up Tailscale for remote dashboard access. Idempotent — safe to re-run. Writes version marker to ~/.claude/uc-setup.json so other skills can quickly check if setup is current. Use when onboarding a new machine, after Ultra Claude install, when plan-execution reports missing prerequisites, or when experiencing screen tearing/flickering in tmux. Triggers on "setup", "machine setup", "environment setup", "configure machine", "setup 1m context", "enable agent teams", "screen tearing", "tmux tearing", "flickering".
 user-invocable: true
 ---
 
@@ -75,7 +75,40 @@ PASS if `allow-passthrough on` is found. This setting is essential because Claud
 
 SKIP if tmux is not installed.
 
-### 3.6 Tailscale (optional)
+### 3.6 Statusline (usage data for dashboard)
+
+Check if `~/.claude/settings.json` has a `statusLine` command pointing to the Ultra Claude statusline script, and that the `jq` dependency is available:
+
+```bash
+jq --version 2>/dev/null
+```
+
+Then check settings.json for the statusLine configuration:
+
+```bash
+jq -r '.statusLine.command // empty' ~/.claude/settings.json 2>/dev/null
+```
+
+PASS if:
+- `jq` is installed
+- The statusLine command references the Ultra Claude `statusline.sh` script (path contains `ultra-claude` and `statusline.sh`)
+
+### 3.7 Ultra Dashboard (includes Docsify docs hosting)
+
+Check if the dashboard's dependencies are installed and it's running:
+
+```bash
+# Check node_modules exist
+ls ${CLAUDE_PLUGIN_ROOT}/scripts/ultra-dashboard/node_modules/.package-lock.json 2>/dev/null
+
+# Check if dashboard is running
+dashboard_pid=$(cat ~/.claude/dashboard.pid 2>/dev/null)
+[ -n "$dashboard_pid" ] && kill -0 "$dashboard_pid" 2>/dev/null && echo "running" || echo "not running"
+```
+
+PASS if node_modules exist. Note running status but don't fail on it — the dashboard auto-starts when needed.
+
+### 3.8 Tailscale (optional)
 
 ```bash
 which tailscale 2>/dev/null && tailscale status --self --json 2>/dev/null
@@ -95,10 +128,12 @@ Ultra Claude Environment Check (plugin v{version})
   Agent teams env var   ✗ missing
   1M context env vars   ✗ missing
   Node.js               ✓ v22.0.0
+  Statusline            ✗ not configured
+  Dashboard             ✗ dependencies missing
   Tailscale (optional)  — not installed
 ```
 
-If ALL required checks pass (3.1–3.5):
+If ALL required checks pass (3.1–3.7):
 - Write the marker file (Step 6)
 - Print "Environment ready! All prerequisites configured."
 - If Tailscale is not set up, mention: "Optional: Run `/uc:tailscale-setup` to enable remote dashboard access."
@@ -207,15 +242,76 @@ tmux source-file ~/.tmux.conf 2>/dev/null
 
 Tell the user: "If tearing persists, detach and reattach your tmux session — some terminal overrides only take effect on new attachments."
 
-### 5.6 Fix: Tailscale
+### 5.6 Fix: Statusline
 
-If the user selected Tailscale, invoke the existing skill:
+The statusline script ships with Ultra Claude at `${CLAUDE_PLUGIN_ROOT}/scripts/ultra-dashboard/statusline.sh`. Setup needs to:
 
+1. **Install jq** if missing:
+
+```bash
+# Linux (Debian/Ubuntu)
+sudo apt update && sudo apt install -y jq
+
+# macOS
+brew install jq
 ```
-/uc:tailscale-setup
+
+2. **Symlink the script** to `~/.claude/statusline.sh` (so fixes propagate automatically from the plugin source):
+
+```bash
+ln -sf "${CLAUDE_PLUGIN_ROOT}/scripts/ultra-dashboard/statusline.sh" ~/.claude/statusline.sh
 ```
 
-This delegates all Tailscale configuration to the dedicated skill.
+3. **Configure settings.json** — read `~/.claude/settings.json`, add or update the `statusLine` key:
+
+```json
+{
+  "statusLine": {
+    "command": "bash ~/.claude/statusline.sh"
+  }
+}
+```
+
+Use `jq` to merge into existing settings without overwriting other keys:
+
+```bash
+settings_file="$HOME/.claude/settings.json"
+if [ -f "$settings_file" ]; then
+  jq '.statusLine = {"command": "bash ~/.claude/statusline.sh"}' "$settings_file" > "${settings_file}.tmp" && mv "${settings_file}.tmp" "$settings_file"
+else
+  echo '{"statusLine":{"command":"bash ~/.claude/statusline.sh"}}' > "$settings_file"
+fi
+```
+
+Tell the user: "Statusline configured — usage data will appear on the Ultra Dashboard after your next Claude Code interaction. Rate limits are tracked per account, so switching Claude accounts will show separate usage for each."
+
+**Important:** Always re-create the symlink during setup, even if the statusline is already configured. The source path may have changed. The symlink step is idempotent.
+
+### 5.7 Fix: Ultra Dashboard
+
+Install dependencies and start the dashboard:
+
+```bash
+cd "${CLAUDE_PLUGIN_ROOT}/scripts/ultra-dashboard" && npm install --production
+```
+
+Then start the dashboard in the background:
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/ultra-dashboard/index.js" --ensure
+```
+
+Tell the user: "Ultra Dashboard started on port 3847. Access project documentation and plan monitoring at http://localhost:3847"
+
+The dashboard provides:
+- **Project-centric homepage** — lists all projects, shows active plan status
+- **Per-project views** with tabs for Plans and Documentation (Docsify)
+- **Multi-account rate limit monitoring** — thin bar at top shows all tracked accounts with dynamic reset countdowns
+- **Plan execution monitoring** — real-time task progress, team status, health checks
+
+### 5.8 Fix: Tailscale
+
+If the user selected Tailscale, invoke `/uc:tailscale-setup` which handles all Tailscale configuration.
 
 ## Step 6: Write Marker File
 
@@ -233,6 +329,8 @@ After all fixes are applied, write `~/.claude/uc-setup.json`:
     "agentTeams": true/false,
     "context1m": true/false,
     "node": true/false,
+    "statusline": true/false,
+    "dashboard": true/false,
     "tailscale": true/false
   }
 }

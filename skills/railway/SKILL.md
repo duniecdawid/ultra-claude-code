@@ -1,5 +1,5 @@
 ---
-description: Manage Railway.com deployments via railway-cli with multi-account token support. Handles account switching, project linking, deployments, logs, variables, and services — all without browser login. Each project directory maps to a specific Railway account token so you never deploy to the wrong account. Use when the user mentions Railway, railway deploy, railway logs, railway variables, railway accounts, railway tokens, railway services, railway status, or needs to connect a project to Railway. Triggers on "railway", "deploy to railway", "railway logs", "railway status", "railway variables", "switch railway account", "railway token", "add railway account".
+description: Manage Railway.com deployments via railway-cli with multi-account token support. Handles account switching, project linking, deployments, logs, variables, services, and config-as-code (railway.toml/railway.json) — all without browser login. Each project directory maps to a specific Railway account token so you never deploy to the wrong account. For multi-service repos, creates separate TOML config files per service for reproducible, version-controlled deployments. Use when the user mentions Railway, railway deploy, railway logs, railway variables, railway accounts, railway tokens, railway services, railway status, railway.toml, config file, or needs to connect a project to Railway. Triggers on "railway", "deploy to railway", "railway logs", "railway status", "railway variables", "switch railway account", "railway token", "add railway account", "railway.toml", "railway config", "multi-service", "tailscale", "sidecar", "subnet router", "private access", "private network", "tailnet", "ts.net".
 user-invocable: true
 argument-hint: "action (e.g. 'deploy', 'logs', 'status', 'add account', 'link project', 'variables')"
 ---
@@ -55,10 +55,20 @@ Triggers: "variables", "env vars", "set variable", "environment", "staging", "pr
 
 → Read `references/variables.md` for variable and environment management.
 
+### Config as Code
+Triggers: "railway.toml", "railway.json", "config file", "toml config", "multi-service config", "service configuration", "deployment config", "build settings file", "deploy settings file"
+
+→ Read `references/config-as-code.md` for managing build/deploy settings via config files. When a repo has multiple services, create separate TOML files per service (e.g., `railway.toml`, `railway-worker.toml`) rather than configuring in the dashboard.
+
 ### Services & Infrastructure
 Triggers: "service", "database", "add postgres", "volume", "domain", "scale"
 
 → Read `references/services.md` for service and infrastructure management.
+
+### Tailscale & Private Networking
+Triggers: "tailscale", "sidecar", "subnet router", "private access", "private network", "tailnet", "ts.net"
+
+→ Read `references/tailscale.md` for Tailscale subnet router setup, split DNS, route approval, multi-project switching, and troubleshooting.
 
 ### General Status / Info
 Triggers: "status", "whoami", "which project", "info"

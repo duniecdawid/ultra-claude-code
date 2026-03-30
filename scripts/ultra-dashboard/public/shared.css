@@ -1,0 +1,20 @@
+.usage-bar { background: #161b22; border-bottom: 1px solid #21262d; padding: 4px 16px; display: flex; flex-direction: column; gap: 2px; font-size: 0.78em; min-height: 28px; flex-shrink: 0; }
+.ub-row { display: flex; align-items: center; gap: 14px; }
+.ub-row.inactive { opacity: 0.45; }
+.ub-row.current::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #3fb950; flex-shrink: 0; }
+.ub-overlimit { font-size: 0.85em; font-weight: 600; color: #f85149; background: #f8514922; padding: 1px 6px; border-radius: 4px; }
+.ub-item { display: flex; align-items: center; gap: 6px; }
+.ub-label { color: #8b949e; }
+.ub-track { width: 80px; height: 5px; background: #21262d; border-radius: 3px; overflow: hidden; }
+.ub-fill { height: 100%; border-radius: 3px; transition: width 0.4s, background 0.4s; }
+.ub-pct { font-family: monospace; font-weight: 600; min-width: 32px; text-align: right; }
+.ub-reset { color: #6e7681; font-size: 0.9em; }
+.ub-account { margin-left: auto; color: #8b949e; }
+.ub-account .ub-org { color: #484f58; }
+.ub-empty { color: #484f58; }
+
+/* ── Breadcrumb ── */
+.breadcrumb { font-size: 0.82em; color: #8b949e; margin-bottom: 4px; }
+.breadcrumb a { color: #8b949e; text-decoration: none; }
+.breadcrumb a:hover { color: #58a6ff; }
+.breadcrumb .sep { margin: 0 2px; }

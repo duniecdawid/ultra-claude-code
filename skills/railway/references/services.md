@@ -6,6 +6,8 @@ All commands below assume the token is resolved from config. Always prefix with 
 
 A Railway project can contain multiple services — your app, databases, Redis, workers, etc.
 
+**For multi-service repos**: define each service's build/deploy settings in separate config files (e.g., `railway.toml`, `railway-worker.toml`) rather than configuring manually in the dashboard. See `references/config-as-code.md` for the full pattern.
+
 ### List / Link Service
 
 ```bash

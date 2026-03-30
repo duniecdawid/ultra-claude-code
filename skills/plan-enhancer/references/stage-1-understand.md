@@ -4,6 +4,17 @@ The active planning mode defines this stage. Plan Enhancer does not participate.
 
 **Purpose:** Gather enough context from the user to prepare for research. The mode drives questions, challenges assumptions, and surfaces edge cases until it has a clear picture of the problem space.
 
+## Ultra Dashboard
+
+Ensure the Ultra Dashboard is running at the start of Stage 1 (idempotent — safe if already alive):
+
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/ultra-dashboard/index.js --ensure
+tmux set-option -p -t $TMUX_PANE @agent-name "main-context"
+tmux set-option -w pane-border-status top
+tmux set-option -w pane-border-format " #{@agent-name} "
+```
+
 ## Rules
 
 - No files written

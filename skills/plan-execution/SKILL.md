@@ -288,5 +288,5 @@ Real examples from past executions — do NOT produce output like this:
 - Always send terse status updates to PM after spawning, shutdowns, stage transitions
 - Always checkpoint before session end
 - Max 10 fix cycles per task before escalating to user
-- Always run final gate test suite before declaring completion
+- Always run final gate test suite before declaring completion (skip for single-task plans — per-task tester already covers it)
 - Keep shared/lead.md updated with all decisions and amendments

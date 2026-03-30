@@ -17,6 +17,26 @@ router.get('/', (req, res) => {
   res.type('html').send(readView('home.html'));
 });
 
+// Per-project detail (plans tab is default)
+router.get('/project/:name', (req, res) => {
+  const name = decodeURIComponent(req.params.name);
+  let html = readView('project.html');
+  html = html.replace(/\{\{PROJECT\}\}/g, escapeHTML(name));
+  html = html.replace(/\{\{PROJECT_URI\}\}/g, encodeURIComponent(name));
+  html = html.replace(/\{\{INITIAL_TAB\}\}/g, 'plans');
+  res.type('html').send(html);
+});
+
+// Per-project docs tab (linkable)
+router.get('/project/:name/docs', (req, res) => {
+  const name = decodeURIComponent(req.params.name);
+  let html = readView('project.html');
+  html = html.replace(/\{\{PROJECT\}\}/g, escapeHTML(name));
+  html = html.replace(/\{\{PROJECT_URI\}\}/g, encodeURIComponent(name));
+  html = html.replace(/\{\{INITIAL_TAB\}\}/g, 'docs');
+  res.type('html').send(html);
+});
+
 // Per-plan detail
 router.get('/plan/:project/:planName', (req, res) => {
   const project = decodeURIComponent(req.params.project);

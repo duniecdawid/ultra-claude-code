@@ -6,6 +6,8 @@ When all tasks reach "done" stage (all task-teams have exited).
 
 ### 5.2 Final Gate
 
+**Skip this step if the plan has only 1 task** — the per-task tester already ran the full suite. Proceed directly to 5.3.
+
 Spawn a single Final Gate Tester (fresh team member) for full regression suite:
 - The Final Gate Tester reports its pane to PM on startup — no labeling needed from you.
 - Use the Final Gate Tester spawn prompt from `references/phase-2-spawn-prompts.md`

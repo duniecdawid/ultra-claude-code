@@ -97,5 +97,6 @@ deploy:
 
 - **Wrong account**: Always verify with `railway status` before deploying. Deploying to the wrong account is the #1 mistake with multi-account setups.
 - **Build failures**: Check build logs with `railway logs --build`. Common causes: missing dependencies, wrong Node/Python version.
-- **Dockerfile vs Nixpacks**: If Railway picks the wrong builder, add a `railway.toml` or `nixpacks.toml` to configure explicitly.
+- **Dockerfile vs Nixpacks**: If Railway picks the wrong builder, set `builder = "DOCKERFILE"` or `builder = "RAILPACK"` in your `railway.toml`. See `references/config-as-code.md`.
+- **Multi-service deploys**: When deploying a repo with multiple services, each service should have its own config file (`railway.toml`, `railway-worker.toml`, etc.) with appropriate `startCommand`, `watchPatterns`, and other settings. This avoids manual dashboard configuration drift.
 - **Large files**: Railway has upload size limits. Use `.railwayignore` (same syntax as `.gitignore`) to exclude unnecessary files.

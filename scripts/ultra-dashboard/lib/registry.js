@@ -26,6 +26,19 @@ function discoverPlans() {
   const reg = readRegistry();
   const knownRoots = new Set(reg.plans.map(p => p.project_root));
 
+  // Auto-scan ~/Projects/*/ for directories with documentation/
+  const projectsBase = path.join(HOME, 'Projects');
+  try {
+    for (const ent of fs.readdirSync(projectsBase, { withFileTypes: true })) {
+      if (!ent.isDirectory() || ent.name.startsWith('.')) continue;
+      const candidate = path.join(projectsBase, ent.name);
+      if (fs.existsSync(path.join(candidate, 'documentation'))) {
+        knownRoots.add(candidate);
+      }
+    }
+  } catch {}
+
+  // Additional seeds from explicit config
   try {
     const seeds = JSON.parse(fs.readFileSync(PROJECTS_FILE, 'utf8'));
     if (Array.isArray(seeds)) seeds.forEach(r => knownRoots.add(r));
@@ -39,8 +52,10 @@ function discoverPlans() {
     for (const ent of entries) {
       if (!ent.isDirectory()) continue;
       const planDir = path.join(plansDir, ent.name);
-      const projectJson = path.join(planDir, 'status', 'project.json');
-      if (!fs.existsSync(projectJson)) continue;
+      // Include plans with a README (unstarted) or status/project.json (started)
+      const hasReadme = fs.existsSync(path.join(planDir, 'README.md'));
+      const hasStatus = fs.existsSync(path.join(planDir, 'status', 'project.json'));
+      if (!hasReadme && !hasStatus) continue;
       const projectName = path.basename(root);
       const planName = ent.name;
       const exists = reg.plans.some(p => p.project === projectName && p.plan === planName);
@@ -66,4 +81,14 @@ function findPlan(project, planName) {
   return reg.plans.find(p => p.project === project && p.plan === planName);
 }
 
-module.exports = { readRegistry, writeRegistry, discoverPlans, findPlan, REGISTRY_FILE };
+function getProjectRoots() {
+  const reg = readRegistry();
+  const roots = new Set(reg.plans.map(p => p.project_root).filter(Boolean));
+  try {
+    const seeds = JSON.parse(fs.readFileSync(PROJECTS_FILE, 'utf8'));
+    if (Array.isArray(seeds)) seeds.forEach(r => roots.add(r));
+  } catch {}
+  return [...roots];
+}
+
+module.exports = { readRegistry, writeRegistry, discoverPlans, findPlan, getProjectRoots, REGISTRY_FILE };
