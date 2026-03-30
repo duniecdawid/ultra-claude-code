@@ -42,7 +42,8 @@ External libraries, frameworks, and services this plan depends on. The shared Te
 
 ## Task List
 
-### Task 1: {Title}
+### Task 1: {Title} <!-- status:pending -->
+- [ ] **Complete**
 - **Description:** What needs to be done
 - **Product context:** Relevant product description or requirements files
 - **Files:** Expected files to create/modify
@@ -50,7 +51,8 @@ External libraries, frameworks, and services this plan depends on. The shared Te
 - **Success criteria:** How to verify this task is done
 - **Dependencies:** Other tasks that must complete first
 
-### Task 2: {Title}
+### Task 2: {Title} <!-- status:pending -->
+- [ ] **Complete**
 - **Description:** What needs to be done
 - **Product context:** Relevant product description or requirements files
 - **Files:** Expected files to create/modify

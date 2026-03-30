@@ -116,7 +116,11 @@ Reference the documentation updated in Steps 2-3 — do not duplicate content. E
 
 ### Task fields
 
-Each task MUST have:
+Each task heading MUST use the format: `### Task N: {Title} <!-- status:pending -->`
+
+Immediately after the heading, add a completion checkbox: `- [ ] **Complete**`
+
+Each task MUST also have:
 - A clear description of what to build/change
 - **Product context** — relevant product description or requirements files from Step 2
 - Expected files to create or modify

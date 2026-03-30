@@ -18,6 +18,11 @@ Spawn a single Final Gate Tester (fresh team member) for full regression suite:
 
 SendMessage to the Project Manager (`pm-{PLAN_NAME}`): "Execution complete — write operational report"
 
+The PM will:
+1. Update the plan README status to "Completed"
+2. Write the operational report to `operational-report.md`
+3. Confirm when done
+
 Wait for PM's confirmation that `operational-report.md` is saved.
 
 Then send `shutdown_request` to the Project Manager.

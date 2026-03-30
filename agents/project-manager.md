@@ -178,7 +178,10 @@ At the very beginning of execution (before spawning any teams):
    PLAN_DASHBOARD_URL="${DASHBOARD_URL}/plan/$PROJECT_NAME/$PLAN_NAME"
    ```
 
-7. SendMessage to Lead: "Dashboard live at {PLAN_DASHBOARD_URL} (also http://localhost:3847)"
+7. **Update plan README status to "In Progress":**
+   Read `documentation/plans/{PLAN_NAME}/README.md`, find the `> Status:` line, replace it with `> Status: In Progress`. Write the file back.
+
+8. SendMessage to Lead: "Dashboard live at {PLAN_DASHBOARD_URL} (also http://localhost:3847)"
    This is the ONE status message you send to Lead at startup — it gives the human the link they need to monitor execution from any device.
 
 ### JSON Schemas
@@ -283,7 +286,7 @@ The Lead sends you terse status messages as it orchestrates. Process each into t
 | `SPAWNED task-{N}: {description}` | Lead | Create `status/teams/task-{N}.json` with all members, update `project.json` (active_tasks++, pending_tasks--), append `team_spawned` event |
 | `SPAWNED knowledge-{PLAN_NAME}` | Lead | Log knowledge agent spawn in events. |
 | `STAGE task-{N} {stage}` | Lead | Update `teams/task-{N}.json`: close previous stage timestamps, open new stage, update status field. Append `stage_entered` event |
-| `COMPLETED task-{N}` | Lead | Update `teams/task-{N}.json`: status=completed, ended_at, all members=completed. Update `project.json` (completed_tasks++, active_tasks--). Append `task_completed` event |
+| `COMPLETED task-{N}` | Lead | Update `teams/task-{N}.json`: status=completed, ended_at, all members=completed. Update `project.json` (completed_tasks++, active_tasks--). Append `task_completed` event. **Update plan README:** find `### Task {N}:` heading, change `<!-- status:pending -->` to `<!-- status:completed -->` and `- [ ] **Complete**` to `- [x] **Complete**` |
 | `SHUTDOWN task-{N}` | Lead | Update all member `ended_at` timestamps in `teams/task-{N}.json`. Append `team_shutdown` event |
 | `APPROVED-IMPL task-{N}` | Lead | Update `teams/task-{N}.json`: pipeline_mode=false, open implementation stage. Append `implementation_approved` event |
 | `PIPELINE-SPAWN task-{N}` | Lead | Create `teams/task-{N}.json` with `pipeline_mode: true`. Append `pipeline_spawn` event |
@@ -460,11 +463,12 @@ When the Lead sends "Execution complete — write operational report":
 
 1. Stop the monitoring loop
 2. Update `status/project.json`: status=completed, ended_at, final elapsed_seconds. Append `execution_completed` event.
-3. Do a final read of all task artifacts to fill any gaps in your observations
-4. Compile the operational report
-5. Write it to `documentation/plans/{PLAN_NAME}/operational-report.md`
-6. SendMessage to Lead: "Operational report saved to operational-report.md. Dashboard still live at {DASHBOARD_URL}"
-7. Wait for shutdown_request — kill dashboard and watchdog on shutdown
+3. **Update plan README status to "Completed":** Read `documentation/plans/{PLAN_NAME}/README.md`, find the `> Status:` line, replace it with `> Status: Completed`. Write the file back.
+4. Do a final read of all task artifacts to fill any gaps in your observations
+5. Compile the operational report
+6. Write it to `documentation/plans/{PLAN_NAME}/operational-report.md`
+7. SendMessage to Lead: "Operational report saved to operational-report.md. Dashboard still live at {DASHBOARD_URL}"
+8. Wait for shutdown_request — kill dashboard and watchdog on shutdown
 
 ## Report Structure
 
