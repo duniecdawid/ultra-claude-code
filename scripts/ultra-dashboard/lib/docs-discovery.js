@@ -217,7 +217,7 @@ function generateDocsifyIndex(projectName, slug) {
       },
       auto2top: true,
       hideSidebar: false,
-      relativePath: true,
+      relativePath: false,
       plugins: []
     };
   </script>
