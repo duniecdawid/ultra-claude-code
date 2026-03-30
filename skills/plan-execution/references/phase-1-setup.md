@@ -13,16 +13,17 @@ You now have the full picture.
 
 ### 1.1b Ultra Dashboard
 
-Ensure the Ultra Dashboard is running. It handles tmux layout management, plan health monitoring, and the web UI — all in one process.
+Read and execute `${CLAUDE_PLUGIN_ROOT}/references/ensure-dashboard.md` to ensure the dashboard is running and obtain `$DASHBOARD_URL`.
+
+Then label this pane as the main context so the layout watcher discovers and manages this window:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/ultra-dashboard/index.js --ensure
 tmux set-option -p -t $TMUX_PANE @agent-name "main-context"
 tmux set-option -w pane-border-status top
 tmux set-option -w pane-border-format " #{@agent-name} "
 ```
 
-The first command is idempotent — if the dashboard is already running, it exits immediately. The remaining commands label your pane as the main context (so the layout watcher discovers and manages this window) and enable pane border labels (so agent names are visible immediately, not just after the first arrangement). The dashboard arranges panes as agents spawn and report their panes to PM, monitors plan health for stalls/rate limits, and serves the web dashboard on port 3847. **You do NOT run any tmux commands yourself** — PM handles all other pane labeling.
+The dashboard arranges panes as agents spawn and report their panes to PM, monitors plan health for stalls/rate limits, and serves the web dashboard. **You do NOT run any tmux commands yourself** — PM handles all other pane labeling.
 
 ### 1.2 Resume Detection
 

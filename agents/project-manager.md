@@ -165,44 +165,20 @@ At the very beginning of execution (before spawning any teams):
    PLAN_NAME=$(basename "$PLAN_DIR")
    ```
 
-5. Check if global dashboard is already running:
-   ```bash
-   DASHBOARD_PID_FILE="$HOME/.claude/dashboard.pid"
-   DASHBOARD_RUNNING=false
-   if [ -f "$DASHBOARD_PID_FILE" ]; then
-     DASH_PID=$(cat "$DASHBOARD_PID_FILE")
-     if kill -0 "$DASH_PID" 2>/dev/null && \
-        curl -sf http://localhost:3847/api/plans > /dev/null 2>&1; then
-       DASHBOARD_RUNNING=true
-     fi
-   fi
-   ```
+5. Ensure the dashboard is running by reading and executing `${CLAUDE_PLUGIN_ROOT}/references/ensure-dashboard.md`. This gives you `$DASHBOARD_URL`.
 
-6. If not running, start it:
-   ```bash
-   if [ "$DASHBOARD_RUNNING" = "false" ]; then
-     node "${CLAUDE_PLUGIN_ROOT}/scripts/ultra-dashboard/index.js" --ensure
-     sleep 1
-     tailscale serve --bg 3847 2>&1 | tee /tmp/tailscale-serve-output.txt
-   fi
-   ```
-   If `tailscale serve` fails (not enabled, no permissions), fall back to `http://{tailscale-ip}:3847` — get the IP with:
-   ```bash
-   tailscale ip -4
-   ```
-
-7. Register this plan with the global dashboard:
+6. Register this plan with the global dashboard:
    ```bash
    curl -sf -X POST http://localhost:3847/api/register \
      -H 'Content-Type: application/json' \
      -d "{\"project\":\"$PROJECT_NAME\",\"plan\":\"$PLAN_NAME\",\"plan_dir\":\"$PLAN_DIR\",\"project_root\":\"$PROJECT_ROOT\"}"
    ```
-   Save the dashboard URL:
+   Build the plan-specific dashboard URL:
    ```
-   DASHBOARD_URL="https://code-vm.tailf017e.ts.net/plan/$PROJECT_NAME/$PLAN_NAME"
+   PLAN_DASHBOARD_URL="${DASHBOARD_URL}/plan/$PROJECT_NAME/$PLAN_NAME"
    ```
 
-8. SendMessage to Lead: "Dashboard live at {DASHBOARD_URL} (also http://localhost:3847)"
+7. SendMessage to Lead: "Dashboard live at {PLAN_DASHBOARD_URL} (also http://localhost:3847)"
    This is the ONE status message you send to Lead at startup — it gives the human the link they need to monitor execution from any device.
 
 ### JSON Schemas

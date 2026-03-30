@@ -8,25 +8,17 @@ allowed-tools: [Bash]
 
 The Ultra Dashboard automatically manages tmux layouts based on `@agent-name` pane labels. This skill is for when the dashboard isn't running or the layout needs a manual fix.
 
-## Check dashboard status
+## Ensure dashboard is running
+
+Read and execute `${CLAUDE_PLUGIN_ROOT}/references/ensure-dashboard.md` to check status, start if needed, and obtain `$DASHBOARD_URL`.
+
+Then verify tmux integration:
 
 ```bash
-PID=$(cat ~/.claude/dashboard.pid 2>/dev/null)
-if [ -n "$PID" ] && kill -0 "$PID" 2>/dev/null; then
-  echo "Dashboard running (PID $PID, port 3847)"
-  curl -s http://localhost:3847/api/tmux | python3 -m json.tool 2>/dev/null
-else
-  echo "Dashboard NOT running"
-fi
+curl -s http://localhost:3847/api/tmux | python3 -m json.tool 2>/dev/null
 ```
 
-## Restart the dashboard
-
-```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/ultra-dashboard/index.js --ensure
-```
-
-This is idempotent — if the dashboard is already running, it exits immediately. The dashboard auto-discovers all tmux windows with `main-context` labels and arranges them.
+The dashboard auto-discovers all tmux windows with `main-context` labels and arranges them.
 
 ## Emergency fallback
 

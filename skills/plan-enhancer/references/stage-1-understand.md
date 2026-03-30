@@ -6,10 +6,11 @@ The active planning mode defines this stage. Plan Enhancer does not participate.
 
 ## Ultra Dashboard
 
-Ensure the Ultra Dashboard is running at the start of Stage 1 (idempotent — safe if already alive):
+Read and execute `${CLAUDE_PLUGIN_ROOT}/references/ensure-dashboard.md` to ensure the dashboard is running and obtain `$DASHBOARD_URL`.
+
+Then label this pane as the main context:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/ultra-dashboard/index.js --ensure
 tmux set-option -p -t $TMUX_PANE @agent-name "main-context"
 tmux set-option -w pane-border-status top
 tmux set-option -w pane-border-format " #{@agent-name} "

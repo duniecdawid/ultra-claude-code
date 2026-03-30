@@ -35,6 +35,7 @@ This skill assumes:
 
 Before starting, read:
 - `${CLAUDE_PLUGIN_ROOT}/skills/docs-manager/SKILL.md` (for doc routing rules)
+- `${CLAUDE_PLUGIN_ROOT}/references/ensure-dashboard.md` — execute its steps to ensure the dashboard is running and obtain `$DASHBOARD_URL`
 
 ## Scope Constraint
 
@@ -223,10 +224,18 @@ git add documentation/plans/ && git commit -m "roadmap: scaffold {N} plan stubs"
 
 ### Step 5: Print next steps and STOP
 
+Determine the project name for the dashboard link:
+
+```bash
+PROJECT_NAME=$(basename "$(pwd)")
+```
+
 Print the execution guide:
 
 ```
 Roadmap scaffolded: {N} plan stubs created.
+
+View on dashboard: {DASHBOARD_URL}/project/{PROJECT_NAME}
 
 To detail and execute each plan in order:
   /uc:feature-mode "{first-plan-name}"    <- start here
