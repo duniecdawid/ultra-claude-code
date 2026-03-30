@@ -29,6 +29,16 @@ function ubItem(label, pct, resetEpoch) {
   '</div>';
 }
 
+function fmtAge(isoStr) {
+  if (!isoStr) return '';
+  var diff = (Date.now() - new Date(isoStr).getTime()) / 1000;
+  if (diff < 0) diff = 0;
+  if (diff < 60) return Math.round(diff) + 's ago';
+  if (diff < 3600) return Math.round(diff / 60) + 'm ago';
+  if (diff < 86400) return Math.round(diff / 3600) + 'h ago';
+  return Math.round(diff / 86400) + 'd ago';
+}
+
 function renderAccountRow(account, isCurrent, isActive) {
   var rl = account.rate_limits || {};
   var items = '';
@@ -45,8 +55,12 @@ function renderAccountRow(account, isCurrent, isActive) {
     items += ubItem('7d', sdOver ? rl.seven_day.used_percentage : Math.min(rl.seven_day.used_percentage, 100), rl.seven_day.resets_at);
   }
   if (overLimit) items += '<span class="ub-overlimit">OVER LIMIT</span>';
+  var age = fmtAge(account.updated_at);
+  var ageSec = account.updated_at ? (Date.now() - new Date(account.updated_at).getTime()) / 1000 : 0;
+  var staleClass = ageSec > 600 ? ' ub-stale' : '';
   var acct = '<span class="ub-account">' + esc(account.email || '');
   if (account.orgName) acct += ' <span class="ub-org">' + esc(account.orgName) + '</span>';
+  if (age) acct += ' <span class="ub-age' + staleClass + '">' + age + '</span>';
   acct += '</span>';
   var cls = 'ub-row';
   if (isCurrent) cls += ' current';

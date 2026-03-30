@@ -77,7 +77,7 @@ SKIP if tmux is not installed.
 
 ### 3.6 Statusline (usage data for dashboard)
 
-Check if `~/.claude/settings.json` has a `statusLine` command pointing to the Ultra Claude statusline script, and that the `jq` dependency is available:
+Check if `~/.claude/settings.json` has a `statusLine` command pointing to the Ultra Claude statusline script, that the `jq` dependency is available, and that the auth cache directory exists:
 
 ```bash
 jq --version 2>/dev/null
@@ -89,9 +89,16 @@ Then check settings.json for the statusLine configuration:
 jq -r '.statusLine.command // empty' ~/.claude/settings.json 2>/dev/null
 ```
 
+Check the auth cache directory (used for per-session account identity):
+
+```bash
+[ -d ~/.claude/statusline-auth ] && echo "exists" || echo "missing"
+```
+
 PASS if:
 - `jq` is installed
 - The statusLine command references the Ultra Claude `statusline.sh` script (path contains `ultra-claude` and `statusline.sh`)
+- `~/.claude/statusline-auth/` directory exists (soft check — the statusline creates it on first use if missing)
 
 ### 3.7 Ultra Dashboard (includes Docsify docs hosting)
 
@@ -262,7 +269,13 @@ brew install jq
 ln -sf "${CLAUDE_PLUGIN_ROOT}/scripts/ultra-dashboard/statusline.sh" ~/.claude/statusline.sh
 ```
 
-3. **Configure settings.json** — read `~/.claude/settings.json`, add or update the `statusLine` key:
+3. **Create the auth cache directory** (used for per-session account identity to prevent rate limit data corruption on account switch):
+
+```bash
+mkdir -p ~/.claude/statusline-auth
+```
+
+4. **Configure settings.json** — read `~/.claude/settings.json`, add or update the `statusLine` key:
 
 ```json
 {
@@ -283,7 +296,7 @@ else
 fi
 ```
 
-Tell the user: "Statusline configured — usage data will appear on the Ultra Dashboard after your next Claude Code interaction. Rate limits are tracked per account, so switching Claude accounts will show separate usage for each."
+Tell the user: "Statusline configured — usage data will appear on the Ultra Dashboard after your next Claude Code interaction. Rate limits are tracked per account with overwrite protection, so switching Claude accounts will show separate usage for each."
 
 **Important:** Always re-create the symlink during setup, even if the statusline is already configured. The source path may have changed. The symlink step is idempotent.
 

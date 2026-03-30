@@ -11,6 +11,8 @@
 .ub-reset { color: #6e7681; font-size: 0.9em; }
 .ub-account { margin-left: auto; color: #8b949e; }
 .ub-account .ub-org { color: #484f58; }
+.ub-account .ub-age { color: #6e7681; font-size: 0.9em; }
+.ub-account .ub-age.ub-stale { color: #d29922; }
 .ub-empty { color: #484f58; }
 
 /* ── Breadcrumb ── */
