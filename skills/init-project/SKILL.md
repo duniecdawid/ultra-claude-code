@@ -206,7 +206,7 @@ For each `.claude/` config file:
 - Required environment variables
 - External service dependencies
 
-**`.claude/docs-format`** — default to `markdown` unless existing docs suggest otherwise
+**`.claude/docs-format`** — default to `docsify` unless existing docs suggest otherwise (e.g., Confluence markers found → `confluence`)
 
 For each file:
 - Show proposed content in the plan

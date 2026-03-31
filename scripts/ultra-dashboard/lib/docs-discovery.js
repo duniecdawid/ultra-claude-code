@@ -73,11 +73,16 @@ function generateSidebar(docsDir) {
     if (!isDir(dirPath)) continue;
 
     const sectionName = SECTION_NAMES[topDir] || toTitle(topDir);
-    lines.push(`- **${sectionName}**`);
+    const topReadme = listMdFiles(dirPath).find(f => f.toLowerCase() === 'readme.md');
+    if (topReadme) {
+      lines.push(`- **[${sectionName}](${topDir}/${topReadme})**`);
+    } else {
+      lines.push(`- **${sectionName}**`);
+    }
 
     if (topDir === 'technology' || topDir === 'product') {
       // Direct files under technology/ or product/
-      const directFiles = listMdFiles(dirPath);
+      const directFiles = listMdFiles(dirPath).filter(f => f.toLowerCase() !== 'readme.md');
       for (const f of directFiles) {
         lines.push(`  - [${toTitle(f)}](${topDir}/${f})`);
       }

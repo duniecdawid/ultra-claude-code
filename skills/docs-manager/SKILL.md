@@ -20,7 +20,8 @@ You are the guardian of the project's documentation structure. Your role is to e
 This skill only activates in projects that have a `.claude/docs-format` file. Before acting, verify this file exists. If it does not exist, do nothing — documentation management is not enabled for this project.
 
 Read `.claude/docs-format` to determine the output format:
-- `markdown` — Plain markdown (default)
+- `docsify` — Docsify-compatible markdown with directory-as-page convention (default)
+- `markdown` — Plain markdown, no special markers
 - `confluence` — Confluence-compatible markdown with space/title markers
 - `gitbook` — GitBook-compatible markdown with SUMMARY.md navigation
 
@@ -32,24 +33,46 @@ This is the non-negotiable structure. All documentation MUST fit within it:
 documentation/
 ├── README.md                          # Navigable index (auto-generated)
 ├── technology/
-│   ├── architecture/                  # System design, components, data flow, tech stack
-│   ├── standards/                     # Coding conventions, patterns, quality bars
-│   ├── testing/                       # Test strategy, commands, agent rules, security testing
-│   └── rfcs/                          # Structured reviews for ambiguous/high-risk decisions
+│   ├── README.md                      # Technology overview (docsify)
+│   ├── architecture/
+│   │   ├── README.md                  # Architecture overview (docsify)
+│   │   └── ...
+│   ├── standards/
+│   │   ├── README.md                  # Standards overview (docsify)
+│   │   └── ...
+│   ├── testing/
+│   │   ├── README.md                  # Testing overview (docsify)
+│   │   └── ...
+│   └── rfcs/
+│       ├── README.md                  # RFCs overview (docsify)
+│       └── ...
 ├── product/
-│   ├── description/                   # Product briefs, vision, positioning
-│   ├── research/                      # Market research, competitor analysis, technology landscape
-│   ├── requirements/                  # Formal requirements, user stories, acceptance criteria
-│   └── personas/                      # User personas (evidence-based profiles)
+│   ├── README.md                      # Product overview (docsify)
+│   ├── description/
+│   │   ├── README.md                  # Description overview (docsify)
+│   │   └── ...
+│   ├── research/
+│   │   ├── README.md                  # Research overview (docsify)
+│   │   └── ...
+│   ├── requirements/
+│   │   ├── README.md                  # Requirements overview (docsify)
+│   │   └── ...
+│   └── personas/
+│       ├── README.md                  # Personas overview (docsify)
+│       └── ...
 ├── plans/
 │   └── {plan-name}/
 │       ├── README.md                  # Plan document (task list embedded)
 │       ├── shared/                    # Lead-level shared notes (execution)
 │       └── tasks/                     # Per-task pipeline artifacts (execution)
-└── dependencies/                      # Blocking questions, external dependencies
+└── dependencies/
+    ├── README.md                      # Dependencies overview (docsify)
+    └── ...
 ```
 
 **No top-level files** inside `documentation/` except `README.md`. Every document belongs in a subdirectory.
+
+> **Docsify convention:** When format is `docsify`, every category directory MUST contain a `README.md`. In Docsify, clicking a directory in the sidebar loads its `README.md` as the directory's page. Without it, the user gets a 404.
 
 ## Routing Rules
 
@@ -147,6 +170,13 @@ Before writing any document to `documentation/`:
 2. **If wrong** — determine the correct path and redirect
 3. **If ambiguous** — ask the user which category the document belongs to
 4. **Create parent directories** as needed
+5. **If format is docsify** — ensure the target category directory has a `README.md`. If missing, create one from the category README template (see Docsify section below)
+
+### Docsify README.md Audit
+
+When format is `docsify`, during any audit or document creation, verify that every existing category directory contains a `README.md`. Category directories to check: `technology/`, `technology/architecture/`, `technology/standards/`, `technology/testing/`, `technology/rfcs/`, `product/`, `product/description/`, `product/research/`, `product/requirements/`, `product/personas/`, `dependencies/`.
+
+If a category directory exists without a `README.md`, create one using the category README template.
 
 ### On Document Modification
 
@@ -159,7 +189,46 @@ When modifying existing documents:
 
 Apply format-specific rules based on `.claude/docs-format`:
 
-### Markdown (default)
+### Docsify (default)
+
+- Standard markdown with Docsify directory-as-page convention
+- Use relative links: `[Link](../path/to/file.md)`
+- **Directory README.md files are mandatory** — every category directory must contain a `README.md` that serves as the directory's landing page
+- Each category README.md contains:
+  1. H1 heading matching the category display name
+  2. One-paragraph description of what the category covers
+  3. Auto-maintained list of documents in the directory (linked name + one-line description)
+- Do NOT create `_sidebar.md`, `index.html`, or `.nojekyll` — the Ultra Dashboard generates the sidebar on the fly and handles Docsify serving
+
+#### Category README.md Template
+
+```markdown
+# {Category Display Name}
+
+{Description}
+
+## Documents
+
+- [Doc Name](filename.md) — One-line description
+```
+
+Category descriptions:
+
+| Directory | Display Name | Description |
+|-----------|-------------|-------------|
+| `technology/` | Technology | Technical documentation covering architecture, standards, testing, and decisions. |
+| `technology/architecture/` | Architecture | System design — components, data flow, tech stack, interfaces. |
+| `technology/standards/` | Standards | Coding conventions, patterns, quality bars, style guides. |
+| `technology/testing/` | Testing | Test strategy, commands, agent rules, coverage standards. |
+| `technology/rfcs/` | RFCs | Structured decision reviews for ambiguous/high-risk decisions. |
+| `product/` | Product | Product documentation — vision, research, requirements, personas. |
+| `product/description/` | Description | Product briefs, vision, positioning. |
+| `product/research/` | Research | Market research, competitor analysis, technology landscape. |
+| `product/requirements/` | Requirements | Formal requirements, user stories, acceptance criteria. |
+| `product/personas/` | Personas | Evidence-based user personas and audience profiles. |
+| `dependencies/` | Dependencies | Blocking questions, external dependencies, open items. |
+
+### Markdown
 
 - Standard markdown, no special markers
 - Use relative links: `[Link](../path/to/file.md)`
@@ -232,6 +301,7 @@ Maintain `documentation/README.md` as a navigable index of the entire documentat
 3. **Extract** the first heading or filename as the document name
 4. **Generate** the index with links and descriptions
 5. **Write** to `documentation/README.md`
+6. **If format is docsify** — update each category `README.md` with its current document list
 
 ## File Naming
 
