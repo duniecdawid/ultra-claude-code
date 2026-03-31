@@ -135,7 +135,7 @@ Present a concise summary to the user:
 - Open questions that need user input
 - Recommended next steps (e.g., "Run `/uc:feature-mode` to plan implementation of the recommended approach")
 
-**Tracker:** Add any external dependencies and open questions to the project tracker: `Skill(skill: 'uc:tracker', args: 'add dependency: ...')`. This ensures they're visible in the dashboard and not lost after the discovery session ends.
+**Tracker:** Add any external dependencies and open questions to the project tracker: `Skill(skill: 'uc:tracker', args: 'add external: ...')`. This ensures they're visible in the dashboard and not lost after the discovery session ends.
 
 ## Edge Cases
 

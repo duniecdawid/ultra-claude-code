@@ -65,7 +65,11 @@ documentation/
 │       ├── README.md                  # Plan document (task list embedded)
 │       ├── shared/                    # Lead-level shared notes (execution)
 │       └── tasks/                     # Per-task pipeline artifacts (execution)
-└── tracker.json                       # Lightweight backlog (ideas, deps, bugs)
+└── tracker/                           # Lightweight backlog (bugs, external, ideas, debt)
+    ├── bugs.json
+    ├── external.json
+    ├── ideas.json
+    └── technical-debt.json
 ```
 
 **No top-level files** inside `documentation/` except `README.md`. Every document belongs in a subdirectory.
@@ -123,7 +127,7 @@ Before creating any new document, read the reference for the target content type
 | Market research, competitor analysis | `references/research.md` | `product/research/` |
 | Formal requirements, user stories | `references/requirement.md` | `product/requirements/` |
 | User personas | `references/persona.md` | `product/personas/` |
-| Blocking questions, external deps, ideas, bugs | *(use `/uc:tracker add ...`)* | `documentation/tracker.json` |
+| Blocking questions, external deps, ideas, bugs, tech debt | *(use `/uc:tracker add ...`)* | `documentation/tracker/` |
 
 Reference paths are relative to this skill's directory (`skills/docs-manager/`).
 

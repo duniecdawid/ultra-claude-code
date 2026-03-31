@@ -80,12 +80,14 @@
   .filter-pill { font-size: 0.78em; padding: 3px 10px; border-radius: 12px; cursor: pointer; user-select: none; border: 1px solid; transition: all 0.15s; font-weight: 500; }
   .filter-pill.active { opacity: 1; }
   .filter-pill:not(.active) { opacity: 0.35; }
-  .pill-idea { border-color: #d2a8ff; color: #d2a8ff; }
-  .pill-idea.active { background: #d2a8ff22; }
-  .pill-dependency { border-color: #d29922; color: #d29922; }
-  .pill-dependency.active { background: #d2992222; }
   .pill-bug { border-color: #f85149; color: #f85149; }
   .pill-bug.active { background: #f8514922; }
+  .pill-external { border-color: #d29922; color: #d29922; }
+  .pill-external.active { background: #d2992222; }
+  .pill-idea { border-color: #d2a8ff; color: #d2a8ff; }
+  .pill-idea.active { background: #d2a8ff22; }
+  .pill-debt { border-color: #79c0ff; color: #79c0ff; }
+  .pill-debt.active { background: #79c0ff22; }
   .pill-open { border-color: #58a6ff; color: #58a6ff; }
   .pill-open.active { background: #58a6ff22; }
   .pill-in-progress { border-color: #d29922; color: #d29922; }
@@ -101,10 +103,11 @@
   .tracker-table td { padding: 8px 10px; border-bottom: 1px solid #161b22; vertical-align: top; }
   .tracker-table tr:hover { background: #161b22; }
   .tracker-table tr.highlight { background: #1f6feb22; transition: background 1s; }
-  .type-badge { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 0.78em; font-weight: 500; }
-  .type-idea { background: #d2a8ff22; color: #d2a8ff; }
-  .type-dependency { background: #d2992222; color: #d29922; }
-  .type-bug { background: #f8514922; color: #f85149; }
+  .cat-badge { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 0.78em; font-weight: 500; }
+  .cat-bug { background: #f8514922; color: #f85149; }
+  .cat-external { background: #d2992222; color: #d29922; }
+  .cat-idea { background: #d2a8ff22; color: #d2a8ff; }
+  .cat-debt { background: #79c0ff22; color: #79c0ff; }
   .priority-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
   .priority-high { background: #f85149; }
   .priority-medium { background: #d29922; }
@@ -348,7 +351,7 @@ async function refreshPlans() {
 // ── Tracker ──
 var trackerItems = [];
 var trackerFilters = {
-  types: { idea: true, dependency: true, bug: true },
+  categories: { bug: true, external: true, idea: true, debt: true },
   statuses: { open: true, 'in-progress': true, done: false, wontfix: false },
   priorities: { high: true, medium: true, low: true }
 };
@@ -396,7 +399,8 @@ function openDocRef(ref) {
 function renderTrackerView() {
   var el = document.getElementById('tracker-section');
   var filtered = trackerItems.filter(function(item) {
-    return trackerFilters.types[item.type] && trackerFilters.statuses[item.status] && trackerFilters.priorities[item.priority];
+    var cat = item._category || 'idea';
+    return trackerFilters.categories[cat] && trackerFilters.statuses[item.status] && trackerFilters.priorities[item.priority];
   });
   // Sort by priority (high first), then by ID
   filtered.sort(function(a, b) {
@@ -411,11 +415,9 @@ function renderTrackerView() {
 
   // Filter pills
   var html = '<div class="filter-row">' +
-    '<div class="filter-group"><span class="filter-label">Type</span>';
-  ['idea', 'dependency', 'bug'].forEach(function(t) {
-    var label = t.charAt(0).toUpperCase() + t.slice(1);
-    if (t === 'dependency') label = 'Dep';
-    html += '<span class="filter-pill pill-' + t + (trackerFilters.types[t] ? ' active' : '') + '" onclick="toggleFilter(\'types\',\'' + t + '\')">' + label + '</span>';
+    '<div class="filter-group"><span class="filter-label">Category</span>';
+  [['bug','Bugs'],['external','External'],['idea','Ideas'],['debt','Debt']].forEach(function(pair) {
+    html += '<span class="filter-pill pill-' + pair[0] + (trackerFilters.categories[pair[0]] ? ' active' : '') + '" onclick="toggleFilter(\'categories\',\'' + pair[0] + '\')">' + pair[1] + '</span>';
   });
   html += '</div><div class="filter-sep"></div><div class="filter-group"><span class="filter-label">Status</span>';
   [['open','Open'],['in-progress','Active'],['done','Done'],['wontfix','Skip']].forEach(function(pair) {
@@ -431,16 +433,17 @@ function renderTrackerView() {
     html += '<div class="tracker-empty">' + (trackerItems.length === 0 ? 'No tracker items yet' : 'No items match current filters') + '</div>';
   } else {
     html += '<table class="tracker-table"><thead><tr>' +
-      '<th>ID</th><th>Type</th><th>Pri</th><th>Title</th><th>Status</th>' +
+      '<th>ID</th><th>Category</th><th>Pri</th><th>Title</th><th>Status</th>' +
       (hasDocRefs ? '<th>Docs</th>' : '') +
       (hasRelated ? '<th>Related</th>' : '') +
       '</tr></thead><tbody>';
     filtered.forEach(function(item) {
+      var cat = item._category || 'idea';
       var related = relatedMap[item.id] ? Array.from(relatedMap[item.id]) : [];
       var refs = item.doc_refs || [];
       html += '<tr id="tracker-row-' + esc(item.id) + '">' +
         '<td style="white-space:nowrap;color:#8b949e;font-family:monospace;font-size:0.85em">' + esc(item.id) + '</td>' +
-        '<td><span class="type-badge type-' + esc(item.type) + '">' + esc(item.type) + '</span></td>' +
+        '<td><span class="cat-badge cat-' + esc(cat) + '">' + esc(cat) + '</span></td>' +
         '<td><span class="priority-dot priority-' + esc(item.priority) + '" title="' + esc(item.priority) + '"></span></td>' +
         '<td>' + esc(item.title) + (item.notes ? '<br><span style="font-size:0.8em;color:#484f58">' + esc(item.notes) + '</span>' : '') + '</td>' +
         '<td><span class="status-' + esc(item.status) + '">' + esc(item.status) + '</span></td>';

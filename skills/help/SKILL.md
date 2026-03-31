@@ -88,7 +88,7 @@ Manages the `context/` directory as a structured knowledge base for external sys
 ### Project Management
 
 **Tracker** (`/uc:tracker`)
-Lightweight backlog in `documentation/tracker.json` for ideas, bugs, dependencies, and external blockers with auto-incrementing IDs, priorities, bidirectional linking, and documentation references. Use to note something for later, log a bug, record a dependency, link to relevant docs, or ask "what should we work on". Provides list/add/update/done/link operations with flexible natural-language parsing, priority sorting, and source tracking.
+Lightweight backlog split across four category files in `documentation/tracker/` — bugs (B-NNN), external blockers (E-NNN), ideas (I-NNN), and technical debt (D-NNN) — with priorities, bidirectional linking, and documentation references. Use to note something for later, log a bug, record an external dependency, flag tech debt, link to docs, or ask "what should we work on". Provides list/add/update/done/link operations with per-category prefixed IDs, priority sorting, and source tracking.
 
 **Plan Status Sync** (`/uc:plan-status-sync`)
 Scans all plans, infers actual status from execution artifacts (operational reports, checkpoints, task completion), and updates README statuses and dashboard JSON to match reality. Use to fix stale statuses after crashed executions or audit plan state. Produces corrected status files reconciling what READMEs claim with what actually happened.
