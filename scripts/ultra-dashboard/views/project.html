@@ -115,6 +115,14 @@
   .status-wontfix { color: #484f58; }
   .related-chip { display: inline-block; padding: 0 6px; border-radius: 8px; font-size: 0.75em; background: #21262d; color: #8b949e; cursor: pointer; margin-right: 3px; text-decoration: none !important; }
   .related-chip:hover { background: #30363d; color: #c9d1d9; }
+  .doc-ref-chip { display: inline-block; padding: 0 6px; border-radius: 8px; font-size: 0.72em; font-family: monospace; background: #0d419d33; color: #58a6ff; cursor: pointer; margin-right: 3px; text-decoration: none !important; }
+  .doc-ref-chip:hover { background: #0d419d55; color: #79c0ff; }
+  .pill-high { border-color: #f85149; color: #f85149; }
+  .pill-high.active { background: #f8514922; }
+  .pill-medium { border-color: #d29922; color: #d29922; }
+  .pill-medium.active { background: #d2992222; }
+  .pill-low { border-color: #484f58; color: #484f58; }
+  .pill-low.active { background: #484f5822; }
   .tab-badge { font-size: 0.75em; background: #21262d; color: #8b949e; padding: 1px 6px; border-radius: 8px; margin-left: 6px; }
   .tracker-empty { color: #484f58; padding: 40px; text-align: center; }
 
@@ -341,7 +349,8 @@ async function refreshPlans() {
 var trackerItems = [];
 var trackerFilters = {
   types: { idea: true, dependency: true, bug: true },
-  statuses: { open: true, 'in-progress': true, done: false, wontfix: false }
+  statuses: { open: true, 'in-progress': true, done: false, wontfix: false },
+  priorities: { high: true, medium: true, low: true }
 };
 
 function toggleFilter(group, key) {
@@ -372,13 +381,33 @@ function buildRelatedMap(items) {
   return map;
 }
 
+var priorityOrder = { high: 0, medium: 1, low: 2 };
+
+function openDocRef(ref) {
+  // Strip line range for Docsify navigation
+  var page = ref.replace(/:\d+[-–]\d+$/, '').replace(/:\d+$/, '');
+  // Switch to docs tab and load the page
+  switchTab('docs');
+  var frame = document.getElementById('docs-frame');
+  docsLoaded = true;
+  frame.src = '/docs/' + PROJECT + '/#/' + page;
+}
+
 function renderTrackerView() {
   var el = document.getElementById('tracker-section');
   var filtered = trackerItems.filter(function(item) {
-    return trackerFilters.types[item.type] && trackerFilters.statuses[item.status];
+    return trackerFilters.types[item.type] && trackerFilters.statuses[item.status] && trackerFilters.priorities[item.priority];
+  });
+  // Sort by priority (high first), then by ID
+  filtered.sort(function(a, b) {
+    var pa = priorityOrder[a.priority] !== undefined ? priorityOrder[a.priority] : 1;
+    var pb = priorityOrder[b.priority] !== undefined ? priorityOrder[b.priority] : 1;
+    if (pa !== pb) return pa - pb;
+    return a.id.localeCompare(b.id);
   });
   var relatedMap = buildRelatedMap(trackerItems);
   var hasRelated = trackerItems.some(function(item) { return (item.related && item.related.length > 0); });
+  var hasDocRefs = trackerItems.some(function(item) { return (item.doc_refs && item.doc_refs.length > 0); });
 
   // Filter pills
   var html = '<div class="filter-row">' +
@@ -392,6 +421,10 @@ function renderTrackerView() {
   [['open','Open'],['in-progress','Active'],['done','Done'],['wontfix','Skip']].forEach(function(pair) {
     html += '<span class="filter-pill pill-' + pair[0] + (trackerFilters.statuses[pair[0]] ? ' active' : '') + '" onclick="toggleFilter(\'statuses\',\'' + pair[0] + '\')">' + pair[1] + '</span>';
   });
+  html += '</div><div class="filter-sep"></div><div class="filter-group"><span class="filter-label">Priority</span>';
+  [['high','High'],['medium','Med'],['low','Low']].forEach(function(pair) {
+    html += '<span class="filter-pill pill-' + pair[0] + (trackerFilters.priorities[pair[0]] ? ' active' : '') + '" onclick="toggleFilter(\'priorities\',\'' + pair[0] + '\')">' + pair[1] + '</span>';
+  });
   html += '</div></div>';
 
   if (filtered.length === 0) {
@@ -399,16 +432,23 @@ function renderTrackerView() {
   } else {
     html += '<table class="tracker-table"><thead><tr>' +
       '<th>ID</th><th>Type</th><th>Pri</th><th>Title</th><th>Status</th>' +
+      (hasDocRefs ? '<th>Docs</th>' : '') +
       (hasRelated ? '<th>Related</th>' : '') +
       '</tr></thead><tbody>';
     filtered.forEach(function(item) {
       var related = relatedMap[item.id] ? Array.from(relatedMap[item.id]) : [];
+      var refs = item.doc_refs || [];
       html += '<tr id="tracker-row-' + esc(item.id) + '">' +
         '<td style="white-space:nowrap;color:#8b949e;font-family:monospace;font-size:0.85em">' + esc(item.id) + '</td>' +
         '<td><span class="type-badge type-' + esc(item.type) + '">' + esc(item.type) + '</span></td>' +
         '<td><span class="priority-dot priority-' + esc(item.priority) + '" title="' + esc(item.priority) + '"></span></td>' +
         '<td>' + esc(item.title) + (item.notes ? '<br><span style="font-size:0.8em;color:#484f58">' + esc(item.notes) + '</span>' : '') + '</td>' +
         '<td><span class="status-' + esc(item.status) + '">' + esc(item.status) + '</span></td>';
+      if (hasDocRefs) {
+        html += '<td>' + refs.map(function(ref) {
+          return '<a class="doc-ref-chip" onclick="openDocRef(\'' + esc(ref) + '\')" title="Open in docs">' + esc(ref) + '</a>';
+        }).join('') + '</td>';
+      }
       if (hasRelated) {
         html += '<td>' + related.map(function(rid) {
           return '<a class="related-chip" onclick="scrollToItem(\'' + esc(rid) + '\')">' + esc(rid) + '</a>';

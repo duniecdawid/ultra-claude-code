@@ -65,11 +65,14 @@ Create the item:
   "source": "user or agent-name",
   "notes": "",
   "related_plan": "",
-  "related": []
+  "related": [],
+  "doc_refs": []
 }
 ```
 
 If the user mentions a relationship to an existing item (e.g., "related to T-002", "this blocks T-005", "spawned from T-001"), add the referenced ID to `related` and also add the new item's ID to the referenced item's `related` array (bidirectional link).
+
+If the user references documentation files (e.g., "see compliance.md:88-95", "ref: payments.md", "documented in architecture/api-spec.md", or bare paths like `fees.md:42-55`), extract them into the `doc_refs` array. Each entry is a path relative to `documentation/` with an optional `:line-range` suffix. Multiple refs can be provided in one add command.
 
 The `id` is auto-incremented: read existing items, find the highest `T-NNN` number, and use `N+1` (zero-padded to 3 digits). If the tracker is empty, start at `T-001`.
 
@@ -108,7 +111,7 @@ Output format:
 **Summary:** 3 open, 1 in-progress, 2 done | 1 high priority
 ```
 
-Show the `Related` column only when at least one item has connections. This keeps the output clean for simple backlogs.
+Show the `Related` column only when at least one item has connections. Show a `Docs` column only when at least one item has `doc_refs`. Display each ref as an inline code span (e.g., `` `compliance.md:88-95` ``). This keeps the output clean for simple backlogs.
 
 If the tracker is empty or no items match the filter, say so clearly.
 
@@ -123,6 +126,7 @@ Parse which fields to update from the user's input:
 - `update T-003 type bug` — reclassify type
 - `update T-003 notes: added more context here` — set notes
 - `update T-003 plan: 001-feature-name` — link to a plan
+- `update T-003 ref: compliance.md:88-95` — add a documentation reference
 
 Update the `updated_at` timestamp. Confirm the change:
 
