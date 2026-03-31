@@ -132,14 +132,14 @@ For **mixed**: apply both greenfield (for gaps) and migration (for misplaced doc
 
 - Update `documentation/README.md` to reflect final state after all creates/moves
 
-#### Group 5 — Migrate dependencies to tracker
+#### Group 5 — Migrate dependencies to backlog
 
 If `documentation/dependencies/` exists with markdown files (excluding README.md):
 1. For each file, extract open items (### headings with **Priority:** and **Blocks:** fields)
-2. Create tracker items in `documentation/tracker/external.json` with E-NNN IDs, priority from field, notes=blocks field, source="migrated"
-3. Create the `documentation/tracker/` directory if needed
+2. Create backlog items in `documentation/backlog/questions.json` with Q-NNN IDs, priority from field, notes=blocks field, source="migrated"
+3. Create the `documentation/backlog/` directory if needed
 4. Move `documentation/dependencies/` to `documentation_archive/dependencies/`
-5. Report: "Migrated N dependency items to tracker"
+5. Report: "Migrated N dependency items to backlog"
 
 If the directory is empty or doesn't exist, skip silently.
 

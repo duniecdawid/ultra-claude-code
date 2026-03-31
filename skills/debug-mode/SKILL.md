@@ -34,7 +34,7 @@ Your instincts:
 - Do NOT skip hypothesis generation — jumping to solutions without evidence produces wrong fixes
 - Do NOT plan a fix without evidence supporting the root cause
 
-**Tracker:** If investigation reveals related bugs or improvement ideas beyond the primary issue, add them to the project tracker: `Skill(skill: 'uc:tracker', args: 'add bug: ...')`. This ensures discovered issues aren't lost when the debug session ends.
+**Backlog:** If investigation reveals related bugs or improvement ideas beyond the primary issue, add them to the project backlog: `Skill(skill: 'uc:backlog', args: 'add bug: ...')`. This ensures discovered issues aren't lost when the debug session ends.
 
 ## Process
 

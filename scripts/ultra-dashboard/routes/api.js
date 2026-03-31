@@ -17,7 +17,7 @@ function refreshAuth() {
 refreshAuth();
 setInterval(refreshAuth, 5 * 60 * 1000);
 const { readPlanProject, readPlanTeams, readPlanEvents, parsePlanTasks } = require('../lib/plan-reader');
-const { readTracker, getTrackerOpenCount } = require('../lib/tracker-reader');
+const { readBacklog, getBacklogOpenCount } = require('../lib/backlog-reader');
 const { getLayoutState } = require('../lib/tmux-layout');
 const { getHealthState } = require('../lib/plan-health');
 const { resolveProject } = require('../lib/docs-discovery');
@@ -93,15 +93,15 @@ router.get('/plan/:project/:planName/:resource', (req, res) => {
   }
 });
 
-// GET /api/tracker/:project — tracker items for a project
-router.get('/tracker/:project', (req, res) => {
+// GET /api/backlog/:project — backlog items for a project
+router.get('/backlog/:project', (req, res) => {
   const projectName = decodeURIComponent(req.params.project);
   const reg = discoverPlans();
   const entry = reg.plans.find(p => p.project === projectName);
   if (!entry || !entry.project_root) {
     return res.json({ items: [], summary: { total: 0, open: 0, in_progress: 0, done: 0, wontfix: 0, by_type: {}, by_priority: {} } });
   }
-  res.json(readTracker(entry.project_root));
+  res.json(readBacklog(entry.project_root));
 });
 
 // GET /api/projects — unified project list with plan counts and docs status
@@ -144,13 +144,13 @@ router.get('/projects', (req, res) => {
     }
   }
 
-  // Check docs availability and tracker counts
+  // Check docs availability and backlog counts
   for (const proj of Object.values(projectMap)) {
     try {
       const docsDir = path.join(proj.root, 'documentation');
       proj.has_docs = fs.statSync(docsDir).isDirectory();
     } catch {}
-    proj.tracker_open = proj.root ? getTrackerOpenCount(proj.root) : 0;
+    proj.backlog_open = proj.root ? getBacklogOpenCount(proj.root) : 0;
   }
 
   const projects = Object.values(projectMap).sort((a, b) => {

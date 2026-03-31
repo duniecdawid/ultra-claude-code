@@ -73,7 +73,7 @@
   .progress-active { height: 100%; background: repeating-linear-gradient(90deg, #1f6feb 0px, #1f6feb 4px, #1f6feb88 4px, #1f6feb88 8px); transition: width 0.3s; }
   .no-plans { color: #484f58; padding: 20px; text-align: center; }
 
-  /* ── Tracker ── */
+  /* ── Backlog ── */
   .filter-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
   .filter-group { display: flex; gap: 4px; align-items: center; }
   .filter-label { font-size: 0.72em; text-transform: uppercase; letter-spacing: 0.05em; color: #484f58; margin-right: 4px; font-weight: 500; }
@@ -82,8 +82,8 @@
   .filter-pill:not(.active) { opacity: 0.35; }
   .pill-bug { border-color: #f85149; color: #f85149; }
   .pill-bug.active { background: #f8514922; }
-  .pill-external { border-color: #d29922; color: #d29922; }
-  .pill-external.active { background: #d2992222; }
+  .pill-question { border-color: #d29922; color: #d29922; }
+  .pill-question.active { background: #d2992222; }
   .pill-idea { border-color: #d2a8ff; color: #d2a8ff; }
   .pill-idea.active { background: #d2a8ff22; }
   .pill-debt { border-color: #79c0ff; color: #79c0ff; }
@@ -98,14 +98,14 @@
   .pill-wontfix.active { background: #484f5822; }
   .filter-sep { width: 1px; height: 20px; background: #21262d; margin: 0 8px; }
 
-  .tracker-table { width: 100%; border-collapse: collapse; font-size: 0.88em; }
-  .tracker-table th { text-align: left; padding: 6px 10px; border-bottom: 1px solid #21262d; color: #8b949e; font-size: 0.8em; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 500; }
-  .tracker-table td { padding: 8px 10px; border-bottom: 1px solid #161b22; vertical-align: top; }
-  .tracker-table tr:hover { background: #161b22; }
-  .tracker-table tr.highlight { background: #1f6feb22; transition: background 1s; }
+  .backlog-table { width: 100%; border-collapse: collapse; font-size: 0.88em; }
+  .backlog-table th { text-align: left; padding: 6px 10px; border-bottom: 1px solid #21262d; color: #8b949e; font-size: 0.8em; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 500; }
+  .backlog-table td { padding: 8px 10px; border-bottom: 1px solid #161b22; vertical-align: top; }
+  .backlog-table tr:hover { background: #161b22; }
+  .backlog-table tr.highlight { background: #1f6feb22; transition: background 1s; }
   .cat-badge { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 0.78em; font-weight: 500; }
   .cat-bug { background: #f8514922; color: #f85149; }
-  .cat-external { background: #d2992222; color: #d29922; }
+  .cat-question { background: #d2992222; color: #d29922; }
   .cat-idea { background: #d2a8ff22; color: #d2a8ff; }
   .cat-debt { background: #79c0ff22; color: #79c0ff; }
   .priority-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
@@ -127,7 +127,7 @@
   .pill-low { border-color: #484f58; color: #484f58; }
   .pill-low.active { background: #484f5822; }
   .tab-badge { font-size: 0.75em; background: #21262d; color: #8b949e; padding: 1px 6px; border-radius: 8px; margin-left: 6px; }
-  .tracker-empty { color: #484f58; padding: 40px; text-align: center; }
+  .backlog-empty { color: #484f58; padding: 40px; text-align: center; }
 
   @media (min-width: 640px) { .header { padding: 12px 20px; } .tab-pane-scroll { padding: 20px; } h1 { font-size: 1.5em; } .plan-card { padding: 14px 18px; } }
 </style>
@@ -150,15 +150,15 @@
 </div>
 <div class="tabs">
   <div class="tab active" data-tab="plans">Plans</div>
-  <div class="tab" data-tab="tracker" id="tracker-tab">Tracker<span class="tab-badge" id="tracker-badge" style="display:none"></span></div>
+  <div class="tab" data-tab="backlog" id="backlog-tab">Backlog<span class="tab-badge" id="backlog-badge" style="display:none"></span></div>
   <div class="tab" data-tab="docs" id="docs-tab">Documentation</div>
 </div>
 <div class="tab-content">
   <div class="tab-pane active" id="pane-plans">
     <div class="tab-pane-scroll" id="plans-section"></div>
   </div>
-  <div class="tab-pane" id="pane-tracker">
-    <div class="tab-pane-scroll" id="tracker-section"></div>
+  <div class="tab-pane" id="pane-backlog">
+    <div class="tab-pane-scroll" id="backlog-section"></div>
   </div>
   <div class="tab-pane" id="pane-docs">
     <iframe class="docs-frame" id="docs-frame" src="about:blank"></iframe>
@@ -186,7 +186,7 @@ function switchTab(tabName) {
   // Update URL without reload
   var suffix = '';
   if (tabName === 'docs') suffix = '/docs';
-  else if (tabName === 'tracker') suffix = '/tracker';
+  else if (tabName === 'backlog') suffix = '/backlog';
   var url = '/project/' + PROJECT + suffix;
   history.pushState({ tab: tabName }, '', url);
 
@@ -348,21 +348,21 @@ async function refreshPlans() {
   } catch (e) { console.error('Refresh failed:', e); }
 }
 
-// ── Tracker ──
-var trackerItems = [];
-var trackerFilters = {
-  categories: { bug: true, external: true, idea: true, debt: true },
+// ── Backlog ──
+var backlogItems = [];
+var backlogFilters = {
+  categories: { bug: true, question: true, idea: true, debt: true },
   statuses: { open: true, 'in-progress': true, done: false, wontfix: false },
   priorities: { high: true, medium: true, low: true }
 };
 
 function toggleFilter(group, key) {
-  trackerFilters[group][key] = !trackerFilters[group][key];
-  renderTrackerView();
+  backlogFilters[group][key] = !backlogFilters[group][key];
+  renderBacklogView();
 }
 
 function scrollToItem(id) {
-  var row = document.getElementById('tracker-row-' + id);
+  var row = document.getElementById('backlog-row-' + id);
   if (row) {
     row.scrollIntoView({ behavior: 'smooth', block: 'center' });
     row.classList.add('highlight');
@@ -396,11 +396,11 @@ function openDocRef(ref) {
   frame.src = '/docs/' + PROJECT + '/#/' + page;
 }
 
-function renderTrackerView() {
-  var el = document.getElementById('tracker-section');
-  var filtered = trackerItems.filter(function(item) {
+function renderBacklogView() {
+  var el = document.getElementById('backlog-section');
+  var filtered = backlogItems.filter(function(item) {
     var cat = item._category || 'idea';
-    return trackerFilters.categories[cat] && trackerFilters.statuses[item.status] && trackerFilters.priorities[item.priority];
+    return backlogFilters.categories[cat] && backlogFilters.statuses[item.status] && backlogFilters.priorities[item.priority];
   });
   // Sort by priority (high first), then by ID
   filtered.sort(function(a, b) {
@@ -409,31 +409,35 @@ function renderTrackerView() {
     if (pa !== pb) return pa - pb;
     return a.id.localeCompare(b.id);
   });
-  var relatedMap = buildRelatedMap(trackerItems);
-  var hasRelated = trackerItems.some(function(item) { return (item.related && item.related.length > 0); });
-  var hasDocRefs = trackerItems.some(function(item) { return (item.doc_refs && item.doc_refs.length > 0); });
+  var relatedMap = buildRelatedMap(backlogItems);
+  var hasRelated = backlogItems.some(function(item) { return (item.related && item.related.length > 0); });
+  var hasDocRefs = backlogItems.some(function(item) { return (item.doc_refs && item.doc_refs.length > 0); });
+  var hasBlocks = backlogItems.some(function(item) { return (item.blocks && item.blocks.length > 0); });
+  var hasBlockedBy = backlogItems.some(function(item) { return (item._blocked_by && item._blocked_by.length > 0); });
 
   // Filter pills
   var html = '<div class="filter-row">' +
     '<div class="filter-group"><span class="filter-label">Category</span>';
-  [['bug','Bugs'],['external','External'],['idea','Ideas'],['debt','Debt']].forEach(function(pair) {
-    html += '<span class="filter-pill pill-' + pair[0] + (trackerFilters.categories[pair[0]] ? ' active' : '') + '" onclick="toggleFilter(\'categories\',\'' + pair[0] + '\')">' + pair[1] + '</span>';
+  [['bug','Bugs'],['question','Questions'],['idea','Ideas'],['debt','Debt']].forEach(function(pair) {
+    html += '<span class="filter-pill pill-' + pair[0] + (backlogFilters.categories[pair[0]] ? ' active' : '') + '" onclick="toggleFilter(\'categories\',\'' + pair[0] + '\')">' + pair[1] + '</span>';
   });
   html += '</div><div class="filter-sep"></div><div class="filter-group"><span class="filter-label">Status</span>';
   [['open','Open'],['in-progress','Active'],['done','Done'],['wontfix','Skip']].forEach(function(pair) {
-    html += '<span class="filter-pill pill-' + pair[0] + (trackerFilters.statuses[pair[0]] ? ' active' : '') + '" onclick="toggleFilter(\'statuses\',\'' + pair[0] + '\')">' + pair[1] + '</span>';
+    html += '<span class="filter-pill pill-' + pair[0] + (backlogFilters.statuses[pair[0]] ? ' active' : '') + '" onclick="toggleFilter(\'statuses\',\'' + pair[0] + '\')">' + pair[1] + '</span>';
   });
   html += '</div><div class="filter-sep"></div><div class="filter-group"><span class="filter-label">Priority</span>';
   [['high','High'],['medium','Med'],['low','Low']].forEach(function(pair) {
-    html += '<span class="filter-pill pill-' + pair[0] + (trackerFilters.priorities[pair[0]] ? ' active' : '') + '" onclick="toggleFilter(\'priorities\',\'' + pair[0] + '\')">' + pair[1] + '</span>';
+    html += '<span class="filter-pill pill-' + pair[0] + (backlogFilters.priorities[pair[0]] ? ' active' : '') + '" onclick="toggleFilter(\'priorities\',\'' + pair[0] + '\')">' + pair[1] + '</span>';
   });
   html += '</div></div>';
 
   if (filtered.length === 0) {
-    html += '<div class="tracker-empty">' + (trackerItems.length === 0 ? 'No tracker items yet' : 'No items match current filters') + '</div>';
+    html += '<div class="backlog-empty">' + (backlogItems.length === 0 ? 'No backlog items yet' : 'No items match current filters') + '</div>';
   } else {
-    html += '<table class="tracker-table"><thead><tr>' +
+    html += '<table class="backlog-table"><thead><tr>' +
       '<th>ID</th><th>Category</th><th>Pri</th><th>Title</th><th>Status</th>' +
+      (hasBlocks ? '<th>Blocks</th>' : '') +
+      (hasBlockedBy ? '<th>Blocked By</th>' : '') +
       (hasDocRefs ? '<th>Docs</th>' : '') +
       (hasRelated ? '<th>Related</th>' : '') +
       '</tr></thead><tbody>';
@@ -441,12 +445,24 @@ function renderTrackerView() {
       var cat = item._category || 'idea';
       var related = relatedMap[item.id] ? Array.from(relatedMap[item.id]) : [];
       var refs = item.doc_refs || [];
-      html += '<tr id="tracker-row-' + esc(item.id) + '">' +
+      html += '<tr id="backlog-row-' + esc(item.id) + '">' +
         '<td style="white-space:nowrap;color:#8b949e;font-family:monospace;font-size:0.85em">' + esc(item.id) + '</td>' +
         '<td><span class="cat-badge cat-' + esc(cat) + '">' + esc(cat) + '</span></td>' +
         '<td><span class="priority-dot priority-' + esc(item.priority) + '" title="' + esc(item.priority) + '"></span></td>' +
         '<td>' + esc(item.title) + (item.notes ? '<br><span style="font-size:0.8em;color:#484f58">' + esc(item.notes) + '</span>' : '') + '</td>' +
         '<td><span class="status-' + esc(item.status) + '">' + esc(item.status) + '</span></td>';
+      if (hasBlocks) {
+        var blocks = item.blocks || [];
+        html += '<td>' + blocks.map(function(bid) {
+          return '<a class="related-chip" style="background:#da363322;color:#f85149" onclick="scrollToItem(\'' + esc(bid) + '\')">' + esc(bid) + '</a>';
+        }).join('') + '</td>';
+      }
+      if (hasBlockedBy) {
+        var blockedBy = item._blocked_by || [];
+        html += '<td>' + blockedBy.map(function(bid) {
+          return '<a class="related-chip" style="background:#d2992222;color:#d29922" onclick="scrollToItem(\'' + esc(bid) + '\')">' + esc(bid) + '</a>';
+        }).join('') + '</td>';
+      }
       if (hasDocRefs) {
         html += '<td>' + refs.map(function(ref) {
           return '<a class="doc-ref-chip" onclick="openDocRef(\'' + esc(ref) + '\')" title="Open in docs">' + esc(ref) + '</a>';
@@ -463,11 +479,11 @@ function renderTrackerView() {
   }
 
   // Summary line
-  var open = trackerItems.filter(function(i) { return i.status === 'open'; }).length;
-  var inProg = trackerItems.filter(function(i) { return i.status === 'in-progress'; }).length;
-  var done = trackerItems.filter(function(i) { return i.status === 'done'; }).length;
-  var high = trackerItems.filter(function(i) { return i.priority === 'high' && i.status !== 'done' && i.status !== 'wontfix'; }).length;
-  if (trackerItems.length > 0) {
+  var open = backlogItems.filter(function(i) { return i.status === 'open'; }).length;
+  var inProg = backlogItems.filter(function(i) { return i.status === 'in-progress'; }).length;
+  var done = backlogItems.filter(function(i) { return i.status === 'done'; }).length;
+  var high = backlogItems.filter(function(i) { return i.priority === 'high' && i.status !== 'done' && i.status !== 'wontfix'; }).length;
+  if (backlogItems.length > 0) {
     html += '<div style="font-size:0.78em;color:#484f58;margin-top:10px">' +
       open + ' open, ' + inProg + ' active, ' + done + ' done' +
       (high > 0 ? ' · <span style="color:#f85149">' + high + ' high priority</span>' : '') +
@@ -477,12 +493,12 @@ function renderTrackerView() {
   el.innerHTML = html;
 }
 
-async function refreshTracker() {
+async function refreshBacklog() {
   try {
-    var data = await fetch('/api/tracker/' + PROJECT).then(function(r) { return r.json(); });
-    trackerItems = data.items || [];
+    var data = await fetch('/api/backlog/' + PROJECT).then(function(r) { return r.json(); });
+    backlogItems = data.items || [];
     // Update badge
-    var badge = document.getElementById('tracker-badge');
+    var badge = document.getElementById('backlog-badge');
     var openCount = (data.summary && (data.summary.open + data.summary.in_progress)) || 0;
     if (openCount > 0) {
       badge.textContent = openCount;
@@ -490,17 +506,17 @@ async function refreshTracker() {
     } else {
       badge.style.display = 'none';
     }
-    // Re-render if tracker tab is active
-    if (document.getElementById('pane-tracker').classList.contains('active')) {
-      renderTrackerView();
+    // Re-render if backlog tab is active
+    if (document.getElementById('pane-backlog').classList.contains('active')) {
+      renderBacklogView();
     }
-  } catch (e) { console.error('Tracker refresh failed:', e); }
+  } catch (e) { console.error('Backlog refresh failed:', e); }
 }
 
 async function refresh() {
   refreshUsage();
   refreshPlans();
-  refreshTracker();
+  refreshBacklog();
 }
 
 // Handle browser back/forward
@@ -513,7 +529,7 @@ window.addEventListener('popstate', function(e) {
     docsLoaded = true;
     document.getElementById('docs-frame').src = '/docs/' + PROJECT + '/';
   }
-  if (tab === 'tracker') renderTrackerView();
+  if (tab === 'backlog') renderBacklogView();
 });
 
 // Replace initial state so popstate knows the starting tab
@@ -522,8 +538,8 @@ history.replaceState({ tab: INITIAL_TAB || 'plans' }, '');
 // Switch to initial tab immediately (don't wait for async fetches)
 if (INITIAL_TAB === 'docs') {
   switchTab('docs');
-} else if (INITIAL_TAB === 'tracker') {
-  switchTab('tracker');
+} else if (INITIAL_TAB === 'backlog') {
+  switchTab('backlog');
 }
 
 refresh();

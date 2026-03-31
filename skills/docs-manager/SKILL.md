@@ -65,11 +65,11 @@ documentation/
 │       ├── README.md                  # Plan document (task list embedded)
 │       ├── shared/                    # Lead-level shared notes (execution)
 │       └── tasks/                     # Per-task pipeline artifacts (execution)
-└── tracker/                           # Lightweight backlog (bugs, external, ideas, debt)
+└── backlog/                           # Lightweight backlog (bugs, questions, ideas, debt)
     ├── bugs.json
-    ├── external.json
+    ├── questions.json
     ├── ideas.json
-    └── technical-debt.json
+    └── debt.json
 ```
 
 **No top-level files** inside `documentation/` except `README.md`. Every document belongs in a subdirectory.
@@ -91,7 +91,7 @@ When any mode, agent, or user creates documentation, route it to the correct loc
 | Formal requirements, user stories | `product/requirements/` | Contains: requirement, FR-, NFR-, acceptance criteria, user story, must have, should have |
 | User personas, audience profiles | `product/personas/` | Contains: persona, user profile, demographics, pain points, user archetype |
 | Plans, task lists, execution context | `plans/{name}/` | Contains: plan, task list, implementation steps |
-| Blocking questions, external deps, ideas, bugs | **Project tracker** | Contains: blocker, dependency, waiting on, open question, idea, bug, follow-up. Route via `/uc:tracker add ...` — do NOT create standalone documents for these |
+| Blocking questions, deps, ideas, bugs | **Project backlog** | Contains: blocker, dependency, waiting on, open question, idea, bug, follow-up. Route via `/uc:backlog add ...` — do NOT create standalone documents for these |
 
 ### Routing Process
 
@@ -127,7 +127,7 @@ Before creating any new document, read the reference for the target content type
 | Market research, competitor analysis | `references/research.md` | `product/research/` |
 | Formal requirements, user stories | `references/requirement.md` | `product/requirements/` |
 | User personas | `references/persona.md` | `product/personas/` |
-| Blocking questions, external deps, ideas, bugs, tech debt | *(use `/uc:tracker add ...`)* | `documentation/tracker/` |
+| Blocking questions, deps, ideas, bugs, tech debt | *(use `/uc:backlog add ...`)* | `documentation/backlog/` |
 
 Reference paths are relative to this skill's directory (`skills/docs-manager/`).
 
@@ -291,8 +291,8 @@ Maintain `documentation/README.md` as a navigable index of the entire documentat
 ## Plans
 - [{plan-name}](plans/{plan-name}/README.md) — Plan status and objective
 
-## Tracker
-See project tracker tab in dashboard or run `/uc:tracker list`
+## Backlog
+See project backlog tab in dashboard or run `/uc:backlog list`
 ```
 
 ### Index Update Process

@@ -84,4 +84,4 @@ Use the Docs Manager routing rules for classification when migrating existing do
 - Competitor, market, research, trends -> `product/research/`
 - Requirement, FR-, NFR-, acceptance criteria -> `product/requirements/`
 - External API docs, integration guides -> `context/{system}/docs/`
-- Blocker, dependency, open question, idea, bug -> project tracker via `/uc:tracker add ...`
+- Blocker, dependency, open question, idea, bug -> project backlog via `/uc:backlog add ...`

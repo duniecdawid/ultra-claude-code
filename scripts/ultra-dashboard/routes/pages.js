@@ -27,13 +27,13 @@ router.get('/project/:name', (req, res) => {
   res.type('html').send(html);
 });
 
-// Per-project tracker tab (linkable)
-router.get('/project/:name/tracker', (req, res) => {
+// Per-project backlog tab (linkable)
+router.get('/project/:name/backlog', (req, res) => {
   const name = decodeURIComponent(req.params.name);
   let html = readView('project.html');
   html = html.replace(/\{\{PROJECT\}\}/g, escapeHTML(name));
   html = html.replace(/\{\{PROJECT_URI\}\}/g, encodeURIComponent(name));
-  html = html.replace(/\{\{INITIAL_TAB\}\}/g, 'tracker');
+  html = html.replace(/\{\{INITIAL_TAB\}\}/g, 'backlog');
   res.type('html').send(html);
 });
 
