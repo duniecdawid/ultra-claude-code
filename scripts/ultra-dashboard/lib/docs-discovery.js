@@ -59,11 +59,11 @@ function generateSidebar(docsDir) {
     return fs.readFileSync(existing, 'utf8');
   } catch {}
 
-  const lines = ['- [Home](README.md)', ''];
+  const lines = ['- [Home](/README.md)', ''];
 
   // Top-level README files (other than the main one)
   const topFiles = listMdFiles(docsDir).filter(f => f !== 'README.md');
-  topFiles.forEach(f => lines.push(`- [${toTitle(f)}](${f})`));
+  topFiles.forEach(f => lines.push(`- [${toTitle(f)}](/${f})`));
   if (topFiles.length) lines.push('');
 
   // Walk canonical top-level directories
@@ -75,7 +75,7 @@ function generateSidebar(docsDir) {
     const sectionName = SECTION_NAMES[topDir] || toTitle(topDir);
     const topReadme = listMdFiles(dirPath).find(f => f.toLowerCase() === 'readme.md');
     if (topReadme) {
-      lines.push(`- **[${sectionName}](${topDir}/${topReadme})**`);
+      lines.push(`- **[${sectionName}](/${topDir}/${topReadme})**`);
     } else {
       lines.push(`- **${sectionName}**`);
     }
@@ -84,7 +84,7 @@ function generateSidebar(docsDir) {
       // Direct files under technology/ or product/
       const directFiles = listMdFiles(dirPath).filter(f => f.toLowerCase() !== 'readme.md');
       for (const f of directFiles) {
-        lines.push(`  - [${toTitle(f)}](${topDir}/${f})`);
+        lines.push(`  - [${toTitle(f)}](/${topDir}/${f})`);
       }
       // Subdirectories as nested sections
       const subDirs = listDirs(dirPath);
@@ -96,13 +96,13 @@ function generateSidebar(docsDir) {
 
         const readme = subFiles.find(f => f.toLowerCase() === 'readme.md');
         if (readme) {
-          lines.push(`  - **[${subName}](${topDir}/${sub}/${readme})**`);
+          lines.push(`  - **[${subName}](/${topDir}/${sub}/${readme})**`);
         } else {
           lines.push(`  - **${subName}**`);
         }
         for (const f of subFiles) {
           if (f.toLowerCase() === 'readme.md') continue;
-          lines.push(`    - [${toTitle(f)}](${topDir}/${sub}/${f})`);
+          lines.push(`    - [${toTitle(f)}](/${topDir}/${sub}/${f})`);
         }
       }
     } else if (topDir === 'plans') {
@@ -111,14 +111,14 @@ function generateSidebar(docsDir) {
       for (const plan of planDirs) {
         const planReadme = path.join(dirPath, plan, 'README.md');
         if (fs.existsSync(planReadme)) {
-          lines.push(`  - [${toTitle(plan)}](plans/${plan}/README.md)`);
+          lines.push(`  - [${toTitle(plan)}](/plans/${plan}/README.md)`);
         }
       }
     } else {
       // dependencies or other — list files
       const files = listMdFiles(dirPath);
       for (const f of files) {
-        lines.push(`  - [${toTitle(f)}](${topDir}/${f})`);
+        lines.push(`  - [${toTitle(f)}](/${topDir}/${f})`);
       }
     }
     lines.push('');
@@ -133,7 +133,7 @@ function generateSidebar(docsDir) {
     if (files.length === 0) continue;
     lines.push(`- **${SECTION_NAMES[d] || toTitle(d)}**`);
     for (const { rel, title } of files) {
-      lines.push(`  - [${title}](${rel})`);
+      lines.push(`  - [${title}](/${rel})`);
     }
     lines.push('');
   }
@@ -245,13 +245,16 @@ function generateDocsifyIndex(projectName, slug) {
       },
       auto2top: true,
       hideSidebar: false,
-      relativePath: false,
+      relativePath: true,
+      alias: {
+        '/.*/_sidebar.md': '/_sidebar.md'
+      },
       plugins: [function gitChanges(hook, vm) {
         var changeData = null;
         var rawMarkdown = '';
 
         // Fetch git changes once on init
-        fetch('/api/docs/${esc(slug)}/git-changes?since=HEAD~5')
+        fetch('/api/docs/${esc(slug)}/git-changes?since=HEAD')
           .then(function(r) { return r.json(); })
           .then(function(d) { changeData = d; })
           .catch(function() {});
@@ -278,7 +281,7 @@ function generateDocsifyIndex(projectName, slug) {
           var links = document.querySelectorAll('.sidebar-nav a[href]');
           for (var i = 0; i < links.length; i++) {
             var href = links[i].getAttribute('href') || '';
-            var filePath = href.replace(/^#\\//, '');
+            var filePath = href.replace(/^#?\\//, '').replace(/^\\//, '');
             if (!filePath || filePath === '/') filePath = 'README.md';
             if (!/\\.md$/i.test(filePath)) filePath += '.md';
             var info = changeData.fileChanges[filePath];

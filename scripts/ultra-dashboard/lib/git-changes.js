@@ -5,10 +5,10 @@ const path = require('path');
 const cache = new Map();
 const CACHE_TTL = 10_000;
 
-const SINCE_RE = /^(HEAD~\d{1,3}|\d+\s*(hours?|days?|weeks?)\s*ago)$/;
+const SINCE_RE = /^(HEAD(~\d{1,3})?|\d+\s*(hours?|days?|weeks?)\s*ago)$/;
 
-function getGitChanges(docsDir, since = 'HEAD~5') {
-  if (!SINCE_RE.test(since)) since = 'HEAD~5';
+function getGitChanges(docsDir, since = 'HEAD') {
+  if (!SINCE_RE.test(since)) since = 'HEAD';
 
   const key = `${docsDir}|${since}`;
   const cached = cache.get(key);

@@ -15,3 +15,12 @@ On every commit that modifies plugin content, bump the version in **both** files
 - `.claude-plugin/marketplace.json` — the marketplace's version for the `uc` plugin
 
 Use semver: patch for typos/docs, minor for new capabilities, major for breaking changes.
+
+## Help Skill Sync — MANDATORY
+
+When editing any skill (`skills/*/SKILL.md`) or agent (`agents/*.md`), update the corresponding 3-sentence description in `skills/help/SKILL.md`.
+
+Rule: each skill and agent gets exactly 3 sentences in the help knowledge base:
+1. What it does (capability)
+2. When to use it (trigger/context)
+3. What it produces or enables (outcome)
