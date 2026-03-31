@@ -73,6 +73,51 @@
   .progress-active { height: 100%; background: repeating-linear-gradient(90deg, #1f6feb 0px, #1f6feb 4px, #1f6feb88 4px, #1f6feb88 8px); transition: width 0.3s; }
   .no-plans { color: #484f58; padding: 20px; text-align: center; }
 
+  /* ── Tracker ── */
+  .filter-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
+  .filter-group { display: flex; gap: 4px; align-items: center; }
+  .filter-label { font-size: 0.72em; text-transform: uppercase; letter-spacing: 0.05em; color: #484f58; margin-right: 4px; font-weight: 500; }
+  .filter-pill { font-size: 0.78em; padding: 3px 10px; border-radius: 12px; cursor: pointer; user-select: none; border: 1px solid; transition: all 0.15s; font-weight: 500; }
+  .filter-pill.active { opacity: 1; }
+  .filter-pill:not(.active) { opacity: 0.35; }
+  .pill-idea { border-color: #d2a8ff; color: #d2a8ff; }
+  .pill-idea.active { background: #d2a8ff22; }
+  .pill-dependency { border-color: #d29922; color: #d29922; }
+  .pill-dependency.active { background: #d2992222; }
+  .pill-bug { border-color: #f85149; color: #f85149; }
+  .pill-bug.active { background: #f8514922; }
+  .pill-open { border-color: #58a6ff; color: #58a6ff; }
+  .pill-open.active { background: #58a6ff22; }
+  .pill-in-progress { border-color: #d29922; color: #d29922; }
+  .pill-in-progress.active { background: #d2992222; }
+  .pill-done { border-color: #3fb950; color: #3fb950; }
+  .pill-done.active { background: #3fb95022; }
+  .pill-wontfix { border-color: #484f58; color: #484f58; }
+  .pill-wontfix.active { background: #484f5822; }
+  .filter-sep { width: 1px; height: 20px; background: #21262d; margin: 0 8px; }
+
+  .tracker-table { width: 100%; border-collapse: collapse; font-size: 0.88em; }
+  .tracker-table th { text-align: left; padding: 6px 10px; border-bottom: 1px solid #21262d; color: #8b949e; font-size: 0.8em; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 500; }
+  .tracker-table td { padding: 8px 10px; border-bottom: 1px solid #161b22; vertical-align: top; }
+  .tracker-table tr:hover { background: #161b22; }
+  .tracker-table tr.highlight { background: #1f6feb22; transition: background 1s; }
+  .type-badge { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 0.78em; font-weight: 500; }
+  .type-idea { background: #d2a8ff22; color: #d2a8ff; }
+  .type-dependency { background: #d2992222; color: #d29922; }
+  .type-bug { background: #f8514922; color: #f85149; }
+  .priority-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
+  .priority-high { background: #f85149; }
+  .priority-medium { background: #d29922; }
+  .priority-low { background: #484f58; }
+  .status-open { color: #58a6ff; }
+  .status-in-progress { color: #d29922; }
+  .status-done { color: #3fb950; }
+  .status-wontfix { color: #484f58; }
+  .related-chip { display: inline-block; padding: 0 6px; border-radius: 8px; font-size: 0.75em; background: #21262d; color: #8b949e; cursor: pointer; margin-right: 3px; text-decoration: none !important; }
+  .related-chip:hover { background: #30363d; color: #c9d1d9; }
+  .tab-badge { font-size: 0.75em; background: #21262d; color: #8b949e; padding: 1px 6px; border-radius: 8px; margin-left: 6px; }
+  .tracker-empty { color: #484f58; padding: 40px; text-align: center; }
+
   @media (min-width: 640px) { .header { padding: 12px 20px; } .tab-pane-scroll { padding: 20px; } h1 { font-size: 1.5em; } .plan-card { padding: 14px 18px; } }
 </style>
 </head>
@@ -94,11 +139,15 @@
 </div>
 <div class="tabs">
   <div class="tab active" data-tab="plans">Plans</div>
+  <div class="tab" data-tab="tracker" id="tracker-tab">Tracker<span class="tab-badge" id="tracker-badge" style="display:none"></span></div>
   <div class="tab" data-tab="docs" id="docs-tab">Documentation</div>
 </div>
 <div class="tab-content">
   <div class="tab-pane active" id="pane-plans">
     <div class="tab-pane-scroll" id="plans-section"></div>
+  </div>
+  <div class="tab-pane" id="pane-tracker">
+    <div class="tab-pane-scroll" id="tracker-section"></div>
   </div>
   <div class="tab-pane" id="pane-docs">
     <iframe class="docs-frame" id="docs-frame" src="about:blank"></iframe>
@@ -124,7 +173,10 @@ function switchTab(tabName) {
   document.querySelectorAll('.tab-pane').forEach(function(p) { p.classList.toggle('active', p.id === 'pane-' + tabName); });
 
   // Update URL without reload
-  var url = '/project/' + PROJECT + (tabName === 'docs' ? '/docs' : '');
+  var suffix = '';
+  if (tabName === 'docs') suffix = '/docs';
+  else if (tabName === 'tracker') suffix = '/tracker';
+  var url = '/project/' + PROJECT + suffix;
   history.replaceState(null, '', url);
 
   // Lazy-load docs iframe on first switch, pass page param as Docsify hash
@@ -285,14 +337,134 @@ async function refreshPlans() {
   } catch (e) { console.error('Refresh failed:', e); }
 }
 
+// ── Tracker ──
+var trackerItems = [];
+var trackerFilters = {
+  types: { idea: true, dependency: true, bug: true },
+  statuses: { open: true, 'in-progress': true, done: false, wontfix: false }
+};
+
+function toggleFilter(group, key) {
+  trackerFilters[group][key] = !trackerFilters[group][key];
+  renderTrackerView();
+}
+
+function scrollToItem(id) {
+  var row = document.getElementById('tracker-row-' + id);
+  if (row) {
+    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    row.classList.add('highlight');
+    setTimeout(function() { row.classList.remove('highlight'); }, 2000);
+  }
+}
+
+function buildRelatedMap(items) {
+  // Build bidirectional map from stored related arrays
+  var map = {};
+  items.forEach(function(item) {
+    if (!map[item.id]) map[item.id] = new Set();
+    (item.related || []).forEach(function(rid) {
+      map[item.id].add(rid);
+      if (!map[rid]) map[rid] = new Set();
+      map[rid].add(item.id);
+    });
+  });
+  return map;
+}
+
+function renderTrackerView() {
+  var el = document.getElementById('tracker-section');
+  var filtered = trackerItems.filter(function(item) {
+    return trackerFilters.types[item.type] && trackerFilters.statuses[item.status];
+  });
+  var relatedMap = buildRelatedMap(trackerItems);
+  var hasRelated = trackerItems.some(function(item) { return (item.related && item.related.length > 0); });
+
+  // Filter pills
+  var html = '<div class="filter-row">' +
+    '<div class="filter-group"><span class="filter-label">Type</span>';
+  ['idea', 'dependency', 'bug'].forEach(function(t) {
+    var label = t.charAt(0).toUpperCase() + t.slice(1);
+    if (t === 'dependency') label = 'Dep';
+    html += '<span class="filter-pill pill-' + t + (trackerFilters.types[t] ? ' active' : '') + '" onclick="toggleFilter(\'types\',\'' + t + '\')">' + label + '</span>';
+  });
+  html += '</div><div class="filter-sep"></div><div class="filter-group"><span class="filter-label">Status</span>';
+  [['open','Open'],['in-progress','Active'],['done','Done'],['wontfix','Skip']].forEach(function(pair) {
+    html += '<span class="filter-pill pill-' + pair[0] + (trackerFilters.statuses[pair[0]] ? ' active' : '') + '" onclick="toggleFilter(\'statuses\',\'' + pair[0] + '\')">' + pair[1] + '</span>';
+  });
+  html += '</div></div>';
+
+  if (filtered.length === 0) {
+    html += '<div class="tracker-empty">' + (trackerItems.length === 0 ? 'No tracker items yet' : 'No items match current filters') + '</div>';
+  } else {
+    html += '<table class="tracker-table"><thead><tr>' +
+      '<th>ID</th><th>Type</th><th>Pri</th><th>Title</th><th>Status</th>' +
+      (hasRelated ? '<th>Related</th>' : '') +
+      '</tr></thead><tbody>';
+    filtered.forEach(function(item) {
+      var related = relatedMap[item.id] ? Array.from(relatedMap[item.id]) : [];
+      html += '<tr id="tracker-row-' + esc(item.id) + '">' +
+        '<td style="white-space:nowrap;color:#8b949e;font-family:monospace;font-size:0.85em">' + esc(item.id) + '</td>' +
+        '<td><span class="type-badge type-' + esc(item.type) + '">' + esc(item.type) + '</span></td>' +
+        '<td><span class="priority-dot priority-' + esc(item.priority) + '" title="' + esc(item.priority) + '"></span></td>' +
+        '<td>' + esc(item.title) + (item.notes ? '<br><span style="font-size:0.8em;color:#484f58">' + esc(item.notes) + '</span>' : '') + '</td>' +
+        '<td><span class="status-' + esc(item.status) + '">' + esc(item.status) + '</span></td>';
+      if (hasRelated) {
+        html += '<td>' + related.map(function(rid) {
+          return '<a class="related-chip" onclick="scrollToItem(\'' + esc(rid) + '\')">' + esc(rid) + '</a>';
+        }).join('') + '</td>';
+      }
+      html += '</tr>';
+    });
+    html += '</tbody></table>';
+  }
+
+  // Summary line
+  var open = trackerItems.filter(function(i) { return i.status === 'open'; }).length;
+  var inProg = trackerItems.filter(function(i) { return i.status === 'in-progress'; }).length;
+  var done = trackerItems.filter(function(i) { return i.status === 'done'; }).length;
+  var high = trackerItems.filter(function(i) { return i.priority === 'high' && i.status !== 'done' && i.status !== 'wontfix'; }).length;
+  if (trackerItems.length > 0) {
+    html += '<div style="font-size:0.78em;color:#484f58;margin-top:10px">' +
+      open + ' open, ' + inProg + ' active, ' + done + ' done' +
+      (high > 0 ? ' · <span style="color:#f85149">' + high + ' high priority</span>' : '') +
+    '</div>';
+  }
+
+  el.innerHTML = html;
+}
+
+async function refreshTracker() {
+  try {
+    var data = await fetch('/api/tracker/' + PROJECT).then(function(r) { return r.json(); });
+    trackerItems = data.items || [];
+    // Update badge
+    var badge = document.getElementById('tracker-badge');
+    var openCount = (data.summary && (data.summary.open + data.summary.in_progress)) || 0;
+    if (openCount > 0) {
+      badge.textContent = openCount;
+      badge.style.display = '';
+    } else {
+      badge.style.display = 'none';
+    }
+    // Re-render if tracker tab is active
+    if (document.getElementById('pane-tracker').classList.contains('active')) {
+      renderTrackerView();
+    }
+  } catch (e) { console.error('Tracker refresh failed:', e); }
+}
+
 async function refresh() {
   refreshUsage();
   refreshPlans();
+  refreshTracker();
 }
 
 // Switch to initial tab immediately (don't wait for async fetches)
 if (INITIAL_TAB === 'docs') {
   switchTab('docs');
+} else if (INITIAL_TAB === 'tracker') {
+  switchTab('tracker');
 }
 
 refresh();

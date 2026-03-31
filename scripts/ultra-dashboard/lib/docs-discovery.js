@@ -206,6 +206,19 @@ function generateDocsifyIndex(projectName, slug) {
     }
     .app-name-link { display: none !important; }
     .sidebar > h1 { display: none !important; }
+    /* Git change gutter */
+    .markdown-section { position: relative !important; }
+    .git-gutter {
+      position: absolute; left: -14px; top: 0; width: 4px; bottom: 0;
+      pointer-events: none; z-index: 10;
+    }
+    .git-gutter-mark {
+      position: absolute; left: 0; width: 4px;
+      background: #f0883e; border-radius: 2px; min-height: 4px;
+    }
+    .sidebar-nav a[data-git-changed]::after {
+      content: '●'; color: #f0883e; margin-left: 6px; font-size: 0.7em;
+    }
   </style>
 </head>
 <body>
@@ -223,7 +236,105 @@ function generateDocsifyIndex(projectName, slug) {
       auto2top: true,
       hideSidebar: false,
       relativePath: false,
-      plugins: []
+      plugins: [function gitChanges(hook, vm) {
+        var changeData = null;
+        var rawMarkdown = '';
+
+        // Fetch git changes once on init
+        fetch('/api/docs/${esc(slug)}/git-changes?since=HEAD~5')
+          .then(function(r) { return r.json(); })
+          .then(function(d) { changeData = d; })
+          .catch(function() {});
+
+        // Store raw markdown for line mapping
+        hook.beforeEach(function(md) {
+          rawMarkdown = md;
+          return md;
+        });
+
+        hook.doneEach(function() {
+          if (!changeData) return;
+
+          // --- Sidebar badges ---
+          var links = document.querySelectorAll('.sidebar-nav a[href]');
+          for (var i = 0; i < links.length; i++) {
+            var href = links[i].getAttribute('href') || '';
+            var filePath = href.replace(/^#\\//, '');
+            if (!filePath || filePath === '/') filePath = 'README.md';
+            if (!/\\.md$/i.test(filePath)) filePath += '.md';
+            if (changeData.changedFiles.indexOf(filePath) >= 0) {
+              links[i].setAttribute('data-git-changed', '');
+            }
+          }
+
+          // --- Gutter marks ---
+          var file = vm.route.file;
+          if (!file || !changeData.fileChanges[file]) return;
+          var ranges = changeData.fileChanges[file].changedLines;
+          if (!ranges || !ranges.length) return;
+
+          // Build section map: split markdown by blank lines, track line ranges
+          var lines = rawMarkdown.split('\\n');
+          var sections = [];
+          var secStart = 0;
+          for (var ln = 0; ln < lines.length; ln++) {
+            if (lines[ln].trim() === '' && ln > secStart) {
+              sections.push([secStart + 1, ln]); // 1-indexed
+              secStart = ln + 1;
+            }
+          }
+          if (secStart < lines.length) sections.push([secStart + 1, lines.length]);
+
+          // Get block elements in rendered content
+          var container = document.querySelector('.markdown-section');
+          if (!container) return;
+
+          // Remove old gutter
+          var old = container.querySelector('.git-gutter');
+          if (old) old.remove();
+
+          var blocks = [];
+          for (var c = 0; c < container.children.length; c++) {
+            var el = container.children[c];
+            var tag = el.tagName;
+            if (/^(P|H[1-6]|PRE|TABLE|UL|OL|BLOCKQUOTE|HR|DIV|DL)$/.test(tag)) {
+              blocks.push(el);
+            }
+          }
+
+          // Map blocks to sections (sequential 1:1, skip empty sections)
+          var gutter = document.createElement('div');
+          gutter.className = 'git-gutter';
+          var bi = 0;
+          for (var si = 0; si < sections.length && bi < blocks.length; si++) {
+            var sec = sections[si];
+            // Check if any line in this section is purely whitespace (separator)
+            var allBlank = true;
+            for (var sl = sec[0] - 1; sl < sec[1]; sl++) {
+              if (lines[sl] && lines[sl].trim() !== '') { allBlank = false; break; }
+            }
+            if (allBlank) continue;
+
+            var block = blocks[bi++];
+            // Check if this section overlaps any changed range
+            var hit = false;
+            for (var ri = 0; ri < ranges.length; ri++) {
+              if (sec[0] <= ranges[ri][1] && sec[1] >= ranges[ri][0]) {
+                hit = true; break;
+              }
+            }
+            if (hit) {
+              var mark = document.createElement('div');
+              mark.className = 'git-gutter-mark';
+              mark.style.top = block.offsetTop + 'px';
+              mark.style.height = block.offsetHeight + 'px';
+              gutter.appendChild(mark);
+            }
+          }
+
+          if (gutter.children.length > 0) container.appendChild(gutter);
+        });
+      }]
     };
   </script>
   <script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/docsify.min.js"></script>

@@ -17,8 +17,11 @@ function refreshAuth() {
 refreshAuth();
 setInterval(refreshAuth, 5 * 60 * 1000);
 const { readPlanProject, readPlanTeams, readPlanEvents, parsePlanTasks } = require('../lib/plan-reader');
+const { readTracker, getTrackerOpenCount } = require('../lib/tracker-reader');
 const { getLayoutState } = require('../lib/tmux-layout');
 const { getHealthState } = require('../lib/plan-health');
+const { resolveProject } = require('../lib/docs-discovery');
+const { getGitChanges } = require('../lib/git-changes');
 
 router.use(express.json());
 
@@ -90,6 +93,17 @@ router.get('/plan/:project/:planName/:resource', (req, res) => {
   }
 });
 
+// GET /api/tracker/:project — tracker items for a project
+router.get('/tracker/:project', (req, res) => {
+  const projectName = decodeURIComponent(req.params.project);
+  const reg = discoverPlans();
+  const entry = reg.plans.find(p => p.project === projectName);
+  if (!entry || !entry.project_root) {
+    return res.json({ items: [], summary: { total: 0, open: 0, in_progress: 0, done: 0, wontfix: 0, by_type: {}, by_priority: {} } });
+  }
+  res.json(readTracker(entry.project_root));
+});
+
 // GET /api/projects — unified project list with plan counts and docs status
 router.get('/projects', (req, res) => {
   const reg = discoverPlans();
@@ -130,12 +144,13 @@ router.get('/projects', (req, res) => {
     }
   }
 
-  // Check docs availability
+  // Check docs availability and tracker counts
   for (const proj of Object.values(projectMap)) {
     try {
       const docsDir = path.join(proj.root, 'documentation');
       proj.has_docs = fs.statSync(docsDir).isDirectory();
     } catch {}
+    proj.tracker_open = proj.root ? getTrackerOpenCount(proj.root) : 0;
   }
 
   const projects = Object.values(projectMap).sort((a, b) => {
@@ -189,6 +204,14 @@ router.get('/usage', (req, res) => {
     if (e.code === 'ENOENT') return res.json({ accounts: [], active_email: authCache ? authCache.email : null });
     res.status(500).json({ error: e.message });
   }
+});
+
+// GET /api/docs/:project/git-changes — changed files and line ranges
+router.get('/docs/:project/git-changes', (req, res) => {
+  const project = resolveProject(decodeURIComponent(req.params.project));
+  if (!project) return res.status(404).json({ error: 'project not found' });
+  const since = req.query.since || 'HEAD~5';
+  res.json(getGitChanges(project.docsDir, since));
 });
 
 module.exports = router;

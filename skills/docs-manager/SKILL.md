@@ -65,9 +65,7 @@ documentation/
 │       ├── README.md                  # Plan document (task list embedded)
 │       ├── shared/                    # Lead-level shared notes (execution)
 │       └── tasks/                     # Per-task pipeline artifacts (execution)
-└── dependencies/
-    ├── README.md                      # Dependencies overview (docsify)
-    └── ...
+└── tracker.json                       # Lightweight backlog (ideas, deps, bugs)
 ```
 
 **No top-level files** inside `documentation/` except `README.md`. Every document belongs in a subdirectory.
@@ -89,7 +87,7 @@ When any mode, agent, or user creates documentation, route it to the correct loc
 | Formal requirements, user stories | `product/requirements/` | Contains: requirement, FR-, NFR-, acceptance criteria, user story, must have, should have |
 | User personas, audience profiles | `product/personas/` | Contains: persona, user profile, demographics, pain points, user archetype |
 | Plans, task lists, execution context | `plans/{name}/` | Contains: plan, task list, implementation steps |
-| Blocking questions, external deps | `dependencies/` | Contains: blocker, dependency, waiting on, open question |
+| Blocking questions, external deps, ideas, bugs | **Project tracker** | Contains: blocker, dependency, waiting on, open question, idea, bug, follow-up. Route via `/uc:tracker add ...` — do NOT create standalone documents for these |
 
 ### Routing Process
 
@@ -125,7 +123,7 @@ Before creating any new document, read the reference for the target content type
 | Market research, competitor analysis | `references/research.md` | `product/research/` |
 | Formal requirements, user stories | `references/requirement.md` | `product/requirements/` |
 | User personas | `references/persona.md` | `product/personas/` |
-| Blocking questions, external deps | `references/dependency.md` | `dependencies/` |
+| Blocking questions, external deps, ideas, bugs | *(use `/uc:tracker add ...`)* | `documentation/tracker.json` |
 
 Reference paths are relative to this skill's directory (`skills/docs-manager/`).
 
@@ -174,7 +172,7 @@ Before writing any document to `documentation/`:
 
 ### Docsify README.md Audit
 
-When format is `docsify`, during any audit or document creation, verify that every existing category directory contains a `README.md`. Category directories to check: `technology/`, `technology/architecture/`, `technology/standards/`, `technology/testing/`, `technology/rfcs/`, `product/`, `product/description/`, `product/research/`, `product/requirements/`, `product/personas/`, `dependencies/`.
+When format is `docsify`, during any audit or document creation, verify that every existing category directory contains a `README.md`. Category directories to check: `technology/`, `technology/architecture/`, `technology/standards/`, `technology/testing/`, `technology/rfcs/`, `product/`, `product/description/`, `product/research/`, `product/requirements/`, `product/personas/`.
 
 If a category directory exists without a `README.md`, create one using the category README template.
 
@@ -226,7 +224,6 @@ Category descriptions:
 | `product/research/` | Research | Market research, competitor analysis, technology landscape. |
 | `product/requirements/` | Requirements | Formal requirements, user stories, acceptance criteria. |
 | `product/personas/` | Personas | Evidence-based user personas and audience profiles. |
-| `dependencies/` | Dependencies | Blocking questions, external dependencies, open items. |
 
 ### Markdown
 
@@ -290,8 +287,8 @@ Maintain `documentation/README.md` as a navigable index of the entire documentat
 ## Plans
 - [{plan-name}](plans/{plan-name}/README.md) — Plan status and objective
 
-## Dependencies
-- [Document Name](dependencies/filename.md) — One-line description
+## Tracker
+See project tracker tab in dashboard or run `/uc:tracker list`
 ```
 
 ### Index Update Process

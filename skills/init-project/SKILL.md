@@ -276,7 +276,7 @@ For **migration** (existing docs in non-standard locations):
   - Competitor, market, research, trends → `product/research/`
   - Requirement, FR-, NFR-, acceptance criteria → `product/requirements/`
   - External API docs, integration guides → `context/{system}/docs/`
-  - Blocker, dependency, open question → `dependencies/`
+  - Blocker, dependency, open question, idea, bug → project tracker via `/uc:tracker add ...`
 - Flag ambiguous docs with the user's answers from Phase 1c
 - Move files to canonical locations (delete originals after successful move)
 - Clean up empty directories left behind after moves
@@ -287,6 +287,17 @@ For **mixed** (some canonical, some not):
 #### Group 4 — Regenerate index
 
 - Update `documentation/README.md` to reflect final state after all creates/moves
+
+#### Group 5 — Migrate dependencies to tracker
+
+If `documentation/dependencies/` exists with markdown files (excluding README.md):
+1. For each file, extract open items (### headings with **Priority:** and **Blocks:** fields)
+2. Create tracker items: type=dependency, title=heading text, priority from field, notes=blocks field, source="migrated"
+3. Write to `documentation/tracker.json`
+4. Move `documentation/dependencies/` to `documentation_archive/dependencies/`
+5. Report: "Migrated N dependency items to tracker"
+
+If the directory is empty or doesn't exist, skip silently.
 
 Ask for approval via AskUserQuestion: "Review the initialization plan above. Proceed?" Options: "Approve" / "Reject with feedback" / "Approve with changes". Only an explicit "Approve" counts — empty, blank, or ambiguous responses must be re-asked.
 

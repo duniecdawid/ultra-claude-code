@@ -209,6 +209,8 @@ Retry flow, escalation, crash recovery, session death.
 Final gate, operational report, summary, shutdown.
 → Read `references/phase-5-completion.md`
 
+**Tracker:** Before declaring completion, if execution revealed follow-up work, bugs, or ideas not covered by the plan, add them to the project tracker: `Skill(skill: 'uc:tracker', args: 'add idea: ...')` or `args: 'add bug: ...'`. This ensures nothing discovered during execution is lost.
+
 ---
 
 ## Mid-Execution Plan Changes

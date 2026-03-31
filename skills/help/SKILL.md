@@ -44,6 +44,7 @@ When the user has a goal, recommend the right workflow. **This is the canonical 
 - **Running a plan** -> `/uc:plan-execution {number}` (e.g., `/uc:plan-execution 1`)
 - **Saving progress** -> `/uc:checkpoint`
 - **Looking up library docs** -> `/uc:tech-research`
+- **Tracking ideas, bugs, dependencies** -> `/uc:tracker` — lightweight per-project backlog. Add items, list, filter, link related items, mark done. Visible in the dashboard Tracker tab. Other skills add items automatically when they discover follow-up work.
 - **Auditing or reorganizing documentation** -> `/uc:docs-manager` — audit structure, reorganize misplaced docs, regenerate index
 - **Adding external system knowledge** -> `/uc:context-management`
 
