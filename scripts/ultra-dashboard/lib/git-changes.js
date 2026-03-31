@@ -26,6 +26,33 @@ function getGitChanges(docsDir, since = 'HEAD~5') {
     );
 
     const result = parseDiff(diff, docsDir);
+
+    // Also pick up untracked and staged-but-uncommitted new files
+    try {
+      const untrackedRaw = execSync(
+        `git -C "${gitRoot}" ls-files --others --exclude-standard -- "${docsDir}"`,
+        { encoding: 'utf8', timeout: 5000 }
+      ).trim();
+      const stagedNewRaw = execSync(
+        `git -C "${gitRoot}" diff --cached --name-only --diff-filter=A -- "${docsDir}"`,
+        { encoding: 'utf8', timeout: 5000 }
+      ).trim();
+
+      const docsDirName = path.basename(docsDir);
+      for (const raw of [untrackedRaw, stagedNewRaw]) {
+        if (!raw) continue;
+        for (const line of raw.split('\n')) {
+          const idx = line.indexOf(docsDirName + '/');
+          const relPath = idx >= 0 ? line.slice(idx + docsDirName.length + 1) : line;
+          if (relPath && !result.fileChanges[relPath]) {
+            result.changedFiles.push(relPath);
+            // Mark entire file as new (line range will be computed client-side from md length)
+            result.fileChanges[relPath] = { changedLines: [], newFile: true };
+          }
+        }
+      }
+    } catch {}
+
     cache.set(key, { data: result, ts: Date.now() });
     return result;
   } catch (e) {

@@ -214,10 +214,20 @@ function generateDocsifyIndex(projectName, slug) {
     }
     .git-gutter-mark {
       position: absolute; left: 0; width: 4px;
-      background: #f0883e; border-radius: 2px; min-height: 4px;
+      background: #d2965080; border-radius: 2px; min-height: 4px;
     }
-    .sidebar-nav a[data-git-changed]::after {
-      content: '●'; color: #f0883e; margin-left: 6px; font-size: 0.7em;
+    .git-gutter-mark.git-new {
+      background: #3fb95060;
+    }
+    .sidebar-nav li > a[data-git-changed] { color: #d29650 !important; }
+    .sidebar-nav li > a[data-git-new] { color: #3fb950 !important; }
+    .sidebar-nav li > a[data-git-changed]::before,
+    .sidebar-nav li > a[data-git-new]::before {
+      color: inherit !important;
+    }
+    .doc-file-path {
+      display: block; font-size: 0.75em; color: #8b949e;
+      font-family: monospace; margin: -0.5em 0 1em 0; opacity: 0.7;
     }
   </style>
 </head>
@@ -252,6 +262,15 @@ function generateDocsifyIndex(projectName, slug) {
           return md;
         });
 
+        // Inject file path after the first heading
+        hook.afterEach(function(html) {
+          var file = vm.route.file;
+          if (file) {
+            html = html.replace(/(<\\/h[12]>)/, '$1<span class="doc-file-path">' + file + '</span>');
+          }
+          return html;
+        });
+
         hook.doneEach(function() {
           if (!changeData) return;
 
@@ -262,15 +281,38 @@ function generateDocsifyIndex(projectName, slug) {
             var filePath = href.replace(/^#\\//, '');
             if (!filePath || filePath === '/') filePath = 'README.md';
             if (!/\\.md$/i.test(filePath)) filePath += '.md';
-            if (changeData.changedFiles.indexOf(filePath) >= 0) {
-              links[i].setAttribute('data-git-changed', '');
+            var info = changeData.fileChanges[filePath];
+            if (info) {
+              links[i].setAttribute(info.newFile ? 'data-git-new' : 'data-git-changed', '');
             }
           }
 
           // --- Gutter marks ---
           var file = vm.route.file;
           if (!file || !changeData.fileChanges[file]) return;
-          var ranges = changeData.fileChanges[file].changedLines;
+          var fileInfo = changeData.fileChanges[file];
+          var ranges = fileInfo.changedLines;
+
+          // Get content container and clean up old gutter
+          var container = document.querySelector('.markdown-section');
+          if (!container) return;
+          var old = container.querySelector('.git-gutter');
+          if (old) old.remove();
+
+          var gutter = document.createElement('div');
+          gutter.className = 'git-gutter';
+
+          // New file — single full-height green stripe
+          if (fileInfo.newFile) {
+            var mark = document.createElement('div');
+            mark.className = 'git-gutter-mark git-new';
+            mark.style.top = '0';
+            mark.style.bottom = '0';
+            gutter.appendChild(mark);
+            container.appendChild(gutter);
+            return;
+          }
+
           if (!ranges || !ranges.length) return;
 
           // Build section map: split markdown by blank lines, track line ranges
@@ -286,13 +328,6 @@ function generateDocsifyIndex(projectName, slug) {
           if (secStart < lines.length) sections.push([secStart + 1, lines.length]);
 
           // Get block elements in rendered content
-          var container = document.querySelector('.markdown-section');
-          if (!container) return;
-
-          // Remove old gutter
-          var old = container.querySelector('.git-gutter');
-          if (old) old.remove();
-
           var blocks = [];
           for (var c = 0; c < container.children.length; c++) {
             var el = container.children[c];
@@ -303,12 +338,9 @@ function generateDocsifyIndex(projectName, slug) {
           }
 
           // Map blocks to sections (sequential 1:1, skip empty sections)
-          var gutter = document.createElement('div');
-          gutter.className = 'git-gutter';
           var bi = 0;
           for (var si = 0; si < sections.length && bi < blocks.length; si++) {
             var sec = sections[si];
-            // Check if any line in this section is purely whitespace (separator)
             var allBlank = true;
             for (var sl = sec[0] - 1; sl < sec[1]; sl++) {
               if (lines[sl] && lines[sl].trim() !== '') { allBlank = false; break; }
@@ -316,7 +348,6 @@ function generateDocsifyIndex(projectName, slug) {
             if (allBlank) continue;
 
             var block = blocks[bi++];
-            // Check if this section overlaps any changed range
             var hit = false;
             for (var ri = 0; ri < ranges.length; ri++) {
               if (sec[0] <= ranges[ri][1] && sec[1] >= ranges[ri][0]) {
