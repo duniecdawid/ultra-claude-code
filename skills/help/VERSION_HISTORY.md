@@ -2,6 +2,7 @@
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2026.04.01-4 | 2026-04-01 | Ensure-dashboard skill: add "reset" argument to force-restart the dashboard process before ensuring it's running. |
 | 2026.04.01-3 | 2026-04-01 | Add `/uc:ensure-dashboard` skill — user-invocable command to start dashboard, expose via Tailscale, and print URL. Wraps existing `references/ensure-dashboard.md`. |
 | 2026.04.01-2 | 2026-04-01 | Unify versioning: drop semver, use date-based `YYYY.MM.DD-N` format everywhere (plugin.json, marketplace.json, VERSION_HISTORY.md). Show current version in dashboard header via `/api/version` endpoint. |
 | 2026.04.01-1 | 2026-04-01 | Dashboard usage bar: green FRESH badge when rate-limit window has reset, alphabetical account sorting by org name. |
