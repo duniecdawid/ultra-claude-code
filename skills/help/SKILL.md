@@ -101,6 +101,9 @@ Manages Railway.com deployments via CLI with environment variable-based multi-ac
 **Tailscale Setup** (`/uc:tailscale-setup`)
 Configures Tailscale to expose local services securely within the tailnet via `tailscale serve` or publicly via `tailscale funnel`. Use when exposing dashboards, dev servers, or preparing services for remote access. Validates the full prerequisite chain and enables HTTPS-wrapped local services.
 
+**Ensure Dashboard** (`/uc:ensure-dashboard`)
+Starts the Ultra Dashboard if not already running, exposes it via Tailscale, and prints the URL. Use when you need the dashboard running or want its URL. Idempotent — safe to run anytime.
+
 **tmux Team Grid** (`/uc:tmux-team-grid`)
 Recovery tool that restarts the Ultra Dashboard if its tmux layout is broken or the dashboard isn't running. Use when team layout is visually broken or agent panes aren't arranged correctly. Verifies dashboard connectivity and provides emergency fallback layout.
 

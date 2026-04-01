@@ -2,6 +2,7 @@
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2026.04.01-3 | 2026-04-01 | Add `/uc:ensure-dashboard` skill — user-invocable command to start dashboard, expose via Tailscale, and print URL. Wraps existing `references/ensure-dashboard.md`. |
 | 2026.04.01-2 | 2026-04-01 | Unify versioning: drop semver, use date-based `YYYY.MM.DD-N` format everywhere (plugin.json, marketplace.json, VERSION_HISTORY.md). Show current version in dashboard header via `/api/version` endpoint. |
 | 2026.04.01-1 | 2026-04-01 | Dashboard usage bar: green FRESH badge when rate-limit window has reset, alphabetical account sorting by org name. |
 | 2026.03.31-6 | 2026-03-31 | Rename Tracker to Backlog — system renamed to `/uc:backlog`, directory `documentation/tracker/` → `documentation/backlog/`, category "External" → "Questions" (Q-NNN prefix), `technical-debt.json` → `debt.json`, new directional `blocks` field on items (blocked_by computed at read time), new block/unblock commands. Dashboard tab, API endpoint, route, all CSS/JS internals, and 7 cross-referencing skills updated. All internal names consistently renamed for clean codebase. |
