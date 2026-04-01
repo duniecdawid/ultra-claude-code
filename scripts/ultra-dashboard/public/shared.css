@@ -5,6 +5,7 @@
 .ub-row::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: transparent; flex-shrink: 0; }
 .ub-row.current::before { background: #3fb950; }
 .ub-overlimit { font-size: 0.85em; font-weight: 600; color: #f85149; background: #f8514922; padding: 1px 6px; border-radius: 4px; width: 118px; text-align: center; box-sizing: border-box; }
+.ub-fresh { font-size: 0.85em; font-weight: 600; color: #3fb950; background: #3fb95022; padding: 1px 6px; border-radius: 4px; width: 118px; text-align: center; box-sizing: border-box; }
 .ub-item { display: flex; align-items: center; gap: 6px; width: 280px; flex-shrink: 0; }
 .ub-label { color: #8b949e; width: 16px; flex-shrink: 0; }
 .ub-track { width: 80px; height: 5px; background: #21262d; border-radius: 3px; overflow: hidden; flex-shrink: 0; }
@@ -26,6 +27,7 @@
   .ub-track { width: 60px; }
   .ub-reset { width: auto; }
   .ub-overlimit { width: auto; }
+  .ub-fresh { width: auto; }
 }
 @media (max-width: 600px) {
   .usage-bar { font-size: 0.72em; padding: 4px 8px; }

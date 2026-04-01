@@ -17,12 +17,14 @@ function fmtCountdown(epoch) {
   return 'resets in ' + h + 'h' + (m > 0 ? ' ' + m + 'm' : '');
 }
 
-function ubItem(label, pct, resetEpoch, isOver) {
+function ubItem(label, pct, resetEpoch, isOver, isFresh) {
   if (pct == null) return '';
   var p = Math.round(pct);
   var color = usageBarColor(p);
   var bar;
-  if (isOver) {
+  if (isFresh) {
+    bar = '<span class="ub-fresh">FRESH</span>';
+  } else if (isOver) {
     bar = '<span class="ub-overlimit">OVER LIMIT</span>';
   } else {
     bar = '<div class="ub-track"><div class="ub-fill" style="width:' + Math.min(p, 100) + '%;background:' + color + '"></div></div>' +
@@ -50,12 +52,14 @@ function renderAccountRow(account, isCurrent, isActive) {
   var items = '';
   var nowEpoch = Date.now() / 1000;
   if (rl.five_hour) {
-    var fhOver = rl.five_hour.used_percentage > 100 && (!rl.five_hour.resets_at || rl.five_hour.resets_at > nowEpoch);
-    items += ubItem('5h', rl.five_hour.used_percentage, rl.five_hour.resets_at, fhOver);
+    var fhPast = rl.five_hour.resets_at && rl.five_hour.resets_at <= nowEpoch;
+    var fhOver = rl.five_hour.used_percentage > 100 && !fhPast;
+    items += ubItem('5h', rl.five_hour.used_percentage, rl.five_hour.resets_at, fhOver, fhPast);
   }
   if (rl.seven_day) {
-    var sdOver = rl.seven_day.used_percentage > 100 && (!rl.seven_day.resets_at || rl.seven_day.resets_at > nowEpoch);
-    items += ubItem('7d', rl.seven_day.used_percentage, rl.seven_day.resets_at, sdOver);
+    var sdPast = rl.seven_day.resets_at && rl.seven_day.resets_at <= nowEpoch;
+    var sdOver = rl.seven_day.used_percentage > 100 && !sdPast;
+    items += ubItem('7d', rl.seven_day.used_percentage, rl.seven_day.resets_at, sdOver, sdPast);
   }
   var age = fmtAge(account.updated_at);
   var ageSec = account.updated_at ? (Date.now() - new Date(account.updated_at).getTime()) / 1000 : 0;
@@ -79,6 +83,9 @@ async function refreshUsage() {
       el.innerHTML = '<span class="ub-empty">No rate limit data</span>';
       return;
     }
+    accounts.sort(function(a, b) {
+      return (a.orgName || '').localeCompare(b.orgName || '');
+    });
     var mostRecent = accounts[0];
     for (var i = 1; i < accounts.length; i++) {
       if ((accounts[i].updated_at || '') > (mostRecent.updated_at || '')) mostRecent = accounts[i];
