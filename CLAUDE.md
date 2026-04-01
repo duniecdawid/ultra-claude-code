@@ -11,6 +11,10 @@ On every commit:
    - `.claude-plugin/marketplace.json`
 3. Check the latest existing entry to determine the correct build number for today
 
+## Dashboard Restart — MANDATORY
+
+When editing any file under `scripts/ultra-dashboard/`, restart the dashboard after committing so the changes take effect. Use: `pkill -f "node.*ultra-dashboard"; sleep 1; node scripts/ultra-dashboard/server.js &`
+
 ## Help Skill Sync — MANDATORY
 
 When editing any skill (`skills/*/SKILL.md`) or agent (`agents/*.md`), update the corresponding 3-sentence description in `skills/help/SKILL.md`.
