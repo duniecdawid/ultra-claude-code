@@ -13,7 +13,7 @@ On every commit:
 
 ## Dashboard Restart — MANDATORY
 
-When editing any file under `scripts/ultra-dashboard/`, restart the dashboard after committing so the changes take effect. Use: `pkill -f "node.*ultra-dashboard"; sleep 1; node scripts/ultra-dashboard/server.js &`
+When editing any file under `scripts/ultra-dashboard/`, restart the dashboard after committing so the changes take effect. Use: `pkill -f "node.*ultra-dashboard"; sleep 1; node scripts/ultra-dashboard/index.js &`
 
 ## Help Skill Sync — MANDATORY
 
