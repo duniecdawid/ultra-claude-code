@@ -54,7 +54,7 @@
   <div class="header">
     <div class="header-top">
       <div>
-        <h1>Ultra Claude</h1>
+        <h1>Ultra Claude <span id="uc-version" style="font-size:0.55em;font-weight:400;color:#8b949e;"></span></h1>
         <div class="hostname" id="hostname"></div>
       </div>
       <div class="header-right">
@@ -68,6 +68,9 @@
 <script src="/public/usage-bar.js"></script>
 <script>
 document.getElementById('hostname').textContent = location.hostname;
+fetch('/api/version').then(function(r){return r.json()}).then(function(d){
+  if(d.version) document.getElementById('uc-version').textContent='v'+d.version;
+}).catch(function(){});
 
 function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 

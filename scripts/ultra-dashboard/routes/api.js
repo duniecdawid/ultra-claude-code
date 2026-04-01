@@ -25,6 +25,16 @@ const { getGitChanges } = require('../lib/git-changes');
 
 router.use(express.json());
 
+// GET /api/version — current plugin version
+router.get('/version', (req, res) => {
+  try {
+    const pluginJson = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', '..', '.claude-plugin', 'plugin.json'), 'utf8'));
+    res.json({ version: pluginJson.version });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // POST /api/register
 router.post('/register', (req, res) => {
   const { project, plan, plan_dir, project_root } = req.body;

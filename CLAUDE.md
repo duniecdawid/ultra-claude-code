@@ -1,20 +1,15 @@
 # Ultra Claude
 
-## Version History
+## Versioning — MANDATORY
 
-On every commit, update `skills/help/VERSION_HISTORY.md`:
+Single version format everywhere: `YYYY.MM.DD-N` where N starts at 1 and increments for multiple commits on the same day.
 
-1. Add a new row at the top of the table with the current date and a short description of the changes
-2. Version format: `YYYY.MM.DD-N` where N starts at 1 and increments if there are multiple commits on the same day
+On every commit:
+1. Update `skills/help/VERSION_HISTORY.md` — add a new row at the top with the current date and a short description
+2. Bump the version in **both** files (keep them in sync):
+   - `.claude-plugin/plugin.json`
+   - `.claude-plugin/marketplace.json`
 3. Check the latest existing entry to determine the correct build number for today
-
-## Version Consistency — MANDATORY
-
-On every commit that modifies plugin content, bump the version in **both** files and keep them in sync:
-- `.claude-plugin/plugin.json` — the plugin's own version
-- `.claude-plugin/marketplace.json` — the marketplace's version for the `uc` plugin
-
-Use semver: patch for typos/docs, minor for new capabilities, major for breaking changes.
 
 ## Help Skill Sync — MANDATORY
 
