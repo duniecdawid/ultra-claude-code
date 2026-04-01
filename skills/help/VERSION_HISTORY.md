@@ -2,6 +2,7 @@
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2026.04.01-9 | 2026-04-01 | Rewrite architecture reference — narrative-driven template with ASCII diagram + walkthrough replacing table-heavy layout. Adds bold key terms, multiple path guidance, inline example, and risks for human-dependent processes. |
 | 2026.04.01-8 | 2026-04-01 | Fix backlog API returning empty for projects registered via seeds (no plans). Now falls back to getProjectRoots() to resolve project root. |
 | 2026.04.01-7 | 2026-04-01 | Init-project: make dashboard registration an explicit action step instead of a report bullet — always runs before summary. |
 | 2026.04.01-6 | 2026-04-01 | Add `/uc:update` skill — pulls latest from git, clears plugin cache, force-restarts dashboard, shows changelog since last version, checks for project migration needs, updates setup marker. |
