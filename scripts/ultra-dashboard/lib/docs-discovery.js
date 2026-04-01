@@ -81,30 +81,7 @@ function generateSidebar(docsDir) {
     }
 
     if (topDir === 'technology' || topDir === 'product') {
-      // Direct files under technology/ or product/
-      const directFiles = listMdFiles(dirPath).filter(f => f.toLowerCase() !== 'readme.md');
-      for (const f of directFiles) {
-        lines.push(`  - [${toTitle(f)}](/${topDir}/${f})`);
-      }
-      // Subdirectories as nested sections
-      const subDirs = listDirs(dirPath);
-      for (const sub of subDirs) {
-        const subPath = path.join(dirPath, sub);
-        const subName = SECTION_NAMES[sub] || toTitle(sub);
-        const subFiles = listMdFiles(subPath);
-        if (subFiles.length === 0) continue;
-
-        const readme = subFiles.find(f => f.toLowerCase() === 'readme.md');
-        if (readme) {
-          lines.push(`  - **[${subName}](/${topDir}/${sub}/${readme})**`);
-        } else {
-          lines.push(`  - **${subName}**`);
-        }
-        for (const f of subFiles) {
-          if (f.toLowerCase() === 'readme.md') continue;
-          lines.push(`    - [${toTitle(f)}](/${topDir}/${sub}/${f})`);
-        }
-      }
+      walkDirRecursive(dirPath, topDir, 1, lines);
     } else if (topDir === 'plans') {
       // Plan directories — just show plan names linking to their README
       const planDirs = listDirs(dirPath);
@@ -139,6 +116,32 @@ function generateSidebar(docsDir) {
   }
 
   return lines.join('\n');
+}
+
+// Recursively walk a directory, emitting sidebar entries at increasing indent depths
+function walkDirRecursive(dir, urlPrefix, depth, lines) {
+  const indent = '  '.repeat(depth);
+  const directFiles = listMdFiles(dir).filter(f => f.toLowerCase() !== 'readme.md');
+  for (const f of directFiles) {
+    lines.push(`${indent}- [${toTitle(f)}](/${urlPrefix}/${f})`);
+  }
+  const subDirs = listDirs(dir);
+  for (const sub of subDirs) {
+    const subPath = path.join(dir, sub);
+    const subUrl = `${urlPrefix}/${sub}`;
+    const subName = SECTION_NAMES[sub] || toTitle(sub);
+    const subFiles = listMdFiles(subPath);
+    const subSubDirs = listDirs(subPath);
+    if (subFiles.length === 0 && subSubDirs.length === 0) continue;
+
+    const readme = subFiles.find(f => f.toLowerCase() === 'readme.md');
+    if (readme) {
+      lines.push(`${indent}- **[${subName}](/${subUrl}/${readme})**`);
+    } else {
+      lines.push(`${indent}- **${subName}**`);
+    }
+    walkDirRecursive(subPath, subUrl, depth + 1, lines);
+  }
 }
 
 function listMdFiles(dir) {
