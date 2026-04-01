@@ -126,10 +126,15 @@ router.get('/backlog/:project', (req, res) => {
   const projectName = decodeURIComponent(req.params.project);
   const reg = discoverPlans();
   const entry = reg.plans.find(p => p.project === projectName);
-  if (!entry || !entry.project_root) {
+  let root = entry ? entry.project_root : null;
+  if (!root) {
+    // Check seeded project roots (projects with no plans yet)
+    root = getProjectRoots().find(r => path.basename(r) === projectName);
+  }
+  if (!root) {
     return res.json({ items: [], summary: { total: 0, open: 0, in_progress: 0, done: 0, wontfix: 0, by_type: {}, by_priority: {} } });
   }
-  res.json(readBacklog(entry.project_root));
+  res.json(readBacklog(root));
 });
 
 // GET /api/projects — unified project list with plan counts and docs status
