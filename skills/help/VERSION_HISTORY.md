@@ -2,6 +2,7 @@
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2026.04.01-6 | 2026-04-01 | Add `/uc:update` skill — pulls latest from git, clears plugin cache, force-restarts dashboard, shows changelog since last version, checks for project migration needs, updates setup marker. |
 | 2026.04.01-5 | 2026-04-01 | Generic project discovery: remove hardcoded ~/Projects scan, add POST /api/register-project endpoint, init-project ensures dashboard and registers project on completion. |
 | 2026.04.01-4 | 2026-04-01 | Ensure-dashboard skill: add "reset" argument to force-restart the dashboard process before ensuring it's running. |
 | 2026.04.01-3 | 2026-04-01 | Add `/uc:ensure-dashboard` skill — user-invocable command to start dashboard, expose via Tailscale, and print URL. Wraps existing `references/ensure-dashboard.md`. |

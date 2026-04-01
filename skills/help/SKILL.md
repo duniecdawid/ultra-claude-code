@@ -107,6 +107,9 @@ Starts the Ultra Dashboard if not already running, exposes it via Tailscale, and
 **tmux Team Grid** (`/uc:tmux-team-grid`)
 Recovery tool that restarts the Ultra Dashboard if its tmux layout is broken or the dashboard isn't running. Use when team layout is visually broken or agent panes aren't arranged correctly. Verifies dashboard connectivity and provides emergency fallback layout.
 
+**Update** (`/uc:update`)
+Updates Ultra Claude to the latest version by pulling from git, clearing plugin cache, force-restarting the dashboard, and checking if projects need migration. Use after hearing about new features or when wanting the latest version. Shows changelog since last update and recommends `/uc:init-project` if format changes occurred.
+
 ### System Meta
 
 **Plan Enhancer** (not user-invocable)
