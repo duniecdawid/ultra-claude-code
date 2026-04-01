@@ -26,19 +26,7 @@ function discoverPlans() {
   const reg = readRegistry();
   const knownRoots = new Set(reg.plans.map(p => p.project_root));
 
-  // Auto-scan ~/Projects/*/ for directories with documentation/
-  const projectsBase = path.join(HOME, 'Projects');
-  try {
-    for (const ent of fs.readdirSync(projectsBase, { withFileTypes: true })) {
-      if (!ent.isDirectory() || ent.name.startsWith('.')) continue;
-      const candidate = path.join(projectsBase, ent.name);
-      if (fs.existsSync(path.join(candidate, 'documentation'))) {
-        knownRoots.add(candidate);
-      }
-    }
-  } catch {}
-
-  // Additional seeds from explicit config
+  // Project roots from explicit config (registered by init-project)
   try {
     const seeds = JSON.parse(fs.readFileSync(PROJECTS_FILE, 'utf8'));
     if (Array.isArray(seeds)) seeds.forEach(r => knownRoots.add(r));

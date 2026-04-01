@@ -35,6 +35,24 @@ router.get('/version', (req, res) => {
   }
 });
 
+// POST /api/register-project — register a project root for dashboard discovery
+router.post('/register-project', (req, res) => {
+  const { project_root } = req.body;
+  if (!project_root) {
+    return res.status(400).json({ error: 'missing field: project_root' });
+  }
+  const seedsFile = path.join(os.homedir(), '.claude', 'dashboard-projects.json');
+  let seeds = [];
+  try { seeds = JSON.parse(fs.readFileSync(seedsFile, 'utf8')); } catch {}
+  if (!Array.isArray(seeds)) seeds = [];
+  if (!seeds.includes(project_root)) {
+    seeds.push(project_root);
+    fs.mkdirSync(path.dirname(seedsFile), { recursive: true });
+    fs.writeFileSync(seedsFile, JSON.stringify(seeds, null, 2));
+  }
+  res.json({ ok: true, project: path.basename(project_root), project_root });
+});
+
 // POST /api/register
 router.post('/register', (req, res) => {
   const { project, plan, plan_dir, project_root } = req.body;

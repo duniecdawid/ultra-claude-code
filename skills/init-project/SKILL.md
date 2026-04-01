@@ -25,9 +25,11 @@ Execute these phases in order: Safety Check -> Explore -> Plan -> Execute.
 
 ---
 
-### Phase 0: Safety Check
+### Phase 0: Dashboard & Safety Check
 
-Before doing anything, warn the user:
+First, ensure the Ultra Dashboard is running by reading and executing `${CLAUDE_PLUGIN_ROOT}/references/ensure-dashboard.md`.
+
+Then warn the user:
 
 > This skill may create directories, write configuration files, and move documentation. I recommend committing your current changes before proceeding so you can easily revert if needed. Should I continue?
 
@@ -202,6 +204,12 @@ End with a concise report:
 - **Testing config**: `documentation/technology/testing/` with 6 files — {N} security categories, {N} tester rules, final-gate instructions
 - **Standards gaps**: topics where evidence was thin (flagged with NOTE sections in the standard files)
 - **Gaps remaining**: canonical sections still using placeholders
+- **Dashboard**: Register this project with the Ultra Dashboard:
+  ```bash
+  curl -X POST http://localhost:3847/api/register-project \
+    -H 'Content-Type: application/json' \
+    -d '{"project_root":"'"$(pwd)"'"}'
+  ```
 - **Next steps**:
   - Review generated standards and refine based on team preferences
   - Add project-specific code examples to strengthen thin standards
