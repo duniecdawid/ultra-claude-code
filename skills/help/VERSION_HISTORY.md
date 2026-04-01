@@ -2,6 +2,7 @@
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2026.04.01-1 | 2026-04-01 | Dashboard usage bar: green FRESH badge when rate-limit window has reset, alphabetical account sorting by org name. |
 | 2026.03.31-6 | 2026-03-31 | Rename Tracker to Backlog — system renamed to `/uc:backlog`, directory `documentation/tracker/` → `documentation/backlog/`, category "External" → "Questions" (Q-NNN prefix), `technical-debt.json` → `debt.json`, new directional `blocks` field on items (blocked_by computed at read time), new block/unblock commands. Dashboard tab, API endpoint, route, all CSS/JS internals, and 7 cross-referencing skills updated. All internal names consistently renamed for clean codebase. |
 | 2026.03.31-5 | 2026-03-31 | Split init-project skill into progressive-disclosure structure — SKILL.md reduced from 505 to 222 lines with 5 reference files (surveyor-prompts, claude-md-template, config-specs, explore-prompts, executor-prompts) loaded only at the phase that needs them. No behavior change, just better context efficiency. |
 | 2026.03.31-4 | 2026-03-31 | Dashboard Docsify git change highlighting — new API endpoint `/api/docs/:project/git-changes` with diff parser and 10s cache, Docsify plugin with gutter annotations (amber marks for changed sections, full-height green stripe for new files), sidebar link coloring (amber changed, green new), file path display under page headings. Detects committed changes via `git diff`, untracked files via `git ls-files --others`, and staged new files. |
