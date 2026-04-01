@@ -192,6 +192,18 @@ After all stages complete, verify results and report.
 
 ---
 
+### Register with Dashboard
+
+Register this project with the Ultra Dashboard so it appears on the homepage:
+
+```bash
+curl -X POST http://localhost:3847/api/register-project \
+  -H 'Content-Type: application/json' \
+  -d '{"project_root":"'"$(pwd)"'"}'
+```
+
+---
+
 ### Summary
 
 End with a concise report:
@@ -204,12 +216,6 @@ End with a concise report:
 - **Testing config**: `documentation/technology/testing/` with 6 files — {N} security categories, {N} tester rules, final-gate instructions
 - **Standards gaps**: topics where evidence was thin (flagged with NOTE sections in the standard files)
 - **Gaps remaining**: canonical sections still using placeholders
-- **Dashboard**: Register this project with the Ultra Dashboard:
-  ```bash
-  curl -X POST http://localhost:3847/api/register-project \
-    -H 'Content-Type: application/json' \
-    -d '{"project_root":"'"$(pwd)"'"}'
-  ```
 - **Next steps**:
   - Review generated standards and refine based on team preferences
   - Add project-specific code examples to strengthen thin standards
