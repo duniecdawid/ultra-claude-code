@@ -2,6 +2,7 @@
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2026.04.03-1 | 2026-04-03 | Disable caching on docs sidebar endpoint so navigation updates reflect immediately. |
 | 2026.04.01-11 | 2026-04-01 | Fix docsify nested directory navigation — disable relativePath since sidebar uses absolute links. |
 | 2026.04.01-10 | 2026-04-01 | Docs sidebar: recursive directory walking for technology/product sections — supports arbitrarily nested doc structures (e.g. architecture/backend/platform). |
 | 2026.04.01-9 | 2026-04-01 | Rewrite architecture reference — narrative-driven template with ASCII diagram + walkthrough replacing table-heavy layout. Adds bold key terms, multiple path guidance, inline example, and risks for human-dependent processes. |

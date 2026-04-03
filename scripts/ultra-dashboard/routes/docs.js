@@ -79,7 +79,7 @@ router.get('/:project/', (req, res) => {
 router.get('/:project/_sidebar.md', (req, res) => {
   const project = resolveProject(decodeURIComponent(req.params.project));
   if (!project) return res.status(404).send('Not found');
-  res.type('text/markdown').send(generateSidebar(project.docsDir));
+  res.set('Cache-Control', 'no-cache, no-store').type('text/markdown').send(generateSidebar(project.docsDir));
 });
 
 // Serve markdown and assets from project's documentation/ directory
