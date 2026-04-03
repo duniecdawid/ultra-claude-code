@@ -66,7 +66,7 @@ While waiting for the Executor to finish, do real work — don't just read, **pr
 1. **Read the requirements** — these are your source of truth, not the Executor's interpretation:
    - **Plan README.md** — success criteria for each task (PRIMARY reference)
    - **Product docs** (`documentation/product/`) — ALL product documentation
-   - **Testing instructions** — read ALL `.md` files from `documentation/technology/testing/`. Skip `final-gate.md` during per-task testing (it applies only during final gate). If the directory doesn't exist, fall back to `.claude/system-test.md`.
+   - **Testing instructions** — read ALL `.md` files from `documentation/technology/testing/`. Skip `final-gate.md` during per-task testing (it applies only during final gate).
 
 2. **Determine the testing approach** — classify each success criterion:
    - **Unit/integration testable** — can be verified by running the test suite
@@ -123,7 +123,7 @@ You're not doing a code review (that's the Reviewer's job). You're checking for 
 
 #### 3d. Run Tests
 
-- Run the project's test suite (or relevant subset) — check `documentation/technology/testing/commands.md` for commands (fall back to `.claude/system-test.md`)
+- Run the project's test suite (or relevant subset) — check `documentation/technology/testing/commands.md` for commands
 - Run the full suite for regression checks
 - **Evaluate test quality** — if tests pass but don't actually cover the success criteria, that's a FAIL. Passing tests that test the wrong thing prove nothing.
 - If no tests exist for new functionality and the plan's criteria require behavioral verification, verify behavior through other means (browser testing, code tracing, manual validation via Bash)
@@ -152,7 +152,7 @@ DEV_PID=$!
 sleep 5
 ```
 
-Store the PID so you can clean up later. Check `documentation/technology/testing/commands.md` (or fall back to `.claude/system-test.md`) and `package.json` scripts to find the right dev command for the project (could be `npm run dev`, `npm start`, `yarn dev`, `pnpm dev`, etc.).
+Store the PID so you can clean up later. Check `documentation/technology/testing/commands.md` and `package.json` scripts to find the right dev command for the project (could be `npm run dev`, `npm start`, `yarn dev`, `pnpm dev`, etc.).
 
 **Step 2: Get browser context**
 
@@ -240,7 +240,7 @@ kill $DEV_PID 2>/dev/null
 
 When spawned specifically for the final gate (indicated in your spawn prompt), you are a **standalone agent** — no task team, no Executor. You run the **full test suite** as a regression check across all completed tasks:
 
-1. Read the plan README.md and ALL files from `documentation/technology/testing/` — pay special attention to `final-gate.md` for gate-specific scope, thresholds, and smoke test targets. If the directory doesn't exist, fall back to `.claude/system-test.md`.
+1. Read the plan README.md and ALL files from `documentation/technology/testing/` — pay special attention to `final-gate.md` for gate-specific scope, thresholds, and smoke test targets.
 2. Run the entire test suite (not per-task — the complete suite)
 3. **If the project has a frontend**, start the dev server and do a quick smoke test in Chrome:
    - Navigate to the main pages

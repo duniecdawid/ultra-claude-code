@@ -82,13 +82,13 @@
 
 <h3 id="docs-manager-as-guardian">Docs Manager as Guardian</h3>
 
-<p>The <strong>docs-manager</strong> skill (activated by <code>.claude/docs-format</code> in the project) guards this structure:</p>
+<p>The <strong>docs-manager</strong> skill (activated by <code>.claude/ultra/docs-format</code> in the project) guards this structure:</p>
 
 <ul>
 <li><strong>Routing</strong>: When any mode or agent creates documentation, docs-manager ensures it lands in the correct directory. Architecture decisions go to <code>technology/architecture/</code>, not floating in the root. Discovery outputs go to <code>product/description/</code>, not a random location.</li>
 <li><strong>Structure enforcement</strong>: Docs-manager knows the canonical layout and rejects writes that violate it. If an agent tries to create <code>documentation/auth-notes.md</code> (wrong &mdash; no top-level files), docs-manager routes it to the correct subdirectory.</li>
-<li><strong>Initialization</strong>: On first use (<code>/uc:init-project</code>), the full directory tree is scaffolded with README placeholders so the structure is visible from day one.</li>
-<li><strong>Format awareness</strong>: The <code>.claude/docs-format</code> file tells docs-manager the output format (Confluence, GitBook, plain Markdown). Docs-manager ensures all generated documentation conforms to the chosen format.</li>
+<li><strong>Initialization</strong>: On first use (<code>/uc:migrate</code>), the full directory tree is scaffolded with README placeholders so the structure is visible from day one.</li>
+<li><strong>Format awareness</strong>: The <code>.claude/ultra/docs-format</code> file tells docs-manager the output format (Confluence, GitBook, plain Markdown). Docs-manager ensures all generated documentation conforms to the chosen format.</li>
 <li><strong>Index generation</strong>: Docs-manager generates and maintains <code>documentation/README.md</code> &mdash; a navigable index of the entire documentation tree. The README lists every section with descriptions and links, so a newcomer (human or agent) can orient themselves instantly. The index is regenerated automatically whenever documentation is added or restructured.</li>
 </ul>
 
@@ -101,7 +101,7 @@
 </thead>
 <tbody>
 <tr><td>System design, component diagrams, data flow</td><td><code>technology/architecture/</code></td><td>Feature Mode</td></tr>
-<tr><td>Coding conventions, API standards, error handling patterns</td><td><code>technology/standards/</code></td><td>Init Project (auto-generated), Manual, or Feature Mode</td></tr>
+<tr><td>Coding conventions, API standards, error handling patterns</td><td><code>technology/standards/</code></td><td>Migrate (auto-generated), Manual, or Feature Mode</td></tr>
 <tr><td>Decision reviews (problem, options, outcome)</td><td><code>technology/rfcs/</code></td><td>Feature Mode (optional)</td></tr>
 <tr><td>Product vision, positioning, product briefs</td><td><code>product/description/</code></td><td>Discovery Mode</td></tr>
 <tr><td>Market research, competitor analysis, technology landscape</td><td><code>product/research/</code></td><td>Discovery Mode</td></tr>
@@ -141,9 +141,9 @@
 <li><strong>Agent-ready summaries</strong>: Maintains a <code>context/README.md</code> index so agents (especially Explore and Tech Knowledge) can quickly discover what external system knowledge is available before diving into files.</li>
 </ul>
 
-<h3 id="init-project-skill">Init Project Skill</h3>
+<h3 id="migrate-skill">Migrate Skill</h3>
 
-<p>The <strong>init-project</strong> skill (<code>/uc:init-project</code>) is the universal onboarding tool. It handles any project state &mdash; greenfield, existing docs in non-standard layout, partially structured, or already set up.</p>
+<p>The <strong>migrate</strong> skill (<code>/uc:migrate</code>) is the universal onboarding tool. It handles any project state &mdash; greenfield, existing docs in non-standard layout, partially structured, or already set up.</p>
 
 <p><strong>How it works (4 phases):</strong></p>
 

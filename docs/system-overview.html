@@ -1163,10 +1163,11 @@
           <div class="tree-group">
             <div class="tree-line"><span class="tree-dir blue">.claude/</span><span class="tree-comment">configuration &amp; governance</span></div>
             <div class="tree-line"><span class="tree-prefix">├── </span><span class="tree-file">skills/</span><span class="tree-comment">modes, execution, support</span></div>
-            <div class="tree-line"><span class="tree-prefix">├── </span><span class="tree-file">docs-format</span></div>
             <div class="tree-line"><span class="tree-prefix">├── </span><span class="tree-file">ultra-claude.local.md</span></div>
-            <div class="tree-line"><span class="tree-prefix">├── </span><span class="tree-file">environments-info</span></div>
-            <div class="tree-line"><span class="tree-prefix">└── </span><span class="tree-file">app-context-for-research.md</span></div>
+            <div class="tree-line"><span class="tree-prefix">└── </span><span class="tree-dir">ultra/</span></div>
+            <div class="tree-line"><span class="tree-prefix">    ├── </span><span class="tree-file">docs-format</span></div>
+            <div class="tree-line"><span class="tree-prefix">    ├── </span><span class="tree-file">environments.md</span></div>
+            <div class="tree-line"><span class="tree-prefix">    └── </span><span class="tree-file">app-context.md</span></div>
           </div>
           <div class="tree-group">
             <div class="tree-line"><span class="tree-dir blue">context/</span><span class="tree-comment">external system knowledge</span></div>
@@ -1196,7 +1197,7 @@
           <div class="name">Tech Research</div>
           <div class="desc">Library docs via Ref</div>
         </div>
-        <div class="side-item support-item" data-tip="Activated by .claude/docs-format. Guards the canonical documentation/ structure — routes docs to correct directories, enforces layout, prevents structural drift.">
+        <div class="side-item support-item" data-tip="Activated by .claude/ultra/docs-format. Guards the canonical documentation/ structure — routes docs to correct directories, enforces layout, prevents structural drift.">
           <div class="name">Docs Manager</div>
           <div class="desc">Guards doc structure</div>
         </div>
@@ -1229,7 +1230,7 @@
           <div class="desc">System advisor</div>
         </div>
         <div class="side-item support-item" data-tip="Universal onboarding skill. Handles any project state: greenfield, existing docs, mixed. Explores codebase, scaffolds canonical structure, derives config, migrates docs — all in one skill.">
-          <div class="name">Init Project</div>
+          <div class="name">Migrate</div>
           <div class="desc">Onboard any project</div>
         </div>
         <div class="side-item support-item" data-tip="Configure VS Code settings for optimal Claude Code experience. Manages both remote (vscode-server) and client-side settings.">

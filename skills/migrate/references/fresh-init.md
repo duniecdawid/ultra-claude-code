@@ -1,18 +1,8 @@
----
-description: Initialize any project with Ultra Claude. Handles greenfield projects, existing documentation migration, and mixed states. Explores the codebase, derives configuration, scaffolds the canonical structure, and migrates docs — all in one skill. Triggers on "init project", "initialize", "setup project", "onboard project", "bootstrap project", "migrate docs", "docs migration", "onboard existing project".
-argument-hint: "project name or description (optional)"
-user-invocable: true
----
+# Fresh Init
 
-# Init Project
+Full initialization pipeline for a project with no existing Ultra Claude structure.
 
-Target: $ARGUMENTS
-
-You are a senior developer onboarding a project into a specification-driven workflow. You handle any project state — empty, existing docs, partially structured, or fully structured. You are thorough but practical: explore systematically, ask when uncertain, and present everything for review before making changes.
-
-**Do NOT modify existing source code.** You only create documentation, configuration, and directory structure.
-
-## Reference Files
+## Prerequisite References
 
 Before starting, read these reference files:
 - `${CLAUDE_PLUGIN_ROOT}/skills/docs-manager/SKILL.md`
@@ -82,7 +72,7 @@ Using all survey findings + user answers, produce a comprehensive plan covering 
 
 Read these references for Phase 2:
 - `${SKILL_DIR}/references/claude-md-template.md` — the CLAUDE.md section to inject
-- `${SKILL_DIR}/references/config-specs.md` — .claude/ file specs, standards signals table, and migration mapping rules
+- `${SKILL_DIR}/references/config-specs.md` — `.claude/ultra/` file specs, standards signals table, and migration mapping rules
 
 The plan includes these task groups, in order:
 
@@ -92,11 +82,12 @@ The plan includes these task groups, in order:
 - Copy documentation templates from `${CLAUDE_PLUGIN_ROOT}/skills/docs-manager/references/` (use embedded templates from each reference) and plan/task templates from `${CLAUDE_PLUGIN_ROOT}/templates/` where no file exists yet
 - Generate `documentation/README.md` index if missing
 - Create `context/` directory if missing
+- Create `.claude/ultra/` directory
 - Only create what doesn't already exist — never overwrite
 
-#### Group 2 — Configure project CLAUDE.md and `.claude/` files
+#### Group 2 — Configure project CLAUDE.md and `.claude/ultra/` files
 
-Apply the CLAUDE.md template from `references/claude-md-template.md`. Derive `.claude/` config files per specs in `references/config-specs.md`.
+Apply the CLAUDE.md template from `references/claude-md-template.md`. Derive `.claude/ultra/` config files per specs in `references/config-specs.md`.
 
 #### Group 2.5 — Standards and System Test Planning
 
@@ -209,7 +200,7 @@ curl -X POST http://localhost:3847/api/register-project \
 End with a concise report:
 
 - **Scaffolded**: directories created/verified
-- **Configured**: CLAUDE.md updated with Ultra Claude section, which `.claude/` files were populated (and which skipped)
+- **Configured**: CLAUDE.md updated with Ultra Claude section, which `.claude/ultra/` files were populated (and which skipped)
 - **Documented**: architecture/docs bootstrapped or migrated
 - **Migrated**: files moved to canonical locations (originals removed)
 - **Standards created**: {list of files with core principle for each}
@@ -224,12 +215,14 @@ End with a concise report:
   - `/uc:feature-mode` — to plan the first feature
   - `/uc:help` — for guidance on any task
 
+Then stamp the version marker and print the "What's New" summary (see main SKILL.md).
+
 ---
 
 ## Constraints
 
 - Do NOT modify existing source code
-- Do NOT overwrite existing `.claude/` config files without user approval in the plan
+- Do NOT overwrite existing `.claude/ultra/` config files without user approval in the plan
 - Migration moves files (delete originals after successful move, clean up empty directories)
 - Do NOT create files outside `CLAUDE.md`, `documentation/`, `context/`, and `.claude/`
 - Ask questions in Phase 1 for anything ambiguous — don't guess

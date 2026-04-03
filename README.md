@@ -41,7 +41,7 @@ After installing, run setup to configure your machine (one-time):
 Then initialize your target project:
 
 ```
-/uc:init-project
+/uc:migrate
 ```
 
 Use `/uc:help` to see all available commands.
@@ -82,7 +82,7 @@ ultra-claude/
 │   │   └── SKILL.md
 │   ├── context-management/
 │   │   └── SKILL.md
-│   ├── init-project/
+│   ├── migrate/
 │   │   └── SKILL.md
 │   ├── checkpoint/
 │   │   └── SKILL.md

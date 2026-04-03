@@ -34,7 +34,7 @@ Then verify:
 1. Plan exists at `documentation/plans/$ARGUMENTS/README.md`
 2. Agent teams enabled (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS: "1"` in settings)
 3. tmux installed (required for agent teams)
-4. Testing config: If `.claude/system-test.md` exists and `documentation/technology/testing/` does NOT exist, warn: "Testing config uses legacy format (.claude/system-test.md). Run `/uc:init-project` to migrate to documentation/technology/testing/." Continue execution — agents fall back gracefully.
+4. Testing config: Verify `documentation/technology/testing/` exists. If missing, warn: "No testing configuration found. Run `/uc:migrate` to set up documentation/technology/testing/." Continue execution — agents will have limited testing guidance.
 
 If prerequisites 1-3 are missing, suggest running `/uc:setup` and stop.
 

@@ -3,7 +3,7 @@ description: >-
   Decompose a product into a sequenced series of plan stubs. Reads product and
   architecture docs, builds a dependency graph, scaffolds plan directories with
   scope boundaries. Each stub is a starting point for /uc:feature-mode.
-  Use after /uc:init-project or /uc:discovery-mode when the product is too big
+  Use after /uc:migrate or /uc:discovery-mode when the product is too big
   for one plan. Triggers on "roadmap", "plan series", "decompose product",
   "break into plans", "what should we build first", "build order",
   "plan the whole system", "sequence the build".
@@ -29,7 +29,7 @@ Your job: read the product and architecture documentation, decompose the product
 ## Prerequisites
 
 This skill assumes:
-- `/uc:init-project` has already run (the `documentation/` directory exists with canonical structure)
+- `/uc:migrate` has already run (the `documentation/` directory exists with canonical structure)
 - Product documentation exists in `documentation/product/` (at minimum `description/`)
 - If product docs are empty or missing, stop immediately and tell the user: "Roadmap requires product documentation. Run `/uc:discovery-mode` first to define the product, then come back to `/uc:roadmap`."
 
@@ -68,7 +68,7 @@ Synthesize: what are the architectural building blocks? What depends on what?
 
 ### Step 3: Read project context
 
-Read `.claude/app-context-for-research.md` if it exists — for domain, tech stack, and integration context.
+Read `.claude/ultra/app-context.md` if it exists — for domain, tech stack, and integration context.
 
 ### Step 4: Survey existing plans
 

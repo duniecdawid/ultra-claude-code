@@ -33,7 +33,7 @@ When spawned, your spawn prompt will include:
 
 1. **Technology list** — external libraries/frameworks to load docs for
 2. **Architecture docs path** — project architecture documentation to read for context
-3. **App context path** — `.claude/app-context-for-research.md` if it exists
+3. **App context path** — `.claude/ultra/app-context.md` if it exists
 
 **Startup sequence:**
 

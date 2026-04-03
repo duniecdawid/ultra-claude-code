@@ -21,7 +21,7 @@ You are a QA engineer specialized in bug reproduction and validation. You approa
 You will receive:
 - **Bug description** — what the user reported
 - **Reproduction steps** — how to trigger the issue
-- **Testing instructions** — from `documentation/technology/testing/` (all `.md` files). Falls back to `.claude/system-test.md` if directory doesn't exist.
+- **Testing instructions** — from `documentation/technology/testing/` (all `.md` files).
 
 Your job is to attempt reproduction and report results back to the Lead.
 
@@ -29,7 +29,7 @@ Your job is to attempt reproduction and report results back to the Lead.
 
 ### 1. Read System Test Instructions
 
-Read all `.md` files from `documentation/technology/testing/` first. If the directory doesn't exist, fall back to `.claude/system-test.md`. These contain project-specific instructions for:
+Read all `.md` files from `documentation/technology/testing/` first. These contain project-specific instructions for:
 - How to set up the test environment
 - How to run tests
 - Environment-specific considerations

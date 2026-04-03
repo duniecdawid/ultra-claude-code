@@ -77,4 +77,4 @@ One executor for the full testing directory:
 >    - Cross-task regression priorities
 >    - Manual verification checklist items specific to this project
 >
-> Quality: Commands verified against config files. Security categories calibrated to domain. If no tests yet, recommend setup for tech stack. If project has legacy `.claude/system-test.md`, migrate its content into the new files and note that the old file can be removed.
+> Quality: Commands verified against config files. Security categories calibrated to domain. If no tests yet, recommend setup for tech stack. If project has no existing testing config, recommend setup for the tech stack.

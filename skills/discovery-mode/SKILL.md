@@ -82,7 +82,7 @@ Spawn two subagents in parallel via the Task tool:
 > 3. External library documentation via `mcp__ref__ref_search_documentation`
 > 4. Technical feasibility and constraints in the current architecture
 > 5. Related context in `context/` directory
-> 6. Domain context from `.claude/app-context-for-research.md` (if exists)
+> 6. Domain context from `.claude/ultra/app-context.md` (if exists)
 > 7. Existing personas in `documentation/product/personas/` and requirements in `documentation/product/requirements/` — build on what exists, do not duplicate
 >
 > Return a structured research summary. Include file:line references for internal findings and source URLs for external findings. Separate facts from inferences.

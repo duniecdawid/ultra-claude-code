@@ -16,7 +16,7 @@ Web search for library documentation wastes 50,000+ tokens on raw docs, often re
 
 ### Step 1: Load Domain Context
 
-Read `.claude/app-context-for-research.md` if it exists. This provides project-specific context that helps frame research queries accurately.
+Read `.claude/ultra/app-context.md` if it exists. This provides project-specific context that helps frame research queries accurately.
 
 ### Step 2: Parse the Query
 
@@ -128,4 +128,4 @@ If Ref.tools MCP is unavailable:
 - **Note discrepancies** — if docs differ from codebase usage, highlight it
 - **Link sources** — include URLs of documentation pages consulted
 - **Be concise** — focus on actionable information, not comprehensive summaries
-- **Respect domain context** — frame findings in terms of the project's tech stack from `.claude/app-context-for-research.md`
+- **Respect domain context** — frame findings in terms of the project's tech stack from `.claude/ultra/app-context.md`

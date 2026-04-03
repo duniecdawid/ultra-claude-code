@@ -63,7 +63,7 @@ After the initial survey, generate **2-5 hypotheses** ranked by likelihood and p
 
 Then investigate in parallel:
 - **Per-hypothesis Explore agents** — one per hypothesis, scoped to the relevant code paths. Each should return evidence supporting or refuting the hypothesis with file:line references.
-- **System Tester** — attempt to reproduce the bug. Try the exact steps first, then variations to understand boundary conditions. Read all files from `documentation/technology/testing/` for project-specific test instructions (falls back to `.claude/system-test.md` if directory doesn't exist).
+- **System Tester** — attempt to reproduce the bug. Try the exact steps first, then variations to understand boundary conditions. Read all files from `documentation/technology/testing/` for project-specific test instructions.
 
 After all agents return, synthesize evidence:
 - Rank hypotheses by evidence strength

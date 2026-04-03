@@ -138,7 +138,7 @@ You are testing task {N} of the "$ARGUMENTS" plan.
 **Context files to read (while waiting — these are your testing references):**
 - Plan: `documentation/plans/$ARGUMENTS/README.md` (PRIMARY — success criteria live here)
 - Product docs: `documentation/product/` (ALL product documentation)
-- Testing instructions: ALL `.md` files from `documentation/technology/testing/` (skip `final-gate.md` — it applies only during final gate). If directory doesn't exist, fall back to `.claude/system-test.md`.
+- Testing instructions: ALL `.md` files from `documentation/technology/testing/` (skip `final-gate.md` — it applies only during final gate).
 
 **IMPORTANT:** Test against the plan's success criteria and product docs, NOT against the Executor's impl.md. You may read impl.md only to know which files were touched.
 
@@ -167,7 +167,7 @@ This is NOT a per-task test. Run the FULL test suite as a regression check acros
 
 **Context files to read:**
 - Plan: `documentation/plans/$ARGUMENTS/README.md`
-- Testing instructions: ALL `.md` files from `documentation/technology/testing/` — pay special attention to `final-gate.md` for gate-specific scope, thresholds, and smoke test targets. If directory doesn't exist, fall back to `.claude/system-test.md`.
+- Testing instructions: ALL `.md` files from `documentation/technology/testing/` — pay special attention to `final-gate.md` for gate-specific scope, thresholds, and smoke test targets.
 
 **Workflow:**
 1. Run the entire test suite

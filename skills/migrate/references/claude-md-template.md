@@ -24,7 +24,7 @@ Do not skip this step. Do not copy skill content into this file — always load 
 - **Canonical documentation** lives in `documentation/` — do not create docs outside this structure.
 - **Plans** are stored in `documentation/plans/{NNN}-{name}/` with sequential numbering and embedded task lists.
 - **External system context** (API docs, SDK references) goes in `context/`.
-- **Project configuration** for Claude is in `.claude/` (app-context, environments-info). Testing config lives in `documentation/technology/testing/`.
+- **Project configuration** for Ultra Claude is in `.claude/ultra/` (app-context, environments, docs-format, version marker). Testing config lives in `documentation/technology/testing/`.
 
 ### Key Commands
 
@@ -37,6 +37,7 @@ Do not skip this step. Do not copy skill content into this file — always load 
 | `/uc:discovery-mode` | Product research and requirements |
 | `/uc:plan-execution` | Execute approved plans with agent teams |
 | `/uc:tech-research` | Research external library docs via Ref.tools |
+| `/uc:migrate` | Upgrade project to latest Ultra Claude structure |
 
 ### Workflow
 

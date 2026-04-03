@@ -26,7 +26,7 @@ function discoverPlans() {
   const reg = readRegistry();
   const knownRoots = new Set(reg.plans.map(p => p.project_root));
 
-  // Project roots from explicit config (registered by init-project)
+  // Project roots from explicit config (registered by migrate skill)
   try {
     const seeds = JSON.parse(fs.readFileSync(PROJECTS_FILE, 'utf8'));
     if (Array.isArray(seeds)) seeds.forEach(r => knownRoots.add(r));

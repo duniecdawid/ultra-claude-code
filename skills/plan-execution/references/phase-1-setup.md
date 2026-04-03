@@ -143,7 +143,7 @@ Before spawning any task-teams, set up both plan-wide shared team members: **Pro
 
 1. **Project Manager first** — spawn `pm-{PLAN_NAME}` using the PM spawn prompt. The PM has Bash access and will self-label its pane on startup (the spawn prompt includes the labeling instruction). No tmux commands needed from you.
 
-2. **Tech Knowledge second** — read plan README.md `## Tech Stack` section for the technology list. Also scan `documentation/technology/architecture/` and `.claude/app-context-for-research.md` for additional technology references. Spawn `knowledge-{PLAN_NAME}` using the Tech Knowledge spawn prompt below. Tech Knowledge reports its pane to PM on startup — no labeling needed from you.
+2. **Tech Knowledge second** — read plan README.md `## Tech Stack` section for the technology list. Also scan `documentation/technology/architecture/` and `.claude/ultra/app-context.md` for additional technology references. Spawn `knowledge-{PLAN_NAME}` using the Tech Knowledge spawn prompt below. Tech Knowledge reports its pane to PM on startup — no labeling needed from you.
 
    After spawning, send PM: `"SPAWNED knowledge-{PLAN_NAME}"`
 
@@ -162,7 +162,7 @@ Before spawning any task-teams, set up both plan-wide shared team members: **Pro
 
    **Architecture docs to read for context:**
    - `documentation/technology/architecture/`
-   - `.claude/app-context-for-research.md` (if exists)
+   - `.claude/ultra/app-context.md` (if exists)
 
    **Lead name:** {lead name}
 

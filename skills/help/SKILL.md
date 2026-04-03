@@ -10,18 +10,17 @@ You are the Ultra Claude system advisor. Your job is to help users accomplish th
 
 ## Startup
 
-Read `${CLAUDE_PLUGIN_ROOT}/skills/help/VERSION_HISTORY.md`, then print:
+Read the current version and recent changes from CHANGELOG.json:
 
+```bash
+VERSION=$(jq -r '.[0].version' "${CLAUDE_PLUGIN_ROOT}/CHANGELOG.json")
+echo "Ultra Claude v${VERSION}"
+echo ""
+echo "Recent changes:"
+jq -r '.[0:5] | .[] | "  \(.version) — \(.summary)"' "${CLAUDE_PLUGIN_ROOT}/CHANGELOG.json"
 ```
-Ultra Claude v{latest_version}
 
-Recent changes:
-| Version | Changes |
-|---------|---------|
-| {5 most recent rows from VERSION_HISTORY.md} |
-```
-
-Then answer the user's question. If invoked with no argument, follow the changelog with a brief system overview and list common workflows pointing to the right skill.
+Format the output as a readable table. Then answer the user's question. If invoked with no argument, follow the changelog with a brief system overview and list common workflows pointing to the right skill.
 
 ## System Architecture
 
@@ -40,8 +39,8 @@ Skills read the codebase and documentation, spawn agents for parallel work, and 
 **Setup** (`/uc:setup`)
 One-time machine configuration that installs prerequisites (tmux, Node.js), configures shell environment (1M context, agent teams), sets up the Ultra Dashboard, and optimizes tmux for Claude Code. Use after plugin installation or on a new machine. Idempotent — writes a version marker so other skills can verify setup is current.
 
-**Init Project** (`/uc:init-project`)
-Initializes any project by exploring codebase and docs via surveyor agents, scaffolding canonical `documentation/` structure, deriving coding standards from code patterns, and generating configuration files. Use when onboarding a project to spec-driven development — handles greenfield, existing docs migration, and mixed states. Produces CLAUDE.md integration, `.claude/` config files, coding standards, testing configuration, and migrated documentation.
+**Migrate** (`/uc:migrate`)
+Brings projects into Ultra Claude and keeps them current — handles fresh initialization, legacy project detection, and version-aware incremental upgrades via structured migrations in CHANGELOG.json. Use when onboarding a new project, after running `/uc:update`, or when upgrading an existing project to the latest Ultra structure. Produces scaffolded documentation, `.claude/ultra/` configuration, coding standards, and a version marker for future upgrades.
 
 **VS Code Setup** (`/uc:vscode-setup`)
 Configures VS Code for optimal Claude Code development by managing remote-side settings and printing client-side JSON for the user to apply. Use when setting up VS Code or tweaking editor behavior for Claude Code workflows. Handles tmux integration, terminal profiles, window restoration, and Claude Code extension positioning.
@@ -52,7 +51,7 @@ Configures VS Code for optimal Claude Code development by managing remote-side s
 Leads product research as a Head of Product persona, spawning parallel internal (Explore) and external (Market Analyzer) research agents, then synthesizing findings into product documentation. Use for product vision, requirements, user personas, competitive analysis, or technology landscape assessment. Produces documentation artifacts (product description, research report, requirements, personas) — never code.
 
 **Roadmap** (`/uc:roadmap`)
-Decomposes a product into sequenced plan stubs by analyzing product/architecture docs, building a dependency graph, and topologically sorting build phases. Use after discovery/init-project when the product is too large for a single plan. Produces `ROADMAP.md` with execution order and numbered stub plans ready for `/uc:feature-mode` to detail.
+Decomposes a product into sequenced plan stubs by analyzing product/architecture docs, building a dependency graph, and topologically sorting build phases. Use after discovery/migrate when the product is too large for a single plan. Produces `ROADMAP.md` with execution order and numbered stub plans ready for `/uc:feature-mode` to detail.
 
 **Feature Mode** (`/uc:feature-mode`)
 Plans new features through a 4-stage process: challenge scope, research architecture/code/dependencies, discuss approach with user, and write the plan with embedded tasks. Use when starting a new feature, adding functionality, or planning significant changes. Produces a detailed plan in `documentation/plans/{NNN}-{name}/README.md` ready for execution.
@@ -77,7 +76,7 @@ Saves execution state (task pipeline stages, active teams, decisions, blockers) 
 ### Documentation & Verification
 
 **Docs Manager** (`/uc:docs-manager`)
-Guards the canonical documentation structure, routing documents to correct directories, enforcing docsify README conventions, and maintaining a navigable index. Activated in projects with a `.claude/docs-format` file — use proactively when any skill or agent creates documentation. Redirects violations, creates missing directories, and updates `documentation/README.md` as the source of truth.
+Guards the canonical documentation structure, routing documents to correct directories, enforcing docsify README conventions, and maintaining a navigable index. Activated in projects with a `.claude/ultra/docs-format` file — use proactively when any skill or agent creates documentation. Redirects violations, creates missing directories, and updates `documentation/README.md` as the source of truth.
 
 **Doc-Code Verification** (`/uc:doc-code-verification-mode`)
 Compares documentation claims against code reality using parallel Checker agents, then structures findings as discrepancies for user decision-making. Use to find doc-code gaps, verify accuracy after changes, or sync docs with implementation. Produces a structured plan distinguishing "docs are wrong" vs "code is wrong" with evidence.
@@ -108,7 +107,7 @@ Starts the Ultra Dashboard if not already running, exposes it via Tailscale, and
 Recovery tool that restarts the Ultra Dashboard if its tmux layout is broken or the dashboard isn't running. Use when team layout is visually broken or agent panes aren't arranged correctly. Verifies dashboard connectivity and provides emergency fallback layout.
 
 **Update** (`/uc:update`)
-Updates Ultra Claude to the latest version by pulling from git, clearing plugin cache, force-restarting the dashboard, and checking if projects need migration. Use after hearing about new features or when wanting the latest version. Shows changelog since last update and recommends `/uc:init-project` if format changes occurred.
+Updates Ultra Claude to the latest version by pulling from git, clearing plugin cache, force-restarting the dashboard, and checking CHANGELOG.json for pending project migrations. Use after hearing about new features or when wanting the latest version. Shows changelog since last update and recommends `/uc:migrate` in each project if structural changes occurred.
 
 ### System Meta
 
@@ -126,10 +125,10 @@ Compares specific code against documentation claims for a single topic, returnin
 Reviews completed code against standards, architecture, and patterns as a read-only quality gate that never modifies code. Spawned as part of per-task teams when an Executor completes implementation, running in parallel with Tester. Produces pass/fail verdicts with actionable feedback that either clears code or identifies exact fixes needed.
 
 **Code Surveyor**
-Performs fast structural scans of code packages to catalog files, components, data structures, dependencies, and architectural patterns. Spawned by init-project and verification orchestrators to quickly understand what's implemented. Returns concise structured overviews with file-line references for mapping code to requirements.
+Performs fast structural scans of code packages to catalog files, components, data structures, dependencies, and architectural patterns. Spawned by migrate and verification orchestrators to quickly understand what's implemented. Returns concise structured overviews with file-line references for mapping code to requirements.
 
 **Doc Surveyor**
-Explores documentation sections to identify content type, key topics, specifications, and implementation references. Spawned by init-project and verification orchestrators to understand what's documented. Returns structured overviews for mapping documentation claims to implementations and identifying gaps.
+Explores documentation sections to identify content type, key topics, specifications, and implementation references. Spawned by migrate and verification orchestrators to understand what's documented. Returns structured overviews for mapping documentation claims to implementations and identifying gaps.
 
 **Market Analyzer**
 Conducts market research, competitor analysis, and technology trend investigation using web search and documentation lookup. Spawned by Discovery Mode to research external conditions as inputs to product decisions. Produces structured research reports with source attribution for market positioning and technology choices.

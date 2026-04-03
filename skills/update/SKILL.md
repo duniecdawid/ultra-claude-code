@@ -32,11 +32,25 @@ git log --oneline HEAD@{1}..HEAD
 
 ## Step 2: Show Changelog
 
-Read `${CLAUDE_PLUGIN_ROOT}/skills/help/VERSION_HISTORY.md`.
+Read the changelog using jq:
 
-Get the user's last known version from `~/.claude/uc-setup.json` (the `version` field). If the file doesn't exist, show the last 10 entries.
+```bash
+# Get user's last known seq from setup marker
+LAST_SEQ=$(jq -r '.seq // 0' ~/.claude/uc-setup.json 2>/dev/null || echo 0)
 
-Display all VERSION_HISTORY.md rows between the new version and the user's last known version. Format them clearly so the user can scan what changed.
+# Get entries since last known version
+jq --argjson last "$LAST_SEQ" \
+  '[.[] | select(.seq > $last)] | reverse | .[] | "\(.version) — \(.summary)"' \
+  "${CLAUDE_PLUGIN_ROOT}/CHANGELOG.json"
+```
+
+If `~/.claude/uc-setup.json` doesn't exist or has no seq field, show the last 10 entries:
+
+```bash
+jq '.[0:10] | .[] | "\(.version) — \(.summary)"' "${CLAUDE_PLUGIN_ROOT}/CHANGELOG.json"
+```
+
+Format the output as a readable table for the user.
 
 ## Step 3: Clear Plugin Cache
 
@@ -86,19 +100,38 @@ curl -sf http://localhost:3847/api/version
 
 ## Step 5: Check Migration Needs
 
-Review the changelog entries from Step 2. Look for keywords that signal projects may need updating:
+Check CHANGELOG.json for migration entries between the old and new versions:
 
-- **Format changes**: "new format", "rename", "restructure", "canonical", "directory"
-- **Migrations**: "migrate", "migration", "legacy", "deprecated", "removed"
-- **New mandatory structures**: "mandatory", "required", "must have", "new directory"
-- **Breaking changes**: "breaking", "incompatible", "dropped support"
+```bash
+OLD_SEQ=$(jq -r '.seq // 0' ~/.claude/uc-setup.json 2>/dev/null || echo 0)
+NEW_SEQ=$(jq '.[0].seq' "${CLAUDE_PLUGIN_ROOT}/CHANGELOG.json")
 
-If any such entries exist since the user's last version, list them and recommend:
+# Get pending migrations
+jq --argjson old "$OLD_SEQ" --argjson new "$NEW_SEQ" \
+  '[.[] | select(.seq > $old and .seq <= $new and .migration != null)]' \
+  "${CLAUDE_PLUGIN_ROOT}/CHANGELOG.json"
+```
 
-> Some recent changes may affect your existing projects. Run `/uc:init-project` in each project to pick up the new structure. Specifically:
-> - {list each relevant change and why re-init helps}
+If migration entries exist:
 
-If no migration-worthy changes, say "No project migration needed for this update."
+1. List each migration with version + summary
+2. Read `~/.claude/dashboard-projects.json` to get registered projects:
+   ```bash
+   jq -r '.[]' ~/.claude/dashboard-projects.json 2>/dev/null
+   ```
+3. Actively recommend migration:
+
+> **Project migrations available.** These changes affect project structure:
+> - {version} — {summary}
+>
+> **Registered projects that should be migrated:**
+> - {project path}
+>
+> Run `/uc:migrate` in each project to apply the changes. You can do this now or next time you open each project.
+
+If the user wants to migrate now, offer to help — but don't do it without asking.
+
+If no migration entries exist: "No project migration needed for this update."
 
 ## Step 6: Update Setup Marker
 

@@ -1,0 +1,638 @@
+[
+  {
+    "seq": 67,
+    "version": "2026.04.03-2",
+    "date": "2026-04-03",
+    "summary": "Rename init-project to migrate. Add version-aware project migration with CHANGELOG.json, per-project .claude/ultra/version.json marker, and structured migration registry. Consolidate .claude/ config files to .claude/ultra/ namespace. Drop legacy .claude/system-test.md fallbacks. Replace VERSION_HISTORY.md with queryable JSON changelog.",
+    "migration": {
+      "precondition": {
+        "any": [
+          {
+            "exists": ".claude/docs-format"
+          },
+          {
+            "exists": ".claude/app-context-for-research.md"
+          },
+          {
+            "exists": ".claude/environments-info"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "create-directory",
+          "path": ".claude/ultra/"
+        },
+        {
+          "type": "rename-file",
+          "from": ".claude/docs-format",
+          "to": ".claude/ultra/docs-format"
+        },
+        {
+          "type": "rename-file",
+          "from": ".claude/app-context-for-research.md",
+          "to": ".claude/ultra/app-context.md"
+        },
+        {
+          "type": "rename-file",
+          "from": ".claude/environments-info",
+          "to": ".claude/ultra/environments.md"
+        },
+        "Update CLAUDE.md — replace /uc:init-project references with /uc:migrate."
+      ],
+      "conflicts": "Preserve user customizations — move files as-is, do not regenerate content."
+    }
+  },
+  {
+    "seq": 66,
+    "version": "2026.04.03-1",
+    "date": "2026-04-03",
+    "summary": "Disable caching on docs sidebar endpoint so navigation updates reflect immediately.",
+    "migration": null
+  },
+  {
+    "seq": 65,
+    "version": "2026.04.01-11",
+    "date": "2026-04-01",
+    "summary": "Fix docsify nested directory navigation — disable relativePath since sidebar uses absolute links.",
+    "migration": null
+  },
+  {
+    "seq": 64,
+    "version": "2026.04.01-10",
+    "date": "2026-04-01",
+    "summary": "Docs sidebar: recursive directory walking for technology/product sections — supports arbitrarily nested doc structures (e.g. architecture/backend/platform).",
+    "migration": null
+  },
+  {
+    "seq": 63,
+    "version": "2026.04.01-9",
+    "date": "2026-04-01",
+    "summary": "Rewrite architecture reference — narrative-driven template with ASCII diagram + walkthrough replacing table-heavy layout. Adds bold key terms, multiple path guidance, inline example, and risks for human-dependent processes.",
+    "migration": null
+  },
+  {
+    "seq": 62,
+    "version": "2026.04.01-8",
+    "date": "2026-04-01",
+    "summary": "Fix backlog API returning empty for projects registered via seeds (no plans). Now falls back to getProjectRoots() to resolve project root.",
+    "migration": null
+  },
+  {
+    "seq": 61,
+    "version": "2026.04.01-7",
+    "date": "2026-04-01",
+    "summary": "Init-project: make dashboard registration an explicit action step instead of a report bullet — always runs before summary.",
+    "migration": null
+  },
+  {
+    "seq": 60,
+    "version": "2026.04.01-6",
+    "date": "2026-04-01",
+    "summary": "Add `/uc:update` skill — pulls latest from git, clears plugin cache, force-restarts dashboard, shows changelog since last version, checks for project migration needs, updates setup marker.",
+    "migration": null
+  },
+  {
+    "seq": 59,
+    "version": "2026.04.01-5",
+    "date": "2026-04-01",
+    "summary": "Generic project discovery: remove hardcoded ~/Projects scan, add POST /api/register-project endpoint, init-project ensures dashboard and registers project on completion.",
+    "migration": null
+  },
+  {
+    "seq": 58,
+    "version": "2026.04.01-4",
+    "date": "2026-04-01",
+    "summary": "Ensure-dashboard skill: add \"reset\" argument to force-restart the dashboard process before ensuring it's running.",
+    "migration": null
+  },
+  {
+    "seq": 57,
+    "version": "2026.04.01-3",
+    "date": "2026-04-01",
+    "summary": "Add `/uc:ensure-dashboard` skill — user-invocable command to start dashboard, expose via Tailscale, and print URL. Wraps existing `references/ensure-dashboard.md`.",
+    "migration": null
+  },
+  {
+    "seq": 56,
+    "version": "2026.04.01-2",
+    "date": "2026-04-01",
+    "summary": "Unify versioning: drop semver, use date-based `YYYY.MM.DD-N` format everywhere (plugin.json, marketplace.json, VERSION_HISTORY.md). Show current version in dashboard header via `/api/version` endpoint.",
+    "migration": null
+  },
+  {
+    "seq": 55,
+    "version": "2026.04.01-1",
+    "date": "2026-04-01",
+    "summary": "Dashboard usage bar: green FRESH badge when rate-limit window has reset, alphabetical account sorting by org name.",
+    "migration": null
+  },
+  {
+    "seq": 54,
+    "version": "2026.03.31-6",
+    "date": "2026-03-31",
+    "summary": "Rename Tracker to Backlog — system renamed to `/uc:backlog`, directory `documentation/tracker/` → `documentation/backlog/`, category \"External\" → \"Questions\" (Q-NNN prefix), `technical-debt.json` → `debt.json`, new directional `blocks` field on items (blocked_by computed at read time), new block/unblock commands. Dashboard tab, API endpoint, route, all CSS/JS internals, and 7 cross-referencing skills updated. All internal names consistently renamed for clean codebase.",
+    "migration": {
+      "precondition": {
+        "any": [
+          {
+            "exists": "documentation/tracker/"
+          },
+          {
+            "file_contains": {
+              "path": "CLAUDE.md",
+              "pattern": "/uc:tracker"
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "rename-directory",
+          "from": "documentation/tracker/",
+          "to": "documentation/backlog/"
+        },
+        {
+          "type": "split-file",
+          "from": "documentation/backlog/tracker.json",
+          "into": [
+            "documentation/backlog/bugs.json",
+            "documentation/backlog/questions.json",
+            "documentation/backlog/ideas.json",
+            "documentation/backlog/debt.json"
+          ]
+        },
+        {
+          "type": "rename-file",
+          "from": "documentation/backlog/technical-debt.json",
+          "to": "documentation/backlog/debt.json"
+        },
+        "Update CLAUDE.md — replace all references to /uc:tracker with /uc:backlog and tracker with backlog in the Ultra Claude section."
+      ],
+      "conflicts": "If documentation/backlog/ already exists, merge contents. If user has custom fields in tracker.json, preserve them during split."
+    }
+  },
+  {
+    "seq": 53,
+    "version": "2026.03.31-5",
+    "date": "2026-03-31",
+    "summary": "Split init-project skill into progressive-disclosure structure — SKILL.md reduced from 505 to 222 lines with 5 reference files (surveyor-prompts, claude-md-template, config-specs, explore-prompts, executor-prompts) loaded only at the phase that needs them. No behavior change, just better context efficiency.",
+    "migration": null
+  },
+  {
+    "seq": 52,
+    "version": "2026.03.31-4",
+    "date": "2026-03-31",
+    "summary": "Dashboard Docsify git change highlighting — new API endpoint `/api/docs/:project/git-changes` with diff parser and 10s cache, Docsify plugin with gutter annotations (amber marks for changed sections, full-height green stripe for new files), sidebar link coloring (amber changed, green new), file path display under page headings. Detects committed changes via `git diff`, untracked files via `git ls-files --others`, and staged new files.",
+    "migration": null
+  },
+  {
+    "seq": 51,
+    "version": "2026.03.31-3",
+    "date": "2026-03-31",
+    "summary": "Rewrite help skill as system knowledge base — 3-sentence descriptions for all 22 skills and 10 agents, system architecture overview, remove outdated HTML doc references and verbose examples. Init-project CLAUDE.md template adds mandatory bootstrap section that force-loads `/uc:help` and `/uc:docs-manager` at conversation start. Add Help Skill Sync rule to project CLAUDE.md — any skill/agent edit must update its 3-sentence description in help.",
+    "migration": {
+      "precondition": "CLAUDE.md does not exist, or exists but does not contain the \"Bootstrap — MANDATORY\" section heading.",
+      "actions": [
+        "Add the mandatory Ultra Claude bootstrap section to CLAUDE.md. The section requires loading /uc:help and /uc:docs-manager at the start of every conversation. Read the claude-md-template reference for the exact content. Append to existing CLAUDE.md if present, create new if not. Never overwrite existing project-specific content."
+      ],
+      "conflicts": "If CLAUDE.md already has an Ultra Claude section, check if it has the bootstrap subsection. Add only what is missing."
+    }
+  },
+  {
+    "seq": 50,
+    "version": "2026.03.31-2",
+    "date": "2026-03-31",
+    "summary": "Add `/uc:tracker` skill — lightweight per-project backlog for ideas, dependencies, and bugs stored in `documentation/tracker.json`. New dashboard Tracker tab with multi-select filter pills (type + status), related item links, and priority indicators. Home page project cards show open tracker count. Replace old `documentation/dependencies/` system — docs-manager routes blockers/ideas/bugs to tracker instead of standalone documents, init-project migrates existing dependency docs. Agent awareness: plan-execution, debug-mode, feature-mode, and discovery-mode automatically add follow-up items to tracker.",
+    "migration": {
+      "precondition": {
+        "all": [
+          {
+            "not_exists": "documentation/tracker/"
+          },
+          {
+            "exists": "documentation/dependencies/"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "create-directory",
+          "path": "documentation/tracker/"
+        },
+        "Extract open items from documentation/dependencies/*.md files (### headings with Priority and Blocks fields) into documentation/tracker/tracker.json with appropriate type/priority fields.",
+        {
+          "type": "rename-directory",
+          "from": "documentation/dependencies/",
+          "to": "documentation_archive/dependencies/"
+        }
+      ],
+      "conflicts": "If documentation/tracker/ already exists, skip. Preserve documentation/dependencies/ originals in archive."
+    }
+  },
+  {
+    "seq": 49,
+    "version": "2026.03.31-1",
+    "date": "2026-03-31",
+    "summary": "Add Docsify as new default docs-format. Docs-manager enforces README.md in every category directory (directory-as-page convention), includes category README template with descriptions, and audits for missing READMEs. Init-project defaults to docsify. Dashboard sidebar makes top-level categories (Technology, Product, Dependencies) clickable links when README.md exists, removes duplicate \"Overview\" entries.",
+    "migration": {
+      "precondition": {
+        "any": [
+          {
+            "not_exists": ".claude/docs-format"
+          },
+          {
+            "all": [
+              {
+                "file_contains": {
+                  "path": ".claude/docs-format",
+                  "pattern": "docsify"
+                }
+              },
+              {
+                "not_exists": "documentation/technology/README.md"
+              }
+            ]
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set-default",
+          "path": ".claude/docs-format",
+          "content": "docsify"
+        },
+        {
+          "type": "ensure-files",
+          "pattern": "documentation/*/README.md",
+          "template": "Category README with directory description"
+        },
+        {
+          "type": "ensure-files",
+          "pattern": "documentation/*/*/README.md",
+          "template": "Subcategory README with directory description"
+        }
+      ],
+      "conflicts": "Never overwrite existing README.md files. Only create missing ones."
+    }
+  },
+  {
+    "seq": 48,
+    "version": "2026.03.30-5",
+    "date": "2026-03-30",
+    "summary": "Dashboard usage bar redesign: sort accounts alphabetically by email, swap layout (email left, limits right), fixed-width columns for aligned display, inline OVER LIMIT label replaces bar when exceeded, separator lines between accounts, responsive mobile layout with 2-row wrapping at 600px, improved inactive row readability (opacity 0.7).",
+    "migration": null
+  },
+  {
+    "seq": 47,
+    "version": "2026.03.30-4",
+    "date": "2026-03-30",
+    "summary": "PM tracks plan and task status in README. Plan status updates to \"In Progress\" on execution startup and \"Completed\" when operational report is written. Task checkboxes in plan template get checked off as tasks complete. New `/uc:plan-status-sync` skill to retroactively fix stale plan/task statuses from prior executions.",
+    "migration": null
+  },
+  {
+    "seq": 46,
+    "version": "2026.03.30-3",
+    "date": "2026-03-30",
+    "summary": "Centralize dashboard launch into shared `references/ensure-dashboard.md`. All skills (plan-execution, plan-enhancer, tmux-team-grid, roadmap) now read this single reference instead of inlining dashboard startup logic. Roadmap skill now ensures dashboard is running and prints a dashboard link after scaffolding plan stubs. PM agent uses shared reference for dashboard startup.",
+    "migration": null
+  },
+  {
+    "seq": 45,
+    "version": "2026.03.30-2",
+    "date": "2026-03-30",
+    "summary": "Statusline hardening: move auth cache from /tmp to ~/.claude/statusline-auth/ for persistence across reboots, add overwrite guard to prevent account-switch misidentification from replacing higher rate-limit usage with stale lower values, show data age on usage bar with stale indicator (>10m turns yellow), auto-cleanup auth cache files older than 24h. Update setup skill with auth cache directory check and creation step.",
+    "migration": null
+  },
+  {
+    "seq": 44,
+    "version": "2026.03.30-1",
+    "date": "2026-03-30",
+    "summary": "Dashboard overhaul: project-centric homepage with card grid, per-project detail page with Plans/Docs tabs, Docsify integration for browsing project documentation, multi-account rate limit usage bar, kanban task board for active plans. Auto-discover projects from ~/Projects. New statusline script for per-account usage tracking. Railway skill: add config-as-code (railway.toml) and Tailscale subnet router references. Plan execution: skip final gate for single-task plans. Setup skill: add statusline and dashboard checks/fixes.",
+    "migration": null
+  },
+  {
+    "seq": 43,
+    "version": "2026.03.29-4",
+    "date": "2026-03-29",
+    "summary": "Centralize tmux pane labeling in PM — fix bug where agents' self-label commands overwrote Lead's main-context label (tmux set-option -p without -t targets active pane, not calling pane). All agents now report $TMUX_PANE to PM on startup, PM labels everything. Add Bash to code-review and tech-knowledge agents. Remove all pane-diffing from Lead.",
+    "migration": null
+  },
+  {
+    "seq": 42,
+    "version": "2026.03.29-3",
+    "date": "2026-03-29",
+    "summary": "docs-manager: replace bare templates with reference guides. Each doc type now has a full reference (purpose, perspective, how-to, pitfalls, embedded template) instead of just a skeleton. Rename templates/ to references/. Product description template made fluid — free-form sections instead of rigid structure.",
+    "migration": null
+  },
+  {
+    "seq": 41,
+    "version": "2026.03.29-2",
+    "date": "2026-03-29",
+    "summary": "docs-manager: single authority for documentation templates. Move 5 templates to skills/docs-manager/templates/, create 4 new (product-description, testing, persona, research). Add Templates and Document Relationships sections. Mandatory doc gates in plan-enhancer Steps 2-3. Strip discovery-mode inline templates, allow technology docs. Add structural adherence verification to doc-code-verification-mode. All doc-producing skills now load docs-manager.",
+    "migration": null
+  },
+  {
+    "seq": 40,
+    "version": "2026.03.29-1",
+    "date": "2026-03-29",
+    "summary": "Railway skill: add default region to config schema, first-time setup flow, and config script (set-region/get-region commands). Defaults to eu-west (Netherlands) when not specified.",
+    "migration": null
+  },
+  {
+    "seq": 39,
+    "version": "2026.03.28-7",
+    "date": "2026-03-28",
+    "summary": "Roadmap skill: enforce full-stack plans — a feature must never be split across plans by architectural layer (no backend/frontend pairs). Strengthen sizing-framework heuristic #2 with anti-pattern examples, add constraint to SKILL.md, reinforce in stub template.",
+    "migration": null
+  },
+  {
+    "seq": 38,
+    "version": "2026.03.28-6",
+    "date": "2026-03-28",
+    "summary": "Replace tmux-team-grid post-hoc layout with incremental pane placement during spawning. Use `@agent-name` custom tmux options instead of pane titles (Claude Code overwrites titles). Two-pass column equalization. Left column fixed 70 cols, task columns distributed equally. tmux-team-grid becomes recovery-only tool. Remove PM pane-title-setting duties and pane IDs from SPAWNED messages. Add Lead plan review blocking gate to task-executor.",
+    "migration": null
+  },
+  {
+    "seq": 37,
+    "version": "2026.03.28-5",
+    "date": "2026-03-28",
+    "summary": "Remove `name` frontmatter field from all 19 skill files — field is not required by the plugin schema",
+    "migration": null
+  },
+  {
+    "seq": 36,
+    "version": "2026.03.28-4",
+    "date": "2026-03-28",
+    "summary": "Add `/uc:roadmap` skill — decomposes product into sequenced plan stubs with dependency graph. Creates stub plans (`Status: Stub`) that feature-mode consumes as starting points. Update feature-mode with Pre-Stage stub detection, plan-enhancer with stub-to-draft upgrade handling.",
+    "migration": null
+  },
+  {
+    "seq": 35,
+    "version": "2026.03.28-3",
+    "date": "2026-03-28",
+    "summary": "Fix skill schema warnings: add `name` field to all 18 skills, remove unsupported `context:` file-list frontmatter (replace with explicit read instructions in body), add PlanMode conflict prevention to plan-enhancer constraints, strengthen debug-mode constraints (no direct fixes), update docs to reflect new patterns",
+    "migration": null
+  },
+  {
+    "seq": 34,
+    "version": "2026.03.28-2",
+    "date": "2026-03-28",
+    "summary": "Fix stage skipping in debug-mode and plan-enhancer: add 3-point readiness check to Stage 1, remove \"simple enough\" escape hatch from Stage 2, make hypothesis generation a blocking AskUserQuestion gate, replace Stage 3 one-liner with concrete 4-point deliverable, add Stage Entry Check prerequisite to Stage 4, align persona with process discipline, enforce per-stage reference file reads",
+    "migration": null
+  },
+  {
+    "seq": 33,
+    "version": "2026.03.28-1",
+    "date": "2026-03-28",
+    "summary": "Migrate testing config from single `.claude/system-test.md` to multi-file `documentation/technology/testing/` directory (6 files: README, commands, infrastructure, security, agent-rules, final-gate). Update all agents (system-tester, task-tester), skills (init-project, plan-execution, debug-mode, docs-manager, help), and HTML docs to reference new location with graceful fallback to legacy path.",
+    "migration": {
+      "precondition": {
+        "exists": ".claude/system-test.md"
+      },
+      "actions": [
+        {
+          "type": "split-file",
+          "from": ".claude/system-test.md",
+          "into": [
+            "documentation/technology/testing/README.md",
+            "documentation/technology/testing/commands.md",
+            "documentation/technology/testing/infrastructure.md",
+            "documentation/technology/testing/security.md",
+            "documentation/technology/testing/agent-rules.md",
+            "documentation/technology/testing/final-gate.md"
+          ]
+        },
+        {
+          "type": "delete-file",
+          "path": ".claude/system-test.md"
+        }
+      ],
+      "conflicts": "If documentation/technology/testing/ already has files, only migrate content that does not already exist in target."
+    }
+  },
+  {
+    "seq": 32,
+    "version": "2026.03.24-1",
+    "date": "2026-03-24",
+    "summary": "Plan-execution skill: restructure into multi-file skill with references/ (phase-1-setup, phase-2-spawn-prompts, phase-3-checkpoint, phase-4-failure-handling, phase-5-completion). Use \"team member\" terminology instead of \"agent\". Move PM + Knowledge setup to Phase 1. Lead owns all pane title setting. Checkpoint triggers stay in main SKILL.md, template in reference.",
+    "migration": null
+  },
+  {
+    "seq": 31,
+    "version": "2026.03.19-2",
+    "date": "2026-03-19",
+    "summary": "Help skill: show last 5 changes on startup, add system overview when invoked without arguments",
+    "migration": null
+  },
+  {
+    "seq": 30,
+    "version": "2026.03.19-1",
+    "date": "2026-03-19",
+    "summary": "Setup skill: add tmux.conf screen tearing fix — checks for DEC 2026 synchronized output passthrough, writes/merges optimized tmux config (allow-passthrough, escape-time 0, history-limit 250k), detects conflicts with existing settings",
+    "migration": null
+  },
+  {
+    "seq": 29,
+    "version": "2026.03.15-5",
+    "date": "2026-03-15",
+    "summary": "Tech Knowledge agent: move constraints to top, add explicit \"never read codebase\" directive — agent should only research external docs, not browse project source",
+    "migration": null
+  },
+  {
+    "seq": 28,
+    "version": "2026.03.15-4",
+    "date": "2026-03-15",
+    "summary": "Dashboard staleness detection: show warning/critical banners on detail view and stale dots on homepage when PM stops updating status files (executing plans only)",
+    "migration": null
+  },
+  {
+    "seq": 27,
+    "version": "2026.03.15-3",
+    "date": "2026-03-15",
+    "summary": "Add /uc:setup skill — one-time machine setup (1M context env vars, agent teams, tmux, node, optional Tailscale). Writes version marker to ~/.claude/uc-setup.json for quick currency checks. Plan-execution now checks setup marker and suggests /uc:setup when missing.",
+    "migration": null
+  },
+  {
+    "seq": 26,
+    "version": "2026.03.15-2",
+    "date": "2026-03-15",
+    "summary": "Reinforce 3-digit zero-padded plan numbering in plan-enhancer skill and plan template",
+    "migration": null
+  },
+  {
+    "seq": 25,
+    "version": "2026.03.15-1",
+    "date": "2026-03-15",
+    "summary": "Docs-code sync: fix all HTML docs to match current agents/skills — fix agent tables (add project-manager, fix task-tester tools, remove phantom explore), add 4 missing skills, update workflows to 4-stage framework, add pipeline gate and PM coordination to execution docs, fix architecture claims and system overview diagram",
+    "migration": null
+  },
+  {
+    "seq": 24,
+    "version": "2026.03.14-17",
+    "date": "2026-03-14",
+    "summary": "Global singleton PM dashboard: single persistent server aggregates all projects/plans on port 3847, PM registers/deregisters plans via API, one URL for all executions",
+    "migration": null
+  },
+  {
+    "seq": 23,
+    "version": "2026.03.14-16",
+    "date": "2026-03-14",
+    "summary": "tmux-team-grid: fix Write tool error — skill only has Bash, must use cat heredoc to write script file",
+    "migration": null
+  },
+  {
+    "seq": 22,
+    "version": "2026.03.14-15",
+    "date": "2026-03-14",
+    "summary": "Fix 1M context for real: Agent tool model enum doesn't support [1m] suffix — use ANTHROPIC_DEFAULT_*_MODEL env vars in .bashrc instead; clean up misleading [1m] from agent frontmatter and skill spawn instructions",
+    "migration": null
+  },
+  {
+    "seq": 21,
+    "version": "2026.03.14-14",
+    "date": "2026-03-14",
+    "summary": "Add version field to plugin.json (0.1.0), add version consistency rule to CLAUDE.md",
+    "migration": null
+  },
+  {
+    "seq": 20,
+    "version": "2026.03.14-13",
+    "date": "2026-03-14",
+    "summary": "tmux-team-grid: adaptive layouts (startup/execution/final-gate), cross-session isolation fixes, final-gate pane support; plan-execution: pane-diffing for knowledge/PM/final-gate spawns",
+    "migration": null
+  },
+  {
+    "seq": 19,
+    "version": "2026.03.14-12",
+    "date": "2026-03-14",
+    "summary": "Fix 1M context not working: add [1m] suffix to spawn Model instructions in plan-execution skill (was overriding agent frontmatter); add pane title tracking to PM and tmux-team-grid improvements",
+    "migration": null
+  },
+  {
+    "seq": 18,
+    "version": "2026.03.14-11",
+    "date": "2026-03-14",
+    "summary": "Remove Glob/Grep from Tech Knowledge agent to prevent codebase analysis; expand research brief template with verbatim doc excerpts for executors",
+    "migration": null
+  },
+  {
+    "seq": 17,
+    "version": "2026.03.14-10",
+    "date": "2026-03-14",
+    "summary": "Add proactive technology research: Code Reviewer queries Tech Knowledge to verify external library usage against docs, Tech Knowledge sends research briefs to executors on task spawn, new [DOCS] failure category",
+    "migration": null
+  },
+  {
+    "seq": 16,
+    "version": "2026.03.14-9",
+    "date": "2026-03-14",
+    "summary": "Enable 1M context for Code Reviewer, Task Tester, and Project Manager (sonnet[1m]) agents",
+    "migration": null
+  },
+  {
+    "seq": 15,
+    "version": "2026.03.14-8",
+    "date": "2026-03-14",
+    "summary": "Enable 1M context for Task Executor (opus[1m]) and Tech Knowledge (sonnet[1m]) agents",
+    "migration": null
+  },
+  {
+    "seq": 14,
+    "version": "2026.03.14-7",
+    "date": "2026-03-14",
+    "summary": "Restructure planning to 4-stage framework (Understand → Research → Discuss → Write). Add mandatory Discussion Protocol before file writing. Move doc updates to Stage 4. Fix plan directory numbering enforcement.",
+    "migration": null
+  },
+  {
+    "seq": 13,
+    "version": "2026.03.14-6",
+    "date": "2026-03-14",
+    "summary": "Add proactive standards review: plan-enhancer annotates tasks with specific pattern files, executor/reviewer use targeted patterns, tester gains test-writing capability",
+    "migration": null
+  },
+  {
+    "seq": 12,
+    "version": "2026.03.14-5",
+    "date": "2026-03-14",
+    "summary": "Add `skills: [tech-research]` to Tech Knowledge agent — preloads research methodology into agent context at spawn",
+    "migration": null
+  },
+  {
+    "seq": 11,
+    "version": "2026.03.14-4",
+    "date": "2026-03-14",
+    "summary": "Replace per-task Researchers with shared Tech Knowledge agent + Explore agents. Teams now 3 agents (Executor/Reviewer/Tester) + 1 shared knowledge agent. Executors do their own codebase research.",
+    "migration": null
+  },
+  {
+    "seq": 10,
+    "version": "2026.03.14-3",
+    "date": "2026-03-14",
+    "summary": "Add critical-brainstorm skill: devil's advocate mode with web research, critical analysis, and interactive discussion",
+    "migration": null
+  },
+  {
+    "seq": 9,
+    "version": "2026.03.14-2",
+    "date": "2026-03-14",
+    "summary": "Add sequential numbering to plan folders (001-name format) with number-based execution references",
+    "migration": null
+  },
+  {
+    "seq": 8,
+    "version": "2026.03.14-1",
+    "date": "2026-03-14",
+    "summary": "Fix missing pipeline stage updates: Lead now sends STAGE messages for research, planning, and implementation to PM dashboard",
+    "migration": null
+  },
+  {
+    "seq": 7,
+    "version": "2026.03.13-2",
+    "date": "2026-03-13",
+    "summary": "Add CLAUDE.md with version history commit instructions",
+    "migration": null
+  },
+  {
+    "seq": 6,
+    "version": "2026.03.13-1",
+    "date": "2026-03-13",
+    "summary": "Add version history display to help skill",
+    "migration": null
+  },
+  {
+    "seq": 5,
+    "version": "2026.03.12-1",
+    "date": "2026-03-12",
+    "summary": "Unify task list: merge plan tasks and active teams into single mobile-first view",
+    "migration": null
+  },
+  {
+    "seq": 4,
+    "version": "2026.03.11-2",
+    "date": "2026-03-11",
+    "summary": "Add Plan Tasks section to status dashboard",
+    "migration": null
+  },
+  {
+    "seq": 3,
+    "version": "2026.03.11-1",
+    "date": "2026-03-11",
+    "summary": "Fix PM dashboard CWD bug: use absolute paths for all plan directory operations",
+    "migration": null
+  },
+  {
+    "seq": 2,
+    "version": "2026.03.10-2",
+    "date": "2026-03-10",
+    "summary": "Refactor PM to dashboard/monitoring role, Lead owns all orchestration",
+    "migration": null
+  },
+  {
+    "seq": 1,
+    "version": "2026.03.10-1",
+    "date": "2026-03-10",
+    "summary": "Add tailscale-setup skill for configuring serve/funnel",
+    "migration": null
+  }
+]

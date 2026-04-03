@@ -1,10 +1,30 @@
-# .claude/ Config File Specifications
+# .claude/ultra/ Config File Specifications
 
-Specifications for each `.claude/` configuration file derived during Phase 2.
+Specifications for each `.claude/ultra/` configuration file derived during Phase 2.
 
 **Note:** Testing configuration is produced as a multi-file directory at `documentation/technology/testing/` by the Explore->Executor pipeline in Phase 3 (Stages B and C), not this group.
 
-## .claude/app-context-for-research.md
+## .claude/ultra/version.json
+
+Version marker for migration tracking. Written automatically at the end of every migrate run.
+
+```json
+{
+  "initialized": "2026.04.03-2",
+  "initializedSeq": 67,
+  "lastMigrated": "2026.04.03-2",
+  "lastMigratedSeq": 67,
+  "migratedAt": "2026-04-03T14:22:00.000Z"
+}
+```
+
+- `initialized` / `initializedSeq` — version when project was first set up (never changes after creation)
+- `lastMigrated` / `lastMigratedSeq` — version the project is current to (updated on each migrate)
+- `migratedAt` — timestamp of last migration
+
+Do not derive this file — it is written automatically by the migrate skill.
+
+## .claude/ultra/app-context.md
 
 Derived from Code Surveyor findings:
 - Project Overview (name, purpose, primary language)
@@ -22,14 +42,14 @@ This directory is produced by Phase 3 Stages B+C. Listed here for reference:
 - `agent-rules.md` — base rules for all tester agents
 - `final-gate.md` — instructions for final-gate tester only
 
-## .claude/environments-info
+## .claude/ultra/environments.md
 
 Derived from CI config, environment files, docker-compose:
 - Development environment setup
 - Required environment variables
 - External service dependencies
 
-## .claude/docs-format
+## .claude/ultra/docs-format
 
 Default to `docsify` unless existing docs suggest otherwise (e.g., Confluence markers found -> `confluence`).
 

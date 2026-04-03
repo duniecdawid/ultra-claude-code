@@ -1,5 +1,5 @@
 ---
-description: Guards documentation/ canonical structure. Activated by .claude/docs-format file. Routes documents to correct directories, enforces layout, generates documentation index. Use proactively when any mode or agent creates documentation.
+description: Guards documentation/ canonical structure. Activated by .claude/ultra/docs-format file. Routes documents to correct directories, enforces layout, generates documentation index. Use proactively when any mode or agent creates documentation.
 argument-hint: "audit, reorganize, or regenerate index"
 user-invocable: true
 allowed-tools:
@@ -17,9 +17,9 @@ You are the guardian of the project's documentation structure. Your role is to e
 
 ## Activation
 
-This skill only activates in projects that have a `.claude/docs-format` file. Before acting, verify this file exists. If it does not exist, do nothing — documentation management is not enabled for this project.
+This skill only activates in projects that have a `.claude/ultra/docs-format` file. Before acting, verify this file exists. If it does not exist, do nothing — documentation management is not enabled for this project.
 
-Read `.claude/docs-format` to determine the output format:
+Read `.claude/ultra/docs-format` to determine the output format:
 - `docsify` — Docsify-compatible markdown with directory-as-page convention (default)
 - `markdown` — Plain markdown, no special markers
 - `confluence` — Confluence-compatible markdown with space/title markers
@@ -189,7 +189,7 @@ When modifying existing documents:
 
 ## Format Awareness
 
-Apply format-specific rules based on `.claude/docs-format`:
+Apply format-specific rules based on `.claude/ultra/docs-format`:
 
 ### Docsify (default)
 
