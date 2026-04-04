@@ -25,7 +25,7 @@ Plan Enhancer is the starting point and framework for all planning modes. Modes 
 - Do NOT write any files before Stage 4 — research results and discussion stay in conversation context only
 - ALWAYS write the plan to `documentation/plans/{NNN}-{name}/README.md` BEFORE presenting for approval
 - ALWAYS include the `Execute: /uc:plan-execution {NNN}` header in the plan document
-- ALWAYS follow the Post-Approval steps after the user approves — commit, print command, stop. No exceptions.
+- ALWAYS follow ALL Post-Approval steps after the user approves — update README status, update plan.json (with tasks array), commit, print command, stop. No exceptions.
 - NEVER create plan tasks whose sole purpose is updating documentation — doc updates happen in Stage 4 Steps 2-3
 
 ---

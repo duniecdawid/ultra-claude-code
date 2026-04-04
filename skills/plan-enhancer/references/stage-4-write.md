@@ -150,21 +150,25 @@ Write to `documentation/plans/{NNN}-{name}/README.md` via the Write tool — thi
 
 ## Step 7: Post-Approval — HARD STOP
 
-When the user explicitly approves the plan:
+When the user explicitly approves the plan, you MUST complete ALL THREE sub-steps before stopping:
 
-1. **Update status to Approved:**
-   - Update README: change `> Status: Draft` → `> Status: Approved`
-   - Update `plan.json` at plan root: set `"total_tasks"` and `"pending_tasks"` to the actual task count, and populate the `"tasks"` array with all tasks from the README (parse `### Task N: {name}` headings). Follow the format in `${CLAUDE_PLUGIN_ROOT}/references/plan-status-format.md` — all tasks should be `pending` with minimal fields.
-2. **Commit plan files** — Stage all plan files (README.md, plan.json, directories) and commit:
+1. **Update README status:** change `> Status: Draft` → `> Status: Approved`
+2. **Update `plan.json`** — THIS IS MANDATORY, DO NOT SKIP:
+   - Read the current `plan.json` at `documentation/plans/{NNN}-{name}/plan.json`
+   - Set `"total_tasks"` and `"pending_tasks"` to the actual task count from the README
+   - Populate the `"tasks"` array by parsing all `### Task N: {name}` headings from the README — each task gets `task_id`, `task_name`, and `"status": "pending"`
+   - Follow the format in `${CLAUDE_PLUGIN_ROOT}/references/plan-status-format.md`
+   - Write the updated `plan.json` back to disk
+3. **Commit plan files** — Stage all plan files (README.md, plan.json, directories) and commit:
    ```
    git add documentation/plans/{NNN}-{name}/ && git commit -m "plan: {NNN}-{name}"
    ```
-3. **Print execution command and instruct the user to run it in a new window:**
+4. **Print execution command and instruct the user to run it in a new window:**
    ```
    Plan committed. To execute, open a new window and run:
    /uc:plan-execution {NNN}
    ```
-4. **STOP.** Your turn ends here. No more output after printing the command. Do NOT:
+5. **STOP.** Your turn ends here. No more output after printing the command. Do NOT:
    - Start executing the plan
    - Suggest starting execution
    - Ask if the user wants you to execute

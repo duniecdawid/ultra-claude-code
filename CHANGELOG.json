@@ -1,5 +1,12 @@
 [
   {
+    "seq": 92,
+    "version": "2026.04.04-25",
+    "date": "2026-04-04",
+    "summary": "Make plan.json update mandatory and prominent in plan-enhancer post-approval steps. Previously the plan.json update was a sub-bullet that got skipped; now it is a separate numbered step with explicit instructions.",
+    "migration": null
+  },
+  {
     "seq": 91,
     "version": "2026.04.04-24",
     "date": "2026-04-04",
