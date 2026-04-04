@@ -1,5 +1,12 @@
 [
   {
+    "seq": 74,
+    "version": "2026.04.04-6",
+    "date": "2026-04-04",
+    "summary": "Rewrite tester workflow for hot-start (lazy-spawn prep). Tester now spawns when code is ready, reads context immediately, and starts testing without a waiting phase.",
+    "migration": null
+  },
+  {
     "seq": 73,
     "version": "2026.04.04-5",
     "date": "2026-04-04",

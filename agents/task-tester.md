@@ -67,9 +67,9 @@ If the task involves frontend, you MUST use browser testing (section 3f) in addi
 
 ## Workflow
 
-### 1. Read Context & Build Test Strategy (While Waiting)
+### 1. Read Context & Build Test Strategy (Immediately on Spawn)
 
-While waiting for the Executor to finish, do real work — don't just read, **prepare**:
+You are spawned when the Executor's implementation is complete. Code is ready — move fast. Read and prepare:
 
 1. **Read the requirements** — these are your source of truth, not the Executor's interpretation:
    - **Plan README.md** — success criteria for each task (PRIMARY reference)
@@ -92,7 +92,7 @@ While waiting for the Executor to finish, do real work — don't just read, **pr
 
 ### 2. Receive "Ready for Test" Signal
 
-The Executor will message you when implementation is complete. They'll include a list of files changed. **This signal arrives at the same time as the Reviewer's "ready for review" — you work in parallel with the Reviewer.** This is your trigger to start, not your boundary — you verify independently, you don't just check what they say they did.
+The Executor will message you shortly after spawn with "ready for test" and a list of files changed. **You work in parallel with the Reviewer.** This is your trigger to start, not your boundary — you verify independently, you don't just check what they say they did. If the message hasn't arrived yet, continue reading context files — it will come shortly.
 
 **IMPORTANT:** After any code fix (whether triggered by Reviewer feedback or your own test failures), the Executor will send you "Ready for re-test — fixed: {summary}, files updated: {list}". You MUST re-test against the updated code, even if you already sent PASS. Your previous PASS is invalidated by code changes.
 
