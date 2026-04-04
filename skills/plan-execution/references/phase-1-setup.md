@@ -11,11 +11,15 @@ Read ALL files in `documentation/plans/$ARGUMENTS/`:
 
 You now have the full picture.
 
-### 1.1b Ultra Dashboard
+### 1.1b Tmux Layout Daemon
 
-Read and execute `${CLAUDE_PLUGIN_ROOT}/references/ensure-dashboard.md` to ensure the dashboard is running and obtain `$DASHBOARD_URL`.
+Start the standalone tmux layout daemon so panes are automatically arranged as agents spawn:
 
-Then label this pane as the main context so the layout watcher discovers and manages this window:
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/tmux-layout-daemon.js" --ensure
+```
+
+Then label this pane as the main context so the layout daemon discovers and manages this window:
 
 ```bash
 tmux set-option -p -t $TMUX_PANE @agent-name "main-context"
@@ -23,7 +27,7 @@ tmux set-option -w pane-border-status top
 tmux set-option -w pane-border-format " #{@agent-name} "
 ```
 
-The dashboard arranges panes as agents spawn and self-label their panes, monitors plan health for stalls/rate limits, and serves the web dashboard. **You do NOT run any tmux commands yourself** — agents self-label; PM verifies.
+The layout daemon arranges panes as agents spawn and self-label their panes. **You do NOT run any tmux commands yourself** — agents self-label; PM verifies.
 
 ### 1.2 Resume Detection
 

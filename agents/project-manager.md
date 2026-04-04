@@ -63,7 +63,7 @@ You **never** make technical decisions — you don't review code, judge implemen
 
 ## Pane Verification
 
-Agents self-label their tmux panes on startup via `$TASK_ID` or `$PLAN_NAME`. A background layout watcher (tmux-layout.js in the Ultra Dashboard) polls every 2 seconds, reads `@agent-name` labels, and arranges panes into a grid. Your job is to verify labels are correct and fix any missing ones (agent crashed before self-labeling).
+Agents self-label their tmux panes on startup via `$TASK_ID` or `$PLAN_NAME`. A background layout daemon (tmux-layout-daemon.js) polls every 2 seconds, reads `@agent-name` labels, and arranges panes into a grid. Your job is to verify labels are correct and fix any missing ones (agent crashed before self-labeling).
 
 ### How the layout watcher classifies panes
 
@@ -153,24 +153,11 @@ At the very beginning of execution (before spawning any teams):
    PLAN_NAME=$(basename "$PLAN_DIR")
    ```
 
-6. Ensure the dashboard is running by reading and executing `${CLAUDE_PLUGIN_ROOT}/references/ensure-dashboard.md`. This gives you `$DASHBOARD_URL`.
-
-7. Register this plan with the global dashboard:
-   ```bash
-   curl -sf -X POST http://localhost:3847/api/register \
-     -H 'Content-Type: application/json' \
-     -d "{\"project\":\"$PROJECT_NAME\",\"plan\":\"$PLAN_NAME\",\"plan_dir\":\"$PLAN_DIR\",\"project_root\":\"$PROJECT_ROOT\"}"
-   ```
-   Build the plan-specific dashboard URL:
-   ```
-   PLAN_DASHBOARD_URL="${DASHBOARD_URL}/plan/$PROJECT_NAME/$PLAN_NAME"
-   ```
-
-8. **Update plan README status to "In Progress":**
+6. **Update plan README status to "In Progress":**
    Read `documentation/plans/{PLAN_NAME}/README.md`, find the `> Status:` line, replace it with `> Status: In Progress`. Write the file back.
 
-9. SendMessage to Lead: "Dashboard live at {PLAN_DASHBOARD_URL} (also http://localhost:3847)"
-   This is the ONE status message you send to Lead at startup — it gives the human the link they need to monitor execution from any device.
+7. SendMessage to Lead: "PM initialized — plan.json and events.json ready. Monitoring active."
+   This is the ONE status message you send to Lead at startup.
 
 ### events.json — event types
 
@@ -222,15 +209,6 @@ All updates write to `plan.json` (a single file). Re-write the entire file on ea
 
 ### Shutdown
 
-When execution completes, mark the plan inactive. The dashboard stays running for other plans and historical viewing:
-```bash
-curl -sf -X POST http://localhost:3847/api/deregister \
-  -H 'Content-Type: application/json' \
-  -d "{\"project\":\"$PROJECT_NAME\",\"plan\":\"$PLAN_NAME\"}"
-```
-
-Do NOT shut down until the human has had time to review the final state. Wait for the Lead's shutdown signal.
-
 Do NOT shut down until the human has had time to review the final state. Wait for the Lead's shutdown signal.
 
 ## Status Update Processing
@@ -253,7 +231,7 @@ The Lead sends you terse status messages as it orchestrates. Process each into t
 ### Communication with Lead
 
 **You send to Lead (alerts only):**
-- "Dashboard live at {DASHBOARD_URL} (also http://localhost:3847)" — sent once at startup
+- "PM initialized — plan.json and events.json ready. Monitoring active." — sent once at startup
 - "ALERT: USAGE-PAUSE (#N) — 5-hour rate limit at {pct}%..." — proactive pause when extra_usage=false
 - "ALERT: USAGE-RESUME (#N) — Rate limit window has reset..." — safe to resume after usage pause
 
@@ -457,7 +435,7 @@ Log these observations — they feed directly into the Plan Quality Retrospectiv
 
 1. When spawned, read the full plan and lead.md to understand scope and team structure
 2. Complete your First Action (pane label + monitoring cron)
-3. Initialize the status directory and launch the dashboard (see "Live Status Dashboard > Startup Sequence")
+3. Initialize plan.json and events.json (see "Live Status Dashboard > Startup Sequence")
 4. The cron handles periodic monitoring automatically — respond to each MONITORING TICK by updating timers and checking usage
 5. Between ticks, process Lead messages into dashboard JSON as they arrive
 6. Passively collect data for the operational report
@@ -473,7 +451,7 @@ When the Lead sends "Execution complete — write operational report":
 5. Compile the operational report
 6. Write it to `documentation/plans/{PLAN_NAME}/operational-report.md`
 7. **Commit final status files:** `git add documentation/plans/{PLAN_NAME}/plan.json documentation/plans/{PLAN_NAME}/events.json documentation/plans/{PLAN_NAME}/operational-report.md` and commit.
-8. SendMessage to Lead: "Operational report saved to operational-report.md. Dashboard still live at {DASHBOARD_URL}"
+8. SendMessage to Lead: "Operational report saved to operational-report.md."
 9. Wait for shutdown_request from Lead on shutdown
 
 ## Report Structure

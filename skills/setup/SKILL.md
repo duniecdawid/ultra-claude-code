@@ -1,5 +1,5 @@
 ---
-description: One-time machine setup for Ultra Claude. Checks and configures shell environment (1M context, agent teams), installs prerequisites (tmux, node), configures tmux for Claude Code (fixes screen tearing via DEC 2026 synchronized output passthrough), sets up the Ultra Dashboard (project docs via Docsify, multi-account rate limit monitoring, plan execution tracking), configures the statusline for per-account usage tracking, and optionally sets up Tailscale for remote dashboard access. Idempotent — safe to re-run. Writes version marker to ~/.claude/ultra/uc-setup.json so other skills can quickly check if setup is current. Use when onboarding a new machine, after Ultra Claude install, when plan-execution reports missing prerequisites, or when experiencing screen tearing/flickering in tmux. Triggers on "setup", "machine setup", "environment setup", "configure machine", "setup 1m context", "enable agent teams", "screen tearing", "tmux tearing", "flickering".
+description: One-time machine setup for Ultra Claude. Checks and configures shell environment (1M context, agent teams), installs prerequisites (tmux, node), configures tmux for Claude Code (fixes screen tearing via DEC 2026 synchronized output passthrough), configures the statusline for per-account usage tracking, and optionally sets up Tailscale for remote access. Idempotent — safe to re-run. Writes version marker to ~/.claude/ultra/uc-setup.json so other skills can quickly check if setup is current. Use when onboarding a new machine, after Ultra Claude install, when plan-execution reports missing prerequisites, or when experiencing screen tearing/flickering in tmux. Triggers on "setup", "machine setup", "environment setup", "configure machine", "setup 1m context", "enable agent teams", "screen tearing", "tmux tearing", "flickering".
 user-invocable: true
 ---
 
@@ -61,7 +61,7 @@ PASS if **both** export lines exist in shell config with `[1m]` suffix.
 node --version 2>/dev/null
 ```
 
-PASS if `node` is found (v18+ recommended for PM dashboard).
+PASS if `node` is found (v18+ recommended).
 
 ### 3.5 tmux.conf (Claude Code optimized)
 
@@ -109,22 +109,7 @@ PASS if:
 - All three symlinks exist (`lib.sh`, `hooks/session-start.sh`, `hooks/session-end.sh`)
 - `~/.claude/settings.json` has `hooks.SessionStart` and `hooks.SessionEnd` entries
 
-### 3.8 Ultra Dashboard (includes Docsify docs hosting)
-
-Check if the dashboard's dependencies are installed and it's running:
-
-```bash
-# Check node_modules exist
-ls ${CLAUDE_PLUGIN_ROOT}/scripts/ultra-dashboard/node_modules/.package-lock.json 2>/dev/null
-
-# Check if dashboard is running
-dashboard_pid=$(cat ~/.claude/ultra/dashboard.pid 2>/dev/null)
-[ -n "$dashboard_pid" ] && kill -0 "$dashboard_pid" 2>/dev/null && echo "running" || echo "not running"
-```
-
-PASS if node_modules exist. Note running status but don't fail on it — the dashboard auto-starts when needed.
-
-### 3.9 Tailscale (optional)
+### 3.8 Tailscale (optional)
 
 ```bash
 which tailscale 2>/dev/null && tailscale status --self --json 2>/dev/null
@@ -146,14 +131,13 @@ Ultra Claude Environment Check (plugin v{version})
   Node.js               ✓ v22.0.0
   Statusline            ✗ not configured
   Session Hooks         ✗ not configured
-  Dashboard             ✗ dependencies missing
   Tailscale (optional)  — not installed
 ```
 
-If ALL required checks pass (3.1–3.8):
+If ALL required checks pass (3.1–3.7):
 - Write the marker file (Step 6)
 - Print "Environment ready! All prerequisites configured."
-- If Tailscale is not set up, mention: "Optional: Run `/uc:tailscale-setup` to enable remote dashboard access."
+- If Tailscale is not set up, mention: "Optional: Run `/uc:tailscale-setup` to enable remote access."
 - Stop here.
 
 ## Step 5: Fix Missing Prerequisites
@@ -204,7 +188,7 @@ export ANTHROPIC_DEFAULT_SONNET_MODEL='claude-sonnet-4-6[1m]'
 Do NOT auto-install Node.js — too many ways to manage it. Instead, print guidance:
 
 ```
-Node.js is required for the PM status dashboard.
+Node.js is required for the tmux layout daemon and other Ultra Claude scripts.
 
 Recommended install methods:
   - nvm (recommended): https://github.com/nvm-sh/nvm
@@ -303,7 +287,7 @@ else
 fi
 ```
 
-Tell the user: "Statusline configured — usage data will appear on the Ultra Dashboard after your next Claude Code interaction. Rate limits are tracked per account with overwrite protection."
+Tell the user: "Statusline configured — usage data will appear after your next Claude Code interaction. Rate limits are tracked per account with overwrite protection."
 
 **Important:** Always re-create the symlinks during setup, even if already configured. The source paths may have changed. The symlink steps are idempotent.
 
@@ -341,29 +325,7 @@ rm -f ~/.claude/ultra/usage-status.json
 
 **Important:** Always re-create the symlinks during setup. The hook scripts source `~/.claude/ultra/lib.sh` which must be symlinked first (done in 5.6).
 
-### 5.8 Fix: Ultra Dashboard
-
-Install dependencies and start the dashboard:
-
-```bash
-cd "${CLAUDE_PLUGIN_ROOT}/scripts/ultra-dashboard" && npm install --production
-```
-
-Then start the dashboard in the background:
-
-```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/ultra-dashboard/index.js" --ensure
-```
-
-Tell the user: "Ultra Dashboard started on port 3847. Access project documentation and plan monitoring at http://localhost:3847"
-
-The dashboard provides:
-- **Project-centric homepage** — lists all projects, shows active plan status
-- **Per-project views** with tabs for Plans and Documentation (Docsify)
-- **Multi-account rate limit monitoring** — thin bar at top shows all tracked accounts with dynamic reset countdowns
-- **Plan execution monitoring** — real-time task progress, team status, health checks
-
-### 5.9 Fix: Tailscale
+### 5.8 Fix: Tailscale
 
 If the user selected Tailscale, invoke `/uc:tailscale-setup` which handles all Tailscale configuration.
 
@@ -385,7 +347,6 @@ After all fixes are applied, write `~/.claude/ultra/uc-setup.json`:
     "node": true/false,
     "statusline": true/false,
     "sessionHooks": true/false,
-    "dashboard": true/false,
     "tailscale": true/false
   }
 }

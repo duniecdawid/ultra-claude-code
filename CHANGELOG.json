@@ -1,5 +1,20 @@
 [
   {
+    "seq": 91,
+    "version": "2026.04.04-24",
+    "date": "2026-04-04",
+    "summary": "Remove embedded web dashboard (scripts/ultra-dashboard/); extract tmux layout daemon to standalone scripts/tmux-layout-daemon.js. Delete ensure-dashboard and tmux-team-grid skills. Remove all HTTP API calls from PM agent. Dashboard is now an optional standalone app (ultra-claude-web).",
+    "migration": {
+      "precondition": "Project has been initialized with Ultra Claude (any version with dashboard references)",
+      "actions": [
+        "The ensure-dashboard and tmux-team-grid skills no longer exist — remove any references to them",
+        "Dashboard PID, registry, and projects files under ~/.claude/ultra/ are no longer used and can be safely deleted: dashboard.pid, dashboard-registry.json, dashboard-projects.json",
+        "Re-run /uc:setup to update environment checks (dashboard check removed)"
+      ],
+      "conflicts": "Any custom scripts that curl localhost:3847 or reference the old dashboard API will need to be updated."
+    }
+  },
+  {
     "seq": 90,
     "version": "2026.04.04-23",
     "date": "2026-04-04",

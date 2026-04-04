@@ -1,7 +1,67 @@
-const { execSync } = require('child_process');
+#!/usr/bin/env node
+// Tmux Layout Daemon — arranges panes by @agent-name labels
+// Usage: node tmux-layout-daemon.js [--ensure]
+// --ensure: check if already running, start in background if not
+
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+const { execSync, spawn } = require('child_process');
+
+const HOME = os.homedir();
+const PID_FILE = path.join(HOME, '.claude', 'ultra', 'tmux-layout.pid');
+
+// --- Singleton management ---
+
+function isRunning(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function readPid() {
+  try {
+    return parseInt(fs.readFileSync(PID_FILE, 'utf8').trim());
+  } catch {
+    return null;
+  }
+}
+
+if (process.argv.includes('--ensure')) {
+  const existingPid = readPid();
+  if (existingPid && isRunning(existingPid)) {
+    console.log(`Tmux layout daemon already running (PID ${existingPid})`);
+    process.exit(0);
+  }
+
+  // Fork to background
+  const child = spawn(process.execPath, [__filename], {
+    detached: true,
+    stdio: 'ignore',
+    env: { ...process.env, TMUX_LAYOUT_DAEMONIZED: '1' }
+  });
+  child.unref();
+
+  // Wait briefly for startup
+  setTimeout(() => {
+    const newPid = readPid();
+    if (newPid && isRunning(newPid)) {
+      console.log(`Tmux layout daemon started (PID ${newPid})`);
+    } else {
+      console.log('Tmux layout daemon starting...');
+    }
+    process.exit(0);
+  }, 1000);
+  return;
+}
+
+// --- Layout engine ---
 
 const LEFT_WIDTH = 70;
-const managedWindows = new Map(); // windowId -> { lastSnapshot, lastSize }
+const managedWindows = new Map();
 
 function tmux(cmd) {
   try {
@@ -48,12 +108,11 @@ function classifyPanes(panes) {
 
 function arrangeWindow(windowId, panes) {
   const classified = classifyPanes(panes);
-  if (!classified.mainPane) return; // Not a managed window
+  if (!classified.mainPane) return;
 
   const { mainPane, pmPane, tkPane, gatePane, tasks } = classified;
   const taskNums = Object.keys(tasks).sort((a, b) => parseInt(a) - parseInt(b));
 
-  // Collect all labeled non-main panes
   const labeledPanes = [];
   if (pmPane) labeledPanes.push(pmPane);
   if (tkPane) labeledPanes.push(tkPane);
@@ -62,14 +121,13 @@ function arrangeWindow(windowId, panes) {
     labeledPanes.push(...tasks[num]);
   }
 
-  if (labeledPanes.length === 0) return; // Nothing to arrange
+  if (labeledPanes.length === 0) return;
 
   // Break all labeled non-main panes to hidden windows
   for (const pid of labeledPanes) {
     tmux(`break-pane -d -s ${pid}`);
   }
 
-  // Small delay for tmux to process
   execSync('sleep 0.2');
 
   // Rebuild left column
@@ -96,7 +154,6 @@ function arrangeWindow(windowId, panes) {
     }
     columnHeads.push(head);
 
-    // Stack remaining panes below
     let prev = head;
     let remaining = taskPanes.length - 1;
     for (let i = 1; i < taskPanes.length; i++) {
@@ -131,14 +188,12 @@ function arrangeWindow(windowId, panes) {
         for (const head of columnHeads) {
           tmux(`resize-pane -t ${head} -x ${colWidth}`);
         }
-        // Pin all left-column panes
         for (const lp of [mainPane, pmPane, tkPane]) {
           if (lp) tmux(`resize-pane -t ${lp} -x ${LEFT_WIDTH}`);
         }
       }
     }
 
-    // Enforce left column heights
     if (winHeight > 0) {
       let leftCount = 1;
       if (pmPane) leftCount++;
@@ -155,7 +210,6 @@ function arrangeWindow(windowId, panes) {
     }
   }
 
-  // Ensure borders show labels
   tmux(`set-option -w -t ${windowId} pane-border-status top`);
   tmux(`set-option -w -t ${windowId} pane-border-format " #{@agent-name} "`);
   tmux(`select-pane -t ${mainPane}`);
@@ -174,13 +228,10 @@ function getSize(panes) {
   return `${panes[0].width}x${panes[0].height}`;
 }
 
-let intervalId = null;
-
 function tick() {
   const windows = scanPanes();
 
   for (const [windowId, panes] of windows) {
-    // Only manage windows with a main-context pane
     const hasMain = panes.some(p => p.label === 'main-context');
     if (!hasMain) {
       managedWindows.delete(windowId);
@@ -193,7 +244,6 @@ function tick() {
 
     if (!prev || prev.lastSnapshot !== snapshot || prev.lastSize !== size) {
       arrangeWindow(windowId, panes);
-      // Re-read after arrangement
       const updated = scanPanes().get(windowId) || panes;
       managedWindows.set(windowId, {
         lastSnapshot: getSnapshot(updated),
@@ -202,7 +252,6 @@ function tick() {
     }
   }
 
-  // Clean up windows that no longer exist
   for (const windowId of managedWindows.keys()) {
     if (!windows.has(windowId)) {
       managedWindows.delete(windowId);
@@ -210,28 +259,16 @@ function tick() {
   }
 }
 
-function startLayoutManager(opts = {}) {
-  const interval = opts.interval || 2000;
-  // Note: the dashboard runs as a background daemon with no tmux context.
-  // The main-context label must be set by the caller (e.g., plan-execution phase-1)
-  // on the tmux pane that should be treated as the main pane.
-  intervalId = setInterval(tick, interval);
-  console.log(`Layout manager started (${interval}ms poll)`);
-}
+// --- Normal startup (daemon mode) ---
 
-function stopLayoutManager() {
-  if (intervalId) {
-    clearInterval(intervalId);
-    intervalId = null;
-  }
-}
+fs.mkdirSync(path.dirname(PID_FILE), { recursive: true });
+fs.writeFileSync(PID_FILE, String(process.pid));
 
-function getLayoutState() {
-  const state = {};
-  for (const [windowId, data] of managedWindows) {
-    state[windowId] = { ...data };
-  }
-  return state;
-}
+const INTERVAL = 2000;
+setInterval(tick, INTERVAL);
+console.log(`Tmux layout daemon running (PID ${process.pid}, ${INTERVAL}ms poll)`);
 
-module.exports = { startLayoutManager, stopLayoutManager, getLayoutState, arrangeWindow, scanPanes };
+// Clean up on exit
+process.on('exit', () => { try { fs.unlinkSync(PID_FILE); } catch {} });
+process.on('SIGTERM', () => process.exit(0));
+process.on('SIGINT', () => process.exit(0));

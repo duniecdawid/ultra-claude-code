@@ -1,5 +1,5 @@
 ---
-description: Update Ultra Claude to the latest version — pulls from git, clears plugin cache, restarts dashboard, and checks if projects need migration. Use when user says "update", "upgrade", "pull latest", "refresh plugin", "update ultra claude", "get latest version", or after hearing about new features they want. Run this skill proactively if the user mentions wanting a feature that might already exist in a newer version.
+description: Update Ultra Claude to the latest version — pulls from git, clears plugin cache, restarts tmux layout daemon, and checks if projects need migration. Use when user says "update", "upgrade", "pull latest", "refresh plugin", "update ultra claude", "get latest version", or after hearing about new features they want. Run this skill proactively if the user mentions wanting a feature that might already exist in a newer version.
 user-invocable: true
 allowed-tools: [Bash, Read, Glob, Grep]
 ---
@@ -83,7 +83,7 @@ Since v2026.04.04-15, Ultra Claude runtime files live under `~/.claude/ultra/` i
 mkdir -p "$HOME/.claude/ultra"
 
 # Files to move (old -> new)
-for f in uc-setup.json dashboard.pid usage-status.json dashboard-projects.json dashboard-registry.json; do
+for f in uc-setup.json usage-status.json; do
   if [ -f "$HOME/.claude/$f" ] && [ ! -f "$HOME/.claude/ultra/$f" ]; then
     mv "$HOME/.claude/$f" "$HOME/.claude/ultra/$f"
     echo "Moved $f -> ~/.claude/ultra/$f"
@@ -132,27 +132,20 @@ fi
 
 If nothing was moved, skip silently — the user is already on the new layout.
 
-## Step 5: Force Restart Dashboard
+## Step 5: Restart Tmux Layout Daemon
 
-Kill the existing dashboard and start fresh so it picks up any server-side changes:
+Kill the existing daemon and start fresh so it picks up any changes:
 
 ```bash
-PID_FILE="$HOME/.claude/ultra/dashboard.pid"
+PID_FILE="$HOME/.claude/ultra/tmux-layout.pid"
 if [ -f "$PID_FILE" ]; then
   kill "$(cat "$PID_FILE")" 2>/dev/null
   rm -f "$PID_FILE"
   sleep 1
-  echo "Old dashboard stopped"
+  echo "Old layout daemon stopped"
 fi
 
-node "${CLAUDE_PLUGIN_ROOT}/scripts/ultra-dashboard/index.js" --ensure
-```
-
-Verify it's running:
-
-```bash
-sleep 2
-curl -sf http://localhost:3847/api/version
+node "${CLAUDE_PLUGIN_ROOT}/scripts/tmux-layout-daemon.js" --ensure
 ```
 
 ## Step 6: Check Migration Needs
@@ -172,17 +165,10 @@ jq --argjson old "$OLD_SEQ" --argjson new "$NEW_SEQ" \
 If migration entries exist:
 
 1. List each migration with version + summary
-2. Read `~/.claude/ultra/dashboard-projects.json` to get registered projects:
-   ```bash
-   jq -r '.[]' ~/.claude/ultra/dashboard-projects.json 2>/dev/null
-   ```
-3. Actively recommend migration:
+2. Actively recommend migration:
 
 > **Project migrations available.** These changes affect project structure:
 > - {version} — {summary}
->
-> **Registered projects that should be migrated:**
-> - {project path}
 >
 > Run `/uc:migrate` in each project to apply the changes. You can do this now or next time you open each project.
 

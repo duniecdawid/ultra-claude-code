@@ -15,11 +15,9 @@ Execute these phases in order: Safety Check -> Explore -> Plan -> Execute.
 
 ---
 
-### Phase 0: Dashboard & Safety Check
+### Phase 0: Safety Check
 
-First, ensure the Ultra Dashboard is running by reading and executing `${CLAUDE_PLUGIN_ROOT}/references/ensure-dashboard.md`.
-
-Then warn the user:
+Warn the user:
 
 > This skill may create directories, write configuration files, and move documentation. I recommend committing your current changes before proceeding so you can easily revert if needed. Should I continue?
 
@@ -180,18 +178,6 @@ Pass the Explore agent results directly into the executor spawn prompt — no in
 - **Within Stage C**: All Executors run in parallel (up to 5 at a time, batch if more)
 
 After all stages complete, verify results and report.
-
----
-
-### Register with Dashboard
-
-Register this project with the Ultra Dashboard so it appears on the homepage:
-
-```bash
-curl -X POST http://localhost:3847/api/register-project \
-  -H 'Content-Type: application/json' \
-  -d '{"project_root":"'"$(pwd)"'"}'
-```
 
 ---
 

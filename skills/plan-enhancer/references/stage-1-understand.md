@@ -4,13 +4,12 @@ The active planning mode defines this stage. Plan Enhancer does not participate.
 
 **Purpose:** Gather enough context from the user to prepare for research. The mode drives questions, challenges assumptions, and surfaces edge cases until it has a clear picture of the problem space.
 
-## Ultra Dashboard
+## Tmux Layout
 
-Read and execute `${CLAUDE_PLUGIN_ROOT}/references/ensure-dashboard.md` to ensure the dashboard is running and obtain `$DASHBOARD_URL`.
-
-Then label this pane as the main context:
+Start the layout daemon and label this pane as the main context:
 
 ```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/tmux-layout-daemon.js" --ensure
 tmux set-option -p -t $TMUX_PANE @agent-name "main-context"
 tmux set-option -w pane-border-status top
 tmux set-option -w pane-border-format " #{@agent-name} "

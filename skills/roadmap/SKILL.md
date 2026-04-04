@@ -35,7 +35,6 @@ This skill assumes:
 
 Before starting, read:
 - `${CLAUDE_PLUGIN_ROOT}/skills/docs-manager/SKILL.md` (for doc routing rules)
-- `${CLAUDE_PLUGIN_ROOT}/references/ensure-dashboard.md` — execute its steps to ensure the dashboard is running and obtain `$DASHBOARD_URL`
 
 ## Scope Constraint
 
@@ -226,18 +225,10 @@ git add documentation/plans/ && git commit -m "roadmap: scaffold {N} plan stubs"
 
 ### Step 5: Print next steps and STOP
 
-Determine the project name for the dashboard link:
-
-```bash
-PROJECT_NAME=$(basename "$(pwd)")
-```
-
 Print the execution guide:
 
 ```
 Roadmap scaffolded: {N} plan stubs created.
-
-View on dashboard: {DASHBOARD_URL}/project/{PROJECT_NAME}
 
 To detail and execute each plan in order:
   /uc:feature-mode "{first-plan-name}"    <- start here
@@ -268,7 +259,7 @@ See documentation/plans/ROADMAP.md for the full dependency graph.
 
 ## Plan Stub Bootstrap — MANDATORY
 
-When creating stub plan directories, ALWAYS generate a `plan.json` file at the plan root alongside the README.md. The dashboard discovers plans via `plan.json` — without it, the plan is invisible in the dashboard.
+When creating stub plan directories, ALWAYS generate a `plan.json` file at the plan root alongside the README.md. Plan status tracking relies on `plan.json` — without it, the plan is invisible to status tools.
 
 Follow `${CLAUDE_PLUGIN_ROOT}/references/plan-status-format.md` for the format. For stubs: set `status` to `"pending"`, all counts to 0, no tasks array.
 

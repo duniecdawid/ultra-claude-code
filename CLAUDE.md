@@ -22,10 +22,6 @@ When a commit changes files that exist in projects using Ultra Claude (anything 
 
 Not every commit needs a migration entry — only those that affect what files exist in projects that use Ultra Claude.
 
-## Dashboard Restart — MANDATORY
-
-When editing any file under `scripts/ultra-dashboard/`, restart the dashboard after committing so the changes take effect. Use: `pkill -f "node.*ultra-dashboard"; sleep 1; node scripts/ultra-dashboard/index.js &`
-
 ## Help Skill Sync — MANDATORY
 
 When editing any skill (`skills/*/SKILL.md`) or agent (`agents/*.md`), update the corresponding 3-sentence description in `skills/help/SKILL.md`.

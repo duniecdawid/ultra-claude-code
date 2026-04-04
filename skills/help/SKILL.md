@@ -37,7 +37,7 @@ Skills read the codebase and documentation, spawn agents for parallel work, and 
 ### Setup & Onboarding
 
 **Setup** (`/uc:setup`)
-One-time machine configuration that installs prerequisites (tmux, Node.js), configures shell environment (1M context, agent teams), sets up the Ultra Dashboard, and optimizes tmux for Claude Code. Use after plugin installation or on a new machine. Idempotent — writes a version marker so other skills can verify setup is current.
+One-time machine configuration that installs prerequisites (tmux, Node.js), configures shell environment (1M context, agent teams), and optimizes tmux for Claude Code. Use after plugin installation or on a new machine. Idempotent — writes a version marker so other skills can verify setup is current.
 
 **Migrate** (`/uc:migrate`)
 Brings projects into Ultra Claude and keeps them current — handles fresh initialization, legacy project detection, and version-aware incremental upgrades via structured migrations in CHANGELOG.json. Use when onboarding a new project, after running `/uc:update`, or when upgrading an existing project to the latest Ultra structure. Produces scaffolded documentation, `.claude/ultra/` configuration, coding standards, and a version marker for future upgrades.
@@ -100,14 +100,8 @@ Manages Railway.com deployments via CLI with environment variable-based multi-ac
 **Tailscale Setup** (`/uc:tailscale-setup`)
 Configures Tailscale to expose local services securely within the tailnet via `tailscale serve` or publicly via `tailscale funnel`. Use when exposing dashboards, dev servers, or preparing services for remote access. Validates the full prerequisite chain and enables HTTPS-wrapped local services.
 
-**Ensure Dashboard** (`/uc:ensure-dashboard`)
-Starts the Ultra Dashboard if not already running, exposes it via Tailscale, and prints the URL. Use when you need the dashboard running or want its URL — pass "reset" to force-restart. Idempotent — safe to run anytime.
-
-**tmux Team Grid** (`/uc:tmux-team-grid`)
-Recovery tool that restarts the Ultra Dashboard if its tmux layout is broken or the dashboard isn't running. Use when team layout is visually broken or agent panes aren't arranged correctly. Verifies dashboard connectivity and provides emergency fallback layout.
-
 **Update** (`/uc:update`)
-Updates Ultra Claude to the latest version by pulling from git, clearing plugin cache, force-restarting the dashboard, and checking CHANGELOG.json for pending project migrations. Use after hearing about new features or when wanting the latest version. Shows changelog since last update and recommends `/uc:migrate` in each project if structural changes occurred.
+Updates Ultra Claude to the latest version by pulling from git, clearing plugin cache, restarting the tmux layout daemon, and checking CHANGELOG.json for pending project migrations. Use after hearing about new features or when wanting the latest version. Shows changelog since last update and recommends `/uc:migrate` in each project if structural changes occurred.
 
 ### System Meta
 
