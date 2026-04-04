@@ -108,8 +108,16 @@ After the user confirms "Proceed", ask one more question:
 
 ```
 Enable extra usage? (yes/no)
-⚠️  If you enable extra usage and your account doesn't have it,
-work will stop when the limit is hit and require manual resume.
+
+  YES — Development runs as fast as possible with no pauses.
+        Requires extra usage enabled on your Anthropic account.
+
+  NO  — Ultra Claude will automatically pause development before
+        the 5-hour rate limit is exhausted and resume after reset.
+
+💡 Cost tip: plan during the day, execute overnight — most plans
+   complete within the free limit window. Enable extra usage only
+   if you need it done as fast as possible.
 ```
 
 Store the answer in `shared/lead.md` under a config header:

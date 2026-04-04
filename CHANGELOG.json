@@ -1,5 +1,12 @@
 [
   {
+    "seq": 89,
+    "version": "2026.04.04-22",
+    "date": "2026-04-04",
+    "summary": "Improve extra usage prompt in plan execution to clearly explain both options and add cost tip about planning during the day and executing overnight.",
+    "migration": null
+  },
+  {
     "seq": 88,
     "version": "2026.04.04-21",
     "date": "2026-04-04",
