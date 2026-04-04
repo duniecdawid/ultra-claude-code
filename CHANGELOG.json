@@ -1,5 +1,12 @@
 [
   {
+    "seq": 76,
+    "version": "2026.04.04-8",
+    "date": "2026-04-04",
+    "summary": "Update PM for lazy-spawn, parallel timing, and no pipeline. Team JSON now starts with executor only; reviewer/tester added via SPAWNED-REVIEWER/SPAWNED-TESTER events. Review and testing tracked as parallel stages with independent timers via STAGE-DONE. Removed watchdog references, stall detection, rate-limit detection, and pipeline events.",
+    "migration": null
+  },
+  {
     "seq": 75,
     "version": "2026.04.04-7",
     "date": "2026-04-04",
