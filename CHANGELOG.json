@@ -1,5 +1,12 @@
 [
   {
+    "seq": 77,
+    "version": "2026.04.04-9",
+    "date": "2026-04-04",
+    "summary": "Update spawn prompts and phase-1 setup for lazy-spawn and no pipeline. Executor spawns alone with deferred reviewer/tester. Reviewer/tester prompts rewritten for hot-start. PM spawn prompt updated with new message types. Cost estimate reduced from 150K to 100K per task. Pipeline mode removed.",
+    "migration": null
+  },
+  {
     "seq": 76,
     "version": "2026.04.04-8",
     "date": "2026-04-04",

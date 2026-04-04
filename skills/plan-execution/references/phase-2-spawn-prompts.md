@@ -47,11 +47,14 @@ ROLE=task
 **Success criteria:** {success criteria from plan}
 
 **Your teammates (use SendMessage to communicate):**
-- Reviewer: reviewer-{N}
-- Tester: tester-{N}
 - Tech Knowledge: knowledge-{PLAN_NAME} (for external library/API documentation queries — send "QUERY: {question}")
 - Lead: {lead name} (for ALL operational messages — plan reviews, implementation complete, task done, escalations)
 - Project Manager: pm-{PLAN_NAME} (may ping you for monitoring status — reply briefly)
+
+**Deferred teammates (spawned after you signal "implementation complete"):**
+- Reviewer: reviewer-{N} — spawned by Lead when your code is ready
+- Tester: tester-{N} — spawned by Lead when your code is ready
+You do NOT have reviewer/tester teammates during planning or implementation. They will be created by the Lead after you send "implementation complete".
 
 **Context files to read first:**
 - Plan: `documentation/plans/$ARGUMENTS/README.md`
@@ -67,14 +70,6 @@ ROLE=task
 **Proactive research:** The Tech Knowledge team member has been notified about your task and may send you a RESEARCH BRIEF before you start. Read it — it contains current docs for the technologies your task involves, which may differ from training data.
 
 Follow the workflow in your team member instructions. All operational messages go to Lead — PM is monitoring only.
-```
-
-For **pipeline-spawned tasks** (where `pipeline_spawned: true`), append to the executor spawn prompt:
-
-```
-**Pipeline mode:** This task was spawned early while predecessor task {P} is still
-in review/test. You may research and plan, but you MUST NOT begin implementing
-until Lead sends you "Implementation approved".
 ```
 
 ## Reviewer Spawn
@@ -97,7 +92,7 @@ ROLE=task
 - Tech Knowledge: knowledge-{PLAN_NAME} (for external library/API documentation queries — send "QUERY: {question}")
 - Project Manager: pm-{PLAN_NAME} (may ping you for monitoring status — reply briefly)
 
-**Context files to read (while waiting for Executor):**
+**Context files to read FIRST (before starting review):**
 - Plan: `documentation/plans/$ARGUMENTS/README.md`
 - Lead notes: `documentation/plans/$ARGUMENTS/shared/lead.md`
 - Architecture: `documentation/technology/architecture/`
@@ -107,7 +102,7 @@ ROLE=task
 Verify compliance with these first, then check broader docs.
 Tester-written tests are in your review scope.
 
-**Technology research:** During early reading, send QUERY messages to knowledge-{PLAN_NAME} for current docs on libraries used in the code. This is how you verify external API compliance — executors build from training data which gets stale.
+**You are spawned when code is ready.** The Executor will send you "ready for review" shortly after spawn. Read context files immediately, then start your formal review. Send QUERY messages to knowledge-{PLAN_NAME} for external library docs during your review.
 
 Follow the workflow in your team member instructions.
 ```
@@ -132,10 +127,12 @@ ROLE=task
 - Tech Knowledge: knowledge-{PLAN_NAME} (for external library/API documentation queries — send "QUERY: {question}")
 - Project Manager: pm-{PLAN_NAME} (may ping you for monitoring status — reply briefly)
 
-**Context files to read (while waiting — these are your testing references):**
+**Context files to read FIRST (before starting testing):**
 - Plan: `documentation/plans/$ARGUMENTS/README.md` (PRIMARY — success criteria live here)
 - Product docs: `documentation/product/` (ALL product documentation)
 - Testing instructions: ALL `.md` files from `documentation/technology/testing/` (skip `final-gate.md` — it applies only during final gate).
+
+**You are spawned when code is ready.** The Executor will send you "ready for test" shortly after spawn. Read context files and build your test strategy immediately, then start testing.
 
 **IMPORTANT:** Test against the plan's success criteria and product docs, NOT against the Executor's impl.md. You may read impl.md only to know which files were touched.
 
@@ -190,7 +187,7 @@ ROLE=oversight
 **Lead name:** {lead name}
 **Total tasks:** {N}
 **Concurrency limit:** {M} concurrent task-teams
-**Team naming convention:** Task N team name: `task-{N}-team`. Members: executor-N, reviewer-N, tester-N. Shared: knowledge-{PLAN_NAME}
+**Team naming convention:** Task N team name: `task-{N}-team`. Executor spawns at task start; reviewer-N and tester-N are spawned later when implementation is complete. Shared: knowledge-{PLAN_NAME}
 
 **Task dependency graph:**
 {For each task, list its dependencies. Example:}
@@ -209,22 +206,18 @@ Multiple pause/resume cycles are expected for long-running plans that span multi
 **Pane verification:** Agents self-label their panes on startup per their agent instructions. After each SPAWNED message from Lead, verify labels are correct (see your agent instructions).
 
 **What the Lead sends you (process into dashboard):**
-- `SPAWNED task-{N}: {description}` — create team JSON, update project counts, append event
-- `STAGE task-{N} {stage}` — update team status + timestamps, append event
+- `SPAWNED task-{N}: {description}` — create team JSON (executor only), update project counts, append event
+- `SPAWNED-REVIEWER task-{N}` — add reviewer member to existing team JSON, append event
+- `SPAWNED-TESTER task-{N}` — add tester member to existing team JSON, append event
+- `STAGE task-{N} {stage}` — update team status + timestamps, append event. Review and testing can both be open simultaneously.
+- `STAGE-DONE task-{N} {stage}` — close one parallel stage independently, append event
 - `COMPLETED task-{N}` — update team completed, project counts, append event
 - `SHUTDOWN task-{N}` — update member ended_at timestamps, append event
-- `APPROVED-IMPL task-{N}` — set pipeline_mode=false, append event
-- `PIPELINE-SPAWN task-{N}` — create team JSON with pipeline_mode=true, append event
-- `RETRY task-{N}` — increment retry_count, append event
+- `RETRY task-{N}` — increment retry_count, reset review/testing stage timers, append event
 
 **What you send to Lead (alerts only):**
-- "ALERT: {member}-{N} stalled for 13+ minutes, recommend re-spawn"
-- "ALERT: Rate limit suspected — recommend pause spawning"
-- "ALERT: {member}-{N} unresponsive after rate limit recovery, recommend re-spawn"
 - "ALERT: USAGE-PAUSE (#N) — 5-hour rate limit at {pct}%..." — proactive pause (extra_usage=false only)
 - "ALERT: USAGE-RESUME (#N) — Rate limit window has reset..." — safe to resume
-
-The Ultra Dashboard (started by Lead) handles health monitoring automatically — no watchdog startup needed.
 
 Follow the workflow in your team member instructions.
 ```
