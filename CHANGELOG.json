@@ -1,5 +1,19 @@
 [
   {
+    "seq": 90,
+    "version": "2026.04.04-23",
+    "date": "2026-04-04",
+    "summary": "Add session tracking and normalized account identity. SessionStart/SessionEnd hooks establish per-session account mapping, eliminating the multi-account race condition in statusline. Account IDs are slugified emails (e.g. dawid-duniec-at-axb-co). Move statusline.sh from scripts/ultra-dashboard/ to scripts/. Add shared scripts/lib.sh with slugifyEmail utility. usage-status.json now keyed by account_id instead of email. Remove claude auth status calls from statusline and dashboard API.",
+    "migration": {
+      "precondition": "Ultra Claude setup has been run (statusline configured)",
+      "actions": [
+        "Re-run /uc:setup to install session hooks, lib.sh symlink, and update statusline symlink to new source path",
+        "The ~/.claude/ultra/statusline-auth/ directory is deprecated and can be safely removed"
+      ],
+      "conflicts": "Custom scripts reading usage-status.json with email keys will need to switch to account_id keys. Dashboard API handles both formats during transition."
+    }
+  },
+  {
     "seq": 89,
     "version": "2026.04.04-22",
     "date": "2026-04-04",

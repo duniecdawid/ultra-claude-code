@@ -298,11 +298,13 @@ This monitoring is **ONLY active** when the Lead's spawn prompt includes `Extra 
 
 **Supports multiple cycles:** A long execution can span multiple 5-hour windows. PAUSE→RESUME can repeat any number of times. After each RESUME, continue monitoring — usage will climb again in the new window.
 
-**Data source:** `~/.claude/ultra/usage-status.json` — written by statusline.sh on every main-context prompt. Structure:
+**Data source:** `~/.claude/ultra/usage-status.json` — written by statusline.sh on every main-context prompt. Structure (keyed by account_id):
 ```json
 {
   "accounts": {
-    "user@email.com": {
+    "dawid-duniec-at-axb-co": {
+      "account_id": "dawid-duniec-at-axb-co",
+      "email": "dawid.duniec@axb.co",
       "rate_limits": {
         "five_hour": {
           "used_percentage": 75,

@@ -2,37 +2,50 @@
 # Ultra Claude statusline — displays prompt info + persists usage data per account for the dashboard.
 # Installed by /uc:setup. Configured via settings.json: statusLine.command
 
+# Source shared library
+source "$HOME/.claude/ultra/lib.sh"
+
 # Read JSON input from stdin
 input=$(cat)
 
-# --- Resolve identity (cached per session) ---
-session_id=$(echo "$input" | jq -r '.session_id // empty')
-auth_cache_dir="$HOME/.claude/ultra/statusline-auth"
-mkdir -p "$auth_cache_dir" 2>/dev/null
-auth_cache="${auth_cache_dir}/${session_id}.json"
+# --- Location (needed early for session file lookup) ---
+host=$(hostname -s)
+cwd=$(echo "$input" | jq -r '.workspace.current_dir // .cwd // empty')
+[ -z "$cwd" ] && cwd=$(pwd)
+project=$(basename "$cwd")
 
-if [ -n "$session_id" ] && [ -f "$auth_cache" ]; then
-  email=$(jq -r '.email // empty' "$auth_cache")
-  org_name=$(jq -r '.orgName // empty' "$auth_cache")
-  sub_type=$(jq -r '.subscriptionType // empty' "$auth_cache")
-else
-  auth_json=$(claude auth status --json 2>/dev/null || echo '{}')
-  email=$(echo "$auth_json" | jq -r '.email // empty')
-  org_name=$(echo "$auth_json" | jq -r '.orgName // empty')
-  sub_type=$(echo "$auth_json" | jq -r '.subscriptionType // empty')
-  if [ -n "$session_id" ] && [ -n "$email" ]; then
-    echo "$auth_json" > "$auth_cache"
+# --- Resolve identity from session file ---
+session_id=$(echo "$input" | jq -r '.session_id // empty')
+email=""
+org_name=""
+sub_type=""
+account_id=""
+
+if [ -n "$session_id" ]; then
+  session_file="${cwd}/.claude/ultra/sessions/${session_id}.json"
+  if [ -f "$session_file" ]; then
+    account_id=$(jq -r '.account_id // empty' "$session_file")
+    if [ -n "$account_id" ]; then
+      account_file="${ACCOUNTS_DIR}/${account_id}.json"
+      if [ -f "$account_file" ]; then
+        email=$(jq -r '.email // empty' "$account_file")
+        org_name=$(jq -r '.orgName // empty' "$account_file")
+        sub_type=$(jq -r '.subscriptionType // empty' "$account_file")
+      fi
+    fi
   fi
 fi
 
-# --- Persist usage data keyed by account email ---
+# --- Persist usage data keyed by account_id ---
 usage_file="$HOME/.claude/ultra/usage-status.json"
-if [ -n "$session_id" ] && [ -n "$email" ]; then
+if [ -n "$session_id" ] && [ -n "$account_id" ]; then
   snippet=$(echo "$input" | jq -c \
+    --arg account_id "$account_id" \
     --arg email "$email" \
     --arg org "$org_name" \
     --arg sub "$sub_type" \
     '{
+      account_id: $account_id,
       email: $email,
       orgName: (if $org == "" then null else $org end),
       subscriptionType: (if $sub == "" then null else $sub end),
@@ -43,13 +56,13 @@ if [ -n "$session_id" ] && [ -n "$email" ]; then
       rate_limits: .rate_limits,
       updated_at: (now | todate)
     }')
-  # Atomic write: update accounts map keyed by email (flock to prevent concurrent corruption)
+  # Atomic write: update accounts map keyed by account_id (flock to prevent concurrent corruption)
   # Overwrite guard: never replace higher rate-limit usage with lower values unless the
-  # reset window has passed. Prevents account-switch misidentification from corrupting data.
+  # reset window has passed. Prevents stale data from overwriting active rate limits.
   (
     flock -w 2 9 || exit 0
     if [ -f "$usage_file" ]; then
-      jq -c --arg key "$email" \
+      jq -c --arg key "$account_id" \
         --argjson new "$snippet" \
         '
         .accounts //= {} |
@@ -75,18 +88,12 @@ if [ -n "$session_id" ] && [ -n "$email" ]; then
         "$usage_file" \
         > "${usage_file}.tmp" 2>/dev/null && mv "${usage_file}.tmp" "$usage_file"
     else
-      echo "$snippet" | jq -c --arg key "$email" \
+      echo "$snippet" | jq -c --arg key "$account_id" \
         '{accounts: {($key): .}, updated_at: (now | todate)}' \
         > "$usage_file" 2>/dev/null
     fi
   ) 9>"${usage_file}.lock"
 fi
-
-# --- Location ---
-host=$(hostname -s)
-cwd=$(echo "$input" | jq -r '.workspace.current_dir // .cwd // empty')
-[ -z "$cwd" ] && cwd=$(pwd)
-project=$(basename "$cwd")
 
 # --- Model (short name) ---
 model_raw=$(echo "$input" | jq -r '.model.display_name // empty')
@@ -146,6 +153,3 @@ fi
 
 # --- Output: left | right ---
 printf "%b  ${dim}│${reset}  %b" "$left" "$right"
-
-# --- Cleanup stale auth cache (>24h, runs in background) ---
-find "$HOME/.claude/ultra/statusline-auth" -name '*.json' -mmin +1440 -delete 2>/dev/null &

@@ -111,8 +111,16 @@ if [ -L "$HOME/.claude/statusline.sh" ] || [ -f "$HOME/.claude/statusline.sh" ];
   rm -f "$HOME/.claude/statusline.sh"
   echo "Removed old ~/.claude/statusline.sh symlink"
 fi
-ln -sf "${CLAUDE_PLUGIN_ROOT}/scripts/ultra-dashboard/statusline.sh" "$HOME/.claude/ultra/statusline.sh"
+ln -sf "${CLAUDE_PLUGIN_ROOT}/scripts/statusline.sh" "$HOME/.claude/ultra/statusline.sh"
 echo "Symlinked statusline.sh -> ~/.claude/ultra/statusline.sh"
+ln -sf "${CLAUDE_PLUGIN_ROOT}/scripts/lib.sh" "$HOME/.claude/ultra/lib.sh"
+echo "Symlinked lib.sh -> ~/.claude/ultra/lib.sh"
+
+# Ensure session hook symlinks exist
+mkdir -p "$HOME/.claude/ultra/hooks"
+ln -sf "${CLAUDE_PLUGIN_ROOT}/scripts/hooks/session-start.sh" "$HOME/.claude/ultra/hooks/session-start.sh"
+ln -sf "${CLAUDE_PLUGIN_ROOT}/scripts/hooks/session-end.sh" "$HOME/.claude/ultra/hooks/session-end.sh"
+echo "Symlinked session hooks -> ~/.claude/ultra/hooks/"
 
 # Update settings.json if it references the old path
 settings_file="$HOME/.claude/settings.json"

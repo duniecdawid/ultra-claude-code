@@ -77,7 +77,7 @@ SKIP if tmux is not installed.
 
 ### 3.6 Statusline (usage data for dashboard)
 
-Check if `~/.claude/settings.json` has a `statusLine` command pointing to the Ultra Claude statusline script, that the `jq` dependency is available, and that the auth cache directory exists. All Ultra Claude runtime files live under `~/.claude/ultra/`:
+Check if `~/.claude/settings.json` has a `statusLine` command pointing to the Ultra Claude statusline script and that `jq` is available. All Ultra Claude runtime files live under `~/.claude/ultra/`:
 
 ```bash
 jq --version 2>/dev/null
@@ -89,18 +89,27 @@ Then check settings.json for the statusLine configuration:
 jq -r '.statusLine.command // empty' ~/.claude/settings.json 2>/dev/null
 ```
 
-Check the auth cache directory (used for per-session account identity):
-
-```bash
-[ -d ~/.claude/ultra/statusline-auth ] && echo "exists" || echo "missing"
-```
-
 PASS if:
 - `jq` is installed
 - The statusLine has `"type": "command"` and `"command": "bash ~/.claude/ultra/statusline.sh"`
-- `~/.claude/ultra/statusline-auth/` directory exists (soft check — the statusline creates it on first use if missing)
 
-### 3.7 Ultra Dashboard (includes Docsify docs hosting)
+### 3.7 Session Hooks
+
+Check if session tracking hooks are configured and symlinked:
+
+```bash
+[ -L ~/.claude/ultra/lib.sh ] && echo "lib exists" || echo "lib missing"
+[ -L ~/.claude/ultra/hooks/session-start.sh ] && echo "start exists" || echo "start missing"
+[ -L ~/.claude/ultra/hooks/session-end.sh ] && echo "end exists" || echo "end missing"
+jq -r '.hooks.SessionStart // empty' ~/.claude/settings.json 2>/dev/null
+jq -r '.hooks.SessionEnd // empty' ~/.claude/settings.json 2>/dev/null
+```
+
+PASS if:
+- All three symlinks exist (`lib.sh`, `hooks/session-start.sh`, `hooks/session-end.sh`)
+- `~/.claude/settings.json` has `hooks.SessionStart` and `hooks.SessionEnd` entries
+
+### 3.8 Ultra Dashboard (includes Docsify docs hosting)
 
 Check if the dashboard's dependencies are installed and it's running:
 
@@ -115,7 +124,7 @@ dashboard_pid=$(cat ~/.claude/ultra/dashboard.pid 2>/dev/null)
 
 PASS if node_modules exist. Note running status but don't fail on it — the dashboard auto-starts when needed.
 
-### 3.8 Tailscale (optional)
+### 3.9 Tailscale (optional)
 
 ```bash
 which tailscale 2>/dev/null && tailscale status --self --json 2>/dev/null
@@ -136,11 +145,12 @@ Ultra Claude Environment Check (plugin v{version})
   1M context env vars   ✗ missing
   Node.js               ✓ v22.0.0
   Statusline            ✗ not configured
+  Session Hooks         ✗ not configured
   Dashboard             ✗ dependencies missing
   Tailscale (optional)  — not installed
 ```
 
-If ALL required checks pass (3.1–3.7):
+If ALL required checks pass (3.1–3.8):
 - Write the marker file (Step 6)
 - Print "Environment ready! All prerequisites configured."
 - If Tailscale is not set up, mention: "Optional: Run `/uc:tailscale-setup` to enable remote dashboard access."
@@ -251,7 +261,7 @@ Tell the user: "If tearing persists, detach and reattach your tmux session — s
 
 ### 5.6 Fix: Statusline
 
-The statusline script ships with Ultra Claude at `${CLAUDE_PLUGIN_ROOT}/scripts/ultra-dashboard/statusline.sh`. Setup needs to:
+The statusline script ships with Ultra Claude at `${CLAUDE_PLUGIN_ROOT}/scripts/statusline.sh`. Setup needs to:
 
 1. **Install jq** if missing:
 
@@ -263,20 +273,15 @@ sudo apt update && sudo apt install -y jq
 brew install jq
 ```
 
-2. **Symlink the script** to `~/.claude/ultra/statusline.sh` (so fixes propagate automatically from the plugin source):
+2. **Symlink the script and shared library** to `~/.claude/ultra/` (so fixes propagate automatically from the plugin source):
 
 ```bash
 mkdir -p ~/.claude/ultra
-ln -sf "${CLAUDE_PLUGIN_ROOT}/scripts/ultra-dashboard/statusline.sh" ~/.claude/ultra/statusline.sh
+ln -sf "${CLAUDE_PLUGIN_ROOT}/scripts/statusline.sh" ~/.claude/ultra/statusline.sh
+ln -sf "${CLAUDE_PLUGIN_ROOT}/scripts/lib.sh" ~/.claude/ultra/lib.sh
 ```
 
-3. **Create the auth cache directory** (used for per-session account identity to prevent rate limit data corruption on account switch):
-
-```bash
-mkdir -p ~/.claude/ultra/statusline-auth
-```
-
-4. **Configure settings.json** — read `~/.claude/settings.json`, add or update the `statusLine` key:
+3. **Configure settings.json** — read `~/.claude/settings.json`, add or update the `statusLine` key:
 
 ```json
 {
@@ -298,11 +303,39 @@ else
 fi
 ```
 
-Tell the user: "Statusline configured — usage data will appear on the Ultra Dashboard after your next Claude Code interaction. Rate limits are tracked per account with overwrite protection, so switching Claude accounts will show separate usage for each."
+Tell the user: "Statusline configured — usage data will appear on the Ultra Dashboard after your next Claude Code interaction. Rate limits are tracked per account with overwrite protection."
 
-**Important:** Always re-create the symlink during setup, even if the statusline is already configured. The source path may have changed. The symlink step is idempotent.
+**Important:** Always re-create the symlinks during setup, even if already configured. The source paths may have changed. The symlink steps are idempotent.
 
-### 5.7 Fix: Ultra Dashboard
+### 5.7 Fix: Session Hooks
+
+Session hooks establish per-session account identity at session boundaries, eliminating the race condition when multiple accounts run simultaneously.
+
+1. **Symlink hook scripts** to `~/.claude/ultra/hooks/`:
+
+```bash
+mkdir -p ~/.claude/ultra/hooks
+ln -sf "${CLAUDE_PLUGIN_ROOT}/scripts/hooks/session-start.sh" ~/.claude/ultra/hooks/session-start.sh
+ln -sf "${CLAUDE_PLUGIN_ROOT}/scripts/hooks/session-end.sh" ~/.claude/ultra/hooks/session-end.sh
+```
+
+2. **Configure hooks in settings.json** — add `SessionStart` and `SessionEnd` hooks:
+
+```bash
+settings_file="$HOME/.claude/settings.json"
+jq '
+  .hooks.SessionStart = [{"matcher": "", "hooks": [{"type": "command", "command": "bash ~/.claude/ultra/hooks/session-start.sh"}]}] |
+  .hooks.SessionEnd = [{"matcher": "", "hooks": [{"type": "command", "command": "bash ~/.claude/ultra/hooks/session-end.sh"}]}]
+' "$settings_file" > "${settings_file}.tmp" && mv "${settings_file}.tmp" "$settings_file"
+```
+
+Use `jq` to merge into existing settings without overwriting other top-level keys. The `SessionStart` and `SessionEnd` arrays are fully managed by Ultra Claude.
+
+Tell the user: "Session hooks configured — each Claude Code session will now be tracked with its account identity. This eliminates the multi-account race condition."
+
+**Important:** Always re-create the symlinks during setup. The hook scripts source `~/.claude/ultra/lib.sh` which must be symlinked first (done in 5.6).
+
+### 5.8 Fix: Ultra Dashboard
 
 Install dependencies and start the dashboard:
 
@@ -324,7 +357,7 @@ The dashboard provides:
 - **Multi-account rate limit monitoring** — thin bar at top shows all tracked accounts with dynamic reset countdowns
 - **Plan execution monitoring** — real-time task progress, team status, health checks
 
-### 5.8 Fix: Tailscale
+### 5.9 Fix: Tailscale
 
 If the user selected Tailscale, invoke `/uc:tailscale-setup` which handles all Tailscale configuration.
 
@@ -345,6 +378,7 @@ After all fixes are applied, write `~/.claude/ultra/uc-setup.json`:
     "context1m": true/false,
     "node": true/false,
     "statusline": true/false,
+    "sessionHooks": true/false,
     "dashboard": true/false,
     "tailscale": true/false
   }

@@ -2,20 +2,9 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { execSync } = require('child_process');
 const router = express.Router();
 const { readRegistry, writeRegistry, discoverPlans, findPlan, getProjectRoots } = require('../lib/registry');
 
-// Cached auth info — refreshed every 5 minutes
-let authCache = null;
-function refreshAuth() {
-  try {
-    const out = execSync('claude auth status --json 2>/dev/null', { timeout: 5000, encoding: 'utf8' });
-    authCache = JSON.parse(out);
-  } catch { authCache = null; }
-}
-refreshAuth();
-setInterval(refreshAuth, 5 * 60 * 1000);
 const { readPlanStatus, readPlanTeams, readPlanEvents, parsePlanTasks } = require('../lib/plan-reader');
 const { readBacklog, getBacklogOpenCount } = require('../lib/backlog-reader');
 const { getLayoutState } = require('../lib/tmux-layout');
@@ -215,15 +204,46 @@ router.get('/health', (req, res) => {
 // GET /api/usage — Claude Code rate limits per account
 router.get('/usage', (req, res) => {
   const usageFile = path.join(os.homedir(), '.claude', 'ultra', 'usage-status.json');
+  const accountsDir = path.join(os.homedir(), '.claude', 'ultra', 'accounts');
   try {
     const data = JSON.parse(fs.readFileSync(usageFile, 'utf8'));
-    const activeEmail = authCache ? authCache.email : null;
 
-    // New format: accounts keyed by email
     if (data.accounts) {
-      const accounts = Object.values(data.accounts)
-        .filter(a => a.rate_limits)
+      // Read account registry for metadata enrichment
+      const accountMeta = {};
+      try {
+        for (const f of fs.readdirSync(accountsDir)) {
+          if (!f.endsWith('.json')) continue;
+          try {
+            const meta = JSON.parse(fs.readFileSync(path.join(accountsDir, f), 'utf8'));
+            if (meta.account_id) accountMeta[meta.account_id] = meta;
+          } catch {}
+        }
+      } catch {}
+
+      const accounts = Object.entries(data.accounts)
+        .filter(([, a]) => a.rate_limits)
+        .map(([key, a]) => {
+          // Enrich with account registry metadata if available
+          const meta = accountMeta[key] || {};
+          return {
+            ...a,
+            email: a.email || meta.email || key,
+            orgName: a.orgName !== undefined ? a.orgName : (meta.orgName || null),
+            account_id: a.account_id || key
+          };
+        })
         .sort((a, b) => (a.email || '').localeCompare(b.email || ''));
+
+      // Determine most recently updated account as "active"
+      let activeEmail = null;
+      if (accounts.length > 0) {
+        const mostRecent = accounts.reduce((best, a) =>
+          (a.updated_at || '') > (best.updated_at || '') ? a : best
+        );
+        activeEmail = mostRecent.email;
+      }
+
       return res.json({ accounts, active_email: activeEmail, updated_at: data.updated_at });
     }
 
@@ -236,12 +256,12 @@ router.get('/usage', (req, res) => {
       }
     }
     if (best) {
-      const account = { email: activeEmail, rate_limits: best.rate_limits, updated_at: best.updated_at };
-      return res.json({ accounts: [account], active_email: activeEmail, updated_at: data.updated_at });
+      const account = { email: best.email || null, rate_limits: best.rate_limits, updated_at: best.updated_at };
+      return res.json({ accounts: [account], active_email: account.email, updated_at: data.updated_at });
     }
-    res.json({ accounts: [], active_email: activeEmail });
+    res.json({ accounts: [], active_email: null });
   } catch (e) {
-    if (e.code === 'ENOENT') return res.json({ accounts: [], active_email: authCache ? authCache.email : null });
+    if (e.code === 'ENOENT') return res.json({ accounts: [], active_email: null });
     res.status(500).json({ error: e.message });
   }
 });
