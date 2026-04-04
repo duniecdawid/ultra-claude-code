@@ -333,6 +333,12 @@ Use `jq` to merge into existing settings without overwriting other top-level key
 
 Tell the user: "Session hooks configured — each Claude Code session will now be tracked with its account identity. This eliminates the multi-account race condition."
 
+3. **Clear legacy usage data** — the usage-status.json format changed from email-keyed to account_id-keyed. Remove the old file so it gets recreated cleanly:
+
+```bash
+rm -f ~/.claude/ultra/usage-status.json
+```
+
 **Important:** Always re-create the symlinks during setup. The hook scripts source `~/.claude/ultra/lib.sh` which must be symlinked first (done in 5.6).
 
 ### 5.8 Fix: Ultra Dashboard
