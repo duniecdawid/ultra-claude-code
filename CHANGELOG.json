@@ -1,5 +1,23 @@
 [
   {
+    "seq": 88,
+    "version": "2026.04.04-21",
+    "date": "2026-04-04",
+    "summary": "Consolidate plan execution status to single plan.json at plan root. Eliminate status/ directory and per-task status/teams/task-N.json files. Tasks are now embedded in plan.json as an array. Standardize status values: plan (pending/in_progress/completed), task (pending/in_progress/completed/failed), member (active/completed/failed). Create references/plan-status-format.md as single source of truth. Update PM agent, plan-enhancer, plan-status-sync, roadmap, dashboard code, and all views. Plan-enhancer now populates tasks array on approval. Dashboard has legacy fallback for old status/ paths and old status values.",
+    "migration": {
+      "precondition": "Project has documentation/plans/*/status/plan.json or status/teams/ files",
+      "actions": [
+        "For each plan directory: if status/plan.json exists, move it to plan.json at plan root. If status/events.json exists, move it to events.json at plan root.",
+        "Update status values in plan.json: 'executing' → 'in_progress', 'draft'/'approved'/'stub' → 'pending', 'escalated' → 'failed'",
+        "Update task status values: 'planning'/'implementing'/'reviewing'/'testing' → 'in_progress', 'escalated' → 'failed'",
+        "Update member status values: 'idle'/'crashed'/'rate-limited' → 'failed'",
+        "If status/teams/task-*.json files exist, merge their data into the plan.json tasks array, then remove the status/ directory",
+        "Run /uc:plan-status-sync to reconcile all plans with the new format"
+      ],
+      "conflicts": "Custom scripts reading status/plan.json or status/teams/ need path updates. Dashboard code has legacy fallback so existing plans will still render."
+    }
+  },
+  {
     "seq": 87,
     "version": "2026.04.04-20",
     "date": "2026-04-04",

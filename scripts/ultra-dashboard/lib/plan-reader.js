@@ -10,8 +10,13 @@ function readJSON(filePath) {
 }
 
 function readPlanStatus(planDir) {
-  const filePath = path.join(planDir, 'status', 'plan.json');
-  const data = readJSON(filePath);
+  // Try plan root first (new convention), fall back to status/ (legacy)
+  let filePath = path.join(planDir, 'plan.json');
+  let data = readJSON(filePath);
+  if (!data) {
+    filePath = path.join(planDir, 'status', 'plan.json');
+    data = readJSON(filePath);
+  }
   if (!data) return null;
   try {
     const stat = fs.statSync(filePath);
@@ -21,6 +26,12 @@ function readPlanStatus(planDir) {
 }
 
 function readPlanTeams(planDir) {
+  // New convention: tasks are embedded in plan.json
+  const data = readPlanStatus(planDir);
+  if (data && Array.isArray(data.tasks)) {
+    return data.tasks;
+  }
+  // Legacy fallback: read from status/teams/ directory
   const teamsDir = path.join(planDir, 'status', 'teams');
   try {
     return fs.readdirSync(teamsDir)
@@ -34,7 +45,10 @@ function readPlanTeams(planDir) {
 }
 
 function readPlanEvents(planDir) {
-  return readJSON(path.join(planDir, 'status', 'events.json')) || { events: [] };
+  // Try plan root first (new convention), fall back to status/ (legacy)
+  return readJSON(path.join(planDir, 'events.json'))
+    || readJSON(path.join(planDir, 'status', 'events.json'))
+    || { events: [] };
 }
 
 function parsePlanTasks(planDir) {

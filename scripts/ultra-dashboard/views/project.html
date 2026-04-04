@@ -52,9 +52,9 @@
   .plan-card:not(.active):not(.completed) .plan-name { color: #8b949e; }
   h2 { font-size: 1em; color: #8b949e; margin: 0 0 10px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
   .status-badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.72em; font-weight: 600; text-transform: uppercase; white-space: nowrap; }
-  .status-executing { background: #1f6feb33; color: #58a6ff; }
+  .status-executing, .status-in_progress { background: #1f6feb33; color: #58a6ff; }
   .status-completed { background: #23863533; color: #3fb950; }
-  .status-aborted { background: #da363333; color: #f85149; }
+  .status-aborted, .status-failed { background: #da363333; color: #f85149; }
   .status-pending { background: #21262d; color: #8b949e; }
   .plan-stages { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
   .stage-chip { font-size: 0.7em; padding: 1px 6px; border-radius: 10px; font-weight: 500; font-family: monospace; }
@@ -63,7 +63,7 @@
   .stage-chip-reviewing { background: #d2a8ff33; color: #d2a8ff; }
   .stage-chip-testing { background: #3fb95033; color: #3fb950; }
   .stage-chip-completed { background: #23863533; color: #3fb950; }
-  .stage-chip-escalated { background: #da363333; color: #f85149; }
+  .stage-chip-escalated, .stage-chip-failed { background: #da363333; color: #f85149; }
   .stale-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-left: 6px; vertical-align: middle; }
   .stale-dot-warning { background: #d29922; }
   .stale-dot-critical { background: #f85149; }
@@ -212,10 +212,10 @@ document.querySelectorAll('.tab').forEach(function(t) {
 // ── Plan rendering ──
 function statusClass(s) {
   if (!s) return 'pending';
-  if (['executing','researching','planning','implementing','reviewing','testing'].includes(s)) return 'executing';
+  if (s === 'in_progress' || s === 'executing') return 'executing';
   if (s === 'completed') return 'completed';
-  if (s === 'escalated' || s === 'aborted') return 'aborted';
-  if (['stub','draft','approved'].includes(s)) return 'pending';
+  if (s === 'failed' || s === 'escalated' || s === 'aborted') return 'aborted';
+  if (['stub','draft','approved','pending'].includes(s)) return 'pending';
   return 'pending';
 }
 
@@ -234,12 +234,12 @@ function fmtDate(iso) {
 
 function renderPlanCard(p, colKey) {
   var live = p.live_status || {};
-  var status = live.status || (p.active ? 'executing' : (live.total_tasks ? 'completed' : 'not started'));
+  var status = live.status || (p.active ? 'in_progress' : (live.total_tasks ? 'completed' : 'not started'));
   var sc = statusClass(status);
   var total = live.total_tasks || 0;
   var done = live.completed_tasks || 0;
   var elapsed = fmtTime(live.elapsed_seconds);
-  var isActive = status === 'executing';
+  var isActive = status === 'in_progress' || status === 'executing';
   var compact = colKey === 'completed' || colKey === 'aborted';
 
   var staleDot = '';
@@ -329,7 +329,7 @@ async function refreshPlans() {
       columns.forEach(function(c) { colMap[c.key] = c; });
       plans.forEach(function(p) {
         var live = p.live_status || {};
-        var status = live.status || (p.active ? 'executing' : (live.total_tasks ? 'completed' : 'not started'));
+        var status = live.status || (p.active ? 'in_progress' : (live.total_tasks ? 'completed' : 'not started'));
         var sc = statusClass(status);
         (colMap[sc] || colMap['pending']).plans.push(p);
       });

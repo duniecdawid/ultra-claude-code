@@ -49,32 +49,20 @@ This check exists because the most common failure mode is jumping from a detaile
 **Create the directory** (skip if editing an existing stub):
 
 ```bash
-mkdir -p documentation/plans/{NNN}-{name}/{shared,tasks,status}
+mkdir -p documentation/plans/{NNN}-{name}/{shared,tasks}
 ```
 
 ```
 documentation/plans/001-user-auth/
 ├── README.md          # The plan document (task list embedded)
+├── plan.json          # Dashboard status (created now, updated at approval and execution)
 ├── shared/            # Lead-level shared notes (created empty, used during execution)
-├── tasks/             # Per-task pipeline artifacts (created empty, used during execution)
-└── status/
-    └── plan.json      # Dashboard status (created now, updated at approval and execution)
+└── tasks/             # Per-task pipeline artifacts (created empty, used during execution)
 ```
 
-**Create `status/plan.json`** with initial draft status:
-```json
-{
-  "name": "{NNN}-{name}",
-  "status": "draft",
-  "description": "{objective from README}",
-  "total_tasks": 0,
-  "completed_tasks": 0,
-  "active_tasks": 0,
-  "pending_tasks": 0
-}
-```
+**Create `plan.json`** at plan root with initial pending status (no tasks array yet — that's populated on approval). Follow `${CLAUDE_PLUGIN_ROOT}/references/plan-status-format.md` for the format. Set `status` to `"pending"`, all counts to 0.
 
-**When upgrading a stub:** After editing the README status from Stub→Draft, also update `status/plan.json`: change `"status": "stub"` → `"status": "draft"`.
+**When upgrading a stub:** After editing the README status from Stub→Draft, verify `plan.json` at plan root has `"status": "pending"`.
 
 ## Step 2: Update Product Documentation — Mandatory
 
@@ -166,8 +154,8 @@ When the user explicitly approves the plan:
 
 1. **Update status to Approved:**
    - Update README: change `> Status: Draft` → `> Status: Approved`
-   - Update `status/plan.json`: change `"status": "draft"` → `"status": "approved"`, and set `"total_tasks"` and `"pending_tasks"` to the actual task count from the plan
-2. **Commit plan files** — Stage all plan files (README.md, status/plan.json, directories) and commit:
+   - Update `plan.json` at plan root: set `"total_tasks"` and `"pending_tasks"` to the actual task count, and populate the `"tasks"` array with all tasks from the README (parse `### Task N: {name}` headings). Follow the format in `${CLAUDE_PLUGIN_ROOT}/references/plan-status-format.md` — all tasks should be `pending` with minimal fields.
+2. **Commit plan files** — Stage all plan files (README.md, plan.json, directories) and commit:
    ```
    git add documentation/plans/{NNN}-{name}/ && git commit -m "plan: {NNN}-{name}"
    ```

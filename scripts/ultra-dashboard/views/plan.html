@@ -31,9 +31,9 @@
   .tab-pane-scroll { padding: 12px 16px; overflow-y: auto; height: 100%; }
   .docs-frame { width: 100%; height: 100%; border: none; background: #0d1117; }
   .status-badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.75em; font-weight: 600; text-transform: uppercase; white-space: nowrap; }
-  .status-executing { background: #1f6feb33; color: #58a6ff; }
+  .status-executing, .status-in_progress { background: #1f6feb33; color: #58a6ff; }
   .status-completed { background: #23863533; color: #3fb950; }
-  .status-aborted { background: #da363333; color: #f85149; }
+  .status-aborted, .status-failed { background: #da363333; color: #f85149; }
   .status-pending { background: #21262d; color: #8b949e; }
   .counters { display: flex; gap: 16px; margin: 10px 0; flex-wrap: wrap; }
   .counter { text-align: center; }
@@ -161,16 +161,20 @@ document.querySelectorAll('.tab').forEach(function(t) {
   t.addEventListener('click', function() { switchTab(this.dataset.tab); });
 });
 const STAGE_ORDER = ['planning', 'implementation', 'review', 'testing'];
-const STAGE_MAP = {
-  researching: 'research', planning: 'planning', implementing: 'implementation',
-  reviewing: 'review', testing: 'testing', completed: '_done', escalated: '_done', pending: '_pending'
-};
+// Active stage is detected from stages object (stage with started_at but no ended_at)
+function getActiveStage(stages) {
+  if (!stages) return '';
+  for (var s of STAGE_ORDER) {
+    if (stages[s] && stages[s].started_at && !stages[s].ended_at) return s;
+  }
+  return '';
+}
 
 function statusClass(s) {
-  if (['executing', 'researching', 'planning', 'implementing', 'reviewing', 'testing'].includes(s)) return 'executing';
+  if (s === 'in_progress' || s === 'executing') return 'executing';
   if (s === 'completed') return 'completed';
-  if (s === 'escalated') return 'aborted';
-  if (['stub', 'draft', 'approved'].includes(s)) return 'pending';
+  if (s === 'failed' || s === 'escalated') return 'aborted';
+  if (['stub', 'draft', 'approved', 'pending'].includes(s)) return 'pending';
   return 'pending';
 }
 
@@ -189,7 +193,7 @@ function fmtEventTime(iso) {
 
 function renderStaleness(p) {
   const banner = document.getElementById('staleness-banner');
-  if (p.status !== 'executing' || !p._last_modified_ms) { banner.style.display = 'none'; return; }
+  if ((p.status !== 'in_progress' && p.status !== 'executing') || !p._last_modified_ms) { banner.style.display = 'none'; return; }
   const ageSeconds = (Date.now() - p._last_modified_ms) / 1000;
   if (ageSeconds > 300) {
     banner.className = 'staleness-banner staleness-critical';
@@ -216,8 +220,11 @@ function renderProject(p, planData) {
 
 function taskStatusClass(team) {
   if (!team) return 'pending';
-  if (['completed', 'escalated'].includes(team.status)) return team.status === 'escalated' ? 'aborted' : 'completed';
-  return 'executing';
+  if (team.status === 'completed') return 'completed';
+  if (team.status === 'failed' || team.status === 'escalated') return 'aborted';
+  if (team.status === 'in_progress') return 'executing';
+  if (team.status === 'pending') return 'pending';
+  return 'executing'; // legacy fallback for old status values
 }
 
 function renderTasks(planData, teams, planStatus) {
@@ -229,7 +236,7 @@ function renderTasks(planData, teams, planStatus) {
   }
   const teamMap = {};
   teams.forEach(t => { teamMap[t.task_id] = t; });
-  const planDone = planStatus === 'completed' || planStatus === 'escalated' || planStatus === 'aborted';
+  const planDone = planStatus === 'completed' || planStatus === 'failed' || planStatus === 'escalated' || planStatus === 'aborted';
 
   if (planDone) {
     // Completed plan — simple list, no kanban
@@ -274,19 +281,19 @@ function renderTasks(planData, teams, planStatus) {
 }
 
 function renderActiveTask(t, planTask, compact) {
-  const cardClass = ['completed', 'escalated'].includes(t.status) ? t.status : 'active';
+  const cardClass = ['completed', 'failed', 'escalated'].includes(t.status) ? (t.status === 'escalated' ? 'failed' : t.status) : 'active';
   const retries = t.retry_count > 0 ? '<span class="task-retries">retries: ' + t.retry_count + '</span>' : '';
   const deps = planTask && planTask.dependencies && planTask.dependencies !== 'None'
     ? '<span class="task-deps">dep: ' + planTask.dependencies + '</span>' : '';
   const meta = [deps, retries, '<span class="task-timing">' + fmtTime(t.elapsed_seconds) + '</span>'].filter(Boolean).join('');
   let details = '';
   if (!compact) {
-    const activeStage = STAGE_MAP[t.status] || '';
+    const activeStage = getActiveStage(t.stages);
     const stages = STAGE_ORDER.map(s => {
       let cls = '';
-      if (t.status === 'completed' || t.status === 'escalated') cls = 'done';
+      if (t.status === 'completed' || t.status === 'failed' || t.status === 'escalated') cls = 'done';
       else if (t.stages && t.stages[s] && t.stages[s].ended_at) cls = 'done';
-      else if (s === activeStage) cls = 'active';
+      else if (t.stages && t.stages[s] && t.stages[s].started_at && !t.stages[s].ended_at) cls = 'active';
       return { name: s, cls };
     });
     const stagesBars = stages.map(s => '<div class="stage ' + s.cls + '"></div>').join('');

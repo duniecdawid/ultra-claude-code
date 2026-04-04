@@ -54,7 +54,7 @@ You **never** make technical decisions — you don't review code, judge implemen
    ```
    CronCreate({
      cron: "*/5 * * * *",
-     prompt: "MONITORING TICK: Update elapsed_seconds in plan.json and all active teams/task-N.json. Check usage data in ~/.claude/ultra/usage-status.json — if extra_usage is disabled and five_hour.used_percentage >= 90, trigger PAUSE protocol. If already paused and resets_at has passed or usage < 90, trigger RESUME protocol."
+     prompt: "MONITORING TICK: Update elapsed_seconds in plan.json (plan-level and all in_progress tasks). Check usage data in ~/.claude/ultra/usage-status.json — if extra_usage is disabled and five_hour.used_percentage >= 90, trigger PAUSE protocol. If already paused and resets_at has passed or usage < 90, trigger RESUME protocol."
    })
    ```
    Save the returned job ID so you can delete it during shutdown.
@@ -99,50 +99,39 @@ If `main-context` is missing or wrong, ALERT the Lead immediately.
 
 ## Live Status Dashboard
 
-You maintain a set of JSON files that power a live status dashboard. This is how the human monitors execution in real time — treat it as your primary state store. Every operational event gets recorded here. The files are split so you only rewrite small files on each update.
+You maintain JSON files that power a live status dashboard. This is how the human monitors execution in real time — treat it as your primary state store.
 
-### Directory Structure
+**For the canonical plan.json format, allowed status values, and lifecycle, read `${CLAUDE_PLUGIN_ROOT}/references/plan-status-format.md`.**
+
+### File Locations
+
+All state lives at the plan root — no `status/` subdirectory:
 
 ```
-documentation/plans/{PLAN_NAME}/status/
-├── plan.json           # Overview, counts, timing (~300 bytes)
+documentation/plans/{PLAN_NAME}/
+├── plan.json              # All plan + task state (single file)
 ├── events.json            # Major milestone log (append-style)
-└── teams/
-    ├── task-1.json         # Per-team state (~500 bytes each)
-    ├── task-2.json
-    └── ...
+├── README.md
+├── shared/
+├── tasks/
+└── ...
 ```
 
 ### Startup Sequence
 
 At the very beginning of execution (before spawning any teams):
 
-1. Resolve the absolute plan directory path and create directories:
+1. Resolve the absolute plan directory path:
    ```bash
    PLAN_DIR="$(pwd)/documentation/plans/{PLAN_NAME}"
-   mkdir -p "$PLAN_DIR/status/teams"
    ```
    Use `$PLAN_DIR` as an absolute path for ALL file operations below. This avoids CWD-dependent bugs.
 
-2. Write initial `status/plan.json`:
-   ```json
-   {
-     "name": "{PLAN_NAME}",
-     "description": "{Brief description from plan README}",
-     "plan_file": "documentation/plans/{PLAN_NAME}/README.md",
-     "status": "executing",
-     "started_at": "{ISO timestamp}",
-     "ended_at": null,
-     "elapsed_seconds": 0,
-     "concurrency_limit": {N},
-     "total_tasks": {N},
-     "completed_tasks": 0,
-     "active_tasks": 0,
-     "pending_tasks": {N}
-   }
-   ```
+2. Read existing `$PLAN_DIR/plan.json` — if plan-enhancer already populated the `tasks` array on approval, use it. Otherwise parse tasks from the plan README (headings matching `### Task N: ...`).
 
-3. Write initial `status/events.json`:
+3. Write initial `$PLAN_DIR/plan.json` following the format in `${CLAUDE_PLUGIN_ROOT}/references/plan-status-format.md`. Set plan status to `in_progress`, `started_at` to now, all tasks to `pending`. If the file already exists from plan-enhancer, update it in place (change status from `pending` to `in_progress`, add `started_at`, `concurrency_limit`, timing fields).
+
+4. Write initial `$PLAN_DIR/events.json`:
    ```json
    {
      "events": [
@@ -157,16 +146,16 @@ At the very beginning of execution (before spawning any teams):
    }
    ```
 
-4. Determine project identity:
+5. Determine project identity:
    ```bash
    PROJECT_ROOT=$(git -C "$PLAN_DIR" rev-parse --show-toplevel)
    PROJECT_NAME=$(basename "$PROJECT_ROOT")
    PLAN_NAME=$(basename "$PLAN_DIR")
    ```
 
-5. Ensure the dashboard is running by reading and executing `${CLAUDE_PLUGIN_ROOT}/references/ensure-dashboard.md`. This gives you `$DASHBOARD_URL`.
+6. Ensure the dashboard is running by reading and executing `${CLAUDE_PLUGIN_ROOT}/references/ensure-dashboard.md`. This gives you `$DASHBOARD_URL`.
 
-6. Register this plan with the global dashboard:
+7. Register this plan with the global dashboard:
    ```bash
    curl -sf -X POST http://localhost:3847/api/register \
      -H 'Content-Type: application/json' \
@@ -177,42 +166,14 @@ At the very beginning of execution (before spawning any teams):
    PLAN_DASHBOARD_URL="${DASHBOARD_URL}/plan/$PROJECT_NAME/$PLAN_NAME"
    ```
 
-7. **Update plan README status to "In Progress":**
+8. **Update plan README status to "In Progress":**
    Read `documentation/plans/{PLAN_NAME}/README.md`, find the `> Status:` line, replace it with `> Status: In Progress`. Write the file back.
 
-8. SendMessage to Lead: "Dashboard live at {PLAN_DASHBOARD_URL} (also http://localhost:3847)"
+9. SendMessage to Lead: "Dashboard live at {PLAN_DASHBOARD_URL} (also http://localhost:3847)"
    This is the ONE status message you send to Lead at startup — it gives the human the link they need to monitor execution from any device.
 
-### JSON Schemas
+### events.json — event types
 
-**status/teams/task-{N}.json** — one per team:
-```json
-{
-  "task_id": "task-{N}",
-  "task_name": "{Task title from plan}",
-  "team_name": "task-{N}-team",
-  "goal": "{Success criteria / goal from plan}",
-  "status": "pending|planning|implementing|reviewing|testing|completed|escalated",
-  "started_at": "{ISO}",
-  "ended_at": null,
-  "elapsed_seconds": 0,
-  "stages": {
-    "planning":       { "started_at": null, "ended_at": null, "elapsed_seconds": 0 },
-    "implementation": { "started_at": null, "ended_at": null, "elapsed_seconds": 0 },
-    "review":         { "started_at": null, "ended_at": null, "elapsed_seconds": 0 },
-    "testing":        { "started_at": null, "ended_at": null, "elapsed_seconds": 0 }
-  },
-  "retry_count": 0,
-  "members": [
-    { "name": "executor-{N}",   "role": "executor",   "model": "opus",   "status": "active", "spawned_at": "{ISO}", "ended_at": null },
-    { "name": "reviewer-{N}",   "role": "reviewer",   "model": "sonnet", "status": "active", "spawned_at": "{ISO}", "ended_at": null }
-  ]
-}
-```
-
-Member status values: `active` | `idle` | `completed` | `crashed` | `rate-limited`
-
-**status/events.json** — event types:
 ```
 team_spawned          — new team created (executor + reviewer)
 member_spawned        — tester added to existing team after implementation
@@ -220,7 +181,7 @@ team_shutdown         — team decommissioned
 stage_entered         — task entered a new pipeline stage
 stage_done            — parallel stage (review or testing) completed
 task_completed        — task finished successfully
-task_escalated        — task escalated to Lead
+task_failed           — task failed / escalated to Lead
 usage_pause_triggered — proactive pause at 90% usage (extra_usage=false), includes cycle #
 usage_pause_resumed   — resume after usage window reset, includes cycle # and duration
 execution_started     — plan execution began
@@ -238,26 +199,26 @@ Each event:
 }
 ```
 
+**Reading events.json for append:** Read the current file, push the new event onto the `events` array, write it back. Keep all events — the file won't grow large enough to matter for a single plan execution.
+
 ### Status Update Protocol
 
-Update the relevant JSON file(s) on every operational event. The dashboard polls every 3 seconds, so write promptly. Here's when to write what:
+All updates write to `plan.json` (a single file). Re-write the entire file on each update. The dashboard polls every 3 seconds, so write promptly.
 
-| Event | Write to | What changes |
-|-------|----------|-------------|
-| Team spawned | `teams/task-N.json` (create), `plan.json` (active_tasks++, pending_tasks--), `events.json` | New team file with all members |
-| Stage transition | `teams/task-N.json` | `status` field, close previous stage timestamps, open new stage |
-| Member spawned | `teams/task-N.json`, `events.json` | Add reviewer/tester member to existing team, append `member_spawned` event |
-| Stage done | `teams/task-N.json`, `events.json` | Close one parallel stage (review or testing) independently |
-| Member status change | `teams/task-N.json` | Member's `status` field (active→idle, idle→active, etc.) |
-| Task completed | `teams/task-N.json`, `plan.json` (completed_tasks++, active_tasks--), `events.json` | End timestamps, status=completed, all members=completed |
-| Task escalated | `teams/task-N.json`, `plan.json`, `events.json` | status=escalated |
-| Team shutdown | `teams/task-N.json`, `events.json` | All member ended_at timestamps |
-| Retry (review/test fail) | `teams/task-N.json`, `events.json` | retry_count++, reset both review/testing stage timers |
-| Execution complete | `plan.json`, `events.json` | status=completed, ended_at, final elapsed |
+| Event | What changes in plan.json | Also write to |
+|-------|--------------------------|---------------|
+| Team spawned | Find task in `tasks` array → set status `in_progress`, populate `started_at`, `stages`, `members`. Update `active_tasks++`, `pending_tasks--` | `events.json` |
+| Stage transition | Find task → close previous stage timestamps, open new stage in `stages` object | `events.json` |
+| Member spawned | Find task → add tester member to `members` array | `events.json` |
+| Stage done | Find task → close one parallel stage independently (set `ended_at` + `elapsed_seconds`) | `events.json` |
+| Member status change | Find task → update member's `status` field | — |
+| Task completed | Find task → status=`completed`, set `ended_at`, all members=`completed`. Update `completed_tasks++`, `active_tasks--` | `events.json` |
+| Task failed | Find task → status=`failed`, set `ended_at`. Update `active_tasks--` | `events.json` |
+| Team shutdown | Find task → set all member `ended_at` timestamps | `events.json` |
+| Retry (review/test fail) | Find task → `retry_count++`, reset both review and testing stage timers | `events.json` |
+| Execution complete | Plan status=`completed`, set plan `ended_at`, final `elapsed_seconds` | `events.json` |
 
-**Elapsed time updates:** Each monitoring loop iteration, update `elapsed_seconds` in `plan.json` and in each active `teams/task-N.json` (compute from started_at to now). Also update active stage `elapsed_seconds`. This keeps the dashboard timing live.
-
-**Reading events.json for append:** Read the current file, push the new event onto the `events` array, write it back. Keep all events — the file won't grow large enough to matter for a single plan execution.
+**Elapsed time updates:** Each monitoring loop iteration, update `elapsed_seconds` on the plan and on each `in_progress` task in the `tasks` array. Also update active stage `elapsed_seconds`. This keeps the dashboard timing live — and it's a single file read-write.
 
 ### Shutdown
 
@@ -270,20 +231,22 @@ curl -sf -X POST http://localhost:3847/api/deregister \
 
 Do NOT shut down until the human has had time to review the final state. Wait for the Lead's shutdown signal.
 
+Do NOT shut down until the human has had time to review the final state. Wait for the Lead's shutdown signal.
+
 ## Status Update Processing
 
 The Lead sends you terse status messages as it orchestrates. Process each into the appropriate dashboard updates:
 
 | Message | Source | PM Action |
 |---|---|---|
-| `SPAWNED task-{N}: {description}` | Lead | Create `status/teams/task-{N}.json` with executor only, update `plan.json` (active_tasks++, pending_tasks--), append `team_spawned` event |
-| `SPAWNED knowledge-{PLAN_NAME}` | Lead | Log knowledge agent spawn in events. |
-| `SPAWNED-TESTER task-{N}` | Lead | Add tester member to `teams/task-{N}.json`, append `member_spawned` event |
-| `STAGE task-{N} {stage}` | Lead | Update `teams/task-{N}.json`: close previous stage timestamps, open new stage, update status field. Append `stage_entered` event. For `review` and `testing`: both can be open simultaneously (parallel stages). |
-| `STAGE-DONE task-{N} {stage}` | Lead | Close one parallel stage independently: set `ended_at` and `elapsed_seconds` for that stage. Do NOT close the other parallel stage. Append `stage_done` event. |
-| `COMPLETED task-{N}` | Lead | Update `teams/task-{N}.json`: status=completed, ended_at, all members=completed. Update `plan.json` (completed_tasks++, active_tasks--). Append `task_completed` event. **Update plan README:** find `### Task {N}:` heading, change `<!-- status:pending -->` to `<!-- status:completed -->` and `- [ ] **Complete**` to `- [x] **Complete**` |
-| `SHUTDOWN task-{N}` | Lead | Update all member `ended_at` timestamps in `teams/task-{N}.json`. Append `team_shutdown` event |
-| `RETRY task-{N}` | Lead | Update `teams/task-{N}.json`: retry_count++, reset both review and testing stage timers (re-open them). Append retry event |
+| `SPAWNED task-{N}: {description}` | Lead | In `plan.json`: find task-{N} in tasks array → set status `in_progress`, populate `started_at`, `stages`, `members` (executor + reviewer). Update `active_tasks++`, `pending_tasks--`. Append `team_spawned` event to `events.json` |
+| `SPAWNED knowledge-{PLAN_NAME}` | Lead | Log knowledge agent spawn in `events.json` |
+| `SPAWNED-TESTER task-{N}` | Lead | In `plan.json`: find task-{N} → add tester member to `members` array. Append `member_spawned` event to `events.json` |
+| `STAGE task-{N} {stage}` | Lead | In `plan.json`: find task-{N} → close previous stage timestamps, open new stage in `stages` object. Append `stage_entered` event. For `review` and `testing`: both can be open simultaneously (parallel stages). |
+| `STAGE-DONE task-{N} {stage}` | Lead | In `plan.json`: find task-{N} → close one parallel stage independently: set `ended_at` and `elapsed_seconds` for that stage. Do NOT close the other parallel stage. Append `stage_done` event to `events.json` |
+| `COMPLETED task-{N}` | Lead | In `plan.json`: find task-{N} → status=`completed`, set `ended_at`, all members=`completed`. Update `completed_tasks++`, `active_tasks--`. Append `task_completed` event to `events.json`. **Update plan README:** find `### Task {N}:` heading, change `<!-- status:pending -->` to `<!-- status:completed -->` and `- [ ] **Complete**` to `- [x] **Complete**` |
+| `SHUTDOWN task-{N}` | Lead | In `plan.json`: find task-{N} → set all member `ended_at` timestamps. Append `team_shutdown` event to `events.json` |
+| `RETRY task-{N}` | Lead | In `plan.json`: find task-{N} → `retry_count++`, reset both review and testing stage timers (re-open them). Append retry event to `events.json` |
 
 **Important:** If the Lead sends a message format you don't recognize, log it and continue. Never block on an unrecognized message.
 
@@ -312,7 +275,7 @@ The Lead sends you terse status messages as it orchestrates. Process each into t
 
 You set up a CronCreate job in your First Action that fires every 5 minutes. Each time it fires, you receive a "MONITORING TICK" prompt. On each tick:
 
-1. **Update elapsed times:** Update `elapsed_seconds` in `plan.json` and all active `teams/task-N.json` files (compute from `started_at` to now for project and each task/stage). For parallel stages (review + testing), update each independently.
+1. **Update elapsed times:** Update `elapsed_seconds` in `plan.json` — both the plan-level value and each `in_progress` task in the `tasks` array (compute from `started_at` to now for plan and each task/stage). For parallel stages (review + testing), update each independently. This is a single file read-write.
 2. **Check usage (if extra_usage = false):** Read `~/.claude/ultra/usage-status.json` and evaluate whether to PAUSE or RESUME (see Usage Threshold Monitoring below).
 3. **Log observations:** Keep mental notes for the final report — stage durations, idle agents, communication patterns.
 
@@ -502,12 +465,12 @@ Log these observations — they feed directly into the Plan Quality Retrospectiv
 When the Lead sends "Execution complete — write operational report":
 
 1. Delete the monitoring cron job: `CronDelete({ id: "{saved_cron_id}" })`
-2. Update `status/plan.json`: status=completed, ended_at, final elapsed_seconds. Append `execution_completed` event.
+2. Update `plan.json`: plan status=`completed`, `ended_at`, final `elapsed_seconds`. Append `execution_completed` event to `events.json`.
 3. **Update plan README status to "Completed":** Read `documentation/plans/{PLAN_NAME}/README.md`, find the `> Status:` line, replace it with `> Status: Completed`. Write the file back.
 4. Do a final read of all task artifacts to fill any gaps in your observations
 5. Compile the operational report
 6. Write it to `documentation/plans/{PLAN_NAME}/operational-report.md`
-7. **Commit final status files:** `git add documentation/plans/{PLAN_NAME}/status/ documentation/plans/{PLAN_NAME}/operational-report.md` and commit.
+7. **Commit final status files:** `git add documentation/plans/{PLAN_NAME}/plan.json documentation/plans/{PLAN_NAME}/events.json documentation/plans/{PLAN_NAME}/operational-report.md` and commit.
 8. SendMessage to Lead: "Operational report saved to operational-report.md. Dashboard still live at {DASHBOARD_URL}"
 9. Wait for shutdown_request from Lead on shutdown
 

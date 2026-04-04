@@ -94,7 +94,7 @@ router.get('/plans', (req, res) => {
   const reg = discoverPlans();
   const enriched = reg.plans.map(p => {
     const proj = readPlanStatus(p.plan_dir);
-    if (proj && proj.status === 'executing') {
+    if (proj && (proj.status === 'in_progress' || proj.status === 'executing')) {
       const teams = readPlanTeams(p.plan_dir);
       const activeTeams = teams.filter(t => t.status && t.status !== 'completed' && t.status !== 'pending');
       if (activeTeams.length > 0) {
@@ -158,10 +158,10 @@ router.get('/projects', (req, res) => {
     const proj = projectMap[p.project];
     proj.total_plans++;
     const status = readPlanStatus(p.plan_dir);
-    const isActive = p.active || (status && status.status === 'executing');
+    const isActive = p.active || (status && (status.status === 'in_progress' || status.status === 'executing'));
     if (isActive) {
       proj.active_plans++;
-      if (status && status.status === 'executing') {
+      if (status && (status.status === 'in_progress' || status.status === 'executing')) {
         const teams = readPlanTeams(p.plan_dir);
         teams.filter(t => t.status && t.status !== 'completed' && t.status !== 'pending')
           .forEach(t => proj.active_stages.push({ plan: p.plan, task_id: t.task_id, status: t.status }));

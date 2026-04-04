@@ -1,11 +1,13 @@
 ---
-description: Sync plan and task statuses across README files and dashboard JSON. Scans documentation/plans/ for stale statuses, infers correct state from execution artifacts, updates READMEs and creates/fixes status/plan.json for the Ultra Dashboard. Use when plan statuses are out of date, dashboard shows wrong columns, after recovering from crashed executions, or to audit plan state. Triggers on "sync plan status", "fix plan status", "plan status cleanup", "update plan statuses", "fix dashboard statuses".
+description: Sync plan and task statuses across README files and dashboard JSON. Scans documentation/plans/ for stale statuses, infers correct state from execution artifacts, updates READMEs and creates/fixes plan.json for the Ultra Dashboard. Use when plan statuses are out of date, dashboard shows wrong columns, after recovering from crashed executions, or to audit plan state. Triggers on "sync plan status", "fix plan status", "plan status cleanup", "update plan statuses", "fix dashboard statuses".
 user-invocable: true
 ---
 
 # Plan Status Sync
 
-Scan all plans and reconcile statuses in both README files and dashboard JSON (`status/plan.json`) with actual execution artifacts.
+Scan all plans and reconcile statuses in both README files and dashboard JSON (`plan.json` at plan root) with actual execution artifacts.
+
+**For the canonical plan.json format, read `${CLAUDE_PLUGIN_ROOT}/references/plan-status-format.md`.**
 
 ## Step 1: Discover Plans
 
@@ -16,7 +18,7 @@ Glob for `documentation/plans/*/README.md`. If none found, inform user and stop.
 For each plan directory, read:
 
 1. **README.md** — current `> Status:` line, task checkbox states, and task count
-2. **status/plan.json** — if exists, check `"status"` field and `"ended_at"`
+2. **plan.json** (at plan root) — if exists, check `"status"` field and `"ended_at"`
 3. **operational-report.md** — if exists, plan completed
 4. **shared/lead.md** — if contains `## Execution Complete`, check which tasks are listed as completed
 5. **checkpoint-*.md** — if exist, execution was at least started
@@ -27,20 +29,22 @@ For each plan directory, read:
 | Artifacts Found | Inferred Status |
 |----------------|----------------|
 | `operational-report.md` exists | **Completed** |
-| `status/plan.json` with `"status": "completed"` | **Completed** |
+| `plan.json` with `"status": "completed"` | **Completed** |
 | `shared/lead.md` with `## Execution Complete` | **Completed** |
-| `status/plan.json` with `"status": "executing"` but no report | **In Progress** (likely abandoned) |
+| `plan.json` with `"status": "in_progress"` but no report | **In Progress** (likely abandoned) |
 | `checkpoint-*.md` exists but no report | **In Progress** |
-| No execution artifacts at all | Keep current status (Draft/Approved/Stub) |
+| No execution artifacts at all | Keep current status (Pending) |
 
-**Additional heuristic for plans without PM tracking:** Many plans were executed before the PM tracked status. If a plan has NO `status/` directory but DOES have execution artifacts (`shared/lead.md`, task directories with `impl.md` or `plan.md` files), infer status from those artifacts using the rules above.
+**Legacy compatibility:** Older plans may have `status/plan.json` instead of `plan.json` at root, or may use old status values like `executing`, `draft`, `approved`, `stub`. Treat these as equivalent: `executing` → `in_progress`, `draft`/`approved`/`stub` → `pending`.
+
+**Plans without PM tracking:** If a plan has no `plan.json` but DOES have execution artifacts (`shared/lead.md`, task directories with `impl.md` or `plan.md` files), infer status from those artifacts using the rules above.
 
 ### Task Completion Inference
 
 For plans inferred as **Completed**, determine which tasks finished:
 
 1. Read `shared/lead.md` — the "Tasks Completed" section lists finished tasks
-2. Read `status/teams/task-*.json` — check for `"status": "completed"`
+2. Read `plan.json` tasks array — check for `"status": "completed"` on each task
 3. Check for `tasks/task-N/impl.md` existence — if impl.md exists, the task was at minimum implemented
 4. Cross-reference task numbers with README headings
 
@@ -54,8 +58,8 @@ Show a summary table:
 Plan                    | README Status | Dashboard Status | Correct Status | Tasks
 ------------------------|--------------|-----------------|----------------|------
 001-user-auth           | Approved     | (no JSON)       | Completed      | 3/3 done
-002-api-refactor        | Approved     | executing       | In Progress    | 1/4 done
-003-new-feature         | Draft        | (no JSON)       | Draft          | (no change)
+002-api-refactor        | Approved     | in_progress     | In Progress    | 1/4 done
+003-new-feature         | Draft        | (no JSON)       | Pending        | (no change)
 ```
 
 If no changes needed, inform user and stop.
@@ -80,41 +84,20 @@ For plans that **lack the checkbox format** (created before this feature), add i
 
 ### 4b. Create or Update Dashboard JSON
 
-For plans that need dashboard status fixes, create or update `status/plan.json`.
+For plans that need dashboard status fixes, create or update `plan.json` at plan root. Follow `${CLAUDE_PLUGIN_ROOT}/references/plan-status-format.md` for the canonical format.
 
-**If `status/plan.json` doesn't exist**, create it:
+**If `plan.json` doesn't exist**, create it: populate plan-level fields and the `tasks` array from README task headings, with per-task statuses inferred from artifacts (Step 2).
 
-```bash
-mkdir -p documentation/plans/{PLAN_NAME}/status
-```
+**If `plan.json` exists but has wrong status**, update the `"status"` and `"ended_at"` fields, and ensure the `tasks` array exists with correct per-task statuses.
 
-```json
-{
-  "name": "{PLAN_NAME}",
-  "description": "{Objective from README}",
-  "plan_file": "documentation/plans/{PLAN_NAME}/README.md",
-  "status": "{inferred status: completed|executing|pending}",
-  "started_at": "{from git log or checkpoint timestamp, ISO format}",
-  "ended_at": "{from operational-report timestamp or git log, null if not completed}",
-  "elapsed_seconds": 0,
-  "concurrency_limit": 0,
-  "total_tasks": {N from README task count},
-  "completed_tasks": {N from inference},
-  "active_tasks": 0,
-  "pending_tasks": {total - completed}
-}
-```
-
-**If `status/plan.json` exists but has wrong status**, update only the `"status"` and `"ended_at"` fields.
-
-**Status value mapping for dashboard:**
+**Status value mapping:**
 - Inferred "Completed" → `"status": "completed"`
-- Inferred "In Progress" → `"status": "executing"`
-- Inferred "Stub" → `"status": "stub"`
-- Inferred "Draft" → `"status": "draft"`
-- Inferred "Approved" → `"status": "approved"`
+- Inferred "In Progress" → `"status": "in_progress"`
+- All other states (Draft, Approved, Stub, or no execution artifacts) → `"status": "pending"`
 
-Also create `status/events.json` if missing (for completed plans):
+**Legacy migration:** If `status/plan.json` exists but `plan.json` at root does not, read from `status/plan.json`, migrate status values, add tasks array, and write to `plan.json` at root. Optionally remove the old `status/` directory.
+
+Also create `events.json` at plan root if missing (for completed plans):
 
 ```json
 {
@@ -143,7 +126,7 @@ Report what was changed:
 ```
 Updated N plan(s):
 - M README status lines updated
-- K dashboard status/plan.json files created or fixed
+- K plan.json files created or fixed
 - T task checkboxes checked off
 
 Review changes with `git diff`, then commit if correct.

@@ -191,7 +191,7 @@ For each plan in the approved sequence:
 
 1. Create the plan directory:
    ```bash
-   mkdir -p documentation/plans/{NNN}-{name}/{shared,tasks,status}
+   mkdir -p documentation/plans/{NNN}-{name}/{shared,tasks}
    ```
 
 2. Write `documentation/plans/{NNN}-{name}/README.md` using the stub format:
@@ -199,18 +199,7 @@ For each plan in the approved sequence:
    - Stub markers for: Task List, Tech Stack, Documentation Changes, Risk Assessment
    - Set `Status: Stub` and `Source: Roadmap`
 
-3. Create `documentation/plans/{NNN}-{name}/status/plan.json`:
-   ```json
-   {
-     "name": "{NNN}-{slug}",
-     "status": "stub",
-     "description": "{objective from README}",
-     "total_tasks": 0,
-     "completed_tasks": 0,
-     "active_tasks": 0,
-     "pending_tasks": 0
-   }
-   ```
+3. Create `documentation/plans/{NNN}-{name}/plan.json` at plan root following `${CLAUDE_PLUGIN_ROOT}/references/plan-status-format.md`. Set `status` to `"pending"`, all counts to 0, no tasks array (stubs don't have tasks yet).
 
 Context links must point to real files that exist in `documentation/`. Do not invent links. If a relevant doc doesn't exist, omit that link category.
 
@@ -279,19 +268,8 @@ See documentation/plans/ROADMAP.md for the full dependency graph.
 
 ## Plan Stub Bootstrap — MANDATORY
 
-When creating stub plan directories, ALWAYS generate a `status/plan.json` file alongside the README.md. The daemon only discovers plans via `status/plan.json` — without it, the plan is invisible in the dashboard.
+When creating stub plan directories, ALWAYS generate a `plan.json` file at the plan root alongside the README.md. The dashboard discovers plans via `plan.json` — without it, the plan is invisible in the dashboard.
 
-Template:
-```json
-{
-  "name": "{NNN}-{slug}",
-  "status": "stub",
-  "description": "{objective from README}",
-  "total_tasks": 0,
-  "completed_tasks": 0,
-  "active_tasks": 0,
-  "pending_tasks": 0
-}
-```
+Follow `${CLAUDE_PLUGIN_ROOT}/references/plan-status-format.md` for the format. For stubs: set `status` to `"pending"`, all counts to 0, no tasks array.
 
-The entire `status/` directory should be committed to git so plan state persists across machines. Any skill that scaffolds plan directories — roadmap, feature-mode, or manual stub creation — must create this file.
+The `plan.json` file should be committed to git so plan state persists across machines. Any skill that scaffolds plan directories — roadmap, feature-mode, or manual stub creation — must create this file.
