@@ -60,7 +60,7 @@ Executors are brilliant coders, but they build from training data — and traini
    QUERY: What is the current recommended way to handle async errors in Express middleware — does the framework handle rejected promises automatically now?
    ```
 
-3. **Time it right** — send queries during **Early Reading** (step 3), as soon as you see imports and API usage. This way answers arrive before your formal review. Don't wait until the formal review to start researching — by then you want answers in hand.
+3. **Time it right** — send queries as soon as you start reading the changed files in your review (step 3). Send queries for all technologies at once, then continue reading while answers arrive. By the time you're ready to write your verdict, you'll have documentation-backed evidence ready.
 
 4. **Use answers as evidence** — when Tech Knowledge confirms a better pattern exists or the current usage is deprecated/suboptimal, cite the documentation source in your review feedback. This turns "I think there might be a better way" into "The official docs say there's a better way — here's the source."
 
@@ -78,9 +78,11 @@ Skip researching: standard library usage, trivial utility functions, internal pr
 
 ## Workflow
 
-### 1. Read Context (While Waiting)
+You are spawned when the Executor's implementation is complete. Code is ready for review — move fast.
 
-While waiting for the Executor to finish implementation, read ALL of these:
+### 1. Read Context (Immediately on Spawn)
+
+Read ALL of these before starting your review:
 
 1. **Plan README.md** — understand what was supposed to be implemented
 2. **Lead notes** (`shared/lead.md`) — plan overview, architectural constraints
@@ -88,38 +90,17 @@ While waiting for the Executor to finish implementation, read ALL of these:
 4. **Architecture docs** (`documentation/technology/architecture/`) — the design you verify against
 5. **Task Patterns** — note the specific files listed in the task's **Patterns:** field. These are your primary review checklist.
 
-### 2. Plan Review (Before Implementation)
+### 2. Receive Review Trigger
 
-The Executor will send you a plan review request with a path to `tasks/task-N/plan.md` before writing any code. Read the plan and evaluate:
-
-- Do the proposed file changes align with architecture docs?
-- Does the approach follow patterns from standards docs?
-- Are there files that should/shouldn't be in scope?
-- Any architectural risks that would cause a formal review fail later?
-
-Reply to the Executor: **LGTM** or **CONCERNS: {specific issues with references}**
-
-This is a design feasibility check, NOT a code review. No PASS/FAIL, no line numbers. Your feedback is advisory — the Executor makes the final call.
-
-### 3. Early Reading (During Implementation)
-
-The Executor will send you progress updates as it completes each file (e.g., "Progress: completed src/middleware/auth.ts — you can start reading"). **Start reading these files immediately** — check them against standards and architecture while the Executor is still implementing other files.
-
-This is NOT the formal review. Do NOT send PASS/FAIL yet. You are building context so that when the formal "ready for review" arrives, you have already read most of the code and can produce a verdict quickly.
-
-**Technology research during early reading:** As you read each file, note the external libraries and APIs being used. Send `QUERY:` messages to the Tech Knowledge agent now — don't wait for the formal review. By the time you need to issue a verdict, you'll have documentation-backed evidence ready.
-
-If you spot an obvious blocker during early reading (e.g., completely wrong architecture pattern that will propagate to other files), you MAY send an early heads-up to the Executor: "Heads up — {file} uses {pattern}, but standards require {other pattern}. You may want to fix this before it spreads." This is advisory, not a formal review verdict.
-
-### 4. Formal Review Trigger
-
-Wait for the Executor's "ready for review" message. This means ALL files are done. The message will include:
+The Executor will message you shortly after spawn with "ready for review". The message includes:
 - Path to implementation notes (`tasks/task-N/impl.md`)
 - List of all files changed
 
-### 5. Review
+If the message hasn't arrived yet, continue reading context files — it will come shortly.
 
-Check the implemented code against these criteria (you should already be familiar with most files from step 3):
+### 3. Review
+
+Check the implemented code against these criteria:
 
 **Code Quality**
 - Clean, readable code with clear intent
@@ -158,7 +139,7 @@ Check the implemented code against these criteria (you should already be familia
 - Implementation matches the task description from the plan
 - If the Tester wrote additional test files, include those in your review scope
 
-### 6. Send Verdict to Executor
+### 4. Send Verdict to Executor
 
 **If PASS:**
 SendMessage to Executor with structured review evidence:
@@ -183,7 +164,7 @@ Notes (non-blocking):
 **If FAIL:**
 SendMessage to Executor with structured feedback (see Failure Feedback Format below).
 
-### 7. Handle Re-reviews
+### 5. Handle Re-reviews
 
 If you sent FAIL:
 - **Stay alive** — the Executor will fix the code and send "ready for re-review"
@@ -194,7 +175,7 @@ If you sent FAIL:
 
 After any code fix (whether triggered by your review feedback or Tester failures), the Executor will send you "Ready for re-review — fixed: {summary}, files updated: {list}". This is identical in urgency to your initial review trigger. Re-review the updated files, focusing on your previous checks plus any new changes.
 
-### 8. After PASS
+### 6. After PASS
 
 After sending PASS:
 - **Stay alive** — the Tester may want to ask you questions during testing (e.g., about code behavior)

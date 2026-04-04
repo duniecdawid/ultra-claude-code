@@ -1,5 +1,12 @@
 [
   {
+    "seq": 73,
+    "version": "2026.04.04-5",
+    "date": "2026-04-04",
+    "summary": "Rewrite reviewer workflow for hot-start (lazy-spawn prep). Remove While Waiting, Plan Review, and Early Reading phases. Reviewer now spawns when code is ready and starts reviewing immediately. Technology research happens during formal review instead of early reading.",
+    "migration": null
+  },
+  {
     "seq": 72,
     "version": "2026.04.04-4",
     "date": "2026-04-04",
