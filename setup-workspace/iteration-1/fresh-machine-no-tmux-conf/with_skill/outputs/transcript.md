@@ -15,7 +15,7 @@
 ## Step 1: Read Current State
 
 1. Read `plugin.json` — plugin version is **0.3.3**.
-2. Check for `~/.claude/uc-setup.json` — does NOT exist (fresh machine). No previous setup state.
+2. Check for `~/.claude/ultra/uc-setup.json` — does NOT exist (fresh machine). No previous setup state.
 3. Since no marker exists, proceed with full setup.
 
 ## Step 2: Detect Shell
@@ -146,7 +146,7 @@ export ANTHROPIC_DEFAULT_SONNET_MODEL='claude-sonnet-4-6[1m]'
 
 ## Step 6: Write Marker File
 
-Wrote `~/.claude/uc-setup.json`:
+Wrote `~/.claude/ultra/uc-setup.json`:
 
 ```json
 {

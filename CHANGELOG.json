@@ -1,5 +1,12 @@
 [
   {
+    "seq": 82,
+    "version": "2026.04.04-15",
+    "date": "2026-04-04",
+    "summary": "Move global Ultra Claude runtime files from ~/.claude/ to ~/.claude/ultra/ — uc-setup.json, statusline.sh, statusline-auth/, dashboard.pid, usage-status.json, dashboard-projects.json, dashboard-registry.json. Cleans up Claude Code's config directory by namespacing all Ultra Claude state under ~/.claude/ultra/. Updated all runtime scripts, skill docs, agent docs, and references.",
+    "migration": null
+  },
+  {
     "seq": 81,
     "version": "2026.04.04-13",
     "date": "2026-04-04",
@@ -399,7 +406,7 @@
     "seq": 45,
     "version": "2026.03.30-2",
     "date": "2026-03-30",
-    "summary": "Statusline hardening: move auth cache from /tmp to ~/.claude/statusline-auth/ for persistence across reboots, add overwrite guard to prevent account-switch misidentification from replacing higher rate-limit usage with stale lower values, show data age on usage bar with stale indicator (>10m turns yellow), auto-cleanup auth cache files older than 24h. Update setup skill with auth cache directory check and creation step.",
+    "summary": "Statusline hardening: move auth cache from /tmp to ~/.claude/ultra/statusline-auth/ for persistence across reboots, add overwrite guard to prevent account-switch misidentification from replacing higher rate-limit usage with stale lower values, show data age on usage bar with stale indicator (>10m turns yellow), auto-cleanup auth cache files older than 24h. Update setup skill with auth cache directory check and creation step.",
     "migration": null
   },
   {
@@ -548,7 +555,7 @@
     "seq": 27,
     "version": "2026.03.15-3",
     "date": "2026-03-15",
-    "summary": "Add /uc:setup skill — one-time machine setup (1M context env vars, agent teams, tmux, node, optional Tailscale). Writes version marker to ~/.claude/uc-setup.json for quick currency checks. Plan-execution now checks setup marker and suggests /uc:setup when missing.",
+    "summary": "Add /uc:setup skill — one-time machine setup (1M context env vars, agent teams, tmux, node, optional Tailscale). Writes version marker to ~/.claude/ultra/uc-setup.json for quick currency checks. Plan-execution now checks setup marker and suggests /uc:setup when missing.",
     "migration": null
   },
   {

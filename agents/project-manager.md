@@ -304,7 +304,7 @@ REPEAT every 5 minutes:
   1. Update elapsed_seconds in project.json and all active teams/task-N.json files
      (compute from started_at to now for project and each task/stage)
   2. For parallel stages (review + testing): update each independently
-  3. Check usage data: read ~/.claude/usage-status.json for rate limit percentages
+  3. Check usage data: read ~/.claude/ultra/usage-status.json for rate limit percentages
   4. Log observations to your internal tracking (keep mental notes for the final report)
 ```
 
@@ -325,7 +325,7 @@ This monitoring is **ONLY active** when the Lead's spawn prompt includes `Extra 
 
 **Supports multiple cycles:** A long execution can span multiple 5-hour windows. PAUSE→RESUME can repeat any number of times. After each RESUME, continue monitoring — usage will climb again in the new window.
 
-**Data source:** `~/.claude/usage-status.json` — written by statusline.sh on every main-context prompt. Structure:
+**Data source:** `~/.claude/ultra/usage-status.json` — written by statusline.sh on every main-context prompt. Structure:
 ```json
 {
   "accounts": {
@@ -346,8 +346,8 @@ This monitoring is **ONLY active** when the Lead's spawn prompt includes `Extra 
 
 ```
 1.5. If extra_usage is disabled:
-     a. Read ~/.claude/usage-status.json via Bash:
-        cat ~/.claude/usage-status.json 2>/dev/null
+     a. Read ~/.claude/ultra/usage-status.json via Bash:
+        cat ~/.claude/ultra/usage-status.json 2>/dev/null
      b. Parse the JSON. Find the most recently updated account.
      c. Check five_hour.used_percentage.
      d. If >= 90 AND system is NOT already paused:
@@ -374,7 +374,7 @@ After each RESUME, reset `usage_paused` and `usage_pause_started_at` but **keep*
 - **Usage jumps past 90% between checks:** The 5-minute loop interval means up to 5 minutes of work could occur between 89% and 91%. Acceptable — the 10% buffer accounts for this.
 - **Stale data:** If `updated_at` is more than 15 minutes old, log a warning but still trust the percentage.
 - **Multiple accounts:** Use the most recently updated account.
-- **File missing:** If `~/.claude/usage-status.json` doesn't exist, skip usage monitoring for this iteration.
+- **File missing:** If `~/.claude/ultra/usage-status.json` doesn't exist, skip usage monitoring for this iteration.
 
 #### PAUSE Protocol
 

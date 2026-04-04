@@ -1,5 +1,5 @@
 ---
-description: One-time machine setup for Ultra Claude. Checks and configures shell environment (1M context, agent teams), installs prerequisites (tmux, node), configures tmux for Claude Code (fixes screen tearing via DEC 2026 synchronized output passthrough), sets up the Ultra Dashboard (project docs via Docsify, multi-account rate limit monitoring, plan execution tracking), configures the statusline for per-account usage tracking, and optionally sets up Tailscale for remote dashboard access. Idempotent — safe to re-run. Writes version marker to ~/.claude/uc-setup.json so other skills can quickly check if setup is current. Use when onboarding a new machine, after Ultra Claude install, when plan-execution reports missing prerequisites, or when experiencing screen tearing/flickering in tmux. Triggers on "setup", "machine setup", "environment setup", "configure machine", "setup 1m context", "enable agent teams", "screen tearing", "tmux tearing", "flickering".
+description: One-time machine setup for Ultra Claude. Checks and configures shell environment (1M context, agent teams), installs prerequisites (tmux, node), configures tmux for Claude Code (fixes screen tearing via DEC 2026 synchronized output passthrough), sets up the Ultra Dashboard (project docs via Docsify, multi-account rate limit monitoring, plan execution tracking), configures the statusline for per-account usage tracking, and optionally sets up Tailscale for remote dashboard access. Idempotent — safe to re-run. Writes version marker to ~/.claude/ultra/uc-setup.json so other skills can quickly check if setup is current. Use when onboarding a new machine, after Ultra Claude install, when plan-execution reports missing prerequisites, or when experiencing screen tearing/flickering in tmux. Triggers on "setup", "machine setup", "environment setup", "configure machine", "setup 1m context", "enable agent teams", "screen tearing", "tmux tearing", "flickering".
 user-invocable: true
 ---
 
@@ -10,7 +10,7 @@ One-time machine setup that configures your environment for Ultra Claude feature
 ## Step 1: Read Current State
 
 1. Read `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json` to get the current plugin version
-2. Read `~/.claude/uc-setup.json` (if exists) to check previous setup state
+2. Read `~/.claude/ultra/uc-setup.json` (if exists) to check previous setup state
 3. If marker exists and version matches current plugin version, tell the user: "Setup is current (v{version}, last run {timestamp}). Re-running to verify."
 
 ## Step 2: Detect Shell
@@ -77,7 +77,7 @@ SKIP if tmux is not installed.
 
 ### 3.6 Statusline (usage data for dashboard)
 
-Check if `~/.claude/settings.json` has a `statusLine` command pointing to the Ultra Claude statusline script, that the `jq` dependency is available, and that the auth cache directory exists:
+Check if `~/.claude/settings.json` has a `statusLine` command pointing to the Ultra Claude statusline script, that the `jq` dependency is available, and that the auth cache directory exists. All Ultra Claude runtime files live under `~/.claude/ultra/`:
 
 ```bash
 jq --version 2>/dev/null
@@ -92,13 +92,13 @@ jq -r '.statusLine.command // empty' ~/.claude/settings.json 2>/dev/null
 Check the auth cache directory (used for per-session account identity):
 
 ```bash
-[ -d ~/.claude/statusline-auth ] && echo "exists" || echo "missing"
+[ -d ~/.claude/ultra/statusline-auth ] && echo "exists" || echo "missing"
 ```
 
 PASS if:
 - `jq` is installed
 - The statusLine command references the Ultra Claude `statusline.sh` script (path contains `ultra-claude` and `statusline.sh`)
-- `~/.claude/statusline-auth/` directory exists (soft check — the statusline creates it on first use if missing)
+- `~/.claude/ultra/statusline-auth/` directory exists (soft check — the statusline creates it on first use if missing)
 
 ### 3.7 Ultra Dashboard (includes Docsify docs hosting)
 
@@ -109,7 +109,7 @@ Check if the dashboard's dependencies are installed and it's running:
 ls ${CLAUDE_PLUGIN_ROOT}/scripts/ultra-dashboard/node_modules/.package-lock.json 2>/dev/null
 
 # Check if dashboard is running
-dashboard_pid=$(cat ~/.claude/dashboard.pid 2>/dev/null)
+dashboard_pid=$(cat ~/.claude/ultra/dashboard.pid 2>/dev/null)
 [ -n "$dashboard_pid" ] && kill -0 "$dashboard_pid" 2>/dev/null && echo "running" || echo "not running"
 ```
 
@@ -263,16 +263,17 @@ sudo apt update && sudo apt install -y jq
 brew install jq
 ```
 
-2. **Symlink the script** to `~/.claude/statusline.sh` (so fixes propagate automatically from the plugin source):
+2. **Symlink the script** to `~/.claude/ultra/statusline.sh` (so fixes propagate automatically from the plugin source):
 
 ```bash
-ln -sf "${CLAUDE_PLUGIN_ROOT}/scripts/ultra-dashboard/statusline.sh" ~/.claude/statusline.sh
+mkdir -p ~/.claude/ultra
+ln -sf "${CLAUDE_PLUGIN_ROOT}/scripts/ultra-dashboard/statusline.sh" ~/.claude/ultra/statusline.sh
 ```
 
 3. **Create the auth cache directory** (used for per-session account identity to prevent rate limit data corruption on account switch):
 
 ```bash
-mkdir -p ~/.claude/statusline-auth
+mkdir -p ~/.claude/ultra/statusline-auth
 ```
 
 4. **Configure settings.json** — read `~/.claude/settings.json`, add or update the `statusLine` key:
@@ -280,7 +281,7 @@ mkdir -p ~/.claude/statusline-auth
 ```json
 {
   "statusLine": {
-    "command": "bash ~/.claude/statusline.sh"
+    "command": "bash ~/.claude/ultra/statusline.sh"
   }
 }
 ```
@@ -290,9 +291,9 @@ Use `jq` to merge into existing settings without overwriting other keys:
 ```bash
 settings_file="$HOME/.claude/settings.json"
 if [ -f "$settings_file" ]; then
-  jq '.statusLine = {"command": "bash ~/.claude/statusline.sh"}' "$settings_file" > "${settings_file}.tmp" && mv "${settings_file}.tmp" "$settings_file"
+  jq '.statusLine = {"command": "bash ~/.claude/ultra/statusline.sh"}' "$settings_file" > "${settings_file}.tmp" && mv "${settings_file}.tmp" "$settings_file"
 else
-  echo '{"statusLine":{"command":"bash ~/.claude/statusline.sh"}}' > "$settings_file"
+  echo '{"statusLine":{"command":"bash ~/.claude/ultra/statusline.sh"}}' > "$settings_file"
 fi
 ```
 
@@ -328,7 +329,7 @@ If the user selected Tailscale, invoke `/uc:tailscale-setup` which handles all T
 
 ## Step 6: Write Marker File
 
-After all fixes are applied, write `~/.claude/uc-setup.json`:
+After all fixes are applied, write `~/.claude/ultra/uc-setup.json`:
 
 ```json
 {

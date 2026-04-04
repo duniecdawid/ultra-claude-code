@@ -7,7 +7,7 @@ input=$(cat)
 
 # --- Resolve identity (cached per session) ---
 session_id=$(echo "$input" | jq -r '.session_id // empty')
-auth_cache_dir="$HOME/.claude/statusline-auth"
+auth_cache_dir="$HOME/.claude/ultra/statusline-auth"
 mkdir -p "$auth_cache_dir" 2>/dev/null
 auth_cache="${auth_cache_dir}/${session_id}.json"
 
@@ -26,7 +26,7 @@ else
 fi
 
 # --- Persist usage data keyed by account email ---
-usage_file="$HOME/.claude/usage-status.json"
+usage_file="$HOME/.claude/ultra/usage-status.json"
 if [ -n "$session_id" ] && [ -n "$email" ]; then
   snippet=$(echo "$input" | jq -c \
     --arg email "$email" \
@@ -148,4 +148,4 @@ fi
 printf "%b  ${dim}│${reset}  %b" "$left" "$right"
 
 # --- Cleanup stale auth cache (>24h, runs in background) ---
-find "$HOME/.claude/statusline-auth" -name '*.json' -mmin +1440 -delete 2>/dev/null &
+find "$HOME/.claude/ultra/statusline-auth" -name '*.json' -mmin +1440 -delete 2>/dev/null &

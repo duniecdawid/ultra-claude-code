@@ -14,7 +14,7 @@ allowed-tools: [Bash]
 Kill the existing dashboard process and remove the PID file before proceeding:
 
 ```bash
-DASHBOARD_PID_FILE="$HOME/.claude/dashboard.pid"
+DASHBOARD_PID_FILE="$HOME/.claude/ultra/dashboard.pid"
 if [ -f "$DASHBOARD_PID_FILE" ]; then
   DASH_PID=$(cat "$DASHBOARD_PID_FILE")
   kill "$DASH_PID" 2>/dev/null

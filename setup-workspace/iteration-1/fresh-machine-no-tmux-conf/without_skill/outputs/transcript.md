@@ -137,7 +137,7 @@ Ultra Claude environment setup (v0.3.3)
 ### What was missed or degraded (without the skill)
 
 1. **No structured prerequisite check flow** -- The skill defines a precise 7-step process with parallel checks, status table, multi-select fix prompt, and marker file. Without it, the response was more conversational and less systematic.
-2. **No marker file written** -- The skill writes `~/.claude/uc-setup.json` so other skills can quickly verify setup state. Without the skill, this was not done.
+2. **No marker file written** -- The skill writes `~/.claude/ultra/uc-setup.json` so other skills can quickly verify setup state. Without the skill, this was not done.
 3. **No version check** -- The skill reads `plugin.json` to stamp the version in the marker and status output. Without it, I referenced the version but did not write it to a machine-readable marker.
 4. **No interactive multi-select** -- The skill uses `AskUserQuestion` to let the user choose which items to fix. Without it, I just listed what I would do.
 5. **No actual file writes** -- Without the skill's structured flow, I described what I would do rather than actually creating the files (though in a real session I would have asked permission and then written them).

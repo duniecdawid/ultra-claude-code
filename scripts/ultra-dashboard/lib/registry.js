@@ -3,8 +3,8 @@ const path = require('path');
 const os = require('os');
 
 const HOME = os.homedir();
-const REGISTRY_FILE = path.join(HOME, '.claude', 'dashboard-registry.json');
-const PROJECTS_FILE = path.join(HOME, '.claude', 'dashboard-projects.json');
+const REGISTRY_FILE = path.join(HOME, '.claude', 'ultra', 'dashboard-registry.json');
+const PROJECTS_FILE = path.join(HOME, '.claude', 'ultra', 'dashboard-projects.json');
 
 function readRegistry() {
   try {

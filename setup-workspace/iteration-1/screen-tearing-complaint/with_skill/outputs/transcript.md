@@ -7,7 +7,7 @@
 ## Step 1: Read Current State
 
 - Read `plugin.json` — current plugin version is **0.3.3**.
-- Checked for `~/.claude/uc-setup.json` — does not exist (first run).
+- Checked for `~/.claude/ultra/uc-setup.json` — does not exist (first run).
 
 ## Step 2: Detect Shell
 
@@ -143,7 +143,7 @@ $ tmux source-file ~/.tmux.conf
 
 ## Step 6: Write Marker File
 
-Wrote `~/.claude/uc-setup.json`:
+Wrote `~/.claude/ultra/uc-setup.json`:
 
 ```json
 {

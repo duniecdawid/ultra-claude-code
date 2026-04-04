@@ -4,7 +4,7 @@
 
 Read `plugin.json` -> version is `0.3.3`.
 
-Checked for `~/.claude/uc-setup.json` -> does not exist (first run).
+Checked for `~/.claude/ultra/uc-setup.json` -> does not exist (first run).
 
 ## Step 2: Detect Shell
 
@@ -213,7 +213,7 @@ Inform user: "If tearing persists, detach and reattach your tmux session — som
 
 ## Step 6: Write Marker File
 
-Write `~/.claude/uc-setup.json` with:
+Write `~/.claude/ultra/uc-setup.json` with:
 - `tmux: true` (was already installed)
 - `tmuxConf: true` (fixed this run)
 - `agentTeams: true` (was already present)

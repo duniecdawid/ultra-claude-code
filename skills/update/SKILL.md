@@ -36,7 +36,7 @@ Read the changelog using jq:
 
 ```bash
 # Get user's last known seq from setup marker
-LAST_SEQ=$(jq -r '.seq // 0' ~/.claude/uc-setup.json 2>/dev/null || echo 0)
+LAST_SEQ=$(jq -r '.seq // 0' ~/.claude/ultra/uc-setup.json 2>/dev/null || echo 0)
 
 # Get entries since last known version
 jq --argjson last "$LAST_SEQ" \
@@ -44,7 +44,7 @@ jq --argjson last "$LAST_SEQ" \
   "${CLAUDE_PLUGIN_ROOT}/CHANGELOG.json"
 ```
 
-If `~/.claude/uc-setup.json` doesn't exist or has no seq field, show the last 10 entries:
+If `~/.claude/ultra/uc-setup.json` doesn't exist or has no seq field, show the last 10 entries:
 
 ```bash
 jq '.[0:10] | .[] | "\(.version) — \(.summary)"' "${CLAUDE_PLUGIN_ROOT}/CHANGELOG.json"
@@ -80,7 +80,7 @@ fi
 Kill the existing dashboard and start fresh so it picks up any server-side changes:
 
 ```bash
-PID_FILE="$HOME/.claude/dashboard.pid"
+PID_FILE="$HOME/.claude/ultra/dashboard.pid"
 if [ -f "$PID_FILE" ]; then
   kill "$(cat "$PID_FILE")" 2>/dev/null
   rm -f "$PID_FILE"
@@ -103,7 +103,7 @@ curl -sf http://localhost:3847/api/version
 Check CHANGELOG.json for migration entries between the old and new versions:
 
 ```bash
-OLD_SEQ=$(jq -r '.seq // 0' ~/.claude/uc-setup.json 2>/dev/null || echo 0)
+OLD_SEQ=$(jq -r '.seq // 0' ~/.claude/ultra/uc-setup.json 2>/dev/null || echo 0)
 NEW_SEQ=$(jq '.[0].seq' "${CLAUDE_PLUGIN_ROOT}/CHANGELOG.json")
 
 # Get pending migrations
@@ -115,9 +115,9 @@ jq --argjson old "$OLD_SEQ" --argjson new "$NEW_SEQ" \
 If migration entries exist:
 
 1. List each migration with version + summary
-2. Read `~/.claude/dashboard-projects.json` to get registered projects:
+2. Read `~/.claude/ultra/dashboard-projects.json` to get registered projects:
    ```bash
-   jq -r '.[]' ~/.claude/dashboard-projects.json 2>/dev/null
+   jq -r '.[]' ~/.claude/ultra/dashboard-projects.json 2>/dev/null
    ```
 3. Actively recommend migration:
 
@@ -138,7 +138,7 @@ If no migration entries exist: "No project migration needed for this update."
 Bump the version in the setup marker so `/uc:setup` doesn't nag about being out of date:
 
 ```bash
-MARKER="$HOME/.claude/uc-setup.json"
+MARKER="$HOME/.claude/ultra/uc-setup.json"
 NEW_VERSION=$(jq -r '.version' "${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json")
 if [ -f "$MARKER" ]; then
   jq --arg v "$NEW_VERSION" --arg t "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" \

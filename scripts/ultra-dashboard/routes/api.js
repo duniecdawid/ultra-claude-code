@@ -41,7 +41,7 @@ router.post('/register-project', (req, res) => {
   if (!project_root) {
     return res.status(400).json({ error: 'missing field: project_root' });
   }
-  const seedsFile = path.join(os.homedir(), '.claude', 'dashboard-projects.json');
+  const seedsFile = path.join(os.homedir(), '.claude', 'ultra', 'dashboard-projects.json');
   let seeds = [];
   try { seeds = JSON.parse(fs.readFileSync(seedsFile, 'utf8')); } catch {}
   if (!Array.isArray(seeds)) seeds = [];
@@ -202,7 +202,7 @@ router.get('/tmux', (req, res) => {
 
 // GET /api/health — usage threshold data from statusline
 router.get('/health', (req, res) => {
-  const usageFile = path.join(os.homedir(), '.claude', 'usage-status.json');
+  const usageFile = path.join(os.homedir(), '.claude', 'ultra', 'usage-status.json');
   try {
     const data = JSON.parse(fs.readFileSync(usageFile, 'utf8'));
     res.json({ usage: data, status: 'ok' });
@@ -214,7 +214,7 @@ router.get('/health', (req, res) => {
 
 // GET /api/usage — Claude Code rate limits per account
 router.get('/usage', (req, res) => {
-  const usageFile = path.join(os.homedir(), '.claude', 'usage-status.json');
+  const usageFile = path.join(os.homedir(), '.claude', 'ultra', 'usage-status.json');
   try {
     const data = JSON.parse(fs.readFileSync(usageFile, 'utf8'));
     const activeEmail = authCache ? authCache.email : null;

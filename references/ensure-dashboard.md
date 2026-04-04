@@ -5,7 +5,7 @@ Shared reference — read and execute these steps to ensure the Ultra Dashboard 
 ## 1. Check if dashboard is running
 
 ```bash
-DASHBOARD_PID_FILE="$HOME/.claude/dashboard.pid"
+DASHBOARD_PID_FILE="$HOME/.claude/ultra/dashboard.pid"
 DASHBOARD_RUNNING=false
 if [ -f "$DASHBOARD_PID_FILE" ]; then
   DASH_PID=$(cat "$DASHBOARD_PID_FILE")

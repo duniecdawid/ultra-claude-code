@@ -10,7 +10,7 @@ const { spawn } = require('child_process');
 
 const PORT = 3847;
 const HOME = os.homedir();
-const PID_FILE = path.join(HOME, '.claude', 'dashboard.pid');
+const PID_FILE = path.join(HOME, '.claude', 'ultra', 'dashboard.pid');
 
 // --- Singleton management ---
 

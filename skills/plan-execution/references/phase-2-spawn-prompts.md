@@ -196,7 +196,7 @@ ROLE=oversight
 - Task 4: depends on task 2, task 3
 
 **Extra usage enabled:** {true/false}
-**Usage status file:** ~/.claude/usage-status.json
+**Usage status file:** ~/.claude/ultra/usage-status.json
 If extra usage is DISABLED: monitor usage-status.json in your monitoring loop.
 At 90% five_hour usage → send USAGE-PAUSE to all active members + ALERT Lead.
 When resets_at passes or usage < 90% → send USAGE-RESUME + ALERT Lead.

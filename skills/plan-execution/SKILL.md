@@ -24,7 +24,7 @@ If no match is found, inform the user and stop. Store the resolved full director
 
 ## Prerequisites
 
-**Quick setup check:** Read `~/.claude/uc-setup.json`. If missing or `version` is older than the current plugin version (from `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json`), warn: "Run `/uc:setup` to configure your environment." Continue with the checks below regardless.
+**Quick setup check:** Read `~/.claude/ultra/uc-setup.json`. If missing or `version` is older than the current plugin version (from `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json`), warn: "Run `/uc:setup` to configure your environment." Continue with the checks below regardless.
 
 Before starting, read:
 - `${CLAUDE_PLUGIN_ROOT}/skills/docs-manager/SKILL.md` — task executors write to `documentation/` and must follow docs-manager structure, references, and routing rules.
