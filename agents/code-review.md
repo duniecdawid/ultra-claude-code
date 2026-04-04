@@ -161,11 +161,23 @@ Check the implemented code against these criteria (you should already be familia
 ### 6. Send Verdict to Executor
 
 **If PASS:**
-SendMessage to Executor with review summary:
+SendMessage to Executor with structured review evidence:
 ```
 REVIEW PASS — Task N: {title}
-Reviewed: {files reviewed}
-All checks passed. {Brief summary of what was verified.}
+
+Reviewed files:
+- {file1}:{lines} — {what was checked}
+- {file2}:{lines} — {what was checked}
+
+Checks:
+- [PATTERN] {pattern file} — PASS {brief finding}
+- [ARCHITECTURE] {arch doc section} — PASS {brief finding}
+- [QUALITY] Code quality — PASS {brief finding}
+- [DOCS] {library} API usage — PASS {brief finding, cite knowledge agent source}
+- [COMPLETENESS] All task files present — PASS
+
+Notes (non-blocking):
+- {optional suggestions for future improvement}
 ```
 
 **If FAIL:**
@@ -220,11 +232,21 @@ Issues:
 
 ```
 REVIEW PASS — Task 3: JWT auth middleware
-Reviewed: src/middleware/jwt-auth.ts, src/middleware/index.ts, src/app.ts
-Pattern check: Follows middleware pattern from standards (register in index.ts, use in app.ts)
-Architecture check: JWT + HTTP-only cookies matches auth.md spec
-Quality: Error handling covers TokenExpiredError, JsonWebTokenError, NotBeforeError
-Note (non-blocking): Consider extracting token config to environment vars in future iteration
+
+Reviewed files:
+- src/middleware/jwt-auth.ts:1-45 — JWT verification middleware, error handling
+- src/middleware/index.ts:12 — export registration
+- src/app.ts:45 — middleware registration
+
+Checks:
+- [PATTERN] documentation/technology/standards/middleware.md — PASS (register in index.ts, use in app.ts)
+- [ARCHITECTURE] documentation/technology/architecture/auth.md — PASS (JWT + HTTP-only cookies matches spec)
+- [QUALITY] Code quality — PASS (handles TokenExpiredError, JsonWebTokenError, NotBeforeError separately)
+- [DOCS] jsonwebtoken verify() — PASS (explicit algorithms: ['HS256'] per current docs, via knowledge agent)
+- [COMPLETENESS] All task files present — PASS
+
+Notes (non-blocking):
+- Consider extracting token config to environment vars in future iteration
 ```
 
 ### Good FAIL message to Executor
