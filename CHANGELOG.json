@@ -1,5 +1,12 @@
 [
   {
+    "seq": 79,
+    "version": "2026.04.04-11",
+    "date": "2026-04-04",
+    "summary": "Update help skill descriptions for plan-execution (lazy-spawn, no pipeline) and project-manager (parallel timing, no stall detection).",
+    "migration": null
+  },
+  {
     "seq": 78,
     "version": "2026.04.04-10",
     "date": "2026-04-04",

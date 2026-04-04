@@ -68,7 +68,7 @@ Researches external libraries, frameworks, and services using Ref.tools MCP for 
 ### Execution
 
 **Plan Execution** (`/uc:plan-execution`)
-Orchestrates multi-task plan execution by spawning per-task mini-teams (Executor/Reviewer/Tester) with a shared Tech Knowledge agent and Project Manager monitoring health. Use after plan approval by running `/uc:plan-execution {number}`. Produces implemented code, operational reports, and checkpoints as teams execute through the pipeline.
+Orchestrates multi-task plan execution with lazy-spawned teams: Executor spawns at task start, Reviewer/Tester spawn only when implementation is complete (saving 40-50% of reviewer/tester tokens). Tasks spawn only when all dependencies are completed — no pipeline pre-spawning. Use after plan approval by running `/uc:plan-execution {number}`.
 
 **Checkpoint** (`/uc:checkpoint`)
 Saves execution state (task pipeline stages, active teams, decisions, blockers) to a timestamped file for session recovery. Use periodically during long executions, before session shutdown, or before risky changes. Produces a checkpoint that the Lead can read on resume to reconstruct state and continue execution.
@@ -134,7 +134,7 @@ Explores documentation sections to identify content type, key topics, specificat
 Conducts market research, competitor analysis, and technology trend investigation using web search and documentation lookup. Spawned by Discovery Mode to research external conditions as inputs to product decisions. Produces structured research reports with source attribution for market positioning and technology choices.
 
 **Project Manager**
-Monitors live plan execution by tracking team health, detecting stalls/rate limits, maintaining the dashboard, and collecting operational data. Spawned once per plan execution to run for the entire duration as the oversight layer. Produces comprehensive operational reports analyzing token efficiency, repeated work, and system improvement recommendations.
+Monitors live plan execution by maintaining dashboard state, tracking parallel review/test timing independently, monitoring usage limits, and collecting operational data. Spawned once per plan execution to run for the entire duration as the oversight layer. Produces comprehensive operational reports analyzing token efficiency, repeated work, and system improvement recommendations.
 
 **System Tester**
 Reproduces reported bugs scientifically following exact steps, observing outputs and trying variations to understand boundary conditions — never fixes code. Spawned by Debug Mode to validate bug reports and test proposed fixes. Produces structured reproduction reports with evidence and observations informing fix strategies.
