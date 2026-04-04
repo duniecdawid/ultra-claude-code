@@ -11,7 +11,7 @@ One per approved standard topic:
 > You are a senior architect specializing in {topic} with deep expertise in {tech stack}. Using prompt-architect methodology, craft a coding standard document from the exploration findings below.
 >
 > Inputs:
-> - Exploration findings: {paste the Explore agent results directly here}
+> - Exploration findings: {paste the Explore agent results — includes both external best practices from tech-research and codebase patterns}
 > - Template: `${CLAUDE_PLUGIN_ROOT}/skills/docs-manager/references/standard.md`
 > - Sibling standards being created: {list all approved topics}
 >

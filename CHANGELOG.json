@@ -1,5 +1,12 @@
 [
   {
+    "seq": 68,
+    "version": "2026.04.03-3",
+    "date": "2026-04-03",
+    "summary": "Add /uc:tech-research invocation to migrate Standards Explore agents so coding standards are grounded in external best practices via Ref.tools, not just codebase patterns.",
+    "migration": null
+  },
+  {
     "seq": 67,
     "version": "2026.04.03-2",
     "date": "2026-04-03",
