@@ -66,7 +66,7 @@ Before any research or planning, challenge the feature request:
 
 Present your analysis alongside scope questions via AskUserQuestion. Don't just ask "what do you want?" — bring your own informed perspective. The goal is a dialogue where the AI contributes its expertise, not just collects requirements.
 
-**Backlog:** When ideas come up during scope discussion that are explicitly cut from scope, add them to the project backlog rather than losing them: `Skill(skill: 'uc:backlog', args: 'add idea: ...')`.
+**Cut-scope ideas:** When ideas come up during scope discussion that are explicitly cut from scope, mention them to the user — they decide whether to add them to the backlog. Saving to backlog NEVER happens without explicit user consent.
 
 ### Stage 2: Research
 

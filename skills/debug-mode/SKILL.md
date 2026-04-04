@@ -34,7 +34,7 @@ Your instincts:
 - Do NOT skip hypothesis generation — jumping to solutions without evidence produces wrong fixes
 - Do NOT plan a fix without evidence supporting the root cause
 
-**Backlog:** If investigation reveals related bugs or improvement ideas beyond the primary issue, add them to the project backlog: `Skill(skill: 'uc:backlog', args: 'add bug: ...')`. This ensures discovered issues aren't lost when the debug session ends.
+**Related issues:** If investigation reveals related bugs or improvement ideas beyond the primary issue, mention them in the diagnosis output. Do NOT add them to the backlog automatically — the user decides what to track. Saving to backlog NEVER happens without explicit user consent.
 
 ## Process
 

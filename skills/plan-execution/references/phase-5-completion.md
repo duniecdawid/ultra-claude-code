@@ -46,6 +46,9 @@ Append to `documentation/plans/$ARGUMENTS/shared/lead.md`:
 ### Decisions Made During Execution
 - {decision}: {rationale}
 
+### Amendments
+- {gap}: {what was missing} — {how it was handled: built in task N / escalated to user}
+
 ### Test Results
 - Per-task tests: X/Y passed
 - Final gate (full suite): PASS/FAIL

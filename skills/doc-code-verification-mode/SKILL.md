@@ -87,4 +87,4 @@ Don't try to fix everything in one go. The plan should focus on the discrepancie
 
 When fixing structural issues, read the relevant docs-manager reference guide before rewriting a document to ensure the fix conforms to the expected structure.
 
-Separately, create an additional list of **features described in documentation but not implemented at all**. These are not part of the fix plan — they are a backlog of unimplemented features for the user to prioritize independently.
+Separately, create an additional list of **features described in documentation but not implemented at all**. These are not part of the fix plan — present them to the user for prioritization. Do NOT add them to the backlog automatically — the user decides what to track.

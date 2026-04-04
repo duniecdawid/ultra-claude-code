@@ -135,7 +135,7 @@ Present a concise summary to the user:
 - Open questions that need user input
 - Recommended next steps (e.g., "Run `/uc:feature-mode` to plan implementation of the recommended approach")
 
-**Backlog:** Add any dependencies and open questions to the project backlog: `Skill(skill: 'uc:backlog', args: 'add question: ...')`. This ensures they're visible in the dashboard and not lost after the discovery session ends.
+**Open questions:** Present dependencies and open questions in the summary. Do NOT add them to the backlog automatically — the user decides what to track. Saving to backlog NEVER happens without explicit user consent.
 
 ## Edge Cases
 
