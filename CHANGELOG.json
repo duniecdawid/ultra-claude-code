@@ -1,5 +1,12 @@
 [
   {
+    "seq": 78,
+    "version": "2026.04.04-10",
+    "date": "2026-04-04",
+    "summary": "Rewrite Lead orchestration for lazy-spawn, no pipeline, and parallel stage tracking. Executor spawns alone at task start; reviewer/tester lazy-spawned on 'implementation complete'. Pipeline spawning removed entirely — tasks only spawn when all deps complete. New STAGE-DONE message for independent review/test timing. Communication protocol updated.",
+    "migration": null
+  },
+  {
     "seq": 77,
     "version": "2026.04.04-9",
     "date": "2026-04-04",

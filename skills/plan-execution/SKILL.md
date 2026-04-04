@@ -49,33 +49,34 @@ Read plan, detect resume state, decide concurrency, create tasks, spawn shared t
 
 ## Phase 2: Pipeline Orchestration
 
-Each task gets a dedicated mini-team that self-coordinates internally. The **Lead** orchestrates everything — spawning teams, managing the pipeline, handling shutdowns, approving pipeline implementations. The **PM** maintains the dashboard and monitors health.
+Each task gets a dedicated mini-team that self-coordinates internally. The **Lead** orchestrates everything — spawning executors, lazy-spawning reviewers/testers, managing shutdowns, reviewing plans. The **PM** maintains the dashboard and monitors usage.
 
 ### How a Task-Team Works
 
-All members are spawned at once, stay alive, and communicate peer-to-peer. Executors report operational status directly to the Lead:
+Executor spawns first. Reviewer and Tester are lazy-spawned when implementation is complete:
 
 ```
 Executor:   explores codebase → plans → sends plan to Lead for review
             → queries knowledge-{PLAN_NAME} for external library docs as needed
-            → sends per-file progress updates to Reviewer during implementation
-            → signals Lead "implementation complete" (Lead handles pipeline decisions)
+            → implements code
+            → signals Lead "implementation complete"
+            → Lead spawns Reviewer + Tester
             → tells Reviewer "ready for review" AND Tester "ready for test" simultaneously
-Reviewer:   reads files early (advisory feedback) → formal review on "ready for review"
+Reviewer:   (spawned at review time) reads context → formal review
             → sends PASS/FAIL to Executor
+Tester:     (spawned at review time) reads context → tests against PRODUCT DOCS
+            → sends PASS/FAIL to Executor (in parallel with Reviewer)
             → if FAIL: Executor fixes → "Ready for re-review" + "Ready for re-test" sent to both simultaneously
-Tester:     tests against PRODUCT DOCS (not impl.md) → sends PASS/FAIL to Executor (in parallel with Reviewer)
-            → if FAIL: Executor fixes → "Ready for re-test" + "Ready for re-review" sent to both simultaneously
 Both PASS:  Executor tells Lead "task done" → Lead sends shutdown_request → team exits
 ```
 
 **Key principles:**
 - **ONE dedicated team per task, NO sharing.** Task 1 gets its own Executor-1, Reviewer-1, Tester-1. Task 2 gets its own set. They never cross.
+- **Lazy-spawn** — Reviewer and Tester are spawned by the Lead when the Executor signals "implementation complete". This saves 40-50% of reviewer/tester token spend by avoiding idle waiting.
 - **Shared knowledge team member** — `knowledge-{PLAN_NAME}` is spawned once and serves all task teams with external library documentation.
-- **ALL team members stay alive** through the full task lifecycle — they communicate directly via SendMessage until the task passes all stages.
 - **Executor is the team coordinator** — it drives the pipeline sequence internally and does its own codebase research.
-- **Lead is the orchestrator** — spawns teams, shuts down teams, approves pipeline implementations, reviews plans for coherence, handles escalations.
-- **PM is the monitoring layer** — maintains the dashboard, detects stalls/rate limits, sends ALERTs to Lead with recommendations.
+- **Lead is the orchestrator** — spawns executors, lazy-spawns reviewers/testers, shuts down teams, reviews plans for coherence, handles escalations.
+- **PM is the monitoring layer** — maintains the dashboard, tracks parallel review/test timing, monitors usage limits.
 - **Reviewer and Tester can query the knowledge team member** if they need external library documentation during their work.
 - **Max 10 fix cycles** between executor/reviewer/tester before escalating to Lead → user.
 
@@ -89,11 +90,10 @@ The Lead handles all orchestration — spawning, shutdowns, implementation appro
 
 ```
 Phase 2 startup:
-  1. Spawn initial task-teams to fill concurrency slots.
-     For each slot: find next pending unblocked task, create tasks/task-N/ directory,
-     spawn all 3 team members in parallel (executor-N, reviewer-N, tester-N),
-     (each agent self-labels its pane on startup — the layout watcher arranges them automatically).
-     After spawning all 3:
+  1. Spawn initial executors to fill concurrency slots.
+     For each slot: find next pending unblocked task (all dependencies completed),
+     create tasks/task-N/ directory, spawn executor-N only.
+     After spawning:
        SendMessage to PM "SPAWNED task-{N}: {task description}" then "STAGE task-{N} planning"
        SendMessage to knowledge-{PLAN_NAME}: "TASK-START: Task {N} — {task title}\nDescription: {task description}\nSuccess criteria: {success criteria}\nExecutor: executor-{N}\nPlan path (when available): documentation/plans/$ARGUMENTS/tasks/task-{N}/plan.md"
 
@@ -104,19 +104,15 @@ WAIT for messages. Process each message, then return to waiting.
   a. Executor "Task {N} done — all stages passed" →
      Send shutdown_request to all team members (executor-{N}, reviewer-{N}, tester-{N}).
      SendMessage to PM: "COMPLETED task-{N}" then "SHUTDOWN task-{N}"
-     Check: does this task have a pipeline-spawned successor awaiting implementation approval?
-       → If yes: SendMessage to successor executor-{M}: "Implementation approved — predecessor passed all stages. Proceed to implement."
-         SendMessage to PM: "APPROVED-IMPL task-{M}"
      Check: does the freed slot allow spawning the next pending task?
-       → If yes: spawn next unblocked task, SendMessage to PM: "SPAWNED task-{M}: {description}" then "STAGE task-{M} planning"
+       → Find next unblocked task (all dependencies completed).
+       → If found: spawn executor-{M}, SendMessage to PM: "SPAWNED task-{M}: {description}" then "STAGE task-{M} planning"
 
   b. Executor "Task {N} implementation complete — entering review/test phase" →
-     SendMessage to PM: "STAGE task-{N} review"
-     Check: does this task have dependent successors still in "pending" state?
-       → If yes: spawn successor in pipeline mode (planning only, implementation blocked).
-         SendMessage to PM: "PIPELINE-SPAWN task-{M}" then "STAGE task-{M} planning"
-         SendMessage to knowledge-{PLAN_NAME}: "TASK-START: Task {M} — {task title}\nDescription: {task description}\nSuccess criteria: {success criteria}\nExecutor: executor-{M}\nPlan path (when available): documentation/plans/$ARGUMENTS/tasks/task-{M}/plan.md"
-         Pipeline-spawned tasks in planning-only mode do NOT count against the concurrency limit.
+     Spawn reviewer-{N} and tester-{N} (2 TeamCreate calls in parallel).
+     SendMessage to PM: "SPAWNED-REVIEWER task-{N}" then "SPAWNED-TESTER task-{N}"
+     SendMessage to PM: "STAGE task-{N} review" then "STAGE task-{N} testing"
+     SendMessage to Executor: "Reviewer and Tester spawned — proceed to drive review/test"
 
   c. Executor "Task {N} plan ready for review" →
      SendMessage to PM: "STAGE task-{N} planning"
@@ -124,18 +120,21 @@ WAIT for messages. Process each message, then return to waiting.
      scope correctness. Reply to executor: APPROVED or CONCERNS with specifics.
      If APPROVED: SendMessage to PM: "STAGE task-{N} implementation"
 
-  d. Executor "Task {N} planning complete — awaiting implementation approval" (pipeline-spawned) →
-     Note it. Approval depends on predecessor completing — you will approve when predecessor passes.
+  d. Executor "Task {N} review passed" →
+     SendMessage to PM: "STAGE-DONE task-{N} review"
 
-  e. Executor "Task {N} escalation needed" → Escalate to user
+  e. Executor "Task {N} test passed" →
+     SendMessage to PM: "STAGE-DONE task-{N} testing"
 
-  f. Executor "PLAN-INVALIDATING: ..." → Pause pipeline, evaluate, amend plan
+  f. Executor "Task {N} escalation needed" → Escalate to user
+
+  g. Executor "PLAN-INVALIDATING: ..." → Pause, evaluate, amend plan
 
   --- From PM ---
-  g. PM "Dashboard live at {URL}" → IMMEDIATELY display the URL to the user as a visible message:
+  h. PM "Dashboard live at {URL}" → IMMEDIATELY display the URL to the user as a visible message:
      "📊 Live dashboard: {URL}" — this is the user's primary way to monitor execution.
      Do NOT silently consume this message. The user needs the link.
-  h. PM "ALERT: ..." → Act on recommendation:
+  i. PM "ALERT: ..." → Act on recommendation:
      - **"ALERT: USAGE-PAUSE ..."** → Enter usage pause mode:
        1. Do NOT spawn any new task-teams until USAGE-RESUME
        2. Note expected resume time in `shared/lead.md`
@@ -145,18 +144,16 @@ WAIT for messages. Process each message, then return to waiting.
        1. Resume normal spawning — fill any empty concurrency slots
        2. Update `shared/lead.md` to record the pause duration
        3. Send appropriate status updates to PM for any teams spawned
-     - **Other ALERTs** → act on recommendation (re-spawn team member, pause spawning, etc.)
-     After acting, send appropriate status update to PM.
 
   Checkpoint if triggered.
-  Fill pipeline slots whenever a slot frees up → SendMessage to PM "SPAWNED task-{N}: ..." for each.
+  Fill slots whenever a slot frees up → SendMessage to PM "SPAWNED task-{N}: ..." for each.
 ```
 
 ### Lead Priority Order
 
-1. **Executor "task done"** — shutdown team, check pipeline successors, fill slots.
+1. **Executor "task done"** — shutdown team, fill slots with next unblocked task.
 2. **Executor plan reviews** — blocking gate (domain coherence).
-3. **Executor "implementation complete"** — pipeline spawn decisions.
+3. **Executor "implementation complete"** — lazy-spawn reviewer + tester.
 4. **PM alerts** — act on recommendations.
 5. **Escalations** — relay to user.
 6. **Checkpoint** — periodic save per Phase 3 triggers.
@@ -246,15 +243,14 @@ When a teammate discovers something that invalidates part of the plan (from exec
 | **Knowledge query** | Any team member → knowledge-{PLAN_NAME} | "QUERY: {question}" for external library docs. Returns verbatim excerpts. |
 | **Knowledge task-start** | Lead → knowledge-{PLAN_NAME} | "TASK-START: Task {N} — ..." on task spawn. Knowledge team member proactively researches and sends RESEARCH BRIEF to executor. |
 | **Knowledge load** | Lead → knowledge-{PLAN_NAME} | "LOAD: {technology}" to add docs mid-execution. |
-| **Plan review (teammate)** | Executor → Reviewer | Advisory feedback on `tasks/task-N/plan.md`. Reviewer replies LGTM/CONCERNS. |
 | **Plan review (Lead)** | Executor → Lead | Domain/coherence review of plan. **Blocking gate.** Lead replies APPROVED/CONCERNS. |
-| **Operational status** | Executor → Lead | "Implementation complete", "task done", "escalation needed", "planning complete". Lead acts directly. |
-| **Lead spawns teams** | Lead → TeamCreate | Lead spawns task-teams directly. |
+| **Operational status** | Executor → Lead | "Implementation complete", "review passed", "test passed", "task done", "escalation needed". Lead acts directly. |
+| **Lead spawns executor** | Lead → TeamCreate | Lead spawns executor when slot opens. |
+| **Lead lazy-spawns reviewer/tester** | Lead → TeamCreate | Lead spawns reviewer + tester when executor signals "implementation complete". |
 | **Lead shuts down teams** | Lead → team members | Lead sends shutdown_request directly after executor reports "task done". |
-| **Lead approves pipeline** | Lead → Executor | Lead approves pipeline implementations when predecessor passes. |
 | **Pane self-labeling** | Agent local | Spawn prompt defines `TASK_ID`/`ROLE`; agent runs tmux label per agent instructions. PM verifies after SPAWNED. |
-| **Lead → PM** | Lead → PM | Terse status updates (`SPAWNED`, `COMPLETED`, `STAGE`, `SHUTDOWN`, etc.) for dashboard. |
-| **PM → Lead** | PM → Lead | Dashboard URL (startup), health ALERTs (stalls, rate limits). |
+| **Lead → PM** | Lead → PM | Terse status updates (`SPAWNED`, `SPAWNED-REVIEWER`, `SPAWNED-TESTER`, `STAGE`, `STAGE-DONE`, `COMPLETED`, `SHUTDOWN`, etc.) for dashboard. |
+| **PM → Lead** | PM → Lead | Dashboard URL (startup), usage ALERTs. |
 | **PM → team members** | PM → any team member | Status checks for monitoring purposes only. |
 | **Per-task files** | Persistent | `tasks/task-N/plan.md`, `tasks/task-N/impl.md` — pipeline artifacts. |
 
@@ -262,16 +258,16 @@ When a teammate discovers something that invalidates part of the plan (from exec
 
 ## Lead Behavior
 
-You are the **orchestrator and domain authority**. You spawn teams, manage shutdowns, approve pipeline implementations, review plans, and handle escalations. You send terse status updates to PM after each action so it keeps the dashboard current.
+You are the **orchestrator and domain authority**. You spawn executors, lazy-spawn reviewers/testers, manage shutdowns, review plans, and handle escalations. You send terse status updates to PM after each action so it keeps the dashboard current.
 
 ### What You Do
-- Spawn task-teams to fill concurrency slots
+- Spawn executors to fill concurrency slots (tasks spawn only when all deps are completed)
+- Lazy-spawn reviewer + tester when executor signals "implementation complete"
 - Shut down completed teams (send shutdown_request to all members)
-- Approve implementation for pipeline-spawned tasks
 - Review executor plans for domain coherence and cross-task alignment (APPROVED/CONCERNS)
 - Handle escalations (relay to user)
 - Handle plan-invalidating discoveries (pause, evaluate, amend)
-- Send status updates to PM after each action (SPAWNED, COMPLETED, STAGE, SHUTDOWN, etc.)
+- Send status updates to PM after each action (SPAWNED, SPAWNED-REVIEWER, SPAWNED-TESTER, STAGE, STAGE-DONE, COMPLETED, SHUTDOWN, etc.)
 - **Display the dashboard URL to the user** when PM sends it — this is the user's primary monitoring tool
 - Handle usage pause/resume from PM (defer spawning during pause, checkpoint on pause, resume when cleared)
 - Checkpoint when triggered
