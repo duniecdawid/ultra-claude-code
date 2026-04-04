@@ -67,13 +67,10 @@ Before making ANY file changes:
    - What changes you will make in each file (specific functions, classes, patterns)
    - How you will satisfy the success criteria
    - Any risks or trade-offs
-3. **Request teammate feedback:** SendMessage to Reviewer: "Plan ready for feedback — written to tasks/task-N/plan.md. Review from your perspective. Reply LGTM or CONCERNS."
-4. **Wait for feedback response**
-5. If any teammate replies CONCERNS: read their feedback, address concerns in the plan, notify the teammate of changes. Reviewer feedback is advisory — use your judgment. The hard gate is Lead approval (next step).
 
 ### 3.7 Lead Plan Review (Blocking Gate)
 
-After Reviewer feedback is resolved:
+After writing the plan:
 
 1. **SendMessage to Lead** (named in your spawn prompt): "Task {N} plan ready for review — written to tasks/task-N/plan.md"
 2. **Wait for Lead response** — Lead will reply APPROVED or CONCERNS with specifics
@@ -96,38 +93,22 @@ If you identified unknowns during planning that you cannot resolve yourself:
 
 **Skip this step entirely** if no unknowns remain — proceed straight to step 4.
 
-### 3.9 Pipeline Gate (Pipeline-Spawned Tasks Only)
-
-If your spawn prompt includes **"Pipeline mode"** instructions:
-
-1. After plan feedback is resolved (step 3) and unknowns addressed (step 3.5):
-2. **SendMessage to Lead** (named in your spawn prompt): "Task {N} planning complete — awaiting implementation approval"
-3. **STOP. Do NOT proceed to step 4 until you receive "Implementation approved"** from Lead.
-4. While waiting, you may:
-   - Process knowledge agent responses
-   - Re-read context, refine your plan
-   - But do NOT write any implementation code
-5. When you receive "Implementation approved" (from Lead) → proceed to step 4
-
-If your spawn prompt does NOT include "Pipeline mode", skip this step entirely.
-
 ### 4. Implement
 
-After plan feedback:
+After Lead approves your plan:
 - Write code that conforms to the plan, architecture docs, and coding standards
 - Follow patterns established in the codebase — use Grep/Glob to find existing examples
 - Only modify files within the scope of your task
 - Write implementation notes to `tasks/task-N/impl.md`
-- **Send progress updates to Reviewer** — after completing each file, SendMessage to Reviewer: "Progress: completed {file path} — you can start reading". This lets the Reviewer begin reading your code while you're still implementing other files, so the formal review is faster.
 
 ### 4.5 Signal Implementation Complete
 
 After ALL implementation files are written and `tasks/task-N/impl.md` is updated:
 
 1. **SendMessage to Lead** (named in your spawn prompt): "Task {N} implementation complete — entering review/test phase"
-2. **Do NOT wait for a response** — proceed immediately to step 5 (Drive Review + Test)
+2. **Wait for Lead to confirm** that Reviewer and Tester have been spawned before proceeding to step 5.
 
-This is fire-and-forget. It tells the Lead your code is written so it can trigger pipeline spawning of dependent successor tasks.
+This tells the Lead your code is written. The Lead will spawn your Reviewer and Tester teammates, then confirm they're ready.
 
 ### 5. Drive Review + Test (Parallel)
 
@@ -145,9 +126,10 @@ After ALL implementation is complete:
    - **Review FAIL** or **Test FAIL**: Fix code, update impl.md, then:
      - SendMessage to Reviewer: "Ready for re-review — fixed: {summary}, files updated: {list}"
      - SendMessage to Tester: "Ready for re-test — fixed: {summary}, files updated: {list}"
+     - SendMessage to Lead: "Task {N} fix cycle — review/test failed, resubmitted"
      - Reset BOTH verdicts to pending (both must re-verify after any code change)
-   - **Review PASS**: Record. If test also PASS → step 6.
-   - **Test PASS**: Record. If review also PASS → step 6.
+   - **Review PASS**: SendMessage to Lead: "Task {N} review passed". If test also PASS → step 6.
+   - **Test PASS**: SendMessage to Lead: "Task {N} test passed". If review also PASS → step 6.
 
 4. **Both PASS required** — proceed to step 6 (Complete) only when BOTH verdicts are PASS with no subsequent code changes.
 

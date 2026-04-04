@@ -1,5 +1,12 @@
 [
   {
+    "seq": 75,
+    "version": "2026.04.04-7",
+    "date": "2026-04-04",
+    "summary": "Update executor for lazy-spawn and no pipeline. Remove reviewer plan feedback, progress updates to reviewer, and pipeline gate. Add per-gate PASS/FAIL reporting to Lead for parallel review/test timing. Executor now waits for Lead to confirm reviewer/tester spawn before driving review/test.",
+    "migration": null
+  },
+  {
     "seq": 74,
     "version": "2026.04.04-6",
     "date": "2026-04-04",
