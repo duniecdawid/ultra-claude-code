@@ -1,5 +1,12 @@
 [
   {
+    "seq": 85,
+    "version": "2026.04.04-18",
+    "date": "2026-04-04",
+    "summary": "Fix statusline setup: add required 'type: command' to statusLine config in setup skill, fix validation check to match exact expected command path instead of substring match on repo path.",
+    "migration": null
+  },
+  {
     "seq": 84,
     "version": "2026.04.04-17",
     "date": "2026-04-04",

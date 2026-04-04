@@ -97,7 +97,7 @@ Check the auth cache directory (used for per-session account identity):
 
 PASS if:
 - `jq` is installed
-- The statusLine command references the Ultra Claude `statusline.sh` script (path contains `ultra-claude` and `statusline.sh`)
+- The statusLine has `"type": "command"` and `"command": "bash ~/.claude/ultra/statusline.sh"`
 - `~/.claude/ultra/statusline-auth/` directory exists (soft check — the statusline creates it on first use if missing)
 
 ### 3.7 Ultra Dashboard (includes Docsify docs hosting)
@@ -281,6 +281,7 @@ mkdir -p ~/.claude/ultra/statusline-auth
 ```json
 {
   "statusLine": {
+    "type": "command",
     "command": "bash ~/.claude/ultra/statusline.sh"
   }
 }
@@ -291,9 +292,9 @@ Use `jq` to merge into existing settings without overwriting other keys:
 ```bash
 settings_file="$HOME/.claude/settings.json"
 if [ -f "$settings_file" ]; then
-  jq '.statusLine = {"command": "bash ~/.claude/ultra/statusline.sh"}' "$settings_file" > "${settings_file}.tmp" && mv "${settings_file}.tmp" "$settings_file"
+  jq '.statusLine = {"type": "command", "command": "bash ~/.claude/ultra/statusline.sh"}' "$settings_file" > "${settings_file}.tmp" && mv "${settings_file}.tmp" "$settings_file"
 else
-  echo '{"statusLine":{"command":"bash ~/.claude/ultra/statusline.sh"}}' > "$settings_file"
+  echo '{"statusLine":{"type":"command","command":"bash ~/.claude/ultra/statusline.sh"}}' > "$settings_file"
 fi
 ```
 
