@@ -1,5 +1,19 @@
 [
   {
+    "seq": 84,
+    "version": "2026.04.04-17",
+    "date": "2026-04-04",
+    "summary": "Add Plan Stub Bootstrap rule to roadmap skill. Roadmap now creates status/project.json alongside each stub README so the dashboard daemon discovers plans immediately without requiring a separate plan-status-sync run.",
+    "migration": null
+  },
+  {
+    "seq": 83,
+    "version": "2026.04.04-16",
+    "date": "2026-04-04",
+    "summary": "Add global file migration step to /uc:update. Detects files at old ~/.claude/ paths and moves them to ~/.claude/ultra/, re-creates statusline symlink, and updates settings.json command. Handles both fresh and stale-duplicate cases. Changelog read now checks both old and new marker locations for backwards compatibility.",
+    "migration": null
+  },
+  {
     "seq": 82,
     "version": "2026.04.04-15",
     "date": "2026-04-04",

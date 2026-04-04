@@ -35,8 +35,8 @@ git log --oneline HEAD@{1}..HEAD
 Read the changelog using jq:
 
 ```bash
-# Get user's last known seq from setup marker
-LAST_SEQ=$(jq -r '.seq // 0' ~/.claude/ultra/uc-setup.json 2>/dev/null || echo 0)
+# Get user's last known seq from setup marker (check both new and old locations)
+LAST_SEQ=$(jq -r '.seq // 0' ~/.claude/ultra/uc-setup.json 2>/dev/null || jq -r '.seq // 0' ~/.claude/uc-setup.json 2>/dev/null || echo 0)
 
 # Get entries since last known version
 jq --argjson last "$LAST_SEQ" \
@@ -44,7 +44,7 @@ jq --argjson last "$LAST_SEQ" \
   "${CLAUDE_PLUGIN_ROOT}/CHANGELOG.json"
 ```
 
-If `~/.claude/ultra/uc-setup.json` doesn't exist or has no seq field, show the last 10 entries:
+If neither `~/.claude/ultra/uc-setup.json` nor `~/.claude/uc-setup.json` exists or has no seq field, show the last 10 entries:
 
 ```bash
 jq '.[0:10] | .[] | "\(.version) — \(.summary)"' "${CLAUDE_PLUGIN_ROOT}/CHANGELOG.json"
@@ -75,7 +75,56 @@ if [ -f "$INSTALLED" ] && jq -e '."uc@ultra-claude"' "$INSTALLED" > /dev/null 2>
 fi
 ```
 
-## Step 4: Force Restart Dashboard
+## Step 4: Migrate Global Files
+
+Since v2026.04.04-15, Ultra Claude runtime files live under `~/.claude/ultra/` instead of `~/.claude/`. Check for files at the old locations and move them:
+
+```bash
+mkdir -p "$HOME/.claude/ultra"
+
+# Files to move (old -> new)
+for f in uc-setup.json dashboard.pid usage-status.json dashboard-projects.json dashboard-registry.json; do
+  if [ -f "$HOME/.claude/$f" ] && [ ! -f "$HOME/.claude/ultra/$f" ]; then
+    mv "$HOME/.claude/$f" "$HOME/.claude/ultra/$f"
+    echo "Moved $f -> ~/.claude/ultra/$f"
+  elif [ -f "$HOME/.claude/$f" ] && [ -f "$HOME/.claude/ultra/$f" ]; then
+    rm "$HOME/.claude/$f"
+    echo "Removed stale ~/.claude/$f (already exists at new location)"
+  fi
+done
+
+# Move statusline-auth directory
+if [ -d "$HOME/.claude/statusline-auth" ] && [ ! -d "$HOME/.claude/ultra/statusline-auth" ]; then
+  mv "$HOME/.claude/statusline-auth" "$HOME/.claude/ultra/statusline-auth"
+  echo "Moved statusline-auth/ -> ~/.claude/ultra/statusline-auth/"
+elif [ -d "$HOME/.claude/statusline-auth" ] && [ -d "$HOME/.claude/ultra/statusline-auth" ]; then
+  rm -rf "$HOME/.claude/statusline-auth"
+  echo "Removed stale ~/.claude/statusline-auth/ (already exists at new location)"
+fi
+```
+
+Update the statusline symlink and settings.json if they still point to the old path:
+
+```bash
+# Re-create symlink at new location
+if [ -L "$HOME/.claude/statusline.sh" ] || [ -f "$HOME/.claude/statusline.sh" ]; then
+  rm -f "$HOME/.claude/statusline.sh"
+  echo "Removed old ~/.claude/statusline.sh symlink"
+fi
+ln -sf "${CLAUDE_PLUGIN_ROOT}/scripts/ultra-dashboard/statusline.sh" "$HOME/.claude/ultra/statusline.sh"
+echo "Symlinked statusline.sh -> ~/.claude/ultra/statusline.sh"
+
+# Update settings.json if it references the old path
+settings_file="$HOME/.claude/settings.json"
+if [ -f "$settings_file" ] && grep -q 'bash ~/.claude/statusline.sh' "$settings_file"; then
+  jq '.statusLine.command = "bash ~/.claude/ultra/statusline.sh"' "$settings_file" > "${settings_file}.tmp" && mv "${settings_file}.tmp" "$settings_file"
+  echo "Updated settings.json statusLine command to new path"
+fi
+```
+
+If nothing was moved, skip silently — the user is already on the new layout.
+
+## Step 5: Force Restart Dashboard
 
 Kill the existing dashboard and start fresh so it picks up any server-side changes:
 
@@ -98,7 +147,7 @@ sleep 2
 curl -sf http://localhost:3847/api/version
 ```
 
-## Step 5: Check Migration Needs
+## Step 6: Check Migration Needs
 
 Check CHANGELOG.json for migration entries between the old and new versions:
 
@@ -133,7 +182,7 @@ If the user wants to migrate now, offer to help — but don't do it without aski
 
 If no migration entries exist: "No project migration needed for this update."
 
-## Step 6: Update Setup Marker
+## Step 7: Update Setup Marker
 
 Bump the version in the setup marker so `/uc:setup` doesn't nag about being out of date:
 
@@ -149,7 +198,7 @@ fi
 echo "Setup marker updated to v$NEW_VERSION"
 ```
 
-## Step 7: Reload Notice
+## Step 8: Reload Notice
 
 End with:
 

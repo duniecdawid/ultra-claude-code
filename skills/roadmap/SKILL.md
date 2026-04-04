@@ -191,13 +191,26 @@ For each plan in the approved sequence:
 
 1. Create the plan directory:
    ```bash
-   mkdir -p documentation/plans/{NNN}-{name}/shared documentation/plans/{NNN}-{name}/tasks
+   mkdir -p documentation/plans/{NNN}-{name}/{shared,tasks,status}
    ```
 
 2. Write `documentation/plans/{NNN}-{name}/README.md` using the stub format:
    - Fill: Objective, Context (with links to actual doc files), Scope (in/out), Success Criteria (high-level)
    - Stub markers for: Task List, Tech Stack, Documentation Changes, Risk Assessment
    - Set `Status: Stub` and `Source: Roadmap`
+
+3. Create `documentation/plans/{NNN}-{name}/status/project.json`:
+   ```json
+   {
+     "name": "{NNN}-{slug}",
+     "status": "stub",
+     "description": "{objective from README}",
+     "total_tasks": 0,
+     "completed_tasks": 0,
+     "active_tasks": 0,
+     "pending_tasks": 0
+   }
+   ```
 
 Context links must point to real files that exist in `documentation/`. Do not invent links. If a relevant doc doesn't exist, omit that link category.
 
@@ -261,3 +274,24 @@ See documentation/plans/ROADMAP.md for the full dependency graph.
 - Do NOT skip the user approval step in Phase 2
 - Do NOT create plans for scope already covered by existing plans (incremental)
 - Do NOT split a single feature across multiple plans by architectural layer — no "X-backend" / "X-frontend" pairs. All layers of a feature (API, UI, database) belong in one plan. A plan can contain multiple cohesive features, but a feature must never span multiple plans.
+
+---
+
+## Plan Stub Bootstrap — MANDATORY
+
+When creating stub plan directories, ALWAYS generate a `status/project.json` file alongside the README.md. The daemon only discovers plans via `status/project.json` — without it, the plan is invisible in the dashboard.
+
+Template:
+```json
+{
+  "name": "{NNN}-{slug}",
+  "status": "stub",
+  "description": "{objective from README}",
+  "total_tasks": 0,
+  "completed_tasks": 0,
+  "active_tasks": 0,
+  "pending_tasks": 0
+}
+```
+
+The status/ directory is gitignored (runtime artifact), so this file must be created on disk by any skill that scaffolds plan directories — roadmap, feature-mode, or manual stub creation.
