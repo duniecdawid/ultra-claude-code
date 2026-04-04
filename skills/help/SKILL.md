@@ -68,7 +68,7 @@ Researches external libraries, frameworks, and services using Ref.tools MCP for 
 ### Execution
 
 **Plan Execution** (`/uc:plan-execution`)
-Orchestrates multi-task plan execution with lazy-spawned teams: Executor spawns at task start, Reviewer/Tester spawn only when implementation is complete (saving 40-50% of reviewer/tester tokens). Tasks spawn only when all dependencies are completed — no pipeline pre-spawning. Use after plan approval by running `/uc:plan-execution {number}`.
+Orchestrates multi-task plan execution: Executor and Reviewer spawn at task start (reviewer provides continuous standards/architecture review), Tester is lazy-spawned only when implementation is complete. Tasks spawn only when all dependencies are completed — no pipeline pre-spawning. Use after plan approval by running `/uc:plan-execution {number}`.
 
 **Checkpoint** (`/uc:checkpoint`)
 Saves execution state (task pipeline stages, active teams, decisions, blockers) to a timestamped file for session recovery. Use periodically during long executions, before session shutdown, or before risky changes. Produces a checkpoint that the Lead can read on resume to reconstruct state and continue execution.
@@ -87,7 +87,7 @@ Manages the `context/` directory as a structured knowledge base for external sys
 ### Project Management
 
 **Backlog** (`/uc:backlog`)
-Lightweight backlog split across four category files in `documentation/backlog/` — bugs (B-NNN), questions (Q-NNN), ideas (I-NNN), and debt (D-NNN) — with priorities, directional blocking relationships, bidirectional linking, and documentation references. Use to note something for later, log a bug, record a question or blocker, flag tech debt, link to docs, or ask "what should we work on". Provides list/add/update/done/link/block operations with per-category prefixed IDs, priority sorting, computed blocked-by, and source tracking.
+User-initiated-only backlog split across four category files in `documentation/backlog/` — bugs (B-NNN), questions (Q-NNN), ideas (I-NNN), and debt (D-NNN) — with priorities, directional blocking relationships, bidirectional linking, and documentation references. Use to note something for later, log a bug, record a question or blocker, flag tech debt, link to docs, or ask "what should we work on". Saving to backlog NEVER happens automatically — only when the user explicitly requests it. No skill or agent may auto-add items. Provides list/add/update/done/link/block operations with per-category prefixed IDs, priority sorting, computed blocked-by, and source tracking.
 
 **Plan Status Sync** (`/uc:plan-status-sync`)
 Scans all plans, infers actual status from execution artifacts (operational reports, checkpoints, task completion), and updates README statuses and dashboard JSON to match reality. Use to fix stale statuses after crashed executions or audit plan state. Produces corrected status files reconciling what READMEs claim with what actually happened.

@@ -1,5 +1,19 @@
 [
   {
+    "seq": 81,
+    "version": "2026.04.04-13",
+    "date": "2026-04-04",
+    "summary": "Restore reviewer early-spawn with executor. Reviewer has unique standards/architecture context and applies it continuously: plan feedback, early file reading, formal review. Only tester remains lazy-spawned after implementation complete. Updated orchestration, spawn prompts, agent workflows, and PM tracking.",
+    "migration": null
+  },
+  {
+    "seq": 80,
+    "version": "2026.04.04-12",
+    "date": "2026-04-04",
+    "summary": "Make backlog user-initiated only. Remove auto-add backlog instructions from 5 skills (plan-execution, feature-mode, discovery-mode, debug-mode, doc-code-verification). Add mid-execution gap handling — lead amends plan and builds small gaps instead of deferring. Add Amendments section to completion summary template.",
+    "migration": null
+  },
+  {
     "seq": 79,
     "version": "2026.04.04-11",
     "date": "2026-04-04",

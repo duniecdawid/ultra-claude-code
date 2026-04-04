@@ -191,7 +191,8 @@ At the very beginning of execution (before spawning any teams):
   },
   "retry_count": 0,
   "members": [
-    { "name": "executor-{N}",   "role": "executor",   "model": "opus",   "status": "active", "spawned_at": "{ISO}", "ended_at": null }
+    { "name": "executor-{N}",   "role": "executor",   "model": "opus",   "status": "active", "spawned_at": "{ISO}", "ended_at": null },
+    { "name": "reviewer-{N}",   "role": "reviewer",   "model": "sonnet", "status": "active", "spawned_at": "{ISO}", "ended_at": null }
   ]
 }
 ```
@@ -200,8 +201,8 @@ Member status values: `active` | `idle` | `completed` | `crashed` | `rate-limite
 
 **status/events.json** — event types:
 ```
-team_spawned          — new team created (executor only initially)
-member_spawned        — reviewer or tester added to existing team
+team_spawned          — new team created (executor + reviewer)
+member_spawned        — tester added to existing team after implementation
 team_shutdown         — team decommissioned
 stage_entered         — task entered a new pipeline stage
 stage_done            — parallel stage (review or testing) completed
@@ -264,7 +265,6 @@ The Lead sends you terse status messages as it orchestrates. Process each into t
 |---|---|---|
 | `SPAWNED task-{N}: {description}` | Lead | Create `status/teams/task-{N}.json` with executor only, update `project.json` (active_tasks++, pending_tasks--), append `team_spawned` event |
 | `SPAWNED knowledge-{PLAN_NAME}` | Lead | Log knowledge agent spawn in events. |
-| `SPAWNED-REVIEWER task-{N}` | Lead | Add reviewer member to `teams/task-{N}.json`, append `member_spawned` event |
 | `SPAWNED-TESTER task-{N}` | Lead | Add tester member to `teams/task-{N}.json`, append `member_spawned` event |
 | `STAGE task-{N} {stage}` | Lead | Update `teams/task-{N}.json`: close previous stage timestamps, open new stage, update status field. Append `stage_entered` event. For `review` and `testing`: both can be open simultaneously (parallel stages). |
 | `STAGE-DONE task-{N} {stage}` | Lead | Close one parallel stage independently: set `ended_at` and `elapsed_seconds` for that stage. Do NOT close the other parallel stage. Append `stage_done` event. |

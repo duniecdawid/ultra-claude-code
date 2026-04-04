@@ -58,7 +58,7 @@ Determine how many task-teams can run concurrently:
 
 Max ceiling: **4 concurrent task-teams**, plus 1 shared knowledge team member.
 
-Each slot = 1 task-team. Only the Executor is spawned when a slot opens. Reviewer and Tester are spawned later when implementation is complete (lazy-spawn). All members exit together when the task is done.
+Each slot = 1 task-team. Executor and Reviewer are spawned when a slot opens. Tester is lazy-spawned when implementation is complete. All members exit together when the task is done.
 
 Tasks only spawn when their slot is available AND all dependencies are completed. No pipeline pre-spawning.
 
@@ -90,10 +90,10 @@ Present to user BEFORE spawning any teams:
 Plan: $ARGUMENTS
 Tasks: N total
 Concurrency: up to M task-teams in parallel
-Estimated cost: ~[N * 100]K tokens
+Estimated cost: ~[N * 120]K tokens
 
-Cost per task pipeline: ~100K tokens (Executor ~80K + Reviewer ~10K + Tester ~10K)
-  (Reviewer/Tester are lazy-spawned — only active during review phase)
+Cost per task pipeline: ~120K tokens (Executor ~80K + Reviewer ~30K + Tester ~10K)
+  (Reviewer spawns with executor for continuous review; Tester is lazy-spawned — only active during test phase)
 Tech Knowledge (plan-wide): ~100K tokens (shared documentation retrieval)
 Project Manager (plan-wide): ~50K tokens (observational, runs entire execution)
 

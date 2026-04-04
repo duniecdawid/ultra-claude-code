@@ -67,10 +67,13 @@ Before making ANY file changes:
    - What changes you will make in each file (specific functions, classes, patterns)
    - How you will satisfy the success criteria
    - Any risks or trade-offs
+3. **Request teammate feedback:** SendMessage to Reviewer: "Plan ready for feedback — written to tasks/task-N/plan.md. Review from your perspective. Reply LGTM or CONCERNS."
+4. **Wait for feedback response**
+5. If any teammate replies CONCERNS: read their feedback, address concerns in the plan, notify the teammate of changes. Reviewer feedback is advisory — use your judgment. The hard gate is Lead approval (next step).
 
 ### 3.7 Lead Plan Review (Blocking Gate)
 
-After writing the plan:
+After Reviewer feedback is resolved:
 
 1. **SendMessage to Lead** (named in your spawn prompt): "Task {N} plan ready for review — written to tasks/task-N/plan.md"
 2. **Wait for Lead response** — Lead will reply APPROVED or CONCERNS with specifics
@@ -95,20 +98,21 @@ If you identified unknowns during planning that you cannot resolve yourself:
 
 ### 4. Implement
 
-After Lead approves your plan:
+After plan feedback:
 - Write code that conforms to the plan, architecture docs, and coding standards
 - Follow patterns established in the codebase — use Grep/Glob to find existing examples
 - Only modify files within the scope of your task
 - Write implementation notes to `tasks/task-N/impl.md`
+- **Send progress updates to Reviewer** — after completing each file, SendMessage to Reviewer: "Progress: completed {file path} — you can start reading". This lets the Reviewer begin reading your code while you're still implementing other files, so the formal review is faster.
 
 ### 4.5 Signal Implementation Complete
 
 After ALL implementation files are written and `tasks/task-N/impl.md` is updated:
 
 1. **SendMessage to Lead** (named in your spawn prompt): "Task {N} implementation complete — entering review/test phase"
-2. **Wait for Lead to confirm** that Reviewer and Tester have been spawned before proceeding to step 5.
+2. **Wait for Lead to confirm** that Tester has been spawned before proceeding to step 5.
 
-This tells the Lead your code is written. The Lead will spawn your Reviewer and Tester teammates, then confirm they're ready.
+This tells the Lead your code is written. The Lead will spawn the Tester (Reviewer is already alive), then confirm the Tester is ready.
 
 ### 5. Drive Review + Test (Parallel)
 

@@ -47,14 +47,13 @@ ROLE=task
 **Success criteria:** {success criteria from plan}
 
 **Your teammates (use SendMessage to communicate):**
+- Reviewer: reviewer-{N} (spawned with you — send plan for feedback, send progress updates during implementation)
 - Tech Knowledge: knowledge-{PLAN_NAME} (for external library/API documentation queries — send "QUERY: {question}")
 - Lead: {lead name} (for ALL operational messages — plan reviews, implementation complete, task done, escalations)
 - Project Manager: pm-{PLAN_NAME} (may ping you for monitoring status — reply briefly)
 
-**Deferred teammates (spawned after you signal "implementation complete"):**
-- Reviewer: reviewer-{N} — spawned by Lead when your code is ready
+**Deferred teammate (spawned after you signal "implementation complete"):**
 - Tester: tester-{N} — spawned by Lead when your code is ready
-You do NOT have reviewer/tester teammates during planning or implementation. They will be created by the Lead after you send "implementation complete".
 
 **Context files to read first:**
 - Plan: `documentation/plans/$ARGUMENTS/README.md`
@@ -92,7 +91,7 @@ ROLE=task
 - Tech Knowledge: knowledge-{PLAN_NAME} (for external library/API documentation queries — send "QUERY: {question}")
 - Project Manager: pm-{PLAN_NAME} (may ping you for monitoring status — reply briefly)
 
-**Context files to read FIRST (before starting review):**
+**Context files to read (while Executor plans and implements):**
 - Plan: `documentation/plans/$ARGUMENTS/README.md`
 - Lead notes: `documentation/plans/$ARGUMENTS/shared/lead.md`
 - Architecture: `documentation/technology/architecture/`
@@ -102,7 +101,7 @@ ROLE=task
 Verify compliance with these first, then check broader docs.
 Tester-written tests are in your review scope.
 
-**You are spawned when code is ready.** The Executor will send you "ready for review" shortly after spawn. Read context files immediately, then start your formal review. Send QUERY messages to knowledge-{PLAN_NAME} for external library docs during your review.
+**You are spawned with the Executor.** Use planning and implementation time to build deep context. Review the Executor's plan when they send it (advisory feedback). Read files as the Executor sends progress updates. Send QUERY messages to knowledge-{PLAN_NAME} for external library docs during early reading.
 
 Follow the workflow in your team member instructions.
 ```
@@ -187,7 +186,7 @@ ROLE=oversight
 **Lead name:** {lead name}
 **Total tasks:** {N}
 **Concurrency limit:** {M} concurrent task-teams
-**Team naming convention:** Task N team name: `task-{N}-team`. Executor spawns at task start; reviewer-N and tester-N are spawned later when implementation is complete. Shared: knowledge-{PLAN_NAME}
+**Team naming convention:** Task N team name: `task-{N}-team`. Executor-N and reviewer-N spawn at task start; tester-N is lazy-spawned when implementation is complete. Shared: knowledge-{PLAN_NAME}
 
 **Task dependency graph:**
 {For each task, list its dependencies. Example:}
@@ -206,8 +205,7 @@ Multiple pause/resume cycles are expected for long-running plans that span multi
 **Pane verification:** Agents self-label their panes on startup per their agent instructions. After each SPAWNED message from Lead, verify labels are correct (see your agent instructions).
 
 **What the Lead sends you (process into dashboard):**
-- `SPAWNED task-{N}: {description}` — create team JSON (executor only), update project counts, append event
-- `SPAWNED-REVIEWER task-{N}` — add reviewer member to existing team JSON, append event
+- `SPAWNED task-{N}: {description}` — create team JSON (executor + reviewer), update project counts, append event
 - `SPAWNED-TESTER task-{N}` — add tester member to existing team JSON, append event
 - `STAGE task-{N} {stage}` — update team status + timestamps, append event. Review and testing can both be open simultaneously.
 - `STAGE-DONE task-{N} {stage}` — close one parallel stage independently, append event
