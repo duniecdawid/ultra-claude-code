@@ -197,7 +197,7 @@ ROLE=oversight
 
 **Extra usage enabled:** {true/false}
 **Usage status file:** ~/.claude/ultra/usage-status.json
-If extra usage is DISABLED: monitor usage-status.json in your monitoring loop.
+If extra usage is DISABLED: your monitoring cron (set up in First Action) checks usage-status.json every 5 minutes.
 At 90% five_hour usage → send USAGE-PAUSE to all active members + ALERT Lead.
 When resets_at passes or usage < 90% → send USAGE-RESUME + ALERT Lead.
 Multiple pause/resume cycles are expected for long-running plans that span multiple 5-hour windows.
