@@ -1,5 +1,12 @@
 [
   {
+    "seq": 71,
+    "version": "2026.04.04-3",
+    "date": "2026-04-04",
+    "summary": "Remove watchdog stall/rate-limit detection from dashboard. File-modification-based stall detection produced false positives (3700+ lines of noise per execution). PM monitors agents directly via SendMessage. Usage data read directly from usage-status.json.",
+    "migration": null
+  },
+  {
     "seq": 70,
     "version": "2026.04.04-2",
     "date": "2026-04-04",

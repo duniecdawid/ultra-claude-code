@@ -63,7 +63,7 @@ if (process.argv.includes('--ensure')) {
 
 const express = require('express');
 const { startLayoutManager } = require('./lib/tmux-layout');
-const { startHealthMonitor } = require('./lib/plan-health');
+
 const { discoverPlans, REGISTRY_FILE } = require('./lib/registry');
 const apiRoutes = require('./routes/api');
 const docsRoutes = require('./routes/docs');
@@ -91,7 +91,6 @@ discoverPlans();
 
 // Start background services
 startLayoutManager({ interval: 2000 });
-startHealthMonitor({ interval: 30000 });
 
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
@@ -106,7 +105,6 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`  Registry:  ${REGISTRY_FILE}`);
   console.log(`  PID file:  ${PID_FILE}`);
   console.log(`  Layout:    2s poll (all tmux windows)`);
-  console.log(`  Health:    30s poll (active plans)`);
 });
 
 // Clean up on exit

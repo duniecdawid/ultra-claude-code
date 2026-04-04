@@ -19,7 +19,7 @@ setInterval(refreshAuth, 5 * 60 * 1000);
 const { readPlanProject, readPlanTeams, readPlanEvents, parsePlanTasks } = require('../lib/plan-reader');
 const { readBacklog, getBacklogOpenCount } = require('../lib/backlog-reader');
 const { getLayoutState } = require('../lib/tmux-layout');
-const { getHealthState } = require('../lib/plan-health');
+
 const { resolveProject } = require('../lib/docs-discovery');
 const { getGitChanges } = require('../lib/git-changes');
 
@@ -200,9 +200,16 @@ router.get('/tmux', (req, res) => {
   res.json(getLayoutState());
 });
 
-// GET /api/health
+// GET /api/health — usage threshold data from statusline
 router.get('/health', (req, res) => {
-  res.json(getHealthState());
+  const usageFile = path.join(os.homedir(), '.claude', 'usage-status.json');
+  try {
+    const data = JSON.parse(fs.readFileSync(usageFile, 'utf8'));
+    res.json({ usage: data, status: 'ok' });
+  } catch (e) {
+    if (e.code === 'ENOENT') return res.json({ usage: null, status: 'no_data' });
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // GET /api/usage — Claude Code rate limits per account
