@@ -90,7 +90,7 @@ Manages the `context/` directory as a structured knowledge base for external sys
 User-initiated-only backlog split across four category files in `documentation/backlog/` — bugs (B-NNN), questions (Q-NNN), ideas (I-NNN), and debt (D-NNN) — with priorities, directional blocking relationships, bidirectional linking, and documentation references. Use to note something for later, log a bug, record a question or blocker, flag tech debt, link to docs, or ask "what should we work on". Saving to backlog NEVER happens automatically — only when the user explicitly requests it. No skill or agent may auto-add items. Provides list/add/update/done/link/block operations with per-category prefixed IDs, priority sorting, computed blocked-by, and source tracking.
 
 **Plan Status Sync** (`/uc:plan-status-sync`)
-Scans all plans, infers actual status from execution artifacts (operational reports, checkpoints, task completion), and updates README statuses and dashboard JSON to match reality. Use to fix stale statuses after crashed executions or audit plan state. Produces corrected status files reconciling what READMEs claim with what actually happened.
+Scans all plans, infers actual status from execution artifacts (operational reports, checkpoints, task completion), and reconciles README statuses with `status/plan.json` dashboard files. Use to fix stale statuses after crashed executions, create missing plan.json for legacy plans, or audit plan state. Produces corrected status files for all lifecycle stages (stub, draft, approved, executing, completed).
 
 ### Infrastructure
 

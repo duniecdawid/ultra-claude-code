@@ -9,8 +9,8 @@ function readJSON(filePath) {
   }
 }
 
-function readPlanProject(planDir) {
-  const filePath = path.join(planDir, 'status', 'project.json');
+function readPlanStatus(planDir) {
+  const filePath = path.join(planDir, 'status', 'plan.json');
   const data = readJSON(filePath);
   if (!data) return null;
   try {
@@ -69,4 +69,4 @@ function parsePlanTasks(planDir) {
   }
 }
 
-module.exports = { readPlanProject, readPlanTeams, readPlanEvents, parsePlanTasks };
+module.exports = { readPlanStatus, readPlanTeams, readPlanEvents, parsePlanTasks };

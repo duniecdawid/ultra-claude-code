@@ -49,15 +49,32 @@ This check exists because the most common failure mode is jumping from a detaile
 **Create the directory** (skip if editing an existing stub):
 
 ```bash
-mkdir -p documentation/plans/{NNN}-{name}/shared documentation/plans/{NNN}-{name}/tasks
+mkdir -p documentation/plans/{NNN}-{name}/{shared,tasks,status}
 ```
 
 ```
 documentation/plans/001-user-auth/
 ├── README.md          # The plan document (task list embedded)
 ├── shared/            # Lead-level shared notes (created empty, used during execution)
-└── tasks/             # Per-task pipeline artifacts (created empty, used during execution)
+├── tasks/             # Per-task pipeline artifacts (created empty, used during execution)
+└── status/
+    └── plan.json      # Dashboard status (created now, updated at approval and execution)
 ```
+
+**Create `status/plan.json`** with initial draft status:
+```json
+{
+  "name": "{NNN}-{name}",
+  "status": "draft",
+  "description": "{objective from README}",
+  "total_tasks": 0,
+  "completed_tasks": 0,
+  "active_tasks": 0,
+  "pending_tasks": 0
+}
+```
+
+**When upgrading a stub:** After editing the README status from Stub→Draft, also update `status/plan.json`: change `"status": "stub"` → `"status": "draft"`.
 
 ## Step 2: Update Product Documentation — Mandatory
 
@@ -147,16 +164,19 @@ Write to `documentation/plans/{NNN}-{name}/README.md` via the Write tool — thi
 
 When the user explicitly approves the plan:
 
-1. **Commit plan files** — Stage all plan files (README.md, directories) and commit:
+1. **Update status to Approved:**
+   - Update README: change `> Status: Draft` → `> Status: Approved`
+   - Update `status/plan.json`: change `"status": "draft"` → `"status": "approved"`, and set `"total_tasks"` and `"pending_tasks"` to the actual task count from the plan
+2. **Commit plan files** — Stage all plan files (README.md, status/plan.json, directories) and commit:
    ```
    git add documentation/plans/{NNN}-{name}/ && git commit -m "plan: {NNN}-{name}"
    ```
-2. **Print execution command and instruct the user to run it in a new window:**
+3. **Print execution command and instruct the user to run it in a new window:**
    ```
    Plan committed. To execute, open a new window and run:
    /uc:plan-execution {NNN}
    ```
-3. **STOP.** Your turn ends here. No more output after printing the command. Do NOT:
+4. **STOP.** Your turn ends here. No more output after printing the command. Do NOT:
    - Start executing the plan
    - Suggest starting execution
    - Ask if the user wants you to execute

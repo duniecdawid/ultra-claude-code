@@ -1,5 +1,29 @@
 [
   {
+    "seq": 87,
+    "version": "2026.04.04-20",
+    "date": "2026-04-04",
+    "summary": "Rename status/project.json to status/plan.json across codebase. Fix plan status gaps: plan-enhancer now creates plan.json at scaffold (draft) and updates it on approval. Rename readPlanProject to readPlanStatus in dashboard. Add explicit stub/draft/approved status values to dashboard statusClass. Remove incorrect gitignore claim — plan.json and events.json should be committed, only teams/ is ephemeral.",
+    "migration": {
+      "precondition": "Project has documentation/plans/*/status/project.json files",
+      "actions": [
+        {
+          "type": "shell",
+          "command": "find documentation/plans -name 'project.json' -path '*/status/*' -exec sh -c 'mv \"$1\" \"$(dirname \"$1\")/plan.json\"' _ {} \\;"
+        },
+        "If .gitignore contains a rule ignoring status/ under documentation/plans/, remove it — the entire status/ directory should be tracked."
+      ],
+      "conflicts": "If project.json was referenced in custom scripts or hooks, update those references to plan.json"
+    }
+  },
+  {
+    "seq": 86,
+    "version": "2026.04.04-19",
+    "date": "2026-04-04",
+    "summary": "Replace PM's unreliable self-polling monitoring loop with CronCreate-based heartbeat. Cron fires every 5 minutes, waking PM to update dashboard timers and check usage limits. Fixes issue where PM would forget to poll between incoming messages.",
+    "migration": null
+  },
+  {
     "seq": 85,
     "version": "2026.04.04-18",
     "date": "2026-04-04",

@@ -215,6 +215,7 @@ function statusClass(s) {
   if (['executing','researching','planning','implementing','reviewing','testing'].includes(s)) return 'executing';
   if (s === 'completed') return 'completed';
   if (s === 'escalated' || s === 'aborted') return 'aborted';
+  if (['stub','draft','approved'].includes(s)) return 'pending';
   return 'pending';
 }
 

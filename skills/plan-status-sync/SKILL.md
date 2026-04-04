@@ -1,11 +1,11 @@
 ---
-description: Sync plan and task statuses across README files and dashboard JSON. Scans documentation/plans/ for stale statuses, infers correct state from execution artifacts, updates READMEs and creates/fixes status/project.json for the Ultra Dashboard. Use when plan statuses are out of date, dashboard shows wrong columns, after recovering from crashed executions, or to audit plan state. Triggers on "sync plan status", "fix plan status", "plan status cleanup", "update plan statuses", "fix dashboard statuses".
+description: Sync plan and task statuses across README files and dashboard JSON. Scans documentation/plans/ for stale statuses, infers correct state from execution artifacts, updates READMEs and creates/fixes status/plan.json for the Ultra Dashboard. Use when plan statuses are out of date, dashboard shows wrong columns, after recovering from crashed executions, or to audit plan state. Triggers on "sync plan status", "fix plan status", "plan status cleanup", "update plan statuses", "fix dashboard statuses".
 user-invocable: true
 ---
 
 # Plan Status Sync
 
-Scan all plans and reconcile statuses in both README files and dashboard JSON (`status/project.json`) with actual execution artifacts.
+Scan all plans and reconcile statuses in both README files and dashboard JSON (`status/plan.json`) with actual execution artifacts.
 
 ## Step 1: Discover Plans
 
@@ -16,7 +16,7 @@ Glob for `documentation/plans/*/README.md`. If none found, inform user and stop.
 For each plan directory, read:
 
 1. **README.md** — current `> Status:` line, task checkbox states, and task count
-2. **status/project.json** — if exists, check `"status"` field and `"ended_at"`
+2. **status/plan.json** — if exists, check `"status"` field and `"ended_at"`
 3. **operational-report.md** — if exists, plan completed
 4. **shared/lead.md** — if contains `## Execution Complete`, check which tasks are listed as completed
 5. **checkpoint-*.md** — if exist, execution was at least started
@@ -27,9 +27,9 @@ For each plan directory, read:
 | Artifacts Found | Inferred Status |
 |----------------|----------------|
 | `operational-report.md` exists | **Completed** |
-| `status/project.json` with `"status": "completed"` | **Completed** |
+| `status/plan.json` with `"status": "completed"` | **Completed** |
 | `shared/lead.md` with `## Execution Complete` | **Completed** |
-| `status/project.json` with `"status": "executing"` but no report | **In Progress** (likely abandoned) |
+| `status/plan.json` with `"status": "executing"` but no report | **In Progress** (likely abandoned) |
 | `checkpoint-*.md` exists but no report | **In Progress** |
 | No execution artifacts at all | Keep current status (Draft/Approved/Stub) |
 
@@ -80,9 +80,9 @@ For plans that **lack the checkbox format** (created before this feature), add i
 
 ### 4b. Create or Update Dashboard JSON
 
-For plans that need dashboard status fixes, create or update `status/project.json`.
+For plans that need dashboard status fixes, create or update `status/plan.json`.
 
-**If `status/project.json` doesn't exist**, create it:
+**If `status/plan.json` doesn't exist**, create it:
 
 ```bash
 mkdir -p documentation/plans/{PLAN_NAME}/status
@@ -105,12 +105,14 @@ mkdir -p documentation/plans/{PLAN_NAME}/status
 }
 ```
 
-**If `status/project.json` exists but has wrong status**, update only the `"status"` and `"ended_at"` fields.
+**If `status/plan.json` exists but has wrong status**, update only the `"status"` and `"ended_at"` fields.
 
 **Status value mapping for dashboard:**
 - Inferred "Completed" → `"status": "completed"`
 - Inferred "In Progress" → `"status": "executing"`
-- Inferred "Draft"/"Approved" → don't create JSON (dashboard correctly shows these as "Planning")
+- Inferred "Stub" → `"status": "stub"`
+- Inferred "Draft" → `"status": "draft"`
+- Inferred "Approved" → `"status": "approved"`
 
 Also create `status/events.json` if missing (for completed plans):
 
@@ -141,7 +143,7 @@ Report what was changed:
 ```
 Updated N plan(s):
 - M README status lines updated
-- K dashboard status/project.json files created or fixed
+- K dashboard status/plan.json files created or fixed
 - T task checkboxes checked off
 
 Review changes with `git diff`, then commit if correct.

@@ -16,7 +16,7 @@ function refreshAuth() {
 }
 refreshAuth();
 setInterval(refreshAuth, 5 * 60 * 1000);
-const { readPlanProject, readPlanTeams, readPlanEvents, parsePlanTasks } = require('../lib/plan-reader');
+const { readPlanStatus, readPlanTeams, readPlanEvents, parsePlanTasks } = require('../lib/plan-reader');
 const { readBacklog, getBacklogOpenCount } = require('../lib/backlog-reader');
 const { getLayoutState } = require('../lib/tmux-layout');
 
@@ -93,7 +93,7 @@ router.post('/deregister', (req, res) => {
 router.get('/plans', (req, res) => {
   const reg = discoverPlans();
   const enriched = reg.plans.map(p => {
-    const proj = readPlanProject(p.plan_dir);
+    const proj = readPlanStatus(p.plan_dir);
     if (proj && proj.status === 'executing') {
       const teams = readPlanTeams(p.plan_dir);
       const activeTeams = teams.filter(t => t.status && t.status !== 'completed' && t.status !== 'pending');
@@ -113,7 +113,7 @@ router.get('/plan/:project/:planName/:resource', (req, res) => {
   if (!entry) return res.status(404).json({ error: 'plan not found' });
 
   switch (resource) {
-    case 'project': return res.json(readPlanProject(entry.plan_dir) || {});
+    case 'project': return res.json(readPlanStatus(entry.plan_dir) || {});
     case 'teams': return res.json(readPlanTeams(entry.plan_dir));
     case 'plan': return res.json(parsePlanTasks(entry.plan_dir));
     case 'events': return res.json(readPlanEvents(entry.plan_dir));
@@ -157,7 +157,7 @@ router.get('/projects', (req, res) => {
     }
     const proj = projectMap[p.project];
     proj.total_plans++;
-    const status = readPlanProject(p.plan_dir);
+    const status = readPlanStatus(p.plan_dir);
     const isActive = p.active || (status && status.status === 'executing');
     if (isActive) {
       proj.active_plans++;

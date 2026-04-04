@@ -199,7 +199,7 @@ For each plan in the approved sequence:
    - Stub markers for: Task List, Tech Stack, Documentation Changes, Risk Assessment
    - Set `Status: Stub` and `Source: Roadmap`
 
-3. Create `documentation/plans/{NNN}-{name}/status/project.json`:
+3. Create `documentation/plans/{NNN}-{name}/status/plan.json`:
    ```json
    {
      "name": "{NNN}-{slug}",
@@ -279,7 +279,7 @@ See documentation/plans/ROADMAP.md for the full dependency graph.
 
 ## Plan Stub Bootstrap — MANDATORY
 
-When creating stub plan directories, ALWAYS generate a `status/project.json` file alongside the README.md. The daemon only discovers plans via `status/project.json` — without it, the plan is invisible in the dashboard.
+When creating stub plan directories, ALWAYS generate a `status/plan.json` file alongside the README.md. The daemon only discovers plans via `status/plan.json` — without it, the plan is invisible in the dashboard.
 
 Template:
 ```json
@@ -294,4 +294,4 @@ Template:
 }
 ```
 
-The status/ directory is gitignored (runtime artifact), so this file must be created on disk by any skill that scaffolds plan directories — roadmap, feature-mode, or manual stub creation.
+The entire `status/` directory should be committed to git so plan state persists across machines. Any skill that scaffolds plan directories — roadmap, feature-mode, or manual stub creation — must create this file.

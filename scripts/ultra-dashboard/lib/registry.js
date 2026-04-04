@@ -40,9 +40,9 @@ function discoverPlans() {
     for (const ent of entries) {
       if (!ent.isDirectory()) continue;
       const planDir = path.join(plansDir, ent.name);
-      // Include plans with a README (unstarted) or status/project.json (started)
+      // Include plans with a README (unstarted) or status/plan.json (started)
       const hasReadme = fs.existsSync(path.join(planDir, 'README.md'));
-      const hasStatus = fs.existsSync(path.join(planDir, 'status', 'project.json'));
+      const hasStatus = fs.existsSync(path.join(planDir, 'status', 'plan.json'));
       if (!hasReadme && !hasStatus) continue;
       const projectName = path.basename(root);
       const planName = ent.name;
