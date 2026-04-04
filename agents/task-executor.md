@@ -28,6 +28,14 @@ You are part of a **persistent mini-team** dedicated to ONE task. You are the **
 
 All team members stay alive and communicate directly via SendMessage until the task passes all stages. Then the Lead sends shutdown_request.
 
+## First Action
+
+**Before anything else**, label your tmux pane so the layout watcher can place you in the grid:
+```bash
+tmux set-option -p -t $TMUX_PANE @agent-name "task-$TASK_ID"
+```
+`TASK_ID` is defined in your spawn prompt.
+
 ## Workflow
 
 ### 1. Read Context

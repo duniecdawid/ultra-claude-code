@@ -14,17 +14,17 @@ Use TeamCreate with `team_name` set to the active team. **MANDATORY naming conve
 
 **NEVER** use alternative formats like `task-1-executor`, `e1`, `Executor_1`, or descriptive names.
 
-## Pane Labeling
+## Pane Self-Labeling
 
-The **PM handles all pane labeling**. A background layout watcher arranges panes based on `@agent-name` labels. Every agent reports its tmux pane ID to PM on startup. PM sets the label. The layout watcher detects new labels and arranges the grid automatically.
-
-**Lead does NOT run any tmux labeling commands** except labeling its own pane in phase 1.1b. No pane-diffing needed.
+Each agent **labels its own pane** on startup per its agent instructions. Spawn prompts provide two variables:
+- `TASK_ID` — task number for task agents (e.g., `1`, `2`, `final-gate`)
+- `ROLE` — `task` or `oversight`
 
 All task members get the same `task-{N}` label — the watcher groups them into one column.
 
 ### Spawning task teams
 
-All 3 task members are spawned **in parallel** (single message with 3 TeamCreate calls). Each agent reports its pane to PM on startup — no lead intervention needed.
+All 3 task members are spawned **in parallel** (single message with 3 TeamCreate calls). Each agent self-labels on startup — no PM intervention needed.
 
 After spawning, send to PM:
 
@@ -40,9 +40,8 @@ Model: `opus` | Mode: `bypassPermissions`
 ```
 You are the **team coordinator** for task {N} of the "$ARGUMENTS" plan.
 
-**On startup, immediately run:**
-1. `echo $TMUX_PANE` — note the result (your pane ID)
-2. SendMessage to pm-{PLAN_NAME}: "PANE {pane_id} task-{N} executor"
+TASK_ID={N}
+ROLE=task
 
 **Your task:** {task description from plan}
 **Success criteria:** {success criteria from plan}
@@ -86,9 +85,8 @@ Model: `sonnet` | Mode: `bypassPermissions`
 ```
 You are reviewing task {N} of the "$ARGUMENTS" plan.
 
-**On startup, immediately run:**
-1. `echo $TMUX_PANE` — note the result (your pane ID)
-2. SendMessage to pm-{PLAN_NAME}: "PANE {pane_id} task-{N} reviewer"
+TASK_ID={N}
+ROLE=task
 
 **Task being reviewed:** {task description from plan}
 **Success criteria:** {success criteria from plan}
@@ -122,9 +120,8 @@ Model: `sonnet` | Mode: `bypassPermissions`
 ```
 You are testing task {N} of the "$ARGUMENTS" plan.
 
-**On startup, immediately run:**
-1. `echo $TMUX_PANE` — note the result (your pane ID)
-2. SendMessage to pm-{PLAN_NAME}: "PANE {pane_id} task-{N} tester"
+TASK_ID={N}
+ROLE=task
 
 **Task being tested:** {task description from plan}
 **Success criteria:** {success criteria from plan}
@@ -159,9 +156,8 @@ For the final regression gate after all tasks complete, spawn a fresh team membe
 ```
 You are running the **final gate** regression test for the "$ARGUMENTS" plan.
 
-**On startup, immediately run:**
-1. `echo $TMUX_PANE` — note the result (your pane ID)
-2. SendMessage to pm-{PLAN_NAME}: "PANE {pane_id} final-gate tester"
+TASK_ID=final-gate
+ROLE=task
 
 This is NOT a per-task test. Run the FULL test suite as a regression check across all completed tasks.
 
@@ -187,7 +183,8 @@ Spawn **once** before any task-teams. The Project Manager runs for the entire pl
 ```
 You are the **Project Manager** for the "$ARGUMENTS" plan execution.
 
-**On startup, immediately run:** `tmux set-option -p -t $TMUX_PANE @agent-name "pm-{PLAN_NAME}"`
+PLAN_NAME={PLAN_NAME}
+ROLE=oversight
 
 **Plan directory:** `documentation/plans/$ARGUMENTS/`
 **Lead name:** {lead name}
@@ -202,8 +199,14 @@ You are the **Project Manager** for the "$ARGUMENTS" plan execution.
 - Task 3: depends on task 1
 - Task 4: depends on task 2, task 3
 
-**What agents send you directly (pane registration):**
-- `PANE {pane_id} {label} {role}` — label the pane: `tmux set-option -p -t {pane_id} @agent-name "{label}"`. All agents report on startup.
+**Extra usage enabled:** {true/false}
+**Usage status file:** ~/.claude/usage-status.json
+If extra usage is DISABLED: monitor usage-status.json in your monitoring loop.
+At 90% five_hour usage → send USAGE-PAUSE to all active members + ALERT Lead.
+When resets_at passes or usage < 90% → send USAGE-RESUME + ALERT Lead.
+Multiple pause/resume cycles are expected for long-running plans that span multiple 5-hour windows.
+
+**Pane verification:** Agents self-label their panes on startup per their agent instructions. After each SPAWNED message from Lead, verify labels are correct (see your agent instructions).
 
 **What the Lead sends you (process into dashboard):**
 - `SPAWNED task-{N}: {description}` — create team JSON, update project counts, append event
@@ -218,6 +221,8 @@ You are the **Project Manager** for the "$ARGUMENTS" plan execution.
 - "ALERT: {member}-{N} stalled for 13+ minutes, recommend re-spawn"
 - "ALERT: Rate limit suspected — recommend pause spawning"
 - "ALERT: {member}-{N} unresponsive after rate limit recovery, recommend re-spawn"
+- "ALERT: USAGE-PAUSE (#N) — 5-hour rate limit at {pct}%..." — proactive pause (extra_usage=false only)
+- "ALERT: USAGE-RESUME (#N) — Rate limit window has reset..." — safe to resume
 
 The Ultra Dashboard (started by Lead) handles health monitoring automatically — no watchdog startup needed.
 

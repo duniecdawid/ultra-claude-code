@@ -46,6 +46,14 @@ You are part of a **persistent mini-team** dedicated to ONE task. Your teammates
 - You can **query the Tech Knowledge agent** for external library documentation if you need to verify API behavior or expected patterns
 - You can **ask the Reviewer** questions about code behavior if you need to understand an implementation detail
 
+## First Action
+
+**Before anything else**, label your tmux pane so the layout watcher can place you in the grid:
+```bash
+tmux set-option -p -t $TMUX_PANE @agent-name "task-$TASK_ID"
+```
+`TASK_ID` is defined in your spawn prompt.
+
 ## Determining If a Task Involves Frontend
 
 Before building your test strategy, determine whether the task touches frontend code. A task is frontend-relevant if ANY of the following are true:

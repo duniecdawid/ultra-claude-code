@@ -23,7 +23,7 @@ tmux set-option -w pane-border-status top
 tmux set-option -w pane-border-format " #{@agent-name} "
 ```
 
-The dashboard arranges panes as agents spawn and report their panes to PM, monitors plan health for stalls/rate limits, and serves the web dashboard. **You do NOT run any tmux commands yourself** — PM handles all other pane labeling.
+The dashboard arranges panes as agents spawn and self-label their panes, monitors plan health for stalls/rate limits, and serves the web dashboard. **You do NOT run any tmux commands yourself** — agents self-label; PM verifies.
 
 ### 1.2 Resume Detection
 
@@ -101,6 +101,27 @@ Proceed? (yes/no)
 
 **Wait for explicit user confirmation.** Do not spawn teams without it.
 
+### 1.5b Extra Usage Check
+
+After the user confirms "Proceed", ask one more question:
+
+```
+Enable extra usage? (yes/no)
+⚠️  If you enable extra usage and your account doesn't have it,
+work will stop when the limit is hit and require manual resume.
+```
+
+Store the answer in `shared/lead.md` under a config header:
+
+```markdown
+## Execution Config
+- extra_usage: true  (or false)
+```
+
+This value is read by the PM agent to decide whether to activate usage threshold monitoring.
+- **If extra_usage = false:** PM monitors `~/.claude/usage-status.json` and triggers PAUSE/RESUME at 90% five-hour usage. Multiple pause/resume cycles are supported across 5-hour windows.
+- **If extra_usage = true:** No special monitoring. The system trusts the account has extra usage capacity.
+
 ### 1.6 Create Task List
 
 Create ONE task per plan task — no role prefixes. Pipeline stage is tracked in metadata:
@@ -131,7 +152,7 @@ documentation/plans/$ARGUMENTS/
   checkpoint-*.md
 ```
 
-Create `shared/lead.md` with: plan overview, concurrency decision, key architectural constraints, task dependency graph, critical decisions.
+Create `shared/lead.md` with: plan overview, concurrency decision, key architectural constraints, task dependency graph, critical decisions, and execution config (extra_usage setting from 1.5b).
 
 Create `tasks/` directory. Per-task subdirs (`tasks/task-N/`) are created just-in-time when the first team member spawns for that task.
 
@@ -143,7 +164,7 @@ Before spawning any task-teams, set up both plan-wide shared team members: **Pro
 
 1. **Project Manager first** — spawn `pm-{PLAN_NAME}` using the PM spawn prompt. The PM has Bash access and will self-label its pane on startup (the spawn prompt includes the labeling instruction). No tmux commands needed from you.
 
-2. **Tech Knowledge second** — read plan README.md `## Tech Stack` section for the technology list. Also scan `documentation/technology/architecture/` and `.claude/ultra/app-context.md` for additional technology references. Spawn `knowledge-{PLAN_NAME}` using the Tech Knowledge spawn prompt below. Tech Knowledge reports its pane to PM on startup — no labeling needed from you.
+2. **Tech Knowledge second** — read plan README.md `## Tech Stack` section for the technology list. Also scan `documentation/technology/architecture/` and `.claude/ultra/app-context.md` for additional technology references. Spawn `knowledge-{PLAN_NAME}` using the Tech Knowledge spawn prompt below. Tech Knowledge self-labels its pane on startup — no labeling needed from you.
 
    After spawning, send PM: `"SPAWNED knowledge-{PLAN_NAME}"`
 
@@ -153,9 +174,8 @@ Before spawning any task-teams, set up both plan-wide shared team members: **Pro
    ```
    You are the shared **Tech Knowledge** team member for the "$ARGUMENTS" plan execution.
 
-   **On startup, immediately run:**
-   1. `echo $TMUX_PANE` — note the result (your pane ID)
-   2. SendMessage to pm-{PLAN_NAME}: "PANE {pane_id} knowledge-{PLAN_NAME} knowledge"
+   PLAN_NAME={PLAN_NAME}
+   ROLE=oversight
 
    **Technologies to load documentation for:**
    {list from Tech Stack section + any additional technologies identified}

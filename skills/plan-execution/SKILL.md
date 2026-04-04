@@ -92,7 +92,7 @@ Phase 2 startup:
   1. Spawn initial task-teams to fill concurrency slots.
      For each slot: find next pending unblocked task, create tasks/task-N/ directory,
      spawn all 3 team members in parallel (executor-N, reviewer-N, tester-N),
-     (each agent reports its pane to PM on startup for labeling — the layout watcher arranges them automatically).
+     (each agent self-labels its pane on startup — the layout watcher arranges them automatically).
      After spawning all 3:
        SendMessage to PM "SPAWNED task-{N}: {task description}" then "STAGE task-{N} planning"
        SendMessage to knowledge-{PLAN_NAME}: "TASK-START: Task {N} — {task title}\nDescription: {task description}\nSuccess criteria: {success criteria}\nExecutor: executor-{N}\nPlan path (when available): documentation/plans/$ARGUMENTS/tasks/task-{N}/plan.md"
@@ -135,7 +135,17 @@ WAIT for messages. Process each message, then return to waiting.
   g. PM "Dashboard live at {URL}" → IMMEDIATELY display the URL to the user as a visible message:
      "📊 Live dashboard: {URL}" — this is the user's primary way to monitor execution.
      Do NOT silently consume this message. The user needs the link.
-  h. PM "ALERT: ..." → Act on recommendation (re-spawn team member, pause spawning, etc.)
+  h. PM "ALERT: ..." → Act on recommendation:
+     - **"ALERT: USAGE-PAUSE ..."** → Enter usage pause mode:
+       1. Do NOT spawn any new task-teams until USAGE-RESUME
+       2. Note expected resume time in `shared/lead.md`
+       3. Trigger checkpoint (Phase 3) — ensures clean recovery if session dies during pause
+       4. Continue processing incoming messages (completed tasks, etc.) but defer spawning
+     - **"ALERT: USAGE-RESUME ..."** → Exit usage pause mode:
+       1. Resume normal spawning — fill any empty concurrency slots
+       2. Update `shared/lead.md` to record the pause duration
+       3. Send appropriate status updates to PM for any teams spawned
+     - **Other ALERTs** → act on recommendation (re-spawn team member, pause spawning, etc.)
      After acting, send appropriate status update to PM.
 
   Checkpoint if triggered.
@@ -192,6 +202,7 @@ Save a checkpoint when ANY of these occur:
 - Every 3 completed tasks
 - User runs `/uc:checkpoint`
 - Before risky plan amendments
+- On USAGE-PAUSE (saves state before potentially long pause)
 
 When triggered → Read `references/phase-3-checkpoint.md` for the checkpoint template and content format.
 
@@ -241,7 +252,7 @@ When a teammate discovers something that invalidates part of the plan (from exec
 | **Lead spawns teams** | Lead → TeamCreate | Lead spawns task-teams directly. |
 | **Lead shuts down teams** | Lead → team members | Lead sends shutdown_request directly after executor reports "task done". |
 | **Lead approves pipeline** | Lead → Executor | Lead approves pipeline implementations when predecessor passes. |
-| **Pane registration** | Any agent → PM | `"PANE {pane_id} {label} {role}"` on startup. PM labels the pane via tmux. |
+| **Pane self-labeling** | Agent local | Spawn prompt defines `TASK_ID`/`ROLE`; agent runs tmux label per agent instructions. PM verifies after SPAWNED. |
 | **Lead → PM** | Lead → PM | Terse status updates (`SPAWNED`, `COMPLETED`, `STAGE`, `SHUTDOWN`, etc.) for dashboard. |
 | **PM → Lead** | PM → Lead | Dashboard URL (startup), health ALERTs (stalls, rate limits). |
 | **PM → team members** | PM → any team member | Status checks for monitoring purposes only. |
@@ -262,6 +273,7 @@ You are the **orchestrator and domain authority**. You spawn teams, manage shutd
 - Handle plan-invalidating discoveries (pause, evaluate, amend)
 - Send status updates to PM after each action (SPAWNED, COMPLETED, STAGE, SHUTDOWN, etc.)
 - **Display the dashboard URL to the user** when PM sends it — this is the user's primary monitoring tool
+- Handle usage pause/resume from PM (defer spawning during pause, checkpoint on pause, resume when cleared)
 - Checkpoint when triggered
 - Run Phase 5 when all tasks are done
 
@@ -290,5 +302,6 @@ Real examples from past executions — do NOT produce output like this:
 - Always send terse status updates to PM after spawning, shutdowns, stage transitions
 - Always checkpoint before session end
 - Max 10 fix cycles per task before escalating to user
+- During USAGE-PAUSE: do not spawn new teams, but continue processing messages from existing teams
 - Always run final gate test suite before declaring completion (skip for single-task plans — per-task tester already covers it)
 - Keep shared/lead.md updated with all decisions and amendments

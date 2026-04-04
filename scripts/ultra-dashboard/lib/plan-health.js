@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const { readRegistry } = require('./registry');
 
 const STALL_THRESHOLD = 600; // 10 minutes in seconds
@@ -13,7 +14,7 @@ function log(planDir, message) {
   } catch {}
 }
 
-function writeStatus(planDir, stalledTasks, totalTasks, status, rateLimitSuspected) {
+function writeStatus(planDir, stalledTasks, totalTasks, status, rateLimitSuspected, usage) {
   const statusFile = path.join(planDir, 'watchdog-status.json');
   const data = {
     timestamp: new Date().toISOString(),
@@ -21,6 +22,9 @@ function writeStatus(planDir, stalledTasks, totalTasks, status, rateLimitSuspect
     stalled_tasks: stalledTasks,
     total_active_tasks: totalTasks,
     rate_limit_suspected: rateLimitSuspected,
+    usage_threshold_exceeded: usage ? usage.threshold_exceeded : false,
+    usage_five_hour_pct: usage ? usage.five_hour_pct : null,
+    usage_resets_at: usage ? usage.resets_at : null,
     check_interval_seconds: 30,
     stall_threshold_seconds: STALL_THRESHOLD
   };
@@ -89,7 +93,38 @@ function checkPlan(planDir) {
     status = 'healthy';
   }
 
-  writeStatus(planDir, stalledCount, activeCount, status, rateLimitSuspected);
+  // Check usage threshold and include in status
+  const usage = checkUsageThreshold();
+  const usageExceeded = usage ? usage.threshold_exceeded : false;
+
+  writeStatus(planDir, stalledCount, activeCount, status, rateLimitSuspected, usage);
+}
+
+function checkUsageThreshold() {
+  const usageFile = path.join(os.homedir(), '.claude', 'usage-status.json');
+  try {
+    const data = JSON.parse(fs.readFileSync(usageFile, 'utf8'));
+    if (!data.accounts) return null;
+
+    // Find most recently updated account
+    let latest = null;
+    for (const account of Object.values(data.accounts)) {
+      if (!latest || (account.updated_at || '') > (latest.updated_at || '')) {
+        latest = account;
+      }
+    }
+    if (!latest || !latest.rate_limits || !latest.rate_limits.five_hour) return null;
+
+    const fh = latest.rate_limits.five_hour;
+    return {
+      five_hour_pct: fh.used_percentage,
+      resets_at: fh.resets_at,
+      threshold_exceeded: fh.used_percentage >= 90,
+      updated_at: latest.updated_at
+    };
+  } catch {
+    return null;
+  }
 }
 
 function findMdFiles(dir) {
@@ -144,4 +179,4 @@ function getHealthState() {
   return state;
 }
 
-module.exports = { startHealthMonitor, stopHealthMonitor, getHealthState };
+module.exports = { startHealthMonitor, stopHealthMonitor, getHealthState, checkUsageThreshold };
