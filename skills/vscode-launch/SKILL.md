@@ -225,6 +225,18 @@ After writing, confirm it's valid:
 - `cwd` directories exist
 - No duplicate configuration names
 
+## Ultra Claude Integration
+
+When the project uses Ultra Claude (check for `.claude/ultra/` directory):
+
+1. **Document the setup** — after generating launch.json, update `documentation/technology/testing/environments.md` with how to run services via VS Code debugger. Use `/uc:docs-manager` to route correctly.
+2. **Update CLAUDE.md** — add a "Dev Environment" section noting how Claude should start/stop services (via `scripts/dev.sh`) and how VS Code debugging works (via launch.json). This prevents Claude from starting duplicate processes when the user is already debugging in VS Code.
+3. **Process management script** — if the project has multiple services, generate a `scripts/dev.sh` that manages PIDs and kills by process pattern. This script is for Claude/CLI use. VS Code manages its own processes through the debugger. The script should:
+   - Track PIDs in a shared location (e.g., `~/.claude/ultra/dashboard/`)
+   - Kill by process pattern (not just PID) to catch orphans from any source
+   - Have `start`, `stop`, `restart`, `status` commands
+   - Use `nohup` for background mode (Claude), foreground `exec` for interactive use
+
 ## Anti-Patterns
 
 Things that don't work and why — learned from experience:
