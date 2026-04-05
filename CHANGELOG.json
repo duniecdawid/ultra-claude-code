@@ -1,5 +1,12 @@
 [
   {
+    "seq": 93,
+    "version": "2026.04.05-1",
+    "date": "2026-04-05",
+    "summary": "Update skill now runs /setup after pulling (replaces manual marker update), and moves migration check to final recommendations step alongside reload notice.",
+    "migration": null
+  },
+  {
     "seq": 92,
     "version": "2026.04.04-25",
     "date": "2026-04-04",

@@ -148,7 +148,11 @@ fi
 node "${CLAUDE_PLUGIN_ROOT}/scripts/tmux-layout-daemon.js" --ensure
 ```
 
-## Step 6: Check Migration Needs
+## Step 6: Run Setup
+
+Invoke `/uc:setup` to verify and fix the machine environment. Setup is idempotent — it will check all prerequisites, update symlinks, refresh hooks, and write the version marker. This ensures any new setup requirements introduced by the update are applied.
+
+## Step 7: Check Migration Needs
 
 Check CHANGELOG.json for migration entries between the old and new versions:
 
@@ -162,38 +166,21 @@ jq --argjson old "$OLD_SEQ" --argjson new "$NEW_SEQ" \
   "${CLAUDE_PLUGIN_ROOT}/CHANGELOG.json"
 ```
 
-If migration entries exist:
+Save the migration results for the recommendations step.
 
-1. List each migration with version + summary
-2. Actively recommend migration:
+## Step 8: Recommendations
 
-> **Project migrations available.** These changes affect project structure:
-> - {version} — {summary}
+End with a summary of what the user should do next:
+
+> **Updated to v{NEW_VERSION}.** Next steps:
 >
-> Run `/uc:migrate` in each project to apply the changes. You can do this now or next time you open each project.
+> 1. **Reload sessions** — Start a new Claude Code conversation to load the updated skills (plugins are loaded at startup).
 
-If the user wants to migrate now, offer to help — but don't do it without asking.
+If migration entries were found in Step 7, also include:
 
-If no migration entries exist: "No project migration needed for this update."
+> 2. **Run project migrations** — The following changes affect project structure:
+>    - {version} — {summary}
+>
+>    Run `/uc:migrate` in each project to apply. You can do this now or next time you open each project.
 
-## Step 7: Update Setup Marker
-
-Bump the version in the setup marker so `/uc:setup` doesn't nag about being out of date:
-
-```bash
-MARKER="$HOME/.claude/ultra/uc-setup.json"
-NEW_VERSION=$(jq -r '.version' "${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json")
-if [ -f "$MARKER" ]; then
-  jq --arg v "$NEW_VERSION" --arg t "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" \
-    '.version = $v | .timestamp = $t' "$MARKER" > "${MARKER}.tmp" && mv "${MARKER}.tmp" "$MARKER"
-else
-  echo "{\"version\":\"$NEW_VERSION\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%S.000Z)\"}" > "$MARKER"
-fi
-echo "Setup marker updated to v$NEW_VERSION"
-```
-
-## Step 8: Reload Notice
-
-End with:
-
-> Updated to v{NEW_VERSION}. Start a new Claude Code conversation to load the updated skills — plugins are loaded at startup.
+If no migration entries exist, note: "No project migrations needed for this update."
