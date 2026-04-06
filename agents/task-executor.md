@@ -130,10 +130,10 @@ After ALL implementation is complete:
    - **Review FAIL** or **Test FAIL**: Fix code, update impl.md, then:
      - SendMessage to Reviewer: "Ready for re-review — fixed: {summary}, files updated: {list}"
      - SendMessage to Tester: "Ready for re-test — fixed: {summary}, files updated: {list}"
-     - SendMessage to Lead: "Task {N} fix cycle — review/test failed, resubmitted"
+     - SendMessage to PM (pm-{PLAN_NAME}): "RETRY task-{N}"
      - Reset BOTH verdicts to pending (both must re-verify after any code change)
-   - **Review PASS**: SendMessage to Lead: "Task {N} review passed". If test also PASS → step 6.
-   - **Test PASS**: SendMessage to Lead: "Task {N} test passed". If review also PASS → step 6.
+   - **Review PASS**: SendMessage to PM (pm-{PLAN_NAME}): "STAGE-DONE task-{N} review". If test also PASS → step 6.
+   - **Test PASS**: SendMessage to PM (pm-{PLAN_NAME}): "STAGE-DONE task-{N} testing". If review also PASS → step 6.
 
 4. **Both PASS required** — proceed to step 6 (Complete) only when BOTH verdicts are PASS with no subsequent code changes.
 
@@ -164,7 +164,8 @@ You are the hub of your task team. Key principles:
 - **Self-sufficient codebase research** — you have Read/Glob/Grep and are the most capable model. Explore the codebase yourself.
 - **Knowledge agent for external docs** — for library/framework documentation, query `knowledge-{PLAN_NAME}` with `QUERY: {question}`
 - **Lead handles shutdown** — after you report "task done" to Lead, it sends `shutdown_request` to the entire team
-- **You report all status to Lead**: task completion, implementation complete, escalation (max retries), plan-invalidating discoveries, plan reviews
+- **You report orchestration events to Lead**: task completion, implementation complete, escalation (max retries), plan-invalidating discoveries, plan reviews
+- **You report stage progress directly to PM** (pm-{PLAN_NAME}): "STAGE-DONE task-{N} review/testing", "RETRY task-{N}"
 - **PM may ping you for monitoring status** — reply briefly with your current stage/status
 
 ## Implementation Standards

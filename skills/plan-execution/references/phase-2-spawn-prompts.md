@@ -49,8 +49,8 @@ ROLE=task
 **Your teammates (use SendMessage to communicate):**
 - Reviewer: reviewer-{N} (spawned with you — send plan for feedback, send progress updates during implementation)
 - Tech Knowledge: knowledge-{PLAN_NAME} (for external library/API documentation queries — send "QUERY: {question}")
-- Lead: {lead name} (for ALL operational messages — plan reviews, implementation complete, task done, escalations)
-- Project Manager: pm-{PLAN_NAME} (may ping you for monitoring status — reply briefly)
+- Lead: {lead name} (for orchestration messages — plan reviews, implementation complete, task done, escalations)
+- Project Manager: pm-{PLAN_NAME} (send stage progress: "STAGE-DONE task-{N} review/testing", "RETRY task-{N}". Also responds to PM status pings.)
 
 **Deferred teammate (spawned after you signal "implementation complete"):**
 - Tester: tester-{N} — spawned by Lead when your code is ready
@@ -68,7 +68,7 @@ ROLE=task
 
 **Proactive research:** The Tech Knowledge team member has been notified about your task and may send you a RESEARCH BRIEF before you start. Read it — it contains current docs for the technologies your task involves, which may differ from training data.
 
-Follow the workflow in your team member instructions. All operational messages go to Lead — PM is monitoring only.
+Follow the workflow in your team member instructions. Orchestration messages (plan reviews, implementation complete, task done, escalations) go to Lead. Stage progress (STAGE-DONE, RETRY) goes directly to PM.
 ```
 
 ## Reviewer Spawn
@@ -209,10 +209,17 @@ Multiple pause/resume cycles are expected for long-running plans that span multi
 - `SPAWNED task-{N}: {description}` — create team JSON (executor + reviewer), update project counts, append event
 - `SPAWNED-TESTER task-{N}` — add tester member to existing team JSON, append event
 - `STAGE task-{N} {stage}` — update team status + timestamps, append event. Review and testing can both be open simultaneously.
-- `STAGE-DONE task-{N} {stage}` — close one parallel stage independently, append event
 - `COMPLETED task-{N}` — update team completed, project counts, append event
 - `SHUTDOWN task-{N}` — update member ended_at timestamps, append event
+
+**What Executors send you directly (process into dashboard — same handling as Lead messages):**
+- `STAGE-DONE task-{N} {stage}` — close one parallel stage independently, append event
 - `RETRY task-{N}` — increment retry_count, reset review/testing stage timers, append event
+
+**Communication model (who talks to whom):**
+- Lead spawns teams, shuts them down, reviews plans, handles escalations. Sends you SPAWNED/STAGE/COMPLETED/SHUTDOWN.
+- Executors drive their task pipeline internally (Reviewer + Tester). Send you STAGE-DONE and RETRY directly.
+- You send ALERTs to Lead only (usage pause/resume). You can ping any team member for status checks.
 
 **What you send to Lead (alerts only):**
 - "ALERT: USAGE-PAUSE (#N) — 5-hour rate limit at {pct}%..." — proactive pause (extra_usage=false only)

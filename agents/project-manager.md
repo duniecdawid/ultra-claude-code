@@ -221,10 +221,10 @@ The Lead sends you terse status messages as it orchestrates. Process each into t
 | `SPAWNED knowledge-{PLAN_NAME}` | Lead | Log knowledge agent spawn in `events.json` |
 | `SPAWNED-TESTER task-{N}` | Lead | In `plan.json`: find task-{N} → add tester member to `members` array. Append `member_spawned` event to `events.json` |
 | `STAGE task-{N} {stage}` | Lead | In `plan.json`: find task-{N} → close previous stage timestamps, open new stage in `stages` object. Append `stage_entered` event. For `review` and `testing`: both can be open simultaneously (parallel stages). |
-| `STAGE-DONE task-{N} {stage}` | Lead | In `plan.json`: find task-{N} → close one parallel stage independently: set `ended_at` and `elapsed_seconds` for that stage. Do NOT close the other parallel stage. Append `stage_done` event to `events.json` |
+| `STAGE-DONE task-{N} {stage}` | Executor | In `plan.json`: find task-{N} → close one parallel stage independently: set `ended_at` and `elapsed_seconds` for that stage. Do NOT close the other parallel stage. Append `stage_done` event to `events.json` |
 | `COMPLETED task-{N}` | Lead | In `plan.json`: find task-{N} → status=`completed`, set `ended_at`, all members=`completed`. Update `completed_tasks++`, `active_tasks--`. Append `task_completed` event to `events.json`. **Update plan README:** find `### Task {N}:` heading, change `<!-- status:pending -->` to `<!-- status:completed -->` and `- [ ] **Complete**` to `- [x] **Complete**` |
 | `SHUTDOWN task-{N}` | Lead | In `plan.json`: find task-{N} → set all member `ended_at` timestamps. Append `team_shutdown` event to `events.json` |
-| `RETRY task-{N}` | Lead | In `plan.json`: find task-{N} → `retry_count++`, reset both review and testing stage timers (re-open them). Append retry event to `events.json` |
+| `RETRY task-{N}` | Executor | In `plan.json`: find task-{N} → `retry_count++`, reset both review and testing stage timers (re-open them). Append retry event to `events.json` |
 
 **Important:** If the Lead sends a message format you don't recognize, log it and continue. Never block on an unrecognized message.
 
@@ -243,9 +243,14 @@ The Lead sends you terse status messages as it orchestrates. Process each into t
 - Completion signals (Lead tracks this directly from executors)
 
 **You receive from Lead:**
-- **Status updates** — terse messages like `SPAWNED task-1: Add JWT middleware`, `COMPLETED task-2`, etc. Process these into dashboard JSON (see Status Update Processing table).
+- **Status updates** — terse messages like `SPAWNED task-1: Add JWT middleware`, `COMPLETED task-2`, `STAGE task-1 implementation`, etc. Process these into dashboard JSON (see Status Update Processing table).
 - **"Execution complete — write operational report"** — triggers your final report
 - **Plan amendments** — if Lead amends mid-execution, it notifies you of changed tasks/scope
+
+**You also receive directly from Executors:**
+- `STAGE-DONE task-{N} {stage}` — a review or test stage passed. Update dashboard.
+- `RETRY task-{N}` — a fix cycle started. Update dashboard.
+Process these identically to Lead messages — same dashboard updates, same events.json appends. These come directly from Executors to reduce Lead message volume.
 
 ## Active Monitoring
 
@@ -260,8 +265,12 @@ You set up a CronCreate job in your First Action that fires every 5 minutes. Eac
 
 **If `usage_paused = false` (normal mode):**
 1. **Update elapsed times:** Update `elapsed_seconds` in `plan.json` — both the plan-level value and each `in_progress` task in the `tasks` array (compute from `started_at` to now for plan and each task/stage). For parallel stages (review + testing), update each independently. This is a single file read-write.
-2. **Check usage (if extra_usage = false):** Read `~/.claude/ultra/usage-status.json` and evaluate whether to PAUSE or RESUME (see Usage Threshold Monitoring below).
-3. **Log observations:** Keep mental notes for the final report — stage durations, idle agents, communication patterns.
+2. **Check for stalls:** For each `in_progress` task, check the last event timestamp in `events.json`. If any active task has had no stage transitions or messages for >10 minutes:
+   - **First tick with silence:** Ping the Executor: SendMessage to executor-{N}: "Status check — what stage are you in?"
+   - **Second tick still silent (~15 min total):** ALERT Lead: "ALERT: STALL — task-{N} executor-{N} unresponsive for ~15 minutes"
+   - Track which tasks you've already pinged to avoid duplicate pings.
+3. **Check usage (if extra_usage = false):** Read `~/.claude/ultra/usage-status.json` and evaluate whether to PAUSE or RESUME (see Usage Threshold Monitoring below).
+4. **Log observations:** Keep mental notes for the final report — stage durations, idle agents, communication patterns.
 
 **Why cron, not a self-polling loop:** LLM agents cannot reliably self-schedule periodic work. Between incoming messages you are idle with no internal timer. The cron wakes you up every 5 minutes regardless, ensuring monitoring actually happens.
 

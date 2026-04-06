@@ -61,6 +61,7 @@ Executor:   explores codebase → plans → sends plan to Reviewer (advisory) th
             → sends per-file progress updates to Reviewer during implementation
             → signals Lead "implementation complete" (Lead spawns Tester)
             → tells Reviewer "ready for review" AND Tester "ready for test" simultaneously
+            → sends STAGE-DONE / RETRY directly to PM for dashboard tracking
 Reviewer:   reads standards + architecture early → advisory plan feedback → reads files as executor progresses
             → formal review on "ready for review" → sends PASS/FAIL to Executor
 Tester:     (lazy-spawned after implementation) reads context → tests against PRODUCT DOCS
@@ -121,21 +122,15 @@ WAIT for messages. Process each message, then return to waiting.
      scope correctness. Reply to executor: APPROVED or CONCERNS with specifics.
      If APPROVED: SendMessage to PM: "STAGE task-{N} implementation"
 
-  d. Executor "Task {N} review passed" →
-     SendMessage to PM: "STAGE-DONE task-{N} review"
+  d. Executor "Task {N} escalation needed" → Escalate to user
 
-  e. Executor "Task {N} test passed" →
-     SendMessage to PM: "STAGE-DONE task-{N} testing"
-
-  f. Executor "Task {N} escalation needed" → Escalate to user
-
-  g. Executor "PLAN-INVALIDATING: ..." → Pause, evaluate, amend plan
+  e. Executor "PLAN-INVALIDATING: ..." → Pause, evaluate, amend plan
 
   --- From PM ---
-  h. PM "Dashboard live at {URL}" → IMMEDIATELY display the URL to the user as a visible message:
+  f. PM "Dashboard live at {URL}" → IMMEDIATELY display the URL to the user as a visible message:
      "📊 Live dashboard: {URL}" — this is the user's primary way to monitor execution.
      Do NOT silently consume this message. The user needs the link.
-  i. PM "ALERT: ..." → Act on recommendation:
+  g. PM "ALERT: ..." → Act on recommendation:
      - **"ALERT: USAGE-PAUSE ..."** → Enter usage pause mode:
        1. Do NOT spawn any new task-teams until USAGE-RESUME
        2. Note expected resume time in `shared/lead.md`
@@ -260,12 +255,13 @@ When a teammate discovers something that invalidates part of the plan:
 | **Knowledge load** | Lead → knowledge-{PLAN_NAME} | "LOAD: {technology}" to add docs mid-execution. |
 | **Plan review (teammate)** | Executor → Reviewer | Advisory feedback on `tasks/task-N/plan.md`. Reviewer replies LGTM/CONCERNS. |
 | **Plan review (Lead)** | Executor → Lead | Domain/coherence review of plan. **Blocking gate.** Lead replies APPROVED/CONCERNS. |
-| **Operational status** | Executor → Lead | "Implementation complete", "review passed", "test passed", "task done", "escalation needed". Lead acts directly. |
+| **Operational status** | Executor → Lead | "Implementation complete", "task done", "escalation needed", "plan-invalidating". Lead acts on these. |
+| **Stage progress** | Executor → PM | "STAGE-DONE task-{N} {stage}", "RETRY task-{N}". PM updates dashboard directly. |
 | **Lead spawns executor + reviewer** | Lead → TeamCreate | Lead spawns executor and reviewer when slot opens. |
 | **Lead lazy-spawns tester** | Lead → TeamCreate | Lead spawns tester when executor signals "implementation complete". |
 | **Lead shuts down teams** | Lead → team members | Lead sends shutdown_request directly after executor reports "task done". |
 | **Pane self-labeling** | Agent local | Spawn prompt defines `TASK_ID`/`ROLE`; agent runs tmux label per agent instructions. PM verifies after SPAWNED. |
-| **Lead → PM** | Lead → PM | Terse status updates (`SPAWNED`, `SPAWNED-TESTER`, `STAGE`, `STAGE-DONE`, `COMPLETED`, `SHUTDOWN`, etc.) for dashboard. |
+| **Lead → PM** | Lead → PM | Terse status updates (`SPAWNED`, `SPAWNED-TESTER`, `STAGE`, `COMPLETED`, `SHUTDOWN`, etc.) for dashboard. |
 | **PM → Lead** | PM → Lead | Dashboard URL (startup), usage ALERTs. |
 | **PM → team members** | PM → any team member | Status checks for monitoring purposes only. |
 | **Per-task files** | Persistent | `tasks/task-N/plan.md`, `tasks/task-N/impl.md` — pipeline artifacts. |
@@ -283,7 +279,7 @@ You are the **orchestrator and domain authority**. You spawn executor + reviewer
 - Review executor plans for domain coherence and cross-task alignment (APPROVED/CONCERNS)
 - Handle escalations (relay to user)
 - Handle plan-invalidating discoveries (pause, evaluate, amend)
-- Send status updates to PM after each action (SPAWNED, SPAWNED-REVIEWER, SPAWNED-TESTER, STAGE, STAGE-DONE, COMPLETED, SHUTDOWN, etc.)
+- Send status updates to PM after each action (SPAWNED, SPAWNED-TESTER, STAGE, COMPLETED, SHUTDOWN, etc.) — note: STAGE-DONE and RETRY go directly from Executor to PM
 - **Display the dashboard URL to the user** when PM sends it — this is the user's primary monitoring tool
 - Handle usage pause/resume from PM (defer spawning during pause, shut down teams as tasks complete, checkpoint on pause, go quiet until USAGE-RESUME)
 - Checkpoint when triggered
