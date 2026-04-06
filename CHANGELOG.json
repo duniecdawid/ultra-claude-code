@@ -7,6 +7,13 @@
     "migration": null
   },
   {
+    "seq": 96,
+    "version": "2026.04.06-3",
+    "date": "2026-04-06",
+    "summary": "Replace Lead orchestration loop with message handler table. Removes loop framing that caused Lead to narrate between messages. Adds explicit silence rule and expands anti-patterns with real examples from execution.",
+    "migration": null
+  },
+  {
     "seq": 95,
     "version": "2026.04.06-2",
     "date": "2026-04-06",

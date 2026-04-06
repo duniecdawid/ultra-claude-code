@@ -85,68 +85,51 @@ Both PASS:  Executor tells Lead "task done" → Lead sends shutdown_request → 
 
 Every task gets the same team: **Executor + Reviewer + Tester**. The shared Tech Knowledge team member (`knowledge-{PLAN_NAME}`) serves all tasks.
 
-### Orchestration Loop
+### Phase 2 Startup
 
-The Lead handles all orchestration — spawning, shutdowns, implementation approvals, plan reviews. The PM monitors and maintains the dashboard.
+Spawn initial task-teams to fill concurrency slots. For each slot: find next pending unblocked task (all dependencies completed), create `tasks/task-N/` directory, spawn executor-N and reviewer-N in parallel. (Tester-N is spawned later, after implementation complete.)
 
-```
-Phase 2 startup:
-  1. Spawn initial task-teams to fill concurrency slots.
-     For each slot: find next pending unblocked task (all dependencies completed),
-     create tasks/task-N/ directory, spawn executor-N and reviewer-N in parallel.
-     (Tester-N is spawned later, after implementation complete.)
-     After spawning:
-       SendMessage to PM "SPAWNED task-{N}: {task description}" then "STAGE task-{N} planning"
-       SendMessage to knowledge-{PLAN_NAME}: "TASK-START: Task {N} — {task title}\nDescription: {task description}\nSuccess criteria: {success criteria}\nExecutor: executor-{N}\nPlan path (when available): documentation/plans/$ARGUMENTS/tasks/task-{N}/plan.md"
+After spawning each team:
+- SendMessage to PM: `"SPAWNED task-{N}: {task description}"` then `"STAGE task-{N} planning"`
+- SendMessage to knowledge-{PLAN_NAME}: `"TASK-START: Task {N} — {task title}\nDescription: {task description}\nSuccess criteria: {success criteria}\nExecutor: executor-{N}\nPlan path (when available): documentation/plans/$ARGUMENTS/tasks/task-{N}/plan.md"`
 
-Lead loop:
-WAIT for messages. Process each message, then return to waiting.
+### Message Handlers
 
-  --- From Executors ---
-  a. Executor "Task {N} done — all stages passed" →
-     Send shutdown_request to all team members (executor-{N}, reviewer-{N}, tester-{N}).
-     SendMessage to PM: "COMPLETED task-{N}" then "SHUTDOWN task-{N}"
-     Check: does the freed slot allow spawning the next pending task?
-       → Find next unblocked task (all dependencies completed).
-       → If found: spawn executor-{M}, SendMessage to PM: "SPAWNED task-{M}: {description}" then "STAGE task-{M} planning"
+When you receive a message, match it against the table below and execute the action. Between messages, **be silent** — do NOT produce any text output to the user. The dashboard (maintained by PM) is how the user monitors progress.
 
-  b. Executor "Task {N} implementation complete — entering review/test phase" →
-     Spawn tester-{N} (reviewer-{N} is already alive from task start).
-     SendMessage to PM: "SPAWNED-TESTER task-{N}"
-     SendMessage to PM: "STAGE task-{N} review" then "STAGE task-{N} testing"
-     SendMessage to Executor: "Tester spawned — proceed to drive review/test"
+**The ONLY user-visible outputs from the Lead during execution are:**
+1. The dashboard URL (relay from PM)
+2. Escalation questions (relay to user)
+3. The Phase 5 completion summary
 
-  c. Executor "Task {N} plan ready for review" →
-     SendMessage to PM: "STAGE task-{N} planning"
-     Read tasks/task-{N}/plan.md. Evaluate domain coherence, architectural alignment,
-     scope correctness. Reply to executor: APPROVED or CONCERNS with specifics.
-     If APPROVED: SendMessage to PM: "STAGE task-{N} implementation"
+| Message | Action |
+|---------|--------|
+| Executor: `"Task {N} done — all stages passed"` | Send shutdown_request to executor-{N}, reviewer-{N}, tester-{N}. SendMessage to PM: `"COMPLETED task-{N}"` then `"SHUTDOWN task-{N}"`. Fill freed slot: find next unblocked task → spawn if found, SendMessage to PM: `"SPAWNED task-{M}: {description}"` then `"STAGE task-{M} planning"`. |
+| Executor: `"Task {N} implementation complete"` | Spawn tester-{N}. SendMessage to PM: `"SPAWNED-TESTER task-{N}"`, `"STAGE task-{N} review"`, `"STAGE task-{N} testing"`. Reply to Executor: `"Tester spawned — proceed."` |
+| Executor: `"Task {N} plan ready for review"` | SendMessage to PM: `"STAGE task-{N} planning"`. Read `tasks/task-{N}/plan.md`, evaluate domain coherence, architectural alignment, scope correctness. Reply to executor: APPROVED or CONCERNS with specifics. If APPROVED: SendMessage to PM: `"STAGE task-{N} implementation"`. |
+| Executor: `"Task {N} escalation needed"` | Escalate to user with evidence. |
+| Executor: `"PLAN-INVALIDATING: ..."` | Pause pipeline. Evaluate scope. Amend or escalate. |
+| PM: `"Dashboard live at {URL}"` | Display to user immediately: `"📊 Live dashboard: {URL}"` — do NOT silently consume. |
+| PM: `"ALERT: USAGE-PAUSE ..."` | Enter usage-pause mode (see below). |
+| PM: `"ALERT: USAGE-RESUME ..."` | Exit usage-pause mode, resume spawning (see below). |
+| PM: `"ALERT: STALL ..."` | Investigate — check if agent crashed, re-spawn if needed. |
 
-  d. Executor "Task {N} escalation needed" → Escalate to user
+After processing a message, return to waiting silently. Checkpoint if triggered. Fill slots whenever one frees up.
 
-  e. Executor "PLAN-INVALIDATING: ..." → Pause, evaluate, amend plan
+### Usage-Pause Protocol
 
-  --- From PM ---
-  f. PM "Dashboard live at {URL}" → IMMEDIATELY display the URL to the user as a visible message:
-     "📊 Live dashboard: {URL}" — this is the user's primary way to monitor execution.
-     Do NOT silently consume this message. The user needs the link.
-  g. PM "ALERT: ..." → Act on recommendation:
-     - **"ALERT: USAGE-PAUSE ..."** → Enter usage pause mode:
-       1. Do NOT spawn any new task-teams until USAGE-RESUME
-       2. Note expected resume time in `shared/lead.md`
-       3. Trigger checkpoint (Phase 3) — ensures clean recovery if session dies during pause
-       4. Process incoming "task done" messages — shut down teams as tasks complete, but do NOT fill slots
-       5. **Do NOT send status updates or queries to PM** — PM is in low-power mode (only checking usage every 5 min)
-       6. **Do NOT query team members for status** — the system is idle, just wait
-       7. Do NOT narrate the pause to the user — silence is expected
-     - **"ALERT: USAGE-RESUME ..."** → Exit usage pause mode:
-       1. Resume normal spawning — fill any empty concurrency slots (spawn fresh teams for remaining tasks)
-       2. Update `shared/lead.md` to record the pause duration
-       3. Send appropriate status updates to PM for any teams spawned
+**On USAGE-PAUSE:**
+1. Do NOT spawn any new task-teams until USAGE-RESUME
+2. Note expected resume time in `shared/lead.md`
+3. Trigger checkpoint (Phase 3) — ensures clean recovery if session dies during pause
+4. Process incoming "task done" messages — shut down teams as tasks complete, but do NOT fill slots
+5. Do NOT send status updates or queries to PM — PM is in low-power mode
+6. Do NOT query team members for status — the system is idle, just wait
 
-  Checkpoint if triggered.
-  Fill slots whenever a slot frees up → SendMessage to PM "SPAWNED task-{N}: ..." for each.
-```
+**On USAGE-RESUME:**
+1. Resume normal spawning — fill any empty concurrency slots (spawn fresh teams for remaining tasks)
+2. Update `shared/lead.md` to record the pause duration
+3. Send appropriate status updates to PM for any teams spawned
 
 ### Lead Priority Order
 
@@ -294,11 +277,19 @@ You are the **orchestrator and domain authority**. You spawn executor + reviewer
 ### Anti-Patterns
 
 Real examples from past executions — do NOT produce output like this:
+- "Reviewed building context. Pipeline progressing."
+- "Waiting for executor-1 plan submission"
+- "Executor-2 is writing. Implementing approved plan."
+- "Executor-1 passed review. Publishing."
+- "Waiting for executor-1 results. Executor-2 building fast."
+- "Shared documentation plan and style guide with executor-1 and executor-2."
 - "Executor-1 is idle waiting for knowledge team member response. Normal flow..."
 - "Tester-1 ready and waiting. All team members standing by"
 - "Plan looks solid." (unless formal APPROVED response to plan review)
 - "Executor-1 processing the approval"
 - "Executor-1 has finished implementation and notified both"
+
+**Why this matters:** Every text output from Lead burns context tokens and distracts the user. The dashboard exists for monitoring. The Lead's job is to process messages and take actions (spawn, shutdown, review, escalate) — not to narrate.
 
 ---
 
