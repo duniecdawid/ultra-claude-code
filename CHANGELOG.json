@@ -1,5 +1,12 @@
 [
   {
+    "seq": 96,
+    "version": "2026.04.06-3",
+    "date": "2026-04-06",
+    "summary": "Fix plan.json name field consistency: format doc now explicitly requires PLAN_NAME (directory name with number prefix) as the name field, not the README title. PM agent startup instructions reinforced. Prevents dashboard showing plans without their number prefix.",
+    "migration": null
+  },
+  {
     "seq": 95,
     "version": "2026.04.06-2",
     "date": "2026-04-06",

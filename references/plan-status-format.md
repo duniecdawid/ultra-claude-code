@@ -9,7 +9,7 @@ Re-write the entire file on each update. Keep `events.json` separate at the plan
 
 ```json
 {
-  "name": "plan-slug",
+  "name": "{PLAN_NAME}",
   "description": "One-line plan description from README",
   "plan_file": "documentation/plans/{slug}/README.md",
   "status": "in_progress",
@@ -27,6 +27,7 @@ Re-write the entire file on each update. Keep `events.json` separate at the plan
       "task_name": "Task name from README",
       "status": "completed",
       "goal": "Success criteria summary",
+      "dependencies": [],
       "started_at": "2026-04-04T12:49:52.000Z",
       "ended_at": "2026-04-04T13:10:00.000Z",
       "elapsed_seconds": 1208,
@@ -48,6 +49,7 @@ Re-write the entire file on each update. Keep `events.json` separate at the plan
       "task_name": "Second task from README",
       "status": "in_progress",
       "goal": "Success criteria summary",
+      "dependencies": ["task-1"],
       "started_at": "2026-04-04T13:11:00.000Z",
       "ended_at": null,
       "elapsed_seconds": 60,
@@ -65,16 +67,26 @@ Re-write the entire file on each update. Keep `events.json` separate at the plan
     {
       "task_id": "task-3",
       "task_name": "Third task from README",
-      "status": "pending"
+      "status": "pending",
+      "dependencies": ["task-1", "task-2"]
     },
     {
       "task_id": "task-4",
       "task_name": "Fourth task from README",
-      "status": "pending"
+      "status": "pending",
+      "dependencies": []
     }
   ]
 }
 ```
+
+## Field Notes
+
+**`name`**: Always use the full plan directory name (`PLAN_NAME`) — the slug that includes the number prefix (e.g., `012-dedicated-plan-page-v2`). Do NOT extract the name from the plan README title or strip the number prefix. The directory name is the canonical identifier.
+
+## Dependencies
+
+The `dependencies` field is an array of task IDs (e.g., `["task-1", "task-3"]`) that must complete before this task can start. An empty array `[]` or omitting the field means no dependencies. The field is optional — plans without dependencies in any task ingest cleanly.
 
 ## Allowed Status Values
 

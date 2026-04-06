@@ -129,7 +129,7 @@ At the very beginning of execution (before spawning any teams):
 
 2. Read existing `$PLAN_DIR/plan.json` — if plan-enhancer already populated the `tasks` array on approval, use it. Otherwise parse tasks from the plan README (headings matching `### Task N: ...`).
 
-3. Write initial `$PLAN_DIR/plan.json` following the format in `${CLAUDE_PLUGIN_ROOT}/references/plan-status-format.md`. Set plan status to `in_progress`, `started_at` to now, all tasks to `pending`. If the file already exists from plan-enhancer, update it in place (change status from `pending` to `in_progress`, add `started_at`, `concurrency_limit`, timing fields).
+3. Write initial `$PLAN_DIR/plan.json` following the format in `${CLAUDE_PLUGIN_ROOT}/references/plan-status-format.md`. **The `name` field must be `PLAN_NAME` (the directory name with number prefix, e.g., `012-dedicated-plan-page-v2`) — never strip the prefix or use the README title.** Set plan status to `in_progress`, `started_at` to now, all tasks to `pending`. If the file already exists from plan-enhancer, update it in place (change status from `pending` to `in_progress`, add `started_at`, `concurrency_limit`, timing fields).
 
 4. Write initial `$PLAN_DIR/events.json`:
    ```json
