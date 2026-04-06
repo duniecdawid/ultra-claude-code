@@ -132,7 +132,7 @@ Store the answer in `shared/lead.md` under a config header:
 ```
 
 This value is read by the PM agent to decide whether to activate usage threshold monitoring.
-- **If extra_usage = false:** PM monitors `~/.claude/ultra/usage-status.json` and triggers PAUSE/RESUME at 90% five-hour usage. Multiple pause/resume cycles are supported across 5-hour windows.
+- **If extra_usage = false:** PM monitors `~/.claude/ultra/usage-status.json` and triggers PAUSE/RESUME at 85% five-hour usage. On PAUSE: in-progress tasks finish, teams are shut down, PM enters low-power mode (usage checks only). On RESUME: Lead spawns fresh teams. Multiple cycles supported across 5-hour windows.
 - **If extra_usage = true:** No special monitoring. The system trusts the account has extra usage capacity.
 
 ### 1.6 Create Task List

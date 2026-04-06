@@ -198,8 +198,9 @@ ROLE=oversight
 **Extra usage enabled:** {true/false}
 **Usage status file:** ~/.claude/ultra/usage-status.json
 If extra usage is DISABLED: your monitoring cron (set up in First Action) checks usage-status.json every 5 minutes.
-At 90% five_hour usage → send USAGE-PAUSE to all active members + ALERT Lead.
-When resets_at passes or usage < 90% → send USAGE-RESUME + ALERT Lead.
+At 85% five_hour usage → ALERT Lead with USAGE-PAUSE. Do NOT message individual team members — they finish their current task naturally, then Lead shuts down their teams.
+PM enters low-power mode during pause: only checks usage every 5 minutes, no dashboard updates, no status queries. Conserves tokens.
+When resets_at passes or usage < 85% → ALERT Lead with USAGE-RESUME. Lead spawns fresh teams for remaining tasks.
 Multiple pause/resume cycles are expected for long-running plans that span multiple 5-hour windows.
 
 **Pane verification:** Agents self-label their panes on startup per their agent instructions. After each SPAWNED message from Lead, verify labels are correct (see your agent instructions).
