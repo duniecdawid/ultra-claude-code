@@ -1,5 +1,12 @@
 [
   {
+    "seq": 97,
+    "version": "2026.04.06-4",
+    "date": "2026-04-06",
+    "summary": "Equalize all tmux columns including the left (main/lead/knowledge) column. Removes fixed 70-char left width — all columns now share window width equally. Left column panes also split into equal vertical thirds.",
+    "migration": null
+  },
+  {
     "seq": 96,
     "version": "2026.04.06-3",
     "date": "2026-04-06",

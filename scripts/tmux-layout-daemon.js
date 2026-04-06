@@ -60,7 +60,6 @@ if (process.argv.includes('--ensure')) {
 
 // --- Layout engine ---
 
-const LEFT_WIDTH = 70;
 const managedWindows = new Map();
 
 function tmux(cmd) {
@@ -175,37 +174,31 @@ function arrangeWindow(windowId, panes) {
     columnHeads.push(gatePane);
   }
 
-  // Equalize columns (two-pass)
-  if (columnHeads.length > 0) {
-    const winWidth = parseInt(tmux(`display-message -t ${mainPane} -p "#{window_width}"`) || '0');
-    const winHeight = parseInt(tmux(`display-message -t ${mainPane} -p "#{window_height}"`) || '0');
+  // Equalize all columns (left column + task columns + gate) equally
+  const totalColumns = 1 + columnHeads.length; // 1 for left column
+  const winWidth = parseInt(tmux(`display-message -t ${mainPane} -p "#{window_width}"`) || '0');
+  const winHeight = parseInt(tmux(`display-message -t ${mainPane} -p "#{window_height}"`) || '0');
 
-    if (winWidth > 0) {
-      const rightWidth = winWidth - LEFT_WIDTH - 1;
-      const colWidth = Math.floor((rightWidth - (columnHeads.length - 1)) / columnHeads.length);
+  if (winWidth > 0 && totalColumns > 1) {
+    const colWidth = Math.floor((winWidth - (totalColumns - 1)) / totalColumns);
 
-      for (let pass = 0; pass < 2; pass++) {
-        for (const head of columnHeads) {
-          tmux(`resize-pane -t ${head} -x ${colWidth}`);
-        }
-        for (const lp of [mainPane, pmPane, tkPane]) {
-          if (lp) tmux(`resize-pane -t ${lp} -x ${LEFT_WIDTH}`);
-        }
+    for (let pass = 0; pass < 2; pass++) {
+      for (const head of columnHeads) {
+        tmux(`resize-pane -t ${head} -x ${colWidth}`);
+      }
+      for (const lp of [mainPane, pmPane, tkPane]) {
+        if (lp) tmux(`resize-pane -t ${lp} -x ${colWidth}`);
       }
     }
+  }
 
-    if (winHeight > 0) {
-      let leftCount = 1;
-      if (pmPane) leftCount++;
-      if (tkPane) leftCount++;
-      if (leftCount === 3) {
-        const mainH = Math.floor(winHeight * 50 / 100);
-        const sharedH = Math.floor((winHeight - mainH) / 2);
-        tmux(`resize-pane -t ${mainPane} -y ${mainH}`);
-        tmux(`resize-pane -t ${pmPane} -y ${sharedH}`);
-      } else if (leftCount === 2) {
-        const mainH = Math.floor(winHeight * 60 / 100);
-        tmux(`resize-pane -t ${mainPane} -y ${mainH}`);
+  // Equalize left column panes vertically
+  if (winHeight > 0) {
+    const leftPanes = [mainPane, pmPane, tkPane].filter(Boolean);
+    if (leftPanes.length > 1) {
+      const paneH = Math.floor((winHeight - (leftPanes.length - 1)) / leftPanes.length);
+      for (const lp of leftPanes) {
+        tmux(`resize-pane -t ${lp} -y ${paneH}`);
       }
     }
   }
