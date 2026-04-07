@@ -1,84 +1,83 @@
 <%- include('partials/head') %>
-<%- include('partials/nav') %>
 
-<div class="page-full">
+<div class="landing">
+
+  <!-- Header -->
+  <header class="landing-header">
+    <span class="landing-logo">Ultra Claude</span>
+    <div class="landing-header-actions">
+      <a href="/docs/setup" class="btn btn-ghost btn-sm">Docs</a>
+      <a href="/getting-started" class="btn btn-primary btn-sm">Get started &rarr;</a>
+    </div>
+  </header>
 
   <!-- Hero -->
-  <div class="hero">
-    <span class="badge">Not a framework, library, or runtime</span>
-    <h1>Ultra Claude</h1>
-    <p class="tagline">You're building with Claude Code. It's great for prototyping &mdash; but architecture drifts, features conflict, and the AI loses context between sessions. Ultra Claude adds a specification layer that keeps everything coherent as the codebase grows.</p>
-    <div class="cta-row">
-      <a class="btn btn-primary" href="/getting-started">Get Started</a>
-      <a class="btn btn-secondary" href="/docs/discovery">Documentation &rarr;</a>
+  <main class="landing-main">
+    <div class="landing-hero">
+      <h1>Spec-driven development for Claude Code</h1>
+      <p>Claude Code is powerful for prototyping. Ultra Claude makes it powerful for production &mdash; a specification layer where documentation governs code growth and agent teams coordinate execution.</p>
+      <div class="landing-cta">
+        <a href="/getting-started" class="btn btn-primary btn-lg">Get Started &rarr;</a>
+        <a href="/docs/setup" class="btn btn-outline btn-lg">Documentation</a>
+      </div>
     </div>
-  </div>
 
-  <!-- What This Is -->
-  <div class="card" style="margin-bottom: 2rem;">
-    <h3>Who this is for</h3>
-    <p>Experienced developers and founders who already know how to build software and want to do it faster with AI &mdash; without sacrificing the structure that production systems need. You write specifications, Claude reads them to make better plans, and agent teams execute with built-in code review and testing.</p>
-  </div>
+    <!-- Features -->
+    <div class="landing-features">
+      <div class="landing-feature">
+        <div class="landing-feature-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        </div>
+        <h3>Spec-Driven Building</h3>
+        <p>Documentation governs code growth. Architecture docs exist before code is written. When code diverges from specs, you fix the spec first.</p>
+      </div>
 
-  <!-- Workflow Cycle -->
-  <div class="section-label">How it works</div>
-  <div class="workflow-placeholder">
-    <p><strong>Define Standards</strong> &rarr; <strong>Plan Feature</strong> &rarr; <strong>Execute</strong> (Executor + Reviewer + Tester) &rarr; <strong>Verify</strong> &rarr; loop back</p>
-  </div>
+      <div class="landing-feature">
+        <div class="landing-feature-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <h3>Agent Teams</h3>
+        <p>Each task gets a dedicated Executor, Reviewer, and Tester. They coordinate autonomously &mdash; writing code, enforcing standards, and validating against product docs.</p>
+      </div>
 
-  <!-- Documentation Links -->
-  <div class="section-label">Documentation</div>
-  <div class="doc-grid">
-    <a class="doc-link" href="/docs/discovery">
-      <div class="dot"></div>
-      <div>
-        <div class="name">Discovery</div>
-        <div class="desc">Research your product, market, and users before building</div>
+      <div class="landing-feature">
+        <div class="landing-feature-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        </div>
+        <h3>Automated Knowledge Management</h3>
+        <p>External library documentation is fetched and served to agents automatically. Tech Knowledge agents keep every team member working with current APIs, not stale training data.</p>
       </div>
-    </a>
-    <a class="doc-link" href="/docs/feature-planning">
-      <div class="dot"></div>
-      <div>
-        <div class="name">Feature Planning</div>
-        <div class="desc">Plan features with scope challenge and structured task breakdown</div>
+
+      <div class="landing-feature">
+        <div class="landing-feature-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <h3>Documentation Structure</h3>
+        <p>A canonical layout for all project documentation &mdash; architecture, standards, requirements, research, personas. Every document has a place, and the system enforces it.</p>
       </div>
-    </a>
-    <a class="doc-link" href="/docs/plan-execution">
-      <div class="dot"></div>
-      <div>
-        <div class="name">Plan Execution</div>
-        <div class="desc">Execute plans with coordinated agent teams per task</div>
+
+      <div class="landing-feature">
+        <div class="landing-feature-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </div>
+        <h3>Standards Enforcement</h3>
+        <p>Define coding standards once. The Reviewer enforces them on every task with specific citations. Verification mode audits that they hold over time.</p>
       </div>
-    </a>
-    <a class="doc-link" href="/docs/debugging">
-      <div class="dot"></div>
-      <div>
-        <div class="name">Debugging</div>
-        <div class="desc">Hypothesis-driven bug investigation with parallel evidence</div>
+
+      <div class="landing-feature">
+        <div class="landing-feature-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        </div>
+        <h3>Drift Detection</h3>
+        <p>Documentation and code drift apart over time. Verification mode catches it &mdash; comparing doc claims against code reality with severity-classified discrepancies.</p>
       </div>
-    </a>
-    <a class="doc-link" href="/docs/verification">
-      <div class="dot"></div>
-      <div>
-        <div class="name">Verification</div>
-        <div class="desc">Detect drift between documentation and code</div>
-      </div>
-    </a>
-    <a class="doc-link" href="/docs/standards">
-      <div class="dot"></div>
-      <div>
-        <div class="name">Technology Standards</div>
-        <div class="desc">Define, enforce, and verify coding standards automatically</div>
-      </div>
-    </a>
-    <a class="doc-link" href="/docs/reference">
-      <div class="dot"></div>
-      <div>
-        <div class="name">Reference</div>
-        <div class="desc">All 22 skills and 10 agents at a glance</div>
-      </div>
-    </a>
-  </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="landing-footer">
+    Ultra Claude
+  </footer>
 
 </div>
 

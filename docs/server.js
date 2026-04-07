@@ -9,12 +9,15 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 
 const pages = {
+  'setup': { title: 'Setup & Migrate', description: 'Install Ultra Claude, configure your machine, and initialize projects with documentation structure.' },
   'discovery': { title: 'Discovery', description: 'Product discovery and market research with AI-powered parallel investigation.' },
+  'roadmap': { title: 'Roadmap', description: 'Decompose a product into sequenced plan stubs with dependency ordering.' },
   'feature-planning': { title: 'Feature Planning', description: 'Plan features with scope challenge, codebase research, and structured task breakdown.' },
   'plan-execution': { title: 'Plan Execution', description: 'Execute plans with coordinated agent teams — Executor, Reviewer, and Tester per task.' },
   'debugging': { title: 'Debugging', description: 'Hypothesis-driven bug investigation with parallel evidence gathering and reproduction.' },
   'verification': { title: 'Verification', description: 'Detect documentation drift and verify code matches specifications.' },
   'standards': { title: 'Technology Standards', description: 'Define, enforce, and verify coding standards across your project.' },
+  'backlog': { title: 'Backlog', description: 'Track bugs, questions, ideas, and tech debt across your project.' },
   'reference': { title: 'Reference', description: 'Complete reference of all 22 skills and 10 agents in Ultra Claude.' }
 };
 

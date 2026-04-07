@@ -1,0 +1,75 @@
+<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+
+<div class="page-docs">
+  <%- include('../partials/sidebar') %>
+  <main class="doc-content">
+
+    <h1>Roadmap</h1>
+    <p>Decompose a product into a sequenced series of plan stubs. When the product is too large for a single plan, the roadmap breaks it into ordered phases with dependency tracking.</p>
+
+    <h2>When to use</h2>
+    <p>Run <code>/uc:roadmap</code> after <a href="/docs/discovery">discovery</a> or <a href="/docs/setup">migrate</a> when the product scope spans multiple features that need to be built in a specific order. If you can describe your next piece of work in one sentence, skip the roadmap and go straight to <a href="/docs/feature-planning">feature planning</a>.</p>
+
+    <h2>What happens</h2>
+    <ol>
+      <li><strong>Read product docs</strong> &mdash; analyzes your product description, architecture, and requirements to understand the full scope</li>
+      <li><strong>Build dependency graph</strong> &mdash; identifies which features depend on which, what must exist before other things can be built</li>
+      <li><strong>Topological sort</strong> &mdash; orders the build phases so dependencies are satisfied before dependents</li>
+      <li><strong>Scaffold plan stubs</strong> &mdash; creates numbered directories in <code>documentation/plans/</code> with scope boundaries, objectives, and success criteria</li>
+    </ol>
+
+    <h2>What it produces</h2>
+    <ul>
+      <li><strong>ROADMAP.md</strong> &mdash; the master document showing execution order, dependencies, and phase descriptions</li>
+      <li><strong>Plan stubs</strong> &mdash; numbered directories (<code>001-auth</code>, <code>002-api</code>, etc.) each with a README containing objective, scope, and out-of-scope boundaries</li>
+    </ul>
+    <p>Each stub is a starting point for <code>/uc:feature-mode</code>. When you run feature mode with a stub number, it detects the existing scope and shifts from "discover what to build" to "verify and refine the approach."</p>
+
+    <details>
+      <summary>How plan stubs work with feature mode</summary>
+      <div class="details-content">
+        <p>Plan stubs have <code>Status: Stub</code> and <code>Source: Roadmap</code> in their README. When feature mode detects a stub:</p>
+        <ul>
+          <li>The scope boundary is already defined &mdash; feature mode verifies and refines rather than discovering</li>
+          <li>Questions focus on implementation approach and technical decisions, not what to build</li>
+          <li>The stub's <strong>Out of Scope</strong> section is a hard boundary &mdash; scope won't expand beyond it without your approval</li>
+        </ul>
+        <p>This means the roadmap defines <em>what</em> gets built and in what order, while feature mode defines <em>how</em> each piece gets built.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Dependency ordering rules</summary>
+      <div class="details-content">
+        <p>The roadmap orders plans based on:</p>
+        <ul>
+          <li><strong>Technical dependencies</strong> &mdash; what code must exist for other code to work (e.g., auth before user management)</li>
+          <li><strong>Data dependencies</strong> &mdash; what data models or APIs must be defined first</li>
+          <li><strong>Incremental value</strong> &mdash; earlier phases should deliver usable functionality, not just infrastructure</li>
+          <li><strong>Risk reduction</strong> &mdash; high-uncertainty items move earlier to fail fast</li>
+        </ul>
+        <p>Plans with no dependencies between them can be executed in parallel or in any order.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Sizing framework</summary>
+      <div class="details-content">
+        <p>Each plan stub includes a rough size estimate based on the scope:</p>
+        <ul>
+          <li><strong>Small</strong> (1&ndash;2 tasks) &mdash; focused feature, single component</li>
+          <li><strong>Medium</strong> (3&ndash;5 tasks) &mdash; multi-component feature, some integration</li>
+          <li><strong>Large</strong> (6&ndash;10 tasks) &mdash; cross-cutting feature, significant new functionality</li>
+        </ul>
+        <p>If a stub estimates larger than 10 tasks, the roadmap splits it into smaller phases.</p>
+      </div>
+    </details>
+
+    <h2>What's next</h2>
+    <p>Work through the roadmap in order. For each stub, run <code>/uc:feature-mode {number}</code> to detail it into an executable plan, then <a href="/docs/plan-execution"><code>/uc:plan-execution</code></a> to build it.</p>
+
+  </main>
+</div>
+
+<%- include('../partials/footer') %>

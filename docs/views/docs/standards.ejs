@@ -27,13 +27,23 @@
     </div>
 
     <h2>Define</h2>
-    <p>Standards live in <code>documentation/technology/standards/</code> as markdown files. Each file covers a specific area &mdash; error handling, API design, naming conventions, testing patterns. They describe:</p>
-    <ul>
-      <li><strong>Conventions</strong> &mdash; how things should be done</li>
-      <li><strong>Patterns</strong> &mdash; approved approaches with examples</li>
-      <li><strong>Anti-patterns</strong> &mdash; what to avoid and why</li>
-    </ul>
+    <p>Standards live in <code>documentation/technology/standards/</code> as markdown files. Each file covers a specific area and describes conventions (how things should be done), patterns (approved approaches with examples), and anti-patterns (what to avoid and why).</p>
+
     <p>When you run <code>/uc:migrate</code>, standards are auto-generated from detected code patterns in your project. You review and refine them &mdash; they're a starting point, not final.</p>
+
+    <h3>Example standards files</h3>
+    <table>
+      <thead><tr><th>File</th><th>What it guards</th></tr></thead>
+      <tbody>
+        <tr><td><code>error-handling.md</code></td><td>All API handlers must use typed error responses with consistent status codes. No raw <code>throw</code> without context. Error boundaries required in React components.</td></tr>
+        <tr><td><code>api-design.md</code></td><td>REST endpoints follow <code>/resource/:id/sub-resource</code> convention. Pagination uses cursor-based approach. All responses wrapped in <code>{ data, error, meta }</code> envelope.</td></tr>
+        <tr><td><code>database.md</code></td><td>Migrations are reversible. No raw SQL in application code &mdash; use the ORM query builder. Foreign keys and indexes on all relationship columns.</td></tr>
+        <tr><td><code>testing.md</code></td><td>Integration tests hit a real database, not mocks. Every API endpoint has at least one happy-path and one error-path test. Frontend components tested with user-event interactions, not implementation details.</td></tr>
+        <tr><td><code>auth.md</code></td><td>JWT tokens expire after 15 minutes. Refresh tokens stored in httpOnly cookies. All protected routes use the auth middleware &mdash; no inline token checks.</td></tr>
+        <tr><td><code>naming.md</code></td><td>Components use PascalCase. Hooks use <code>use</code> prefix. Database columns use snake_case. Environment variables use SCREAMING_SNAKE_CASE with app prefix.</td></tr>
+      </tbody>
+    </table>
+    <p>These are real examples of the kind of rules the Reviewer enforces. Each violation gets cited with the exact standards file and section.</p>
 
     <h2>Enforce</h2>
     <p>During <a href="/docs/plan-execution">plan execution</a>, every task team includes a <strong>Code Reviewer</strong> agent. The Reviewer:</p>
@@ -69,6 +79,57 @@
           <li><strong>Bidirectional</strong> &mdash; verification checks that code matches docs AND that docs match code</li>
           <li><strong>Human-in-the-loop</strong> &mdash; ambiguous cases are flagged for you, never auto-resolved</li>
         </ul>
+      </div>
+    </details>
+
+    <h2>Testing standards</h2>
+    <p>Testing configuration lives in <code>documentation/technology/testing/</code>. It tells the Tester agent how to run tests, what coverage to expect, and how to validate frontend behavior &mdash; including browser-based verification.</p>
+
+    <h3>What testing standards define</h3>
+    <ul>
+      <li><strong>Test commands</strong> &mdash; how to run unit tests, integration tests, and the full suite</li>
+      <li><strong>Coverage thresholds</strong> &mdash; minimum coverage percentages per area</li>
+      <li><strong>Testing patterns</strong> &mdash; what to test (behavior, not implementation), how to structure test files</li>
+      <li><strong>Browser testing</strong> &mdash; when and how to validate UI in a real browser</li>
+    </ul>
+
+    <h3>Browser testing with Claude-in-Chrome</h3>
+    <p>For frontend tasks, the Tester agent can launch your application in Chrome and visually verify that the UI actually renders and works. This goes beyond unit tests &mdash; it catches issues that only appear in a real browser:</p>
+    <ul>
+      <li><strong>Navigation flows</strong> &mdash; clicks through routes, verifies pages load without errors</li>
+      <li><strong>Form interactions</strong> &mdash; fills inputs, submits forms, checks validation messages</li>
+      <li><strong>Visual verification</strong> &mdash; reads the page content, checks that elements are present and visible</li>
+      <li><strong>Console errors</strong> &mdash; monitors browser console for JavaScript errors during interaction</li>
+      <li><strong>Network requests</strong> &mdash; verifies API calls are made correctly and responses render</li>
+    </ul>
+
+    <details>
+      <summary>Example testing standards file</summary>
+      <div class="details-content">
+        <pre><code># Testing Standards
+
+## Commands
+- Unit tests: `npm test`
+- Integration tests: `npm run test:integration`
+- Full suite: `npm run test:all`
+
+## Coverage
+- API routes: 80% minimum
+- Business logic: 90% minimum
+- UI components: 70% minimum
+
+## Patterns
+- Test behavior, not implementation details
+- Use `describe/it` structure with clear test names
+- Integration tests hit a real database, not mocks
+- Each API endpoint: at least one happy-path and one error-path test
+
+## Browser Testing (frontend tasks)
+- **Mandatory** for any task that creates or modifies UI components
+- Start the dev server, navigate to the affected pages
+- Verify: page renders, interactive elements work, no console errors
+- For forms: test validation states, submission, and error display
+- Take screenshots for visual evidence in test reports</code></pre>
       </div>
     </details>
 

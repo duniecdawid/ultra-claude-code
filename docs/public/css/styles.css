@@ -36,6 +36,7 @@
 
 /* ── Reset ── */
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { overflow-x: hidden; max-width: 100vw; }
 
 /* ── Typography ── */
 body {
@@ -86,7 +87,7 @@ pre code {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  max-width: var(--content-max);
+  max-width: calc(var(--content-max) + var(--sidebar-width));
   margin: 0 auto;
   padding: 0 1.5rem;
   height: var(--nav-height);
@@ -119,7 +120,7 @@ pre code {
 
 /* ── Layout: Full-width (Home, Getting Started) ── */
 .page-full {
-  max-width: var(--content-max);
+  max-width: calc(var(--content-max) + var(--sidebar-width));
   margin: 0 auto;
   padding: 3rem 1.5rem 5rem;
 }
@@ -505,26 +506,155 @@ td {
 
 tr:hover td { background: var(--muted); }
 
-/* ── Workflow diagram placeholder ── */
-.workflow-placeholder {
-  background: var(--muted);
-  border: 1px dashed var(--border);
-  border-radius: var(--radius-lg);
-  padding: 3rem 2rem;
-  text-align: center;
-  margin: 2rem 0;
+/* ── Landing page (mirrors ultra-claude-web layout, light mode) ── */
+.landing {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  background: var(--background);
+  color: var(--foreground);
 }
 
-.workflow-placeholder p {
-  font-size: 0.8125rem;
+.landing-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+}
+
+.landing-logo {
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.landing-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.landing-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 1.5rem 6rem;
+}
+
+.landing-hero {
+  max-width: 42rem;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.landing-hero h1 {
+  font-size: 2.25rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+}
+
+@media (min-width: 640px) {
+  .landing-hero h1 { font-size: 2.75rem; }
+}
+
+.landing-hero p {
+  margin-top: 1rem;
+  font-size: 1.0625rem;
+  color: var(--muted-foreground);
+  line-height: 1.6;
+}
+
+.landing-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.landing-features {
+  margin-top: 6rem;
+  padding-bottom: 4rem;
+  display: grid;
+  max-width: 56rem;
+  width: 100%;
+  gap: 2rem;
+}
+
+@media (min-width: 640px) {
+  .landing-features { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 1024px) {
+  .landing-features { grid-template-columns: repeat(3, 1fr); }
+}
+
+.landing-feature {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.landing-feature-icon {
+  display: flex;
+  width: 2.5rem;
+  height: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius);
+  background: var(--muted);
   color: var(--muted-foreground);
 }
 
+.landing-feature h3 {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.landing-feature p {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.landing-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  border-top: 1px solid var(--border);
+  padding: 1.5rem;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  background: var(--background);
+  z-index: 10;
+}
+
+/* ── Button variants (matching dashboard) ── */
+.btn-ghost {
+  background: transparent;
+  color: var(--muted-foreground);
+  border: none;
+}
+.btn-ghost:hover { color: var(--foreground); background: var(--muted); }
+
+.btn-outline {
+  background: transparent;
+  color: var(--foreground);
+  border: 1px solid var(--border);
+}
+.btn-outline:hover { background: var(--muted); }
+
+.btn-sm { padding: 0.25rem 0.75rem; font-size: 0.8125rem; height: 1.75rem; }
+.btn-lg { padding: 0.5rem 1.5rem; font-size: 0.875rem; height: 2.25rem; }
+
 /* ── Responsive ── */
 @media (max-width: 768px) {
-  .hero { padding: 2.5rem 0 2rem; }
-  .hero h1 { font-size: 1.75rem; }
-  .hero .cta-row { flex-direction: column; align-items: center; }
+  .landing-hero h1 { font-size: 1.75rem; }
+  .landing-cta { flex-direction: column; }
   .card-grid { grid-template-columns: 1fr; }
   .doc-grid { grid-template-columns: 1fr; }
   .phase { padding-left: 3.5rem; }

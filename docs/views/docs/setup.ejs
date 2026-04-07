@@ -1,0 +1,145 @@
+<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+
+<div class="page-docs">
+  <%- include('../partials/sidebar') %>
+  <main class="doc-content">
+
+    <h1>Setup &amp; Migrate</h1>
+    <p>Get Ultra Claude installed, your machine configured, and your project initialized. This page covers everything from first install to a fully scaffolded project with documentation structure.</p>
+
+    <h2>Install the plugin</h2>
+    <p>In any Claude Code session:</p>
+    <pre><code><span style="color: var(--muted-foreground)"># Add the marketplace</span>
+/plugin marketplace add duniecdawid/ultra-claude-code
+
+<span style="color: var(--muted-foreground)"># Install the plugin</span>
+/plugin install uc@ultra-claude</code></pre>
+    <p>All skills become available as <code>/uc:*</code> slash commands. Enable auto-updates to stay current:</p>
+    <pre><code>/plugin marketplace auto-update duniecdawid/ultra-claude-code</code></pre>
+
+    <h2>Machine setup</h2>
+    <pre><code>/uc:setup</code></pre>
+    <p>Run this once per machine. Setup configures your environment for Ultra Claude's full capabilities:</p>
+    <ul>
+      <li><strong>1M context window</strong> &mdash; enables the extended context that agent teams need</li>
+      <li><strong>Agent teams</strong> &mdash; enables the experimental agent teams feature for parallel execution</li>
+      <li><strong>tmux</strong> &mdash; installs tmux if missing, configures it for Claude Code (fixes screen tearing via synchronized output passthrough)</li>
+      <li><strong>Node.js</strong> &mdash; required for the tmux layout daemon that manages agent panes</li>
+      <li><strong>Statusline</strong> &mdash; per-account usage tracking displayed in tmux</li>
+      <li><strong>Session hooks</strong> &mdash; start/end hooks for usage tracking</li>
+    </ul>
+    <p>Setup is idempotent &mdash; safe to re-run after updates or if anything changes. It writes a version marker to <code>~/.claude/ultra/uc-setup.json</code> so other skills can verify your environment is current.</p>
+
+    <details>
+      <summary>What if setup reports issues?</summary>
+      <div class="details-content">
+        <p>Setup checks each prerequisite and reports what it finds. If something fails:</p>
+        <ul>
+          <li><strong>tmux not found</strong> &mdash; setup installs it via your package manager (apt, brew, etc.)</li>
+          <li><strong>Node.js not found</strong> &mdash; setup installs it. Required version: 18+ LTS</li>
+          <li><strong>Shell config issues</strong> &mdash; setup adds the required environment variables to your shell config (~/.bashrc or ~/.zshrc)</li>
+          <li><strong>Screen tearing</strong> &mdash; setup configures tmux's synchronized output passthrough to fix flickering in Claude Code</li>
+        </ul>
+        <p>If setup completes but other skills still report missing prerequisites, run <code>/uc:setup</code> again &mdash; it will re-verify everything.</p>
+      </div>
+    </details>
+
+    <h2>Recommended: Ref.tools MCP</h2>
+    <p>Ultra Claude uses <a href="https://ref.tools">Ref.tools</a> to fetch focused external library documentation for agent teams. Without it, agents fall back to web search (50K+ tokens) instead of targeted retrieval (500&ndash;5K tokens).</p>
+    <p>Add the Ref.tools MCP server to your Claude Code configuration:</p>
+    <pre><code><span style="color: var(--muted-foreground)"># In your Claude Code MCP settings</span>
+{
+  "ref": {
+    "command": "npx",
+    "args": ["-y", "@anthropic/ref-tools-mcp"]
+  }
+}</code></pre>
+    <p>Once configured, the <code>/uc:tech-research</code> skill and Tech Knowledge agents use it automatically to serve current API signatures, deprecation notices, and best practices to every team member during execution.</p>
+
+    <h2>Project initialization</h2>
+    <pre><code>/uc:migrate</code></pre>
+    <p>Run this in your target project directory. Migrate handles three project states automatically:</p>
+
+    <h3>Fresh project (no Ultra Claude files)</h3>
+    <p>For projects that have never used Ultra Claude, migrate:</p>
+    <ul>
+      <li>Scaffolds the <code>documentation/</code> directory with the <a href="/docs/standards">canonical structure</a> (technology, product, plans, backlog)</li>
+      <li>Spawns surveyors to explore your codebase and existing docs</li>
+      <li>Derives <code>.claude/ultra/</code> configuration files from findings</li>
+      <li>Drafts initial architecture documentation from detected patterns</li>
+      <li>Auto-generates coding standards from your code conventions</li>
+      <li>Produces testing configuration in <code>documentation/technology/testing/</code></li>
+    </ul>
+
+    <h3>Legacy project (older Ultra Claude version)</h3>
+    <p>For projects initialized with an older version, migrate detects what's outdated and applies incremental upgrades. It reads the CHANGELOG for migration instructions and applies them in sequence, preserving your existing documentation and configuration.</p>
+
+    <h3>Current project (already up to date)</h3>
+    <p>If the project is already at the current version, migrate confirms everything is in order and exits.</p>
+
+    <div class="callout callout-purple">
+      <p><strong>Migrate never modifies source code.</strong> It only creates or moves documentation, configuration, and directory structure. Your codebase is untouched.</p>
+    </div>
+
+    <details>
+      <summary>What migrate creates</summary>
+      <div class="details-content">
+        <p>After running migrate on a fresh project, you'll have:</p>
+        <pre><code>your-project/
+├── .claude/
+│   └── ultra/                    # Ultra Claude configuration
+│       ├── app-context.md        # Project context for AI
+│       └── docs-format           # Documentation format (docsify)
+├── documentation/
+│   ├── README.md                 # Navigable index
+│   ├── technology/
+│   │   ├── architecture/         # System design docs
+│   │   ├── standards/            # Coding conventions
+│   │   └── testing/              # Test strategy and config
+│   ├── product/
+│   │   ├── description/          # Product vision
+│   │   └── requirements/         # Formal requirements
+│   ├── plans/                    # Feature and fix plans
+│   └── backlog/                  # Bugs, questions, ideas, debt
+└── CLAUDE.md                     # Project instructions for Claude</code></pre>
+        <p>Review and refine the generated docs &mdash; they're derived from your codebase patterns, not boilerplate. The more accurate they are, the better every planning skill will perform.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>The documentation structure</summary>
+      <div class="details-content">
+        <p>Ultra Claude enforces a canonical documentation layout. Every document type has a specific home:</p>
+        <ul>
+          <li><strong>technology/architecture/</strong> &mdash; system design, components, data flow, tech stack</li>
+          <li><strong>technology/standards/</strong> &mdash; coding conventions, patterns, anti-patterns</li>
+          <li><strong>technology/testing/</strong> &mdash; test strategy, commands, coverage standards</li>
+          <li><strong>technology/rfcs/</strong> &mdash; structured decision reviews for ambiguous choices</li>
+          <li><strong>product/description/</strong> &mdash; product vision, positioning</li>
+          <li><strong>product/requirements/</strong> &mdash; formal requirements, acceptance criteria</li>
+          <li><strong>product/research/</strong> &mdash; market research, competitor analysis</li>
+          <li><strong>product/personas/</strong> &mdash; evidence-based user personas</li>
+          <li><strong>plans/</strong> &mdash; feature and fix plans from planning modes</li>
+          <li><strong>backlog/</strong> &mdash; bugs, questions, ideas, tech debt (JSON files)</li>
+        </ul>
+        <p>The <code>/uc:docs-manager</code> skill enforces this structure &mdash; it routes documents to the correct directory and catches violations. See <a href="/docs/standards">Technology Standards</a> for how this integrates with the enforcement loop.</p>
+      </div>
+    </details>
+
+    <h2>After initialization</h2>
+    <p>Once your project is initialized:</p>
+    <ol>
+      <li><strong>Review the generated docs</strong> &mdash; architecture, standards, and testing config. These inform every planning decision.</li>
+      <li><strong>Plan your first feature</strong> &mdash; <a href="/docs/feature-planning"><code>/uc:feature-mode</code></a></li>
+      <li><strong>Or research first</strong> &mdash; <a href="/docs/discovery"><code>/uc:discovery-mode</code></a> if you're still defining what to build</li>
+    </ol>
+
+    <h2>Updating Ultra Claude</h2>
+    <pre><code>/uc:update</code></pre>
+    <p>Pulls the latest version, clears plugin cache, restarts the tmux layout daemon, and checks for pending project migrations. If structural changes occurred, it recommends running <code>/uc:migrate</code> in each project.</p>
+
+  </main>
+</div>
+
+<%- include('../partials/footer') %>

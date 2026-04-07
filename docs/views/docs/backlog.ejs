@@ -1,0 +1,89 @@
+<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+
+<div class="page-docs">
+  <%- include('../partials/sidebar') %>
+  <main class="doc-content">
+
+    <h1>Backlog</h1>
+    <p>Track bugs, questions, ideas, and tech debt across your project. The backlog is lightweight, user-initiated only, and split into four categories &mdash; nothing gets added automatically.</p>
+
+    <h2>Four categories</h2>
+    <table>
+      <thead><tr><th>Category</th><th>ID Prefix</th><th>Use for</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Bugs</strong></td><td><code>B-NNN</code></td><td>Defects, crashes, errors, things that are broken</td></tr>
+        <tr><td><strong>Questions</strong></td><td><code>Q-NNN</code></td><td>Decisions needed, blockers, unclear requirements, things to investigate</td></tr>
+        <tr><td><strong>Ideas</strong></td><td><code>I-NNN</code></td><td>Future features, improvements, "we should consider" items</td></tr>
+        <tr><td><strong>Debt</strong></td><td><code>D-NNN</code></td><td>Refactoring, cleanup, workarounds, code quality issues</td></tr>
+      </tbody>
+    </table>
+    <p>Each category lives in its own JSON file under <code>documentation/backlog/</code>.</p>
+
+    <h2>Commands</h2>
+    <pre><code><span style="color: var(--muted-foreground)"># Add items</span>
+/uc:backlog add idea: cache API responses for offline support
+/uc:backlog add bug: login fails silently when session expires
+/uc:backlog add question: should we support OAuth or just JWT?
+/uc:backlog add debt: refactor auth middleware into separate module
+
+<span style="color: var(--muted-foreground)"># List and manage</span>
+/uc:backlog list              <span style="color: var(--muted-foreground)"># all items across categories</span>
+/uc:backlog list bugs         <span style="color: var(--muted-foreground)"># bugs only</span>
+/uc:backlog done B-003        <span style="color: var(--muted-foreground)"># mark as completed</span>
+/uc:backlog block Q-001 I-003 <span style="color: var(--muted-foreground)"># Q-001 blocks I-003</span>
+/uc:backlog link D-002 docs/architecture.md <span style="color: var(--muted-foreground)"># link to documentation</span></code></pre>
+
+    <h2>Key principles</h2>
+    <ul>
+      <li><strong>User-initiated only</strong> &mdash; no skill or agent adds items to the backlog automatically. You decide what gets tracked.</li>
+      <li><strong>Priorities</strong> &mdash; items have priority levels that affect sort order when listing</li>
+      <li><strong>Blocking relationships</strong> &mdash; items can block other items, creating a dependency graph</li>
+      <li><strong>Documentation links</strong> &mdash; items can reference documentation files for context</li>
+      <li><strong>Source tracking</strong> &mdash; each item records where it came from (which conversation, which skill)</li>
+    </ul>
+
+    <div class="callout">
+      <p><strong>During plan execution</strong>, if agents discover follow-up work, bugs, or ideas, they're listed in the completion summary &mdash; not auto-added to the backlog. You decide what to track.</p>
+    </div>
+
+    <details>
+      <summary>How backlog integrates with planning</summary>
+      <div class="details-content">
+        <p>The backlog is a lightweight project management layer that complements the planning skills:</p>
+        <ul>
+          <li><strong>Feature mode</strong> &mdash; when scope is cut during planning, the AI mentions cut items. You can add them to the backlog with <code>/uc:backlog add idea: ...</code></li>
+          <li><strong>Debug mode</strong> &mdash; investigation may reveal related issues beyond the immediate bug. Note them for later.</li>
+          <li><strong>Verification mode</strong> &mdash; features described in docs but not implemented are listed separately. You decide whether to track them.</li>
+          <li><strong>"What should we work on?"</strong> &mdash; run <code>/uc:backlog list</code> to see everything in one place, sorted by priority and blocking status</li>
+        </ul>
+      </div>
+    </details>
+
+    <details>
+      <summary>File format</summary>
+      <div class="details-content">
+        <p>Each category file is a simple JSON structure:</p>
+        <pre><code>{
+  "items": [
+    {
+      "id": "I-001",
+      "title": "Cache API responses for offline support",
+      "priority": "medium",
+      "status": "open",
+      "source": "feature-mode session",
+      "created": "2026-04-07",
+      "links": [],
+      "blocked_by": [],
+      "blocks": []
+    }
+  ]
+}</code></pre>
+        <p>You never need to edit these files directly &mdash; the <code>/uc:backlog</code> commands handle all operations.</p>
+      </div>
+    </details>
+
+  </main>
+</div>
+
+<%- include('../partials/footer') %>

@@ -17,7 +17,7 @@
 <span style="color: var(--muted-foreground)"># Install the plugin</span>
 /plugin install uc@ultra-claude</code></pre>
     <p>All skills become available as <code>/uc:*</code> slash commands.</p>
-    <div class="callout">
+    <div class="callout callout-purple">
       <p><strong>Auto-updates:</strong> <code>/plugin marketplace auto-update duniecdawid/ultra-claude-code</code></p>
     </div>
   </div>
@@ -39,19 +39,26 @@
     <pre><code>/uc:migrate</code></pre>
     <p>This scaffolds <code>documentation/</code>, explores your codebase, derives configuration files, drafts initial architecture docs, and generates coding standards from detected patterns.</p>
     <div class="callout callout-purple">
-      <p><strong>Don't know exactly what to build?</strong> Run <code>/uc:discovery-mode</code> first to research your product, market, and users. It produces a product description, requirements, and personas that feed into feature planning.</p>
+      <p><strong>Don't know exactly what to build?</strong> Run <code>/uc:discovery-mode</code> first to research your product, market, and users. It produces a product description, requirements, and personas that feed into feature planning. <a href="/docs/discovery">Read more &rarr;</a></p>
     </div>
   </div>
 
-  <!-- Interstitial: Review -->
-  <div class="interstitial">
-    <p>Take 5 minutes to review the generated architecture doc.<br>Everything that follows builds on it.</p>
-    <p style="margin-top: 0.75rem; font-size: 0.8125rem; font-weight: 400; color: var(--muted-foreground);">Every planning skill reads your documentation to make informed decisions &mdash; scope challenges, conflict detection, and architecture classification all depend on these docs being accurate. The more context they have, the better the plans.</p>
-  </div>
-
-  <!-- Phase 4: Plan -->
+  <!-- Phase 4: Review -->
   <div class="phase">
     <div class="phase-number">4</div>
+    <h2>Review Your Documentation</h2>
+    <p>Migrate generated architecture docs, coding standards, and testing configuration from your codebase. Take a few minutes to review them &mdash; every planning skill reads these docs to make informed decisions about scope, conflicts, and architecture classification.</p>
+    <ul>
+      <li><code>documentation/technology/architecture/</code> &mdash; system design derived from your codebase</li>
+      <li><code>documentation/technology/standards/</code> &mdash; coding conventions detected from your patterns</li>
+      <li><code>documentation/technology/testing/</code> &mdash; test strategy and commands</li>
+    </ul>
+    <p>The more accurate these are, the better the plans. <a href="/docs/standards">Learn about standards enforcement &rarr;</a></p>
+  </div>
+
+  <!-- Phase 5: Plan -->
+  <div class="phase">
+    <div class="phase-number">5</div>
     <h2>Plan Your First Feature</h2>
     <p>Run feature mode with a description of what you want to build:</p>
     <pre><code>/uc:feature-mode add user authentication</code></pre>
@@ -61,29 +68,93 @@
       <li><strong>Codebase research</strong> &mdash; spawns agents to explore existing patterns and find conflicts</li>
       <li><strong>Structured plan</strong> &mdash; tasks with file lists, success criteria, and dependencies in <code>documentation/plans/</code></li>
     </ul>
-    <p>Review and approve the plan before execution.</p>
+    <p>Review and approve the plan before execution. <a href="/docs/feature-planning">Read more about feature planning &rarr;</a></p>
   </div>
 
-  <!-- Phase 5: Execute -->
-  <div class="phase">
-    <div class="phase-number">5</div>
-    <h2>Execute</h2>
-    <pre><code>/uc:plan-execution {plan-name}</code></pre>
-    <p>The execution engine spawns a dedicated team for each task: an <strong>Executor</strong> that writes code, a <strong>Reviewer</strong> that enforces your standards, and a <strong>Tester</strong> that validates against product docs. A shared <strong>Tech Knowledge</strong> agent provides library documentation, and a <strong>Project Manager</strong> monitors progress.</p>
-    <p>Sessions can die and resume &mdash; checkpoints save progress automatically.</p>
-  </div>
-
-  <!-- Phase 6: Ongoing -->
+  <!-- Phase 6: Execute -->
   <div class="phase">
     <div class="phase-number">6</div>
-    <h2>Ongoing Development</h2>
-    <ul>
-      <li><code>/uc:debug-mode</code> &mdash; investigate and fix bugs with hypothesis-driven parallel testing</li>
-      <li><code>/uc:doc-code-verification-mode</code> &mdash; detect documentation drift and plan fixes</li>
-      <li><code>/uc:critical-brainstorm</code> &mdash; stress-test decisions with a devil's advocate before committing</li>
-    </ul>
-    <div class="callout callout-success">
-      <p><strong>Lost?</strong> Run <code>/uc:help</code> for guidance on which skill, agent, or workflow to use for any task.</p>
+    <h2>Execute</h2>
+    <pre><code>/uc:plan-execution {plan-name}</code></pre>
+    <div class="callout callout-purple">
+      <p><strong>Open a new window for execution.</strong> Plan execution spawns multiple agent teams that need their own tmux panes. Run the command in a fresh Claude Code session.</p>
+    </div>
+    <p>The execution engine spawns a dedicated team for each task: an <strong>Executor</strong> that writes code, a <strong>Reviewer</strong> that enforces your standards, and a <strong>Tester</strong> that validates against product docs. A shared <strong>Tech Knowledge</strong> agent provides library documentation, and a <strong>Project Manager</strong> monitors progress.</p>
+    <p>Sessions can die and resume &mdash; checkpoints save progress automatically. <a href="/docs/plan-execution">Read more about plan execution &rarr;</a></p>
+  </div>
+
+  <!-- What's Next -->
+  <div style="margin-top: 3rem;">
+    <div class="section-label">What's next</div>
+    <div class="doc-grid" style="margin-bottom: 2rem;">
+      <a class="doc-link" href="/docs/setup">
+        <div class="dot"></div>
+        <div>
+          <div class="name">Setup &amp; Migrate</div>
+          <div class="desc">Installation, configuration, project initialization</div>
+        </div>
+      </a>
+      <a class="doc-link" href="/docs/discovery">
+        <div class="dot"></div>
+        <div>
+          <div class="name">Discovery</div>
+          <div class="desc">Product research, market analysis, personas</div>
+        </div>
+      </a>
+      <a class="doc-link" href="/docs/roadmap">
+        <div class="dot"></div>
+        <div>
+          <div class="name">Roadmap</div>
+          <div class="desc">Decompose a product into sequenced plans</div>
+        </div>
+      </a>
+      <a class="doc-link" href="/docs/feature-planning">
+        <div class="dot"></div>
+        <div>
+          <div class="name">Feature Planning</div>
+          <div class="desc">Scope challenge, research, structured plans</div>
+        </div>
+      </a>
+      <a class="doc-link" href="/docs/plan-execution">
+        <div class="dot"></div>
+        <div>
+          <div class="name">Plan Execution</div>
+          <div class="desc">Agent teams, task pipeline, checkpoints</div>
+        </div>
+      </a>
+      <a class="doc-link" href="/docs/debugging">
+        <div class="dot"></div>
+        <div>
+          <div class="name">Debugging</div>
+          <div class="desc">Hypothesis-driven bug investigation</div>
+        </div>
+      </a>
+      <a class="doc-link" href="/docs/verification">
+        <div class="dot"></div>
+        <div>
+          <div class="name">Verification</div>
+          <div class="desc">Detect drift between docs and code</div>
+        </div>
+      </a>
+      <a class="doc-link" href="/docs/standards">
+        <div class="dot"></div>
+        <div>
+          <div class="name">Technology Standards</div>
+          <div class="desc">Define, enforce, and verify coding standards</div>
+        </div>
+      </a>
+      <a class="doc-link" href="/docs/backlog">
+        <div class="dot"></div>
+        <div>
+          <div class="name">Backlog Management</div>
+          <div class="desc">Track bugs, questions, ideas, and debt</div>
+        </div>
+      </a>
+    </div>
+
+    <div style="text-align: center; padding: 2.5rem 0 1rem;">
+      <p style="font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; color: var(--foreground);">Have fun building!</p>
+      <p style="margin-top: 0.5rem; color: var(--muted-foreground); font-size: 0.9375rem;">Run <code>/uc:help</code> whenever you feel like you could be doing something better.</p>
     </div>
   </div>
 
