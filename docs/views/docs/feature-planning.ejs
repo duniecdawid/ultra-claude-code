@@ -1,0 +1,81 @@
+<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+
+<div class="page-docs">
+  <%- include('../partials/sidebar') %>
+  <main class="doc-content">
+
+    <h1>Feature Planning</h1>
+    <p>Plan features with a senior tech lead who challenges your scope, researches your codebase, and produces structured plans before any code is written.</p>
+
+    <h2>When to use</h2>
+    <p>Run <code>/uc:feature-mode {description}</code> when you're adding new functionality, making changes that touch multiple files, or working on something where you're unsure about the right approach. Feature mode is for work that benefits from upfront planning.</p>
+    <div class="callout">
+      <p><strong>Not for small fixes.</strong> For bugs, use <a href="/docs/debugging">/uc:debug-mode</a>. For library research, run <code>/uc:tech-research</code>.</p>
+    </div>
+
+    <h2>The 4-stage process</h2>
+    <p>Feature mode follows a mandatory four-stage framework. No stage can be skipped, and no files are written until the final stage.</p>
+
+    <h3>1. Understand</h3>
+    <p>The AI challenges your feature request before accepting it. It asks "why?", splits vague requests into concrete pieces, identifies hidden complexity, surfaces edge cases, and proposes its own hypotheses about the right approach. This is a dialogue &mdash; the AI brings its perspective for you to react to, not just collects requirements.</p>
+
+    <h3>2. Research</h3>
+    <p>Agents survey your codebase and documentation in parallel, finding existing patterns, potential conflicts, and relevant architecture decisions. If external libraries are involved, the Tech Research skill fetches focused documentation.</p>
+
+    <h3>3. Discuss</h3>
+    <p>The AI synthesizes all findings and presents its perspective. You brainstorm the approach together. If the AI identifies genuine concerns, it pushes back &mdash; respectfully but firmly. The goal is convergence toward an approach you both believe in.</p>
+
+    <h3>4. Write</h3>
+    <p>The plan is written to <code>documentation/plans/{NNN}-{name}/README.md</code> with structured tasks. Each task has a description, file list, success criteria, and dependencies. You review and explicitly approve before anything executes.</p>
+
+    <details>
+      <summary>How scope challenge works</summary>
+      <div class="details-content">
+        <p>The AI acts as a Head of Technology who refuses to plan until scope is razor-sharp. It will:</p>
+        <ul>
+          <li>Ask "why?" &mdash; understanding the problem before jumping to solutions</li>
+          <li>Split compound features &mdash; "add auth and user management" becomes two separate scoped items</li>
+          <li>Predict implementation challenges &mdash; based on experience, where will the real complexity hide?</li>
+          <li>Surface failure modes &mdash; what happens when things go wrong?</li>
+          <li>Flag dependencies &mdash; what could this break? What needs to exist first?</li>
+        </ul>
+        <p>You'll be asked at least 3 questions before research begins. Even a detailed request makes these questions better, not unnecessary.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Task structure in plans</summary>
+      <div class="details-content">
+        <p>Each task in a plan is a complete vertical slice &mdash; database through API and UI, not split by tech layer. Tasks include:</p>
+        <ul>
+          <li><strong>Description</strong> &mdash; what to build</li>
+          <li><strong>Product context</strong> &mdash; links to relevant product docs and requirements</li>
+          <li><strong>Files</strong> &mdash; expected files to create or modify</li>
+          <li><strong>Patterns</strong> &mdash; architecture and standards files the executor must follow</li>
+          <li><strong>Success criteria</strong> &mdash; how to verify it's done</li>
+          <li><strong>Dependencies</strong> &mdash; other tasks that must complete first</li>
+        </ul>
+        <p>Task sizing targets ~7-20 files per task. Fewer than 7 gets absorbed into a larger task; more than 20 gets split along feature boundaries.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Stub plans from /uc:roadmap</summary>
+      <div class="details-content">
+        <p>If you've used <code>/uc:roadmap</code> to decompose your product, feature mode detects existing stub plans automatically. When a stub is found:</p>
+        <ul>
+          <li>The scope boundary is already defined &mdash; the AI verifies and refines rather than discovering</li>
+          <li>Questions focus on implementation approach and technical decisions, not what to build</li>
+          <li>The stub's Out of Scope section is a hard boundary</li>
+        </ul>
+      </div>
+    </details>
+
+    <h2>What's next</h2>
+    <p>After approving the plan, run <a href="/docs/plan-execution"><code>/uc:plan-execution {plan-name}</code></a> to execute it with coordinated agent teams.</p>
+
+  </main>
+</div>
+
+<%- include('../partials/footer') %>

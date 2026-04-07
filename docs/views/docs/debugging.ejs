@@ -1,0 +1,67 @@
+<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+
+<div class="page-docs">
+  <%- include('../partials/sidebar') %>
+  <main class="doc-content">
+
+    <h1>Debugging</h1>
+    <p>Investigate bugs with hypothesis-driven parallel testing. Debug mode generates ranked hypotheses, spawns agents to gather evidence for each one, and attempts reproduction &mdash; all before suggesting a fix.</p>
+
+    <h2>When to use</h2>
+    <p>Run <code>/uc:debug-mode {bug description}</code> when you have a bug report, unexpected behavior, or a production issue. Provide as much context as you have &mdash; symptoms, reproduction steps, what changed recently.</p>
+    <div class="callout">
+      <p><strong>Debug mode diagnoses and plans &mdash; it does not implement fixes.</strong> The output is a plan for <a href="/docs/plan-execution">/uc:plan-execution</a> that includes regression tests.</p>
+    </div>
+
+    <h2>What happens</h2>
+
+    <h3>1. Understand</h3>
+    <p>Extracts symptoms, expected behavior, reproduction context, and impact. Asks for any missing information &mdash; even a detailed report gets probed for unstated assumptions and environmental factors.</p>
+
+    <h3>2. Hypothesis generation</h3>
+    <p>After initial research (including <code>git log</code> for recent changes), the AI generates <strong>2&ndash;5 hypotheses ranked by likelihood</strong> and presents them to you. You confirm, reject, or refine hypotheses before any agents are spawned. This gate prevents wasting investigation effort on the wrong theories.</p>
+
+    <h3>3. Parallel investigation</h3>
+    <p>For each confirmed hypothesis, an Explore agent gathers evidence from the codebase (with file:line references). Simultaneously, a System Tester agent attempts to reproduce the bug &mdash; following exact steps, trying variations, identifying boundary conditions.</p>
+
+    <h3>4. Fix plan</h3>
+    <p>Hypotheses are ranked by evidence strength. The AI presents: root cause summary, confidence level, fix approach with blast radius assessment, and open questions. The resulting plan always includes regression tests that prove the bug exists before the fix.</p>
+
+    <details>
+      <summary>How hypothesis-first differs from other debuggers</summary>
+      <div class="details-content">
+        <p>Most debugging tools jump straight to "find the problem." Debug mode forces a deliberate process:</p>
+        <ul>
+          <li><strong>Hypotheses before investigation</strong> &mdash; you and the AI agree on what to look for before spawning agents</li>
+          <li><strong>Evidence-based ranking</strong> &mdash; each hypothesis is scored by the evidence found, not gut feeling</li>
+          <li><strong>Blast radius assessment</strong> &mdash; every fix plan includes an analysis of what else could break</li>
+          <li><strong>Mandatory reproduction</strong> &mdash; the System Tester tries to trigger the bug independently, which validates that the fix can be verified</li>
+          <li><strong>Regression criteria</strong> &mdash; every fix task includes a test that would have caught the bug originally</li>
+        </ul>
+      </div>
+    </details>
+
+    <details>
+      <summary>What to provide in your bug report</summary>
+      <div class="details-content">
+        <p>The more context you give, the better the hypotheses. Include:</p>
+        <ul>
+          <li>What you expected vs. what happened</li>
+          <li>Steps to reproduce (if known)</li>
+          <li>When it started (or when it was last known to work)</li>
+          <li>Any recent changes to the area</li>
+          <li>Error messages or logs</li>
+          <li>Environment details (if relevant)</li>
+        </ul>
+        <p>Even with a detailed report, the AI will ask probing questions &mdash; a detailed report makes questions better, not unnecessary.</p>
+      </div>
+    </details>
+
+    <h2>What's next</h2>
+    <p>The fix plan is written to <code>documentation/plans/</code>. Run <a href="/docs/plan-execution"><code>/uc:plan-execution {plan-name}</code></a> to execute the fix with agent teams that include regression testing.</p>
+
+  </main>
+</div>
+
+<%- include('../partials/footer') %>

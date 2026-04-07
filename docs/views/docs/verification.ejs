@@ -1,0 +1,77 @@
+<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+
+<div class="page-docs">
+  <%- include('../partials/sidebar') %>
+  <main class="doc-content">
+
+    <h1>Verification</h1>
+    <p>Detect drift between your documentation and code. Verification mode compares what your docs claim against what the code actually does, classifies discrepancies by severity, and produces a fix plan.</p>
+
+    <h2>When to use</h2>
+    <p>Run <code>/uc:doc-code-verification-mode</code> after major changes, before releases, or as a periodic audit. You can scope it to a specific directory, topic, or run it across the entire project.</p>
+
+    <h2>Two dimensions of verification</h2>
+    <p>Verification checks both accuracy and structure &mdash; they're different problems with different fixes.</p>
+
+    <h3>Code-documentation accuracy</h3>
+    <p>Pairs documentation sections with the code they describe, then spawns Checker agents to compare claims against reality. Each discrepancy gets a severity level and file:line references.</p>
+    <ul>
+      <li><strong>Critical</strong> &mdash; phantom docs describing code that doesn't exist</li>
+      <li><strong>Major</strong> &mdash; undocumented code, significant behavioral drift</li>
+      <li><strong>Minor</strong> &mdash; naming differences, formatting issues</li>
+    </ul>
+
+    <h3>Documentation structure adherence</h3>
+    <p>Verifies your docs follow the canonical structure: correct directories, expected sections present, cross-references between related docs, no content duplication across document types.</p>
+    <ul>
+      <li><strong>Critical</strong> &mdash; document in wrong directory (routing violation)</li>
+      <li><strong>Major</strong> &mdash; missing key sections, missing cross-references, duplicated content</li>
+      <li><strong>Minor</strong> &mdash; formatting deviations</li>
+    </ul>
+
+    <h2>Fix classification</h2>
+    <p>For each discrepancy, verification classifies the fix type:</p>
+    <ul>
+      <li><strong>Update docs</strong> &mdash; the code is correct, docs need to catch up</li>
+      <li><strong>Update code</strong> &mdash; the docs are correct, code has drifted</li>
+      <li><strong>Needs decision</strong> &mdash; unclear which is right, flagged for you to decide</li>
+    </ul>
+
+    <details>
+      <summary>How the verification matrix works</summary>
+      <div class="details-content">
+        <p>The process builds a verification matrix pairing each documentation section with its corresponding code:</p>
+        <ol>
+          <li>Doc Surveyor and Code Surveyor agents scan the project in parallel</li>
+          <li>The AI builds a matrix mapping doc sections to code components</li>
+          <li>Checker agents are spawned for each pair &mdash; each returns discrepancies with severity and evidence</li>
+          <li>Results are deduplicated and synthesized into a single report</li>
+        </ol>
+        <p>The AI then walks through findings with you. For each discrepancy, you decide: update docs, update code, fix structure, or skip. Only the fixes you approve go into the plan.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Scoped verification</summary>
+      <div class="details-content">
+        <p>You can focus verification on specific areas:</p>
+        <ul>
+          <li><code>/uc:doc-code-verification-mode src/auth/</code> &mdash; verify a specific directory</li>
+          <li><code>/uc:doc-code-verification-mode authentication</code> &mdash; verify a specific topic</li>
+          <li><code>/uc:doc-code-verification-mode</code> &mdash; verify the entire project</li>
+        </ul>
+        <p>For large codebases, scoped verification is recommended &mdash; full-project scans can be resource-intensive.</p>
+      </div>
+    </details>
+
+    <h2>What it produces</h2>
+    <p>A discrepancy report followed by a fix plan in <code>documentation/plans/</code> containing only the fixes you approved. Additionally, features described in documentation but not implemented at all are listed separately for your prioritization &mdash; they're never auto-added to the backlog.</p>
+
+    <h2>Closing the loop</h2>
+    <p>Verification is the final piece of the <a href="/docs/standards">standards enforcement loop</a>. You define standards, the Code Reviewer enforces them during execution, and Verification mode audits that reality still matches documentation over time.</p>
+
+  </main>
+</div>
+
+<%- include('../partials/footer') %>

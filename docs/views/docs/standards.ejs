@@ -1,0 +1,92 @@
+<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+
+<div class="page-docs">
+  <%- include('../partials/sidebar') %>
+  <main class="doc-content">
+
+    <h1>Technology Standards</h1>
+    <p>Define coding standards once, have them enforced automatically on every task, and verify they hold over time. This is what separates prototyping with AI from building production systems with AI.</p>
+
+    <h2>The loop</h2>
+    <p>Standards enforcement in Ultra Claude is a three-part cycle that runs continuously:</p>
+
+    <div class="card-grid" style="grid-template-columns: repeat(3, 1fr); margin: 1.5rem 0;">
+      <div class="card" style="text-align: center;">
+        <h3 style="color: var(--primary);">1. Define</h3>
+        <p>Write standards as documentation</p>
+      </div>
+      <div class="card" style="text-align: center;">
+        <h3 style="color: var(--primary);">2. Enforce</h3>
+        <p>Reviewer checks every task</p>
+      </div>
+      <div class="card" style="text-align: center;">
+        <h3 style="color: var(--primary);">3. Verify</h3>
+        <p>Audit for drift over time</p>
+      </div>
+    </div>
+
+    <h2>Define</h2>
+    <p>Standards live in <code>documentation/technology/standards/</code> as markdown files. Each file covers a specific area &mdash; error handling, API design, naming conventions, testing patterns. They describe:</p>
+    <ul>
+      <li><strong>Conventions</strong> &mdash; how things should be done</li>
+      <li><strong>Patterns</strong> &mdash; approved approaches with examples</li>
+      <li><strong>Anti-patterns</strong> &mdash; what to avoid and why</li>
+    </ul>
+    <p>When you run <code>/uc:migrate</code>, standards are auto-generated from detected code patterns in your project. You review and refine them &mdash; they're a starting point, not final.</p>
+
+    <h2>Enforce</h2>
+    <p>During <a href="/docs/plan-execution">plan execution</a>, every task team includes a <strong>Code Reviewer</strong> agent. The Reviewer:</p>
+    <ol>
+      <li>Reads your standards and architecture docs <em>before any code is written</em></li>
+      <li>Gives advisory feedback on the Executor's implementation plan</li>
+      <li>Reads files as the Executor writes them, building context continuously</li>
+      <li>Performs formal code review after implementation, citing specific standards docs for any violations</li>
+    </ol>
+    <p>Review verdicts are binary: <strong>PASS</strong> or <strong>FAIL</strong>. There are no "pass with reservations." Every <code>[PATTERN]</code> failure references the exact standards document and section. "I prefer" is an invalid review comment &mdash; enforcement is standards-based only.</p>
+
+    <div class="callout callout-purple">
+      <p><strong>The Reviewer also queries external documentation.</strong> If your task uses external libraries, the Reviewer checks compliance with library best practices (deprecated APIs, security defaults) by querying the shared Tech Knowledge agent.</p>
+    </div>
+
+    <h2>Verify</h2>
+    <p>Standards drift over time &mdash; new patterns emerge, quick fixes bypass conventions, and documentation falls behind. <a href="/docs/verification">Verification mode</a> catches this:</p>
+    <ul>
+      <li>Checker agents compare your standards docs against actual code patterns</li>
+      <li>Discrepancies are classified: is the standard wrong, or has the code drifted?</li>
+      <li>You decide what to fix &mdash; the system never auto-resolves ambiguous cases</li>
+    </ul>
+    <p>Run verification after major changes, before releases, or on a regular cadence to keep standards and code in sync.</p>
+
+    <details>
+      <summary>What makes this different from a linter</summary>
+      <div class="details-content">
+        <p>Linters check syntax and simple patterns. Ultra Claude's standards enforcement operates at a higher level:</p>
+        <ul>
+          <li><strong>Semantic understanding</strong> &mdash; the Reviewer understands your architecture, not just syntax rules</li>
+          <li><strong>Context-aware</strong> &mdash; it reads the full implementation plan, related files, and your standards docs together</li>
+          <li><strong>Continuous</strong> &mdash; it reads files as they're being written, catching issues before they compound</li>
+          <li><strong>Bidirectional</strong> &mdash; verification checks that code matches docs AND that docs match code</li>
+          <li><strong>Human-in-the-loop</strong> &mdash; ambiguous cases are flagged for you, never auto-resolved</li>
+        </ul>
+      </div>
+    </details>
+
+    <details>
+      <summary>Creating effective standards</summary>
+      <div class="details-content">
+        <p>Standards work best when they are:</p>
+        <ul>
+          <li><strong>Specific</strong> &mdash; "Use try/catch with typed error responses in all API handlers" beats "Handle errors properly"</li>
+          <li><strong>Example-driven</strong> &mdash; include code examples for patterns and anti-patterns</li>
+          <li><strong>Reasoned</strong> &mdash; explain <em>why</em> a convention exists, so the Reviewer can judge edge cases</li>
+          <li><strong>Scoped</strong> &mdash; one file per area (error handling, API design, testing) rather than one giant document</li>
+        </ul>
+        <p>The <code>/uc:migrate</code> skill generates initial standards from your codebase patterns. Use these as a starting point and refine based on your team's decisions.</p>
+      </div>
+    </details>
+
+  </main>
+</div>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,137 @@
+<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+
+<div class="page-docs">
+  <%- include('../partials/sidebar') %>
+  <main class="doc-content">
+
+    <h1>Plan Execution</h1>
+    <p>Execute approved plans with coordinated agent teams. Each task gets a dedicated Executor, Reviewer, and Tester that work together through a structured pipeline &mdash; planning, implementation, code review, and testing happen automatically.</p>
+
+    <h2>Running a plan</h2>
+    <pre><code>/uc:plan-execution {plan-name}</code></pre>
+    <p>Before spawning any agents, execution presents a cost estimate and asks for confirmation. You'll see the task count, concurrency level, and estimated token usage.</p>
+
+    <h2>The task pipeline</h2>
+    <p>Each task in your plan gets a dedicated mini-team that self-coordinates:</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Role</th>
+          <th>Model</th>
+          <th>What it does</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Executor</strong></td>
+          <td>Opus</td>
+          <td>Explores codebase, writes implementation plan, implements code, drives the review/test cycle</td>
+        </tr>
+        <tr>
+          <td><strong>Reviewer</strong></td>
+          <td>Sonnet</td>
+          <td>Reads standards and architecture before code is written, gives plan feedback, performs formal code review</td>
+        </tr>
+        <tr>
+          <td><strong>Tester</strong></td>
+          <td>Sonnet</td>
+          <td>Tests against product docs and success criteria, writes missing test coverage, validates UI in browser</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>Two plan-wide agents support all tasks:</p>
+    <ul>
+      <li><strong>Tech Knowledge</strong> (Sonnet) &mdash; serves external library documentation to any team member on demand</li>
+      <li><strong>Project Manager</strong> (Sonnet) &mdash; monitors progress, detects stalls, tracks usage, maintains a live dashboard</li>
+    </ul>
+
+    <h2>How a task flows</h2>
+    <ol>
+      <li>The <strong>Lead</strong> (orchestrator) spawns Executor + Reviewer when a concurrency slot opens</li>
+      <li>Executor explores the codebase, writes a plan, sends it to Reviewer (advisory) then Lead (blocking approval)</li>
+      <li>After approval, Executor implements. Reviewer reads files as they're written.</li>
+      <li>Executor signals "implementation complete" &mdash; Lead spawns Tester</li>
+      <li>Reviewer and Tester run in parallel: code review + testing</li>
+      <li>Both must PASS. If either fails, Executor fixes and retries (up to 10 cycles)</li>
+      <li>Both pass &rarr; task done, team shuts down, next task spawns</li>
+    </ol>
+
+    <h2>Concurrency</h2>
+    <p>Multiple tasks run in parallel based on plan size:</p>
+    <table>
+      <thead>
+        <tr><th>Plan size</th><th>Concurrent teams</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>1&ndash;3 tasks</td><td>1&ndash;2</td></tr>
+        <tr><td>4&ndash;8 tasks</td><td>2&ndash;3</td></tr>
+        <tr><td>9+ tasks</td><td>3&ndash;4</td></tr>
+      </tbody>
+    </table>
+    <p>Tasks only spawn when their dependencies are completed and a slot is available. No pre-spawning.</p>
+
+    <h2>What you see during execution</h2>
+    <ul>
+      <li><strong>Dashboard</strong> &mdash; the PM maintains a live JSON dashboard showing task status, active stages, and timing</li>
+      <li><strong>Escalation questions</strong> &mdash; if a task exceeds 10 fix cycles or discovers something plan-invalidating, you'll be asked to decide</li>
+      <li><strong>Completion summary</strong> &mdash; tasks completed, files modified, decisions made, test results, and follow-up items</li>
+    </ul>
+    <p>Between these, the system runs silently. The Lead doesn't narrate what agents are doing.</p>
+
+    <details>
+      <summary>Checkpoints and session recovery</summary>
+      <div class="details-content">
+        <p>Checkpoints save automatically every 3 completed tasks, and on any usage pause. If your session dies mid-execution:</p>
+        <ol>
+          <li>Run the same <code>/uc:plan-execution {plan-name}</code> command again</li>
+          <li>The system detects the checkpoint and shows you the progress so far</li>
+          <li>Confirm resume &mdash; completed tasks are skipped, incomplete tasks are re-spawned with their context</li>
+        </ol>
+        <p>All progress is preserved in the plan directory: task artifacts, shared notes, and checkpoint files survive across sessions.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>The two-level plan review</summary>
+      <div class="details-content">
+        <p>Before implementing, the Executor's plan goes through two review levels:</p>
+        <ul>
+          <li><strong>Level 1 &mdash; Teammate review (advisory):</strong> The Reviewer checks for technical issues: pattern compliance, standards conformance, feasibility. Replies LGTM or CONCERNS.</li>
+          <li><strong>Level 2 &mdash; Lead review (blocking):</strong> The Lead checks for strategic issues: scope alignment, cross-task coherence, domain correctness. Must approve before implementation starts.</li>
+        </ul>
+        <p>This catches both technical and strategic problems before any code is written.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Failure handling</summary>
+      <div class="details-content">
+        <p>Failures are handled internally within each task team:</p>
+        <ul>
+          <li>Reviewer or Tester sends FAIL &rarr; Executor fixes &rarr; re-submits for review/test</li>
+          <li>Up to 10 fix cycles before escalating to the user</li>
+          <li>If a team member crashes, it's re-spawned with full context from task artifacts</li>
+          <li>If the Lead discovers a plan-invalidating issue, the pipeline pauses until you decide how to proceed</li>
+        </ul>
+      </div>
+    </details>
+
+    <details>
+      <summary>Usage management</summary>
+      <div class="details-content">
+        <p>Before execution starts, you choose whether to enable extra usage:</p>
+        <ul>
+          <li><strong>Extra usage enabled:</strong> Runs as fast as possible with no pauses</li>
+          <li><strong>Extra usage disabled:</strong> The PM monitors your 5-hour rate limit. At 85% usage, development auto-pauses &mdash; in-progress tasks finish, teams shut down. When the window resets, execution resumes automatically with fresh teams.</li>
+        </ul>
+        <p>Multiple pause/resume cycles are supported for long-running plans that span rate limit windows.</p>
+      </div>
+    </details>
+
+  </main>
+</div>
+
+<%- include('../partials/footer') %>

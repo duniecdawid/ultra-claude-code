@@ -1,0 +1,106 @@
+<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+
+<div class="page-docs">
+  <%- include('../partials/sidebar') %>
+  <main class="doc-content">
+
+    <h1>Reference</h1>
+    <p>All skills and agents available in Ultra Claude. Skills with <code>/uc:*</code> commands are user-invocable &mdash; run them directly in Claude Code.</p>
+
+    <h2>Skills</h2>
+
+    <h3>Setup &amp; Onboarding</h3>
+    <table>
+      <thead><tr><th>Skill</th><th>Command</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Setup</strong></td><td><code>/uc:setup</code></td><td>One-time machine config: installs tmux/Node.js, configures shell for 1M context and agent teams, optimizes tmux. Idempotent.</td></tr>
+        <tr><td><strong>Migrate</strong></td><td><code>/uc:migrate</code></td><td>Brings projects into Ultra Claude &mdash; fresh initialization, legacy detection, version-aware upgrades. Scaffolds docs, config, and standards.</td></tr>
+        <tr><td><strong>VS Code Setup</strong></td><td><code>/uc:vscode-setup</code></td><td>Configures VS Code remote and client settings for Claude Code workflows, tmux integration, and terminal profiles.</td></tr>
+        <tr><td><strong>VS Code Launch</strong></td><td><code>/uc:vscode-launch</code></td><td>Generates <code>.vscode/launch.json</code> debug configurations for Node.js/TypeScript projects.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Planning &amp; Research</h3>
+    <table>
+      <thead><tr><th>Skill</th><th>Command</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Discovery Mode</strong></td><td><code>/uc:discovery-mode</code></td><td>Product research as Head of Product. Spawns parallel internal + external research agents. Produces product description, research, requirements, personas.</td></tr>
+        <tr><td><strong>Roadmap</strong></td><td><code>/uc:roadmap</code></td><td>Decomposes a product into sequenced plan stubs with dependency graph and topological ordering.</td></tr>
+        <tr><td><strong>Feature Mode</strong></td><td><code>/uc:feature-mode</code></td><td>Plans features through 4-stage scope challenge, research, discussion, and structured plan output.</td></tr>
+        <tr><td><strong>Debug Mode</strong></td><td><code>/uc:debug-mode</code></td><td>Hypothesis-driven bug investigation with parallel evidence gathering. Produces fix plan with regression criteria.</td></tr>
+        <tr><td><strong>Critical Brainstorm</strong></td><td><code>/uc:critical-brainstorm</code></td><td>Devil's advocate mode: stress-tests solutions, identifies risks, stays in dialogue until you're satisfied.</td></tr>
+        <tr><td><strong>Tech Research</strong></td><td><code>/uc:tech-research</code></td><td>Focused external library/framework documentation retrieval via Ref.tools (500&ndash;5K tokens vs 50K+ for web search).</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Execution</h3>
+    <table>
+      <thead><tr><th>Skill</th><th>Command</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Plan Execution</strong></td><td><code>/uc:plan-execution</code></td><td>Orchestrates per-task mini-teams (Executor/Reviewer/Tester) with live dashboard and checkpoint recovery.</td></tr>
+        <tr><td><strong>Checkpoint</strong></td><td><code>/uc:checkpoint</code></td><td>Saves execution state for session recovery. Triggered automatically every 3 tasks or on usage pause.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Documentation &amp; Verification</h3>
+    <table>
+      <thead><tr><th>Skill</th><th>Command</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Docs Manager</strong></td><td><code>/uc:docs-manager</code></td><td>Guards canonical <code>documentation/</code> structure. Routes docs to correct directories, enforces layout, maintains index.</td></tr>
+        <tr><td><strong>Verification</strong></td><td><code>/uc:doc-code-verification-mode</code></td><td>Compares doc claims against code reality using Checker agents. Classifies discrepancies with fix types.</td></tr>
+        <tr><td><strong>Context Management</strong></td><td><code>/uc:context-management</code></td><td>Manages <code>context/</code> directory for external API docs and SDK references with git submodule support.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Project Management</h3>
+    <table>
+      <thead><tr><th>Skill</th><th>Command</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Backlog</strong></td><td><code>/uc:backlog</code></td><td>Four-category backlog (bugs/questions/ideas/debt) with priorities and blocking relationships. User-initiated only.</td></tr>
+        <tr><td><strong>Plan Status Sync</strong></td><td><code>/uc:plan-status-sync</code></td><td>Scans plans, infers status from execution artifacts, reconciles README with <code>plan.json</code>.</td></tr>
+        <tr><td><strong>Help</strong></td><td><code>/uc:help</code></td><td>System advisor: recommends the right skill, agent, or workflow for any task. Shows recent changelog.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Infrastructure</h3>
+    <table>
+      <thead><tr><th>Skill</th><th>Command</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Railway</strong></td><td><code>/uc:railway</code></td><td>Manages Railway.com deployments via CLI with multi-account token switching and config-as-code.</td></tr>
+        <tr><td><strong>Tailscale Setup</strong></td><td><code>/uc:tailscale-setup</code></td><td>Exposes local services via Tailscale serve/funnel with HTTPS wrapping.</td></tr>
+        <tr><td><strong>Update</strong></td><td><code>/uc:update</code></td><td>Pulls latest Ultra Claude from git, clears cache, restarts layout daemon, checks for pending migrations.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>System Meta</h3>
+    <table>
+      <thead><tr><th>Skill</th><th>Command</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Plan Enhancer</strong></td><td><em>internal</em></td><td>4-stage planning framework foundation loaded by feature-mode, debug-mode, and verification mode. Not user-invocable.</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Agents</h2>
+    <p>Agents are spawned by skills as persistent teammates during execution. They coordinate through the full task lifecycle.</p>
+
+    <table>
+      <thead><tr><th>Agent</th><th>Model</th><th>Role</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Task Executor</strong></td><td>Opus</td><td>Per-task team hub: explores codebase, writes plan, implements code, drives review/test cycles</td></tr>
+        <tr><td><strong>Code Reviewer</strong></td><td>Sonnet</td><td>Read-only quality gate: reads standards early, gives plan feedback, formal pass/fail review</td></tr>
+        <tr><td><strong>Task Tester</strong></td><td>Sonnet</td><td>Tests against product docs, writes missing coverage, verifies UI in browser</td></tr>
+        <tr><td><strong>Project Manager</strong></td><td>Sonnet</td><td>Monitors execution: live dashboard, stall detection, usage tracking, operational reports</td></tr>
+        <tr><td><strong>Tech Knowledge</strong></td><td>Sonnet</td><td>Shared documentation database: loads external library docs, serves excerpts on query</td></tr>
+        <tr><td><strong>Checker</strong></td><td>Sonnet</td><td>Single-topic doc-vs-code comparison with severity levels and file:line references</td></tr>
+        <tr><td><strong>Code Surveyor</strong></td><td>Sonnet</td><td>Fast structural code scan: catalogs files, components, patterns for orchestrators</td></tr>
+        <tr><td><strong>Doc Surveyor</strong></td><td>Sonnet</td><td>Documentation section exploration: identifies content types, topics, specs</td></tr>
+        <tr><td><strong>Market Analyzer</strong></td><td>Sonnet</td><td>External market research, competitor analysis, technology trends</td></tr>
+        <tr><td><strong>System Tester</strong></td><td>Sonnet</td><td>Scientific bug reproduction: follows exact steps, tries variations, never fixes code</td></tr>
+      </tbody>
+    </table>
+
+  </main>
+</div>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,92 @@
+<%- include('partials/head') %>
+<%- include('partials/nav') %>
+
+<div class="page-full">
+
+  <h1>Getting Started</h1>
+  <p style="color: var(--muted-foreground); margin-bottom: 2.5rem;">From install to your first planned feature in under 10 minutes.</p>
+
+  <!-- Phase 1: Install -->
+  <div class="phase">
+    <div class="phase-number">1</div>
+    <h2>Install the Plugin</h2>
+    <p>In any Claude Code session, run these two commands:</p>
+    <pre><code><span style="color: var(--muted-foreground)"># Add the marketplace</span>
+/plugin marketplace add duniecdawid/ultra-claude-code
+
+<span style="color: var(--muted-foreground)"># Install the plugin</span>
+/plugin install uc@ultra-claude</code></pre>
+    <p>All skills become available as <code>/uc:*</code> slash commands.</p>
+    <div class="callout">
+      <p><strong>Auto-updates:</strong> <code>/plugin marketplace auto-update duniecdawid/ultra-claude-code</code></p>
+    </div>
+  </div>
+
+  <!-- Phase 2: Setup -->
+  <div class="phase">
+    <div class="phase-number">2</div>
+    <h2>Set Up Your Machine</h2>
+    <p>Run this once to configure your environment:</p>
+    <pre><code>/uc:setup</code></pre>
+    <p>This installs prerequisites (tmux, Node.js), configures your shell for 1M context and agent teams, and sets up the tmux layout manager. Idempotent &mdash; safe to run again if anything changes.</p>
+  </div>
+
+  <!-- Phase 3: Initialize -->
+  <div class="phase">
+    <div class="phase-number">3</div>
+    <h2>Initialize Your Project</h2>
+    <p>Navigate to your target project and run:</p>
+    <pre><code>/uc:migrate</code></pre>
+    <p>This scaffolds <code>documentation/</code>, explores your codebase, derives configuration files, drafts initial architecture docs, and generates coding standards from detected patterns.</p>
+    <div class="callout callout-purple">
+      <p><strong>Don't know exactly what to build?</strong> Run <code>/uc:discovery-mode</code> first to research your product, market, and users. It produces a product description, requirements, and personas that feed into feature planning.</p>
+    </div>
+  </div>
+
+  <!-- Interstitial: Review -->
+  <div class="interstitial">
+    <p>Take 5 minutes to review the generated architecture doc.<br>Everything that follows builds on it.</p>
+    <p style="margin-top: 0.75rem; font-size: 0.8125rem; font-weight: 400; color: var(--muted-foreground);">Every planning skill reads your documentation to make informed decisions &mdash; scope challenges, conflict detection, and architecture classification all depend on these docs being accurate. The more context they have, the better the plans.</p>
+  </div>
+
+  <!-- Phase 4: Plan -->
+  <div class="phase">
+    <div class="phase-number">4</div>
+    <h2>Plan Your First Feature</h2>
+    <p>Run feature mode with a description of what you want to build:</p>
+    <pre><code>/uc:feature-mode add user authentication</code></pre>
+    <p>Feature mode acts as a senior tech lead. It challenges your scope, researches your codebase in parallel, and produces a structured plan with end-to-end testable tasks before any code is written.</p>
+    <ul>
+      <li><strong>Scope challenge</strong> &mdash; asks "why?", splits vague requests, refuses to plan until scope is sharp</li>
+      <li><strong>Codebase research</strong> &mdash; spawns agents to explore existing patterns and find conflicts</li>
+      <li><strong>Structured plan</strong> &mdash; tasks with file lists, success criteria, and dependencies in <code>documentation/plans/</code></li>
+    </ul>
+    <p>Review and approve the plan before execution.</p>
+  </div>
+
+  <!-- Phase 5: Execute -->
+  <div class="phase">
+    <div class="phase-number">5</div>
+    <h2>Execute</h2>
+    <pre><code>/uc:plan-execution {plan-name}</code></pre>
+    <p>The execution engine spawns a dedicated team for each task: an <strong>Executor</strong> that writes code, a <strong>Reviewer</strong> that enforces your standards, and a <strong>Tester</strong> that validates against product docs. A shared <strong>Tech Knowledge</strong> agent provides library documentation, and a <strong>Project Manager</strong> monitors progress.</p>
+    <p>Sessions can die and resume &mdash; checkpoints save progress automatically.</p>
+  </div>
+
+  <!-- Phase 6: Ongoing -->
+  <div class="phase">
+    <div class="phase-number">6</div>
+    <h2>Ongoing Development</h2>
+    <ul>
+      <li><code>/uc:debug-mode</code> &mdash; investigate and fix bugs with hypothesis-driven parallel testing</li>
+      <li><code>/uc:doc-code-verification-mode</code> &mdash; detect documentation drift and plan fixes</li>
+      <li><code>/uc:critical-brainstorm</code> &mdash; stress-test decisions with a devil's advocate before committing</li>
+    </ul>
+    <div class="callout callout-success">
+      <p><strong>Lost?</strong> Run <code>/uc:help</code> for guidance on which skill, agent, or workflow to use for any task.</p>
+    </div>
+  </div>
+
+</div>
+
+<%- include('partials/footer') %>

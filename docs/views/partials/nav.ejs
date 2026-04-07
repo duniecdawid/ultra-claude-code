@@ -1,0 +1,8 @@
+<nav class="site-nav">
+  <a class="logo" href="/">Ultra Claude</a>
+  <div class="nav-links">
+    <a href="/" class="<%= page === 'home' ? 'active' : '' %>">Home</a>
+    <a href="/getting-started" class="<%= page === 'getting-started' ? 'active' : '' %>">Getting Started</a>
+    <a href="/docs/discovery" class="<%= ['discovery','feature-planning','plan-execution','debugging','verification','standards','reference'].includes(page) ? 'active' : '' %>">Documentation</a>
+  </div>
+</nav>
