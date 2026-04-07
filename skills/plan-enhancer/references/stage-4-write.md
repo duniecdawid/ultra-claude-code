@@ -119,6 +119,20 @@ Reference the documentation updated in Steps 2-3 — do not duplicate content. E
 - **Minimum ~7 files per task.** Each task spins up a full pipeline (Executor + Reviewer + Tester). If a change touches fewer than 7 files, absorb it into a larger task — the pipeline overhead isn't justified.
 - **Maximum ~20 files per task.** If a task would touch more than 20 files, consider splitting — but only along feature boundaries, not arbitrary lines.
 
+### Forbidden task patterns
+
+The task list is a **flat sequence** — no hierarchy, no grouping, no nesting. The execution engine reads `### Task N:` headings sequentially. Anything else breaks parsing and execution.
+
+**Do NOT:**
+- **Group tasks into phases.** No "Phase 0: Foundation", "Phase 1: Core", etc. If tasks have a natural order, express it through Dependencies fields, not section headers. The task list has one level: `### Task N:`.
+- **Use nested numbering.** No T0.1, T1.2, T2.3. Tasks are numbered sequentially: Task 1, Task 2, Task 3, ... Task N. That's it.
+- **Split by tech layer.** No separate "web implementation", "native implementation", "tests", "review gate" tasks for the same feature. Each task is a complete vertical slice — one component means one task that delivers types + web + native + tests + stories.
+- **Invent custom task formats.** No bold-text pseudo-headings (`**T1.1**`), no bullet-list tasks, no sub-tasks within tasks. Every task is an H3 heading matching the exact format below.
+- **Omit required fields.** Every task has all fields from the template. No abbreviated one-liner tasks.
+- **Create tasks for documentation updates.** Doc changes happen in Stage 4 Steps 2-3 (before the plan is written), not as plan tasks.
+
+If a plan has 20+ features that feel like they need phases, the plan is too large — split into multiple plans instead.
+
 ### Task fields
 
 Each task heading MUST use the format: `### Task N: {Title} <!-- status:pending -->`

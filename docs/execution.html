@@ -1,0 +1,449 @@
+<div class="doc-content">
+
+<h1>Execution</h1>
+<p>The execution engine that runs any plan through per-task pipeline teams. This is the single source of truth for how plans are executed.</p>
+
+<p>For architecture context, see <a href="#architecture" class="tab-link">Architecture</a>. For component reference, see <a href="#components" class="tab-link">Components</a>.</p>
+
+<h2 id="overview">Overview</h2>
+
+<p><strong>Plan Execution</strong> reads the entire plan directory (<code>documentation/plans/{name}/</code>) and runs it through per-task pipeline teams. On trigger, the Lead reads ALL files in the plan directory &mdash; README.md, any existing <code>tasks/</code> files, <code>shared/</code> directory (if resuming), checkpoint files &mdash; to build complete context before spawning teams.</p>
+
+<p><strong>Prerequisites:</strong></p>
+<ul>
+<li><code>CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS: "1"</code> in the plugin&rsquo;s <code>settings.json</code> (project-level setting applied by Claude Code when the plugin is active &mdash; not a plugin.json field)</li>
+<li>tmux installed</li>
+<li>Plan exists in <code>documentation/plans/{name}/README.md</code></li>
+</ul>
+
+<p>Agent teams only (per <a href="#decisions" class="tab-link">decision D1</a> and D13).</p>
+
+<h2 id="coordination-model">The Coordination Model</h2>
+
+<p>Five mechanisms work together:</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>Mechanism</th><th>Purpose</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Per-Task Pipeline Teams</strong></td><td>Lead spawns a dedicated mini-team for each task. Each team has its own Executor, Reviewer, and Tester, plus access to a shared Tech Knowledge agent for external library docs. The team self-coordinates internally through all pipeline stages.</td></tr>
+<tr><td><strong>Shared Directory</strong> (<code>plans/{name}/shared/</code>)</td><td>Contains <code>lead.md</code> with plan overview, concurrency decisions, architectural constraints, task dependency graph, and key decisions. Written by the Lead. Survives session death.</td></tr>
+<tr><td><strong>Plan README.md</strong></td><td>Source of truth for what needs to be done, task ordering, success criteria.</td></tr>
+<tr><td><strong>Per-Task Artifact Files</strong> (<code>plans/{name}/tasks/task-N/</code>)</td><td>Each task gets a subdirectory with <code>plan.md</code> and <code>impl.md</code> &mdash; persistent context written by the task&rsquo;s pipeline team.</td></tr>
+<tr><td><strong>Project Manager</strong> (<code>pm-{PLAN_NAME}</code>)</td><td>Operational monitoring layer. Maintains a JSON status dashboard (exposed via Tailscale HTTPS for mobile access), runs a background watchdog script for stall and rate-limit detection, pings team members for status, sends ALERTs to Lead with recommendations (re-spawn, pause spawning), and produces a post-execution operational report. One PM per plan, spawned once before any task-teams.</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2 id="context-bridge">Context Bridge &mdash; How Task Teams Get Context</h2>
+
+<p>Task team members do NOT inherit the Lead&rsquo;s conversation history. They start with a blank context window + project CLAUDE.md (auto-inherited). The Lead bridges the gap by including these paths in every team&rsquo;s spawn prompt:</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>Team Member</th><th>Receives in Spawn Prompt</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>All team members</strong></td><td>Plan README.md path, <code>shared/lead.md</code> path, task description from plan, teammate names (Executor, Reviewer, Tester, <code>knowledge-{PLAN_NAME}</code>, <code>pm-{PLAN_NAME}</code>)</td></tr>
+<tr><td><strong>Task Executor</strong></td><td>+ task-specific pattern files from plan&rsquo;s Patterns field, Lead name for operational messages, drives the review/test cycle via SendMessage. Can spawn Explore subagents for codebase investigation and query <code>knowledge-{PLAN_NAME}</code> for external library docs.</td></tr>
+<tr><td><strong>Code Reviewer</strong></td><td>+ architecture docs path (<code>documentation/technology/architecture/</code>), coding standards path (<code>documentation/technology/standards/</code>), task-specific pattern files, SendMessage targets (Executor, Tester) for feedback</td></tr>
+<tr><td><strong>Task Tester</strong></td><td>+ success criteria from plan, <code>documentation/product/</code> (all product docs), <code>documentation/technology/testing/</code> (all files; skips <code>final-gate.md</code> for per-task testing), SendMessage target (Executor) for feedback</td></tr>
+</tbody>
+</table>
+</div>
+
+<p><strong>Example spawn prompt (Task Executor):</strong></p>
+<blockquote>
+<p>&ldquo;You are the team coordinator for task 3 of the &lsquo;user-auth&rsquo; plan.<br>
+<br>
+Your task: Add user authentication middleware<br>
+<br>
+Your teammates: Reviewer: reviewer-3, Tester: tester-3, Tech Knowledge: knowledge-user-auth, Lead: {lead name}, PM: pm-user-auth<br>
+<br>
+Context files to read first:<br>
+- Plan: documentation/plans/user-auth/README.md<br>
+- Lead notes: documentation/plans/user-auth/shared/lead.md<br>
+- Patterns: {task-specific pattern files from plan}<br>
+<br>
+Write your implementation plan to tasks/task-3/plan.md. Write implementation notes to tasks/task-3/impl.md. Drive the review/test cycle by sending messages to your Reviewer and Tester teammates when ready. You have 10 fix cycles before escalating to Lead.&rdquo;</p>
+</blockquote>
+
+<h2 id="per-task-pipeline">Per-Task Pipeline</h2>
+
+<p>Each task flows through pipeline stages. The Lead creates tasks with stage metadata:</p>
+
+<pre><code>Task stages: pending &rarr; planning &rarr; impl &rarr; review &rarr; test &rarr; done</code></pre>
+
+<p><strong>How it flows:</strong></p>
+<ul>
+<li>Lead creates all tasks as <code>pending</code></li>
+<li>Lead spawns a per-task team for each task (respecting concurrency limits)</li>
+<li>Within each team, the Executor drives the pipeline:
+<ul>
+<li>Executor plans and implements &rarr; writes <code>tasks/task-N/plan.md</code> and <code>tasks/task-N/impl.md</code> (spawns Explore subagents for codebase investigation, queries Tech Knowledge agent for external library docs as needed)</li>
+<li>Executor sends &ldquo;ready for review&rdquo; to Reviewer</li>
+<li>Code Reviewer evaluates &rarr; PASS or FAIL with feedback to Executor</li>
+<li>Executor sends &ldquo;ready for test&rdquo; to Tester</li>
+<li>Task Tester runs tests &rarr; PASS or FAIL with feedback to Executor</li>
+</ul>
+</li>
+<li>On FAIL: Executor fixes code, updates <code>impl.md</code>, re-triggers review/test (max 10 fix cycles)</li>
+<li>On PASS (both review and test): team reports &ldquo;task done&rdquo; to Lead and exits</li>
+<li>After 10 fix cycles: Executor escalates to Lead with full context</li>
+</ul>
+
+<p><strong>Review and test run in parallel</strong> after the Executor signals readiness. Both must PASS before the task is complete.</p>
+
+<h2 id="task-pipeline">Task Pipeline</h2>
+
+<p>Every task gets the full pipeline team: <strong>Executor + Reviewer + Tester + Tech Knowledge</strong> (3 agents per task + 1 shared knowledge agent). There is no classification step &mdash; all tasks receive the same treatment.</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>Pipeline</th><th>Team</th></tr>
+</thead>
+<tbody>
+<tr><td>Planning &rarr; Implementation &rarr; Review &rarr; Test</td><td>Executor + Reviewer + Tester + Tech Knowledge (shared)</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>Each task must deliver end-to-end testable user value &mdash; a tester verifies by simulating user behavior, not checking technical artifacts. Trivial work (config changes, renames, one-liners) is absorbed into the nearest task &mdash; never listed as a standalone task.</p>
+
+<h2 id="plan-execution-team-structure">The Plan Execution Team Structure</h2>
+
+<pre><code>Lead (main session -- user interacts here)
+|
++-- Reads plan README.md, decides concurrency
++-- Presents cost estimate, waits for user confirmation
++-- Creates shared/ directory with lead.md (plan overview, constraints, dependency graph)
++-- Creates tasks/ subdirectories for each task
+|
++-- Project Manager (pm-{PLAN_NAME}) -- spawned once, plan-wide
+|   Model: sonnet | Tools: Read, Write, Glob, Grep, Bash
+|   - Maintains JSON status dashboard (exposed via Tailscale HTTPS)
+|   - Runs background watchdog for stall/rate-limit detection
+|   - Pings team members for status, sends ALERTs to Lead
+|   - Produces post-execution operational report
+|
++-- Tech Knowledge Agent (knowledge-{PLAN_NAME}) -- shared across all task teams
+|   Model: sonnet | Tools: Read, WebFetch, WebSearch, mcp__ref
+|   Skills: tech-research (preloaded)
+|   - Provides external library/framework documentation on demand
+|   - Queried by Executors, Reviewers, and Testers
+|
++-- Per-Task Team 1 (spawned as agent team)
+|   |
+|   +-- Task Executor (executor-1)
+|   |   Model: opus | Tools: Read, Write, Edit, Glob, Grep, Bash
+|   |   - Reads shared/lead.md, task-specific pattern files
+|   |   - Spawns Explore subagents for codebase investigation
+|   |   - Queries knowledge-{PLAN_NAME} for external library docs
+|   |   - Writes implementation plan to tasks/task-N/plan.md
+|   |   - Implements code, writes notes to tasks/task-N/impl.md
+|   |   - Drives review/test cycle via SendMessage
+|   |   - Max 10 fix cycles before escalating to Lead
+|   |
+|   +-- Code Reviewer (reviewer-1)
+|   |   Model: sonnet | Tools: Read, Glob, Grep
+|   |   DisallowedTools: Write, Edit, Bash
+|   |   - Checks code quality, pattern compliance, architecture conformance
+|   |   - PASS/FAIL with specific file:line feedback to Executor
+|   |   - Completely read-only
+|   |
+|   +-- Task Tester (tester-1)
+|       Model: sonnet | Tools: Read, Write, Edit, Glob, Grep, Bash + 12 Chrome tools
+|       - Runs relevant tests, checks success criteria from plan
+|       - For frontend tasks, launches app in Chrome to verify UI renders
+|       - Can create/modify test files (*.test.*, *.spec.*, __tests__/)
+|       - PASS/FAIL with feedback to Executor
+|       - Read-only for source code
+|
++-- Per-Task Team 2 (concurrent with Team 1)
+|   ... (same structure, numbered executor-2, reviewer-2, tester-2)
+|
++-- Per-Task Team N (up to concurrency limit)
+    ... (same structure)</code></pre>
+
+<h2 id="concurrency-model">Concurrency Model</h2>
+
+<p>The Lead limits concurrent task teams based on plan size:</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>Plan Size (tasks)</th><th>Max Concurrent Teams</th></tr>
+</thead>
+<tbody>
+<tr><td>1&ndash;3</td><td>1&ndash;2</td></tr>
+<tr><td>4&ndash;8</td><td>2&ndash;3</td></tr>
+<tr><td>9+</td><td>3&ndash;4</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>As each team completes its task and exits, the Lead spawns the next pending task&rsquo;s team. Teams are independent &mdash; no cross-team coordination needed.</p>
+
+<h3 id="pipeline-gate">Pipeline Gate (Early Successor Spawning)</h3>
+
+<p>When a task&rsquo;s Executor signals &ldquo;implementation complete&rdquo; (entering review/test), the Lead checks for dependent successors still in &ldquo;pending&rdquo; state. If found:</p>
+
+<ol>
+<li>Lead spawns the successor task-team in <strong>pipeline mode</strong> &mdash; the Executor can research and plan, but is <strong>blocked from implementing</strong> until the predecessor passes all stages.</li>
+<li>Pipeline-spawned tasks in planning-only mode do <strong>NOT</strong> count against the concurrency limit. They count as a full slot only once implementation is approved.</li>
+<li>When the predecessor task passes (both review and test), Lead sends &ldquo;Implementation approved&rdquo; to the successor Executor &mdash; it can then proceed to implement.</li>
+<li>The PM tracks pipeline-spawned tasks with a <code>PIPELINE-SPAWN</code> event type and <code>pipeline_mode</code> flag in the dashboard.</li>
+</ol>
+
+<p>This allows successor tasks to get a head start on planning without blocking the pipeline, reducing total execution time for plans with sequential dependencies.</p>
+
+<p>Model selection per role (these values correspond to the <code>model:</code> field in each agent&rsquo;s <code>.md</code> frontmatter &mdash; see <a href="#components" class="tab-link">Components</a>):</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>Role</th><th>Model</th><th>Rationale</th></tr>
+</thead>
+<tbody>
+<tr><td>Task Executor</td><td>opus</td><td>Code generation, architectural decisions, codebase research &mdash; highest capability required</td></tr>
+<tr><td>Code Reviewer</td><td>sonnet</td><td>Pattern recognition, architecture conformance</td></tr>
+<tr><td>Task Tester</td><td>sonnet</td><td>Test execution, failure diagnosis</td></tr>
+<tr><td>Tech Knowledge</td><td>sonnet</td><td>Documentation retrieval &mdash; shared across all tasks</td></tr>
+<tr><td>Project Manager</td><td>sonnet</td><td>Operational observation &mdash; read-only, low overhead</td></tr>
+</tbody>
+</table>
+</div>
+
+<blockquote>
+<p><strong>Note:</strong> Agent model and tools are declared in each agent&rsquo;s <code>.md</code> frontmatter. Spawn prompts from the Lead provide additional runtime context (plan paths, task description, shared directory) on top of the base agent definition.</p>
+</blockquote>
+
+<h3 id="required-permissions">Required Permissions</h3>
+
+<p>Teammates inherit Lead&rsquo;s permission mode. For unattended execution, pre-approve in settings:</p>
+
+<ul>
+<li><strong>Bash</strong>: test runners, build commands, linters</li>
+<li><strong>Write/Edit</strong>: source files, test files, documentation</li>
+<li><strong>Read/Glob/Grep</strong>: always allowed (read-only)</li>
+</ul>
+
+<p>Task Tester has Write/Edit access for <strong>test files only</strong> (<code>*.test.*</code>, <code>*.spec.*</code>, <code>__tests__/</code>) &mdash; it should NOT modify source code. Code Reviewer is fully read-only (Write, Edit, and Bash are all disallowed). Tech Knowledge agent is read-only. Project Manager has Write for dashboard JSON files only.</p>
+
+<h2 id="shared-directory">Shared Directory</h2>
+
+<p><code>plans/{name}/shared/</code> contains Lead-level shared context:</p>
+
+<pre><code>plans/{name}/shared/
+  lead.md            # Lead writes here -- plan overview, constraints, decisions</code></pre>
+
+<p><strong>What goes in <code>lead.md</code>:</strong></p>
+<ul>
+<li>Plan overview and concurrency decisions</li>
+<li>Architectural constraints discovered during execution</li>
+<li>Key decisions made by Lead (e.g., task re-ordering, amendments)</li>
+<li>Cross-task dependency notes (&ldquo;Task 3 created UserService &mdash; Task 5 should import from <code>src/services/user.ts</code>&rdquo;)</li>
+</ul>
+
+<p><strong>Per-task context lives in task subdirectories:</strong></p>
+
+<pre><code>plans/{name}/tasks/
+  task-1/
+    plan.md          # Executor writes: implementation plan
+    impl.md          # Executor writes: implementation notes, integration points
+  task-2/
+    plan.md
+    impl.md
+  ...</code></pre>
+
+<p><strong>Why this structure:</strong> Each task team is independent. Per-task files eliminate cross-team write conflicts. The Lead writes only to <code>shared/lead.md</code>; each task team writes only to its own <code>tasks/task-N/</code> directory.</p>
+
+<h2 id="lead-intervention-points">Lead Intervention Points</h2>
+
+<p>Lead does NOT micromanage. Intervenes only at:</p>
+
+<ol>
+<li><strong>Team spawning</strong> &mdash; decides concurrency, writes spawn prompts, creates <code>shared/</code> directory with initial <code>lead.md</code>, creates <code>tasks/</code> subdirectories</li>
+<li><strong>Task completion tracking</strong> &mdash; monitors which task teams have finished, spawns next pending task&rsquo;s team</li>
+<li><strong>Escalation handling</strong> &mdash; receives escalations from Executors after 10 failed fix cycles, decides whether to adjust task or escalate to user</li>
+<li><strong>Checkpoint</strong> &mdash; periodic state save (see below)</li>
+<li><strong>Plan-invalidating discovery</strong> &mdash; if a task team discovers something that fundamentally changes the plan (e.g., an API doesn&rsquo;t exist, a dependency is incompatible), the Executor sends a message to Lead. Lead evaluates impact and either adjusts tasks or escalates to user.</li>
+<li><strong>Completion synthesis</strong> &mdash; collects results, produces summary</li>
+<li><strong>Team shutdown</strong> &mdash; ensures all teams have exited, cleans up</li>
+</ol>
+
+<p><strong>Lead behavior:</strong> Acts as a project manager &mdash; minimal intervention, data-driven decisions, escalates to user when uncertain. Spawn prompts are direct, structured, and context-rich. Does not micromanage task implementation; trusts task teams to self-coordinate internally.</p>
+
+<p>Between these points, task teams self-coordinate via their internal pipeline (Executor drives review/test cycles via SendMessage).</p>
+
+<h2 id="checkpoint-architecture">Checkpoint Architecture</h2>
+
+<p>Progress is persisted in two places:</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>What</th><th>Where</th><th>When</th></tr>
+</thead>
+<tbody>
+<tr><td>Task states and Lead decisions</td><td><code>plans/{name}/shared/lead.md</code></td><td>Updated by Lead as tasks complete, decisions are made</td></tr>
+<tr><td>Per-task artifacts</td><td><code>plans/{name}/tasks/task-N/{plan,impl}.md</code></td><td>Written by task teams during execution (already on disk)</td></tr>
+</tbody>
+</table>
+</div>
+
+<p><strong>Checkpoint triggers:</strong></p>
+<ul>
+<li>Every 3 completed tasks</li>
+<li>User runs <code>/uc:checkpoint</code></li>
+<li>Before risky plan amendments</li>
+</ul>
+
+<p><strong>Checkpoint file</strong> (<code>plans/{name}/checkpoint-{timestamp}.md</code>) captures a snapshot:</p>
+<ul>
+<li>All task states (pending/in-progress/done with current pipeline stage)</li>
+<li>Active task teams and their current assignments</li>
+<li>Decisions made during execution</li>
+<li>Blockers encountered</li>
+<li>Files modified so far</li>
+</ul>
+
+<p><strong>On resume:</strong> Lead reads plan README.md + latest checkpoint + <code>shared/lead.md</code> + all files in <code>tasks/</code> &rarr; knows exactly what&rsquo;s done vs pending &rarr; spawns new task teams for remaining work &rarr; skips completed tasks.</p>
+
+<h2 id="error-recovery">Error Recovery</h2>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>Failure Class</th><th>Detection</th><th>Recovery</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Task failure</strong> (review/test fails)</td><td>Reviewer or Tester sends FAIL to Executor within the task team</td><td>Executor fixes code, re-triggers review/test (max 10 fix cycles). After 10 failures: Executor escalates to Lead with full context. Lead decides whether to adjust task or escalate to user.</td></tr>
+<tr><td><strong>Team crash</strong> (session crash, context overflow)</td><td>Lead detects stalled progress for a task team</td><td>Lead spawns a replacement team for the task. Per-task artifacts (<code>tasks/task-N/</code>) preserve context &mdash; new team reads existing plan/impl and continues.</td></tr>
+<tr><td><strong>Session death</strong> (everything dies)</td><td>User reruns <code>/uc:plan-execution {plan-name}</code></td><td>Lead finds latest checkpoint, shows resume prompt. New teams spawned, but task states + <code>shared/lead.md</code> + <code>tasks/</code> artifacts preserve all progress.</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2 id="mid-execution-plan-changes">Mid-Execution Plan Changes</h2>
+
+<p>When a discovery invalidates part of the plan:</p>
+
+<ol>
+<li><strong>Task Executor sends urgent message to Lead</strong> with evidence of the invalidation</li>
+<li><strong>Lead evaluates scope of impact:</strong>
+<ul>
+<li><strong>Single task affected</strong> &mdash; Lead updates task description, restarts the task team if needed</li>
+<li><strong>Multiple tasks affected</strong> &mdash; Lead adds amendment to <code>shared/lead.md</code>, updates affected task descriptions, may cancel pending task teams</li>
+<li><strong>Plan fundamentally wrong</strong> &mdash; Lead escalates to user with evidence. User decides: amend plan or abort and re-plan.</li>
+</ul>
+</li>
+<li><strong>Lead resumes spawning</strong> after resolution</li>
+</ol>
+
+<h3 id="session-resume">Session Resume</h3>
+
+<p>When <code>/uc:plan-execution</code> fires for a plan that has existing checkpoint files, the plan-execution skill handles resume as its first action:</p>
+<ol>
+<li>Reads latest <code>checkpoint-{timestamp}.md</code> file in the plan directory</li>
+<li>Reads <code>shared/lead.md</code> for Lead-level context</li>
+<li>Reads all per-task artifact files in <code>tasks/</code> directory</li>
+<li>Shows user a resume prompt with progress summary</li>
+<li>Skips completed tasks and spawns new task teams for remaining work</li>
+</ol>
+
+<p>This is skill startup behavior, not a hook.</p>
+
+<h2 id="workflow-step-by-step">Workflow: Step-by-Step</h2>
+
+<pre><code>User: /uc:plan-execution user-auth
+
+PHASE 1: SETUP (Lead actions)
+  a. Read ENTIRE plan directory:
+     - documentation/plans/user-auth/README.md (plan + tasks)
+     - documentation/plans/user-auth/tasks/*/ (existing artifacts)
+     - documentation/plans/user-auth/shared/lead.md (if resuming)
+     - documentation/plans/user-auth/checkpoint-*.md (if any)
+     Lead now has full picture of plan state.
+  b. Check for checkpoint:
+     - If checkpoint exists -&gt; show resume prompt
+     - If resuming -&gt; skip completed tasks based on checkpoint
+  c. Create shared/ directory with initial lead.md (includes dependency graph)
+  d. Create tasks/task-N/ subdirectories for each task
+  e. Determine concurrency (1-3 tasks: 1-2, 4-8: 2-3, 9+: 3-4 max teams)
+  f. Present cost estimate to user:
+     - Cost per task pipeline: ~150K tokens (Executor + Reviewer + Tester)
+     - Tech Knowledge (plan-wide): ~100K tokens
+     - Project Manager (plan-wide): ~50K tokens
+     Wait for explicit user confirmation before proceeding.
+  g. Spawn shared Tech Knowledge agent (knowledge-{PLAN_NAME})
+  h. Spawn Project Manager (pm-{PLAN_NAME}) -- plan-wide monitoring
+
+PHASE 2: PIPELINE ORCHESTRATION (per-task teams, self-coordinating)
+
+  For each task (up to concurrency limit):
+    Lead spawns a per-task agent team (executor-N, reviewer-N, tester-N):
+
+    Executor:
+      read shared/lead.md + task-specific pattern files -&gt;
+      spawn Explore subagents for codebase investigation -&gt;
+      query knowledge-{PLAN_NAME} for external library docs -&gt;
+      write tasks/task-N/plan.md -&gt;
+      send plan to Reviewer for feedback, then to Lead for review -&gt;
+      implement code -&gt;
+      write tasks/task-N/impl.md -&gt;
+      send "implementation complete" to Lead -&gt;
+      send "ready for review" to Reviewer AND "ready for test" to Tester
+
+    Code Reviewer (parallel with Tester):
+      check quality, patterns, architecture -&gt;
+      PASS: signal Executor | FAIL: feedback to Executor
+
+    Task Tester (parallel with Reviewer):
+      run tests, check criteria against plan + product docs -&gt;
+      PASS: signal Executor | FAIL: feedback to Executor
+
+    If FAIL (either):
+      Executor fixes, re-sends BOTH review AND test (up to 10 cycles)
+    If PASS (both):
+      Executor reports "task done" to Lead, Lead sends shutdown_request
+
+  Pipeline gate:
+    When Executor signals "implementation complete":
+      Lead checks for dependent successors in "pending" state
+      If found: spawn successor in pipeline mode (planning only, impl blocked)
+      Pipeline-spawned tasks don't count against concurrency while planning
+      When predecessor passes: Lead sends "Implementation approved" to successor
+
+  As teams complete, Lead spawns next pending task's team.
+  Lead sends terse status updates to PM for dashboard.
+
+PHASE 3: CHECKPOINT (triggered by Lead)
+  Triggers: every 3 completed tasks,
+            user /uc:checkpoint,
+            before risky plan amendments
+  Saves: task states, checkpoint file, decisions
+  Per-task artifacts already on disk
+
+PHASE 4: FAILURE HANDLING (within teams + Lead escalation)
+  Review/test failure: Executor fixes, re-triggers (team-internal)
+  Max 10 fix cycles -&gt; Executor escalates to Lead
+  Lead decides: adjust task, reassign, or escalate to user
+  Team crash: Lead spawns replacement team, per-task files preserved
+  Session death: user reruns /uc:plan-execution, reads checkpoint
+
+PHASE 5: COMPLETION (Lead actions)
+  a. All task teams have reported done
+  b. Lead asks a Tester to run full test suite (final gate)
+     - Not per-task -- entire suite as regression check
+     - For frontend projects: includes browser smoke test via Chrome tools
+     - If fail: Lead decides whether to re-queue or report
+  c. Lead tells PM to write operational report
+  d. Produce summary: tasks, files changed, decisions, tests
+  e. Present summary to user</code></pre>
+
+</div>
