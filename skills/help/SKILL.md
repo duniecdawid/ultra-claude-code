@@ -101,7 +101,7 @@ Manages Railway.com deployments via CLI with environment variable-based multi-ac
 Configures Tailscale to expose local services securely within the tailnet via `tailscale serve` or publicly via `tailscale funnel`. Use when exposing dashboards, dev servers, or preparing services for remote access. Validates the full prerequisite chain and enables HTTPS-wrapped local services.
 
 **Update** (`/uc:update`)
-Updates Ultra Claude to the latest version by pulling from git, clearing plugin cache, restarting the tmux layout daemon, and checking CHANGELOG.json for pending project migrations. Use after hearing about new features or when wanting the latest version. Shows changelog since last update and recommends `/uc:migrate` in each project if structural changes occurred.
+Updates Ultra Claude to the latest version via the Claude Code plugin marketplace using `claude plugin update`. Use after hearing about new features or when wanting the latest version. Shows changelog since last update, runs post-update housekeeping (file migration, tmux daemon restart, setup verification), and recommends `/uc:migrate` in each project if structural changes occurred.
 
 ### System Meta
 

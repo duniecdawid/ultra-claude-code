@@ -1,42 +1,54 @@
 ---
-description: Update Ultra Claude to the latest version — pulls from git, clears plugin cache, restarts tmux layout daemon, and checks if projects need migration. Use when user says "update", "upgrade", "pull latest", "refresh plugin", "update ultra claude", "get latest version", or after hearing about new features they want. Run this skill proactively if the user mentions wanting a feature that might already exist in a newer version.
+description: Update Ultra Claude to the latest version via the Claude Code plugin marketplace. Use when user says "update", "upgrade", "pull latest", "refresh plugin", "update ultra claude", "get latest version", or after hearing about new features they want. Run this skill proactively if the user mentions wanting a feature that might already exist in a newer version.
 user-invocable: true
 allowed-tools: [Bash, Read, Glob, Grep]
 ---
 
 # Update Ultra Claude
 
-Updates the plugin to the latest version and handles all post-update housekeeping.
+Updates the plugin to the latest version via the Claude Code marketplace and handles all post-update housekeeping.
 
-## Step 1: Pull Latest
+## Step 1: Update Plugin
 
-Get the current version before pulling, then update:
+Get the current version, detect the marketplace, and run the update:
 
 ```bash
 cd "${CLAUDE_PLUGIN_ROOT}"
 OLD_VERSION=$(jq -r '.version' .claude-plugin/plugin.json)
 echo "Current version: $OLD_VERSION"
-git pull
-NEW_VERSION=$(jq -r '.version' .claude-plugin/plugin.json)
+
+# Detect marketplace name from installed_plugins.json
+MARKETPLACE=$(jq -r '.plugins | keys[] | select(startswith("uc@"))' ~/.claude/plugins/installed_plugins.json 2>/dev/null | head -1 | sed 's/^uc@//')
+if [ -z "$MARKETPLACE" ]; then
+  MARKETPLACE="ultra-claude"
+  echo "Could not detect marketplace, using default: $MARKETPLACE"
+else
+  echo "Marketplace: $MARKETPLACE"
+fi
+```
+
+Run the update:
+
+```bash
+claude plugin update "uc@${MARKETPLACE}"
+```
+
+Check the new version:
+
+```bash
+NEW_VERSION=$(jq -r '.version' "${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json")
 echo "New version: $NEW_VERSION"
 ```
 
 If versions match, tell the user "Already up to date (v{version})" and stop here.
-
-Show what changed:
-
-```bash
-cd "${CLAUDE_PLUGIN_ROOT}"
-git log --oneline HEAD@{1}..HEAD
-```
 
 ## Step 2: Show Changelog
 
 Read the changelog using jq:
 
 ```bash
-# Get user's last known seq from setup marker (check both new and old locations)
-LAST_SEQ=$(jq -r '.seq // 0' ~/.claude/ultra/uc-setup.json 2>/dev/null || jq -r '.seq // 0' ~/.claude/uc-setup.json 2>/dev/null || echo 0)
+# Get user's last known seq from setup marker
+LAST_SEQ=$(jq -r '.seq // 0' ~/.claude/ultra/uc-setup.json 2>/dev/null || echo 0)
 
 # Get entries since last known version
 jq --argjson last "$LAST_SEQ" \
@@ -44,7 +56,7 @@ jq --argjson last "$LAST_SEQ" \
   "${CLAUDE_PLUGIN_ROOT}/CHANGELOG.json"
 ```
 
-If neither `~/.claude/ultra/uc-setup.json` nor `~/.claude/uc-setup.json` exists or has no seq field, show the last 10 entries:
+If `~/.claude/ultra/uc-setup.json` does not exist or has no seq field, show the last 10 entries:
 
 ```bash
 jq '.[0:10] | .[] | "\(.version) — \(.summary)"' "${CLAUDE_PLUGIN_ROOT}/CHANGELOG.json"
@@ -52,30 +64,7 @@ jq '.[0:10] | .[] | "\(.version) — \(.summary)"' "${CLAUDE_PLUGIN_ROOT}/CHANGE
 
 Format the output as a readable table for the user.
 
-## Step 3: Clear Plugin Cache
-
-Remove any cached copies of the uc plugin so Claude Code picks up the fresh source:
-
-```bash
-# Remove cached plugin versions
-rm -rf ~/.claude/plugins/cache/*/uc/ 2>/dev/null
-echo "Plugin cache cleared"
-```
-
-Update the installed plugins registry if it tracks uc:
-
-```bash
-INSTALLED="$HOME/.claude/plugins/installed_plugins.json"
-if [ -f "$INSTALLED" ] && jq -e '."uc@ultra-claude"' "$INSTALLED" > /dev/null 2>&1; then
-  NEW_VERSION=$(jq -r '.version' "${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json")
-  jq --arg v "$NEW_VERSION" --arg t "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" \
-    '."uc@ultra-claude".version = $v | ."uc@ultra-claude".lastUpdated = $t' \
-    "$INSTALLED" > "${INSTALLED}.tmp" && mv "${INSTALLED}.tmp" "$INSTALLED"
-  echo "Registry updated to v$NEW_VERSION"
-fi
-```
-
-## Step 4: Migrate Global Files
+## Step 3: Migrate Global Files
 
 Since v2026.04.04-15, Ultra Claude runtime files live under `~/.claude/ultra/` instead of `~/.claude/`. Check for files at the old locations and move them:
 
@@ -132,7 +121,7 @@ fi
 
 If nothing was moved, skip silently — the user is already on the new layout.
 
-## Step 5: Restart Tmux Layout Daemon
+## Step 4: Restart Tmux Layout Daemon
 
 Kill the existing daemon and start fresh so it picks up any changes:
 
@@ -148,11 +137,11 @@ fi
 node "${CLAUDE_PLUGIN_ROOT}/scripts/tmux-layout-daemon.js" --ensure
 ```
 
-## Step 6: Run Setup
+## Step 5: Run Setup
 
 Invoke `/uc:setup` to verify and fix the machine environment. Setup is idempotent — it will check all prerequisites, update symlinks, refresh hooks, and write the version marker. This ensures any new setup requirements introduced by the update are applied.
 
-## Step 7: Check Migration Needs
+## Step 6: Check Migration Needs
 
 Check CHANGELOG.json for migration entries between the old and new versions:
 
@@ -168,15 +157,15 @@ jq --argjson old "$OLD_SEQ" --argjson new "$NEW_SEQ" \
 
 Save the migration results for the recommendations step.
 
-## Step 8: Recommendations
+## Step 7: Recommendations
 
 End with a summary of what the user should do next:
 
 > **Updated to v{NEW_VERSION}.** Next steps:
 >
-> 1. **Reload sessions** — Start a new Claude Code conversation to load the updated skills (plugins are loaded at startup).
+> 1. **Reload plugins** — Run `/reload-plugins` or start a new Claude Code session to load the updated skills.
 
-If migration entries were found in Step 7, also include:
+If migration entries were found in Step 6, also include:
 
 > 2. **Run project migrations** — The following changes affect project structure:
 >    - {version} — {summary}

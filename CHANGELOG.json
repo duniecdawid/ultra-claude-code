@@ -1,5 +1,12 @@
 [
   {
+    "seq": 99,
+    "version": "2026.04.08-1",
+    "date": "2026-04-08",
+    "summary": "Rewrite /uc:update skill to use Claude Code plugin marketplace (claude plugin update) instead of git pull. Skill now detects marketplace name and runs the proper update command.",
+    "migration": null
+  },
+  {
     "seq": 98,
     "version": "2026.04.07-1",
     "date": "2026-04-07",
