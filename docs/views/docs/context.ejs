@@ -1,0 +1,106 @@
+<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+
+<div class="page-docs">
+  <%- include('../partials/sidebar') %>
+  <main class="doc-content">
+
+    <h1>Context Management</h1>
+    <p>Your project depends on external services, APIs, and libraries. Context management gives agents structured knowledge about these dependencies so they make decisions based on real documentation, not training data.</p>
+
+    <h2>Why this matters</h2>
+    <p>When an Executor writes code that integrates with Stripe, or a Reviewer checks that your Auth0 flow follows best practices, they need current documentation. Without it, agents fall back on training data &mdash; which may be outdated, incomplete, or wrong for your specific version.</p>
+    <p>The <code>context/</code> directory is a structured knowledge base that sits at your project root. Agents read it automatically during planning and execution.</p>
+
+    <h2>The context directory</h2>
+    <p>Each external system gets its own subdirectory with a consistent layout:</p>
+    <pre><code>context/
+├── README.md                     # Index of all external systems
+├── stripe/
+│   ├── docs/                     # API docs, webhook guides, specs
+│   │   ├── api-reference.md
+│   │   └── webhook-guide.md
+│   └── code/                     # Git submodules, SDKs, samples
+│       └── stripe-node/          # (git submodule)
+├── auth0/
+│   ├── docs/
+│   │   └── oidc-flow.md
+│   └── code/
+└── internal-api/
+    ├── docs/
+    │   └── api-spec.md
+    └── code/</code></pre>
+
+    <h2>Adding external systems</h2>
+    <pre><code>/uc:context-management add stripe</code></pre>
+    <p>This creates the directory structure and asks what information to add &mdash; API docs, SDK submodule, configuration guides, or all of the above.</p>
+
+    <h3>Documentation from URLs</h3>
+    <p>When you provide a URL, the skill fetches key content via <a href="/docs/setup">Ref.tools</a> and saves it as structured markdown. No raw HTML dumps &mdash; it extracts and organizes the facts that matter.</p>
+    <pre><code>/uc:context-management add auth0 OIDC flow documentation</code></pre>
+
+    <h3>Code references and SDKs</h3>
+    <p>Add git submodules for SDKs and libraries your project depends on:</p>
+    <pre><code>/uc:context-management add submodule https://github.com/stripe/stripe-node</code></pre>
+    <p>Submodules land in <code>context/{system}/code/</code> and can be updated later with <code>/uc:context-management update submodules</code>.</p>
+
+    <h2>How agents use context</h2>
+    <ul>
+      <li><strong>During planning</strong> &mdash; Feature mode and debug mode read <code>context/</code> to understand what external services your system integrates with and how</li>
+      <li><strong>During execution</strong> &mdash; Executors read context docs to write correct integration code. Reviewers check that integrations follow the documented patterns.</li>
+      <li><strong>Tech Knowledge agent</strong> &mdash; reads <code>context/</code> alongside Ref.tools to serve the most relevant documentation to any team member on demand</li>
+    </ul>
+
+    <div class="callout callout-purple">
+      <p><strong>Context is not documentation.</strong> The <code>context/</code> directory lives at the project root, separate from <code>documentation/</code>. It contains reference material about external systems &mdash; not your own specs, architecture, or standards. Think of it as "things we depend on" vs "things we build."</p>
+    </div>
+
+    <h2>What to add</h2>
+    <p>Good candidates for the context directory:</p>
+    <table>
+      <thead><tr><th>System type</th><th>What to include</th><th>Example</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Payment provider</strong></td><td>API reference, webhook events, SDK</td><td>Stripe, PayPal</td></tr>
+        <tr><td><strong>Auth provider</strong></td><td>OIDC/OAuth flows, token handling, SDK</td><td>Auth0, Clerk, Supabase Auth</td></tr>
+        <tr><td><strong>Database</strong></td><td>Query patterns, migration guides, ORM docs</td><td>Prisma, Drizzle, Supabase</td></tr>
+        <tr><td><strong>Internal API</strong></td><td>OpenAPI spec, endpoint docs, auth scheme</td><td>Your own microservices</td></tr>
+        <tr><td><strong>Cloud services</strong></td><td>SDK docs, config patterns, IAM setup</td><td>AWS, GCP, Cloudflare</td></tr>
+        <tr><td><strong>Third-party APIs</strong></td><td>Rate limits, response formats, error codes</td><td>SendGrid, Twilio, OpenAI</td></tr>
+      </tbody>
+    </table>
+
+    <details>
+      <summary>File naming conventions</summary>
+      <div class="details-content">
+        <ul>
+          <li>API references: <code>api-reference.md</code>, <code>api-v2.md</code></li>
+          <li>Guides: <code>{topic}-guide.md</code> (e.g., <code>webhook-guide.md</code>)</li>
+          <li>Specs: <code>{topic}-spec.md</code> (e.g., <code>openapi-spec.md</code>)</li>
+          <li>Config: <code>configuration.md</code>, <code>{topic}-config.md</code></li>
+          <li>Migration: <code>migration-{from}-to-{to}.md</code></li>
+        </ul>
+        <p>Keep files focused &mdash; one topic per file, under 200 lines. Include the source URL at the top of each file so agents know where the information came from.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Managing git submodules</summary>
+      <div class="details-content">
+        <p>Git submodules let you include external code repositories as references:</p>
+        <pre><code><span style="color: var(--muted-foreground)"># Add a submodule</span>
+/uc:context-management add submodule https://github.com/stripe/stripe-node
+
+<span style="color: var(--muted-foreground)"># Update all submodules to latest</span>
+/uc:context-management update submodules</code></pre>
+        <p>Submodules are added with your confirmation (they modify <code>.gitmodules</code>). They're useful for having SDK source code available locally so agents can read actual implementations, not just API docs.</p>
+      </div>
+    </details>
+
+    <h2>Generating an overview</h2>
+    <pre><code>/uc:context-management summarize context</code></pre>
+    <p>Scans all systems and regenerates <code>context/README.md</code> with a comprehensive index &mdash; what each system provides, what documentation is available, and what code references exist.</p>
+
+  </main>
+</div>
+
+<%- include('../partials/footer') %>

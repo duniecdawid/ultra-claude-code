@@ -17,6 +17,7 @@ const pages = {
   'debugging': { title: 'Debugging', description: 'Hypothesis-driven bug investigation with parallel evidence gathering and reproduction.' },
   'verification': { title: 'Verification', description: 'Detect documentation drift and verify code matches specifications.' },
   'standards': { title: 'Technology Standards', description: 'Define, enforce, and verify coding standards across your project.' },
+  'context': { title: 'Context Management', description: 'Add external API docs, SDK references, and system knowledge so agents work with real context.' },
   'token-efficiency': { title: 'Token Efficiency', description: 'How Ultra Claude manages token usage, cost estimates, and rate limit handling.' },
   'backlog': { title: 'Backlog', description: 'Track bugs, questions, ideas, and tech debt across your project.' },
   'reference': { title: 'Reference', description: 'Complete reference of all 22 skills and 10 agents in Ultra Claude.' }
