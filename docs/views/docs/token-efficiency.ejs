@@ -1,0 +1,104 @@
+<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+
+<div class="page-docs">
+  <%- include('../partials/sidebar') %>
+  <main class="doc-content">
+
+    <h1>Token Efficiency</h1>
+    <p>Ultra Claude burns more tokens than normal development. That's by design &mdash; dedicated Reviewers, Testers, and a shared Knowledge agent increase quality, but they cost context. The framework is built to make that trade-off worthwhile and keep usage under control.</p>
+
+    <h2>Cost per plan</h2>
+    <p>Before execution starts, you see a cost estimate:</p>
+
+    <table>
+      <thead><tr><th>Component</th><th>Cost</th><th>Details</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Per-task pipeline</strong></td><td>~120K tokens</td><td>Executor ~80K + Reviewer ~30K + Tester ~10K</td></tr>
+        <tr><td><strong>Tech Knowledge</strong></td><td>~100K tokens</td><td>Shared across all tasks, loaded once</td></tr>
+        <tr><td><strong>Project Manager</strong></td><td>~50K tokens</td><td>Observational monitoring, entire execution</td></tr>
+      </tbody>
+    </table>
+
+    <p>A 5-task plan costs roughly <strong>750K tokens</strong> (5 &times; 120K + 100K + 50K). The estimate is shown before any agents spawn &mdash; you confirm before spending.</p>
+
+    <h2>Why it's worth it</h2>
+    <p>Normal Claude Code development is one agent doing everything &mdash; writing code, hoping it follows patterns, and trusting it works. Ultra Claude adds dedicated roles:</p>
+    <ul>
+      <li><strong>Reviewer</strong> catches pattern violations and standards drift <em>before</em> code is merged</li>
+      <li><strong>Tester</strong> validates against product docs, not just "does it compile"</li>
+      <li><strong>Tech Knowledge</strong> serves current API docs so agents work with real signatures, not stale training data</li>
+    </ul>
+    <p>The extra tokens buy you code that follows your standards, passes real tests, and uses current library APIs. Without them, you spend the same tokens later fixing the bugs that review and testing would have caught.</p>
+
+    <h2>How the framework saves tokens</h2>
+
+    <h3>Model assignment</h3>
+    <p>Only the Executor runs on Opus (the most capable, most expensive model). Every other role &mdash; Reviewer, Tester, Tech Knowledge, Project Manager &mdash; runs on Sonnet. This concentrates cost where capability matters most: writing code.</p>
+
+    <h3>Lazy Tester spawning</h3>
+    <p>The Tester doesn't spawn when the task starts. It's created only after the Executor signals "implementation complete." During the planning and implementation phases (often the longest part), only two agents are active instead of three. This avoids ~10K tokens of idle context per task.</p>
+
+    <h3>Shared Tech Knowledge</h3>
+    <p>One Knowledge agent serves all task teams for the entire plan. Without sharing, each task team would fetch its own library docs &mdash; duplicating the same lookups across parallel tasks. Shared costs ~100K total instead of ~100K per task.</p>
+
+    <h3>Ref.tools integration</h3>
+    <p>External library documentation is fetched via <a href="/docs/setup">Ref.tools MCP</a> at ~500&ndash;5K tokens per query. The fallback (raw web search) costs 50K+ tokens for the same information. Across a plan with dozens of library queries, this saves hundreds of thousands of tokens.</p>
+
+    <h3>Checkpoint recovery</h3>
+    <p>When a session dies mid-execution, checkpoints let you resume without re-running completed tasks. A 10-task plan interrupted after task 5 resumes from task 6 &mdash; the 600K tokens already spent on tasks 1&ndash;5 are not re-spent.</p>
+
+    <h3>Concurrency limits</h3>
+    <p>Parallel execution is capped at 1&ndash;4 task-teams based on plan size. This prevents token burn from too many agents running simultaneously while still allowing parallel progress.</p>
+
+    <table>
+      <thead><tr><th>Plan size</th><th>Max concurrent teams</th></tr></thead>
+      <tbody>
+        <tr><td>1&ndash;3 tasks</td><td>1&ndash;2</td></tr>
+        <tr><td>4&ndash;8 tasks</td><td>2&ndash;3</td></tr>
+        <tr><td>9+ tasks</td><td>3&ndash;4</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Usage management</h2>
+    <p>Before execution, you're asked whether to enable extra usage:</p>
+
+    <h3>Extra usage enabled</h3>
+    <p>Development runs as fast as possible with no pauses. Use this when you need results quickly and your Anthropic account has extra usage capacity.</p>
+
+    <h3>Extra usage disabled</h3>
+    <p>The Project Manager monitors your 5-hour rate limit by reading <code>~/.claude/ultra/usage-status.json</code> every 5 minutes. When usage hits 85%:</p>
+    <ol>
+      <li>In-progress tasks finish naturally &mdash; no work is lost</li>
+      <li>Teams shut down, PM enters low-power mode (only checks usage)</li>
+      <li>When the 5-hour window resets, PM signals the Lead</li>
+      <li>Fresh teams spawn for remaining tasks, execution continues</li>
+    </ol>
+    <p>Multiple pause/resume cycles are supported. A long-running plan can span several 5-hour windows automatically.</p>
+
+    <div class="callout callout-purple">
+      <p><strong>Plan during the day, execute overnight.</strong> Planning modes (feature, debug, verification) are interactive and use modest tokens. Execution is autonomous and token-heavy. Start a plan during the day when you can discuss scope, then kick off execution before bed &mdash; most plans complete within a single rate limit window.</p>
+    </div>
+
+    <details>
+      <summary>Token budget by activity</summary>
+      <div class="details-content">
+        <table>
+          <thead><tr><th>Activity</th><th>Token range</th><th>Interactive?</th></tr></thead>
+          <tbody>
+            <tr><td>Feature planning</td><td>~20&ndash;50K</td><td>Yes &mdash; conversation with user</td></tr>
+            <tr><td>Debug investigation</td><td>~30&ndash;60K</td><td>Yes &mdash; hypothesis discussion</td></tr>
+            <tr><td>Verification scan</td><td>~20&ndash;40K</td><td>Yes &mdash; discrepancy review</td></tr>
+            <tr><td>Tech research query</td><td>~0.5&ndash;5K</td><td>No &mdash; automated retrieval</td></tr>
+            <tr><td>Plan execution (per task)</td><td>~120K</td><td>No &mdash; autonomous</td></tr>
+            <tr><td>Plan execution (overhead)</td><td>~150K</td><td>No &mdash; PM + Knowledge</td></tr>
+          </tbody>
+        </table>
+        <p>Interactive activities are cheap. Execution is expensive but autonomous. This is why the "plan by day, execute by night" workflow works well.</p>
+      </div>
+    </details>
+
+  </main>
+</div>
+
+<%- include('../partials/footer') %>

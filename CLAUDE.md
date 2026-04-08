@@ -30,3 +30,13 @@ Rule: each skill and agent gets exactly 3 sentences in the help knowledge base:
 1. What it does (capability)
 2. When to use it (trigger/context)
 3. What it produces or enables (outcome)
+
+## Documentation Site Sync — MANDATORY
+
+The public documentation site lives in `docs/` (Express + EJS, served at ultra-claude.dev). When any logic change is made to skills or agents, the docs site must be updated as part of the same plan.
+
+Process:
+1. When planning a change that modifies skill behavior, agent roles, execution flow, or any user-facing capability — spawn an Explore agent to scan `docs/views/` for pages that reference the affected functionality
+2. Include doc page updates as part of the implementation tasks (not as a separate doc-only task)
+3. Pages most likely to need updates: `docs/views/docs/plan-execution.ejs` (execution flow), `docs/views/docs/reference.ejs` (skill/agent tables), `docs/views/docs/standards.ejs` (enforcement loop), `docs/views/docs/token-efficiency.ejs` (cost/usage changes)
+4. If a new skill or agent is added, add it to the Reference page and consider whether it needs its own documentation page

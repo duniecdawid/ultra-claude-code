@@ -36,7 +36,8 @@
 
 /* ── Reset ── */
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-html, body { overflow-x: hidden; max-width: 100vw; }
+html { overflow-x: hidden; overflow-y: scroll; }
+body { max-width: 100vw; }
 
 /* ── Typography ── */
 body {
@@ -83,6 +84,16 @@ pre code {
 }
 
 /* ── Navigation ── */
+.site-nav-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: var(--background);
+  border-bottom: 1px solid var(--border);
+  z-index: 100;
+}
+
 .site-nav {
   display: flex;
   align-items: center;
@@ -91,7 +102,10 @@ pre code {
   margin: 0 auto;
   padding: 0 1.5rem;
   height: var(--nav-height);
-  border-bottom: 1px solid var(--border);
+}
+
+.site-nav-spacer {
+  height: var(--nav-height);
 }
 
 .site-nav .logo {
@@ -619,20 +633,6 @@ tr:hover td { background: var(--muted); }
   margin: 0;
 }
 
-.landing-footer {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  border-top: 1px solid var(--border);
-  padding: 1.5rem;
-  text-align: center;
-  font-size: 0.75rem;
-  color: var(--muted-foreground);
-  background: var(--background);
-  z-index: 10;
-}
-
 /* ── Button variants (matching dashboard) ── */
 .btn-ghost {
   background: transparent;
@@ -650,6 +650,31 @@ tr:hover td { background: var(--muted); }
 
 .btn-sm { padding: 0.25rem 0.75rem; font-size: 0.8125rem; height: 1.75rem; }
 .btn-lg { padding: 0.5rem 1.5rem; font-size: 0.875rem; height: 2.25rem; }
+
+/* ── Site footer (all pages, fixed) ── */
+.site-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  border-top: 1px solid var(--border);
+  padding: 1rem 1.5rem;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  background: var(--background);
+  z-index: 100;
+}
+
+.site-footer a {
+  color: var(--muted-foreground);
+  text-decoration: none;
+}
+
+.site-footer a:hover {
+  color: var(--foreground);
+  text-decoration: underline;
+}
 
 /* ── Responsive ── */
 @media (max-width: 768px) {

@@ -1,8 +1,11 @@
-<nav class="site-nav">
-  <a class="logo" href="/">Ultra Claude</a>
-  <div class="nav-links">
-    <a href="/" class="<%= page === 'home' ? 'active' : '' %>">Home</a>
-    <a href="/getting-started" class="<%= page === 'getting-started' ? 'active' : '' %>">Getting Started</a>
-    <a href="/docs/setup" class="<%= ['setup','discovery','roadmap','feature-planning','plan-execution','debugging','verification','standards','backlog','reference'].includes(page) ? 'active' : '' %>">Documentation</a>
-  </div>
-</nav>
+<div class="site-nav-wrapper">
+  <nav class="site-nav">
+    <a class="logo" href="/">Ultra Claude</a>
+    <div class="nav-links">
+      <a href="/" class="<%= page === 'home' ? 'active' : '' %>">Home</a>
+      <a href="/getting-started" class="<%= page === 'getting-started' ? 'active' : '' %>">Getting Started</a>
+      <a href="/docs/setup" class="<%= ['setup','discovery','roadmap','feature-planning','plan-execution','debugging','verification','standards','token-efficiency','backlog','reference'].includes(page) ? 'active' : '' %>">Documentation</a>
+    </div>
+  </nav>
+</div>
+<div class="site-nav-spacer"></div>
