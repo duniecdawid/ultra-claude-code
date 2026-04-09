@@ -86,9 +86,9 @@ Tasks only spawn when their slot is available AND all dependencies are completed
 | Tester | `bypassPermissions` | Runs tests autonomously, no approval needed |
 | Project Manager | `bypassPermissions` | Read-only observation, no approval needed |
 
-### 1.5 Present Cost Estimate and Get Confirmation
+### 1.5 Cost Estimate & Usage Mode
 
-Present to user BEFORE spawning any teams:
+Present the cost estimate to the user (informational — no confirmation needed, the user already chose to execute by running the command):
 
 ```
 Plan: $ARGUMENTS
@@ -100,31 +100,33 @@ Cost per task pipeline: ~120K tokens (Executor ~80K + Reviewer ~30K + Tester ~10
   (Reviewer spawns with executor for continuous review; Tester is lazy-spawned — only active during test phase)
 Tech Knowledge (plan-wide): ~100K tokens (shared documentation retrieval)
 Project Manager (plan-wide): ~50K tokens (observational, runs entire execution)
-
-Proceed? (yes/no)
 ```
 
-**Wait for explicit user confirmation.** Do not spawn teams without it.
-
-### 1.5b Extra Usage Check
-
-After the user confirms "Proceed", ask one more question:
+Then ask the usage mode question:
 
 ```
-Enable extra usage? (yes/no)
-
-  YES — Development runs as fast as possible with no pauses.
-        Requires extra usage enabled on your Anthropic account.
-
-  NO  — Ultra Claude will automatically pause development before
-        the 5-hour rate limit is exhausted and resume after reset.
-
-💡 Cost tip: plan during the day, execute overnight — most plans
-   complete within the free limit window. Enable extra usage only
-   if you need it done as fast as possible.
+AskUserQuestion({
+  questions: [
+    {
+      question: "Enable extra usage? Tip: plan during the day, execute overnight — most plans complete within the free limit window. Enable extra usage only if you need it done as fast as possible.",
+      header: "Usage mode",
+      multiSelect: false,
+      options: [
+        {
+          label: "No — auto-pause at limits (Recommended)",
+          description: "Ultra Claude pauses before the 5-hour rate limit is exhausted and resumes after reset."
+        },
+        {
+          label: "Yes — full speed",
+          description: "No pauses — runs as fast as possible. If you don't have extra usage enabled on your Anthropic account, work will stop at the rate limit and you'll have to recover manually."
+        }
+      ]
+    }
+  ]
+})
 ```
 
-Store the answer in `shared/lead.md` under a config header:
+After the user answers, store in `shared/lead.md` under a config header:
 
 ```markdown
 ## Execution Config
@@ -134,6 +136,8 @@ Store the answer in `shared/lead.md` under a config header:
 This value is read by the PM agent to decide whether to activate usage threshold monitoring.
 - **If extra_usage = false:** PM monitors `~/.claude/ultra/usage-status.json` and triggers PAUSE/RESUME at 85% five-hour usage. On PAUSE: in-progress tasks finish, teams are shut down, PM enters low-power mode (usage checks only). On RESUME: Lead spawns fresh teams. Multiple cycles supported across 5-hour windows.
 - **If extra_usage = true:** No special monitoring. The system trusts the account has extra usage capacity.
+
+Proceed directly to 1.6.
 
 ### 1.6 Create Task List
 
@@ -165,7 +169,7 @@ documentation/plans/$ARGUMENTS/
   checkpoint-*.md
 ```
 
-Create `shared/lead.md` with: plan overview, concurrency decision, key architectural constraints, task dependency graph, critical decisions, and execution config (extra_usage setting from 1.5b).
+Create `shared/lead.md` with: plan overview, concurrency decision, key architectural constraints, task dependency graph, critical decisions, and execution config (extra_usage setting from 1.5).
 
 Create `tasks/` directory. Per-task subdirs (`tasks/task-N/`) are created just-in-time when the first team member spawns for that task.
 

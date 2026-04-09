@@ -1,5 +1,18 @@
 [
   {
+    "seq": 100,
+    "version": "2026.04.09-1",
+    "date": "2026-04-09",
+    "summary": "Docs-manager: rewrite index generation — product-first ordering, ~5 sentence product intro, skip empty categories, remove backlog section, collapse plans to single link. Index now reads as a coherent project onboarding document.",
+    "migration": {
+      "precondition": "Project has documentation/README.md",
+      "actions": [
+        "Regenerate documentation/README.md by running /uc:docs-manager — the index format has changed to product-first ordering with a product summary intro"
+      ],
+      "conflicts": "Projects with a manually customized documentation/README.md should review the regenerated output."
+    }
+  },
+  {
     "seq": 99,
     "version": "2026.04.08-1",
     "date": "2026-04-08",

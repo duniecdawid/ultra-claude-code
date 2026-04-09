@@ -253,56 +253,62 @@ Category descriptions:
 
 ## Index Generation
 
-Maintain `documentation/README.md` as a navigable index of the entire documentation tree. Regenerate it whenever documentation is added, removed, or restructured.
+Maintain `documentation/README.md` as a navigable project onboarding document. Regenerate it whenever documentation is added, removed, or restructured. The index should read as a coherent introduction to the project — not a file listing.
+
+### Index Update Process
+
+1. **Scan** all markdown files under `documentation/` (excluding README.md files themselves)
+2. **Categorize** each by its parent directory
+3. **Skip empty categories** — if a category directory has no documents (other than its own README.md), omit that category entirely from the index. Never render an empty section header.
+4. **Extract** the first heading or filename as the document name
+5. **Write the product intro** — read doc(s) in `product/description/` and write a ~5 sentence summary that explains what the project is, what problem it solves, and its purpose. If no product description exists, write: *"This project does not yet have a product description. Run `/uc:discovery-mode` to create one."*
+6. **Generate** the index following the format below
+7. **Write** to `documentation/README.md`
+8. **If format is docsify** — also update each category `README.md` with its current document list
 
 ### Index Format
 
+The index follows a product-first structure. Every section is **conditional** — only include it if matching documents exist.
+
 ```markdown
-# Documentation Index
+# {Project Name}
+
+{~5 sentence product summary derived from product/description/ docs.
+Covers: what the project is, the problem it solves, who it's for, and its core approach.}
+
+## Product
+- [Doc Name](product/description/filename.md) — One-line description
+- [Doc Name](product/requirements/filename.md) — One-line description
+- [Doc Name](product/personas/filename.md) — One-line description
+
+## Research
+- [Doc Name](product/research/filename.md) — One-line description
 
 ## Technology
 
 ### Architecture
-- [Document Name](technology/architecture/filename.md) — One-line description
+- [Doc Name](technology/architecture/filename.md) — One-line description
 
 ### Standards
-- [Document Name](technology/standards/filename.md) — One-line description
+- [Doc Name](technology/standards/filename.md) — One-line description
 
 ### Testing
-- [Document Name](technology/testing/filename.md) — One-line description
+- [Doc Name](technology/testing/filename.md) — One-line description
 
 ### RFCs
-- [Document Name](technology/rfcs/filename.md) — One-line description
-
-## Product
-
-### Description
-- [Document Name](product/description/filename.md) — One-line description
-
-### Research
-- [Document Name](product/research/filename.md) — One-line description
-
-### Requirements
-- [Document Name](product/requirements/filename.md) — One-line description
-
-### Personas
-- [Persona Name](product/personas/filename.md) — One-line description
+- [Doc Name](technology/rfcs/filename.md) — One-line description
 
 ## Plans
-- [{plan-name}](plans/{plan-name}/README.md) — Plan status and objective
-
-## Backlog
-See project backlog tab in dashboard or run `/uc:backlog list`
+See [Plans](plans/) for implementation plans and execution status.
 ```
 
-### Index Update Process
+### Section Rules
 
-1. **Scan** all markdown files under `documentation/`
-2. **Categorize** each by its parent directory
-3. **Extract** the first heading or filename as the document name
-4. **Generate** the index with links and descriptions
-5. **Write** to `documentation/README.md`
-6. **If format is docsify** — update each category `README.md` with its current document list
+- **Product** — flat list combining description, requirements, and personas docs. Only include subcategories that have docs.
+- **Research** — flat list of research docs. Omit entire section if `product/research/` is empty.
+- **Technology** — subsections for architecture, standards, testing, RFCs. Only include subsections that have docs. If no technology docs exist at all, omit the entire Technology section.
+- **Plans** — check if `documentation/plans/` contains at least one subdirectory with a `README.md`. If yes, render the single-line link. If no, omit entirely.
+- **Backlog** — never included in the index. Backlog is managed separately.
 
 ## File Naming
 

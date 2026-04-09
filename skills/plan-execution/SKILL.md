@@ -296,7 +296,7 @@ Real examples from past executions — do NOT produce output like this:
 ## Constraints
 
 - Never write implementation code — you orchestrate, not implement
-- Never skip user confirmation before spawning teams
+- Never spawn teams before the user answers the AskUserQuestion in section 1.5
 - Never narrate or comment on operational events to the user
 - Always send terse status updates to PM after spawning, shutdowns, stage transitions
 - Always checkpoint before session end
