@@ -141,8 +141,12 @@ After ALL implementation is complete:
 
 When all stages pass:
 
-1. **SendMessage to Lead** (named in your spawn prompt): "Task {N} done — all stages passed"
-2. **Wait for `shutdown_request`** from Lead. Approve it to exit.
+1. **Confirm teammates are finished** — send both messages simultaneously:
+   - SendMessage to Reviewer: "All stages passed — confirm you are done and ready to exit"
+   - SendMessage to Tester: "All stages passed — confirm you are done and ready to exit"
+2. **Wait for BOTH to reply "READY TO EXIT"** before proceeding. Do NOT send "task done" to Lead until both confirmations are received.
+3. **SendMessage to Lead** (named in your spawn prompt): "Task {N} done — all stages passed"
+4. **Wait for `shutdown_request`** from Lead. Approve it to exit.
 
 ### Retry Limit
 

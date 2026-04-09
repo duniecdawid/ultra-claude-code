@@ -1,5 +1,12 @@
 [
   {
+    "seq": 101,
+    "version": "2026.04.09-2",
+    "date": "2026-04-09",
+    "summary": "Fix team shutdown race condition: executor now collects explicit READY TO EXIT confirmations from both reviewer and tester before reporting task done to Lead, preventing premature team shutdown while tester is still working.",
+    "migration": null
+  },
+  {
     "seq": 100,
     "version": "2026.04.09-1",
     "date": "2026-04-09",

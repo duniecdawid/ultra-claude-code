@@ -237,12 +237,15 @@ After any code fix (whether triggered by review failures or your own test failur
 
 ### 6. Exit
 
-**Exit only** when `shutdown_request` arrives from Lead. Approve it to exit.
+When the Executor sends "All stages passed — confirm you are done and ready to exit":
+1. **Finish any in-progress work** (do not abandon mid-operation)
+2. **Clean up dev servers:**
+   ```bash
+   kill $DEV_PID 2>/dev/null
+   ```
+3. **Reply to Executor:** "READY TO EXIT"
 
-**Before exiting**, clean up any dev servers you started:
-```bash
-kill $DEV_PID 2>/dev/null
-```
+Then **wait for `shutdown_request`** from Lead. Approve it to exit.
 
 ## Final Gate
 

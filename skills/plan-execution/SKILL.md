@@ -67,7 +67,7 @@ Reviewer:   reads standards + architecture early → advisory plan feedback → 
 Tester:     (lazy-spawned after implementation) reads context → tests against PRODUCT DOCS
             → sends PASS/FAIL to Executor (in parallel with Reviewer)
             → if FAIL: Executor fixes → "Ready for re-review" + "Ready for re-test" sent to both simultaneously
-Both PASS:  Executor tells Lead "task done" → Lead sends shutdown_request → team exits
+Both PASS:  Executor confirms teammates ready to exit → tells Lead "task done" → Lead sends shutdown_request → team exits
 ```
 
 **Key principles:**
@@ -242,7 +242,7 @@ When a teammate discovers something that invalidates part of the plan:
 | **Stage progress** | Executor → PM | "STAGE-DONE task-{N} {stage}", "RETRY task-{N}". PM updates dashboard directly. |
 | **Lead spawns executor + reviewer** | Lead → TeamCreate | Lead spawns executor and reviewer when slot opens. |
 | **Lead lazy-spawns tester** | Lead → TeamCreate | Lead spawns tester when executor signals "implementation complete". |
-| **Lead shuts down teams** | Lead → team members | Lead sends shutdown_request directly after executor reports "task done". |
+| **Lead shuts down teams** | Lead → team members | Lead sends shutdown_request after executor reports "task done" (executor first confirms all teammates replied "READY TO EXIT"). |
 | **Pane self-labeling** | Agent local | Spawn prompt defines `TASK_ID`/`ROLE`; agent runs tmux label per agent instructions. PM verifies after SPAWNED. |
 | **Lead → PM** | Lead → PM | Terse status updates (`SPAWNED`, `SPAWNED-TESTER`, `STAGE`, `COMPLETED`, `SHUTDOWN`, etc.) for dashboard. |
 | **PM → Lead** | PM → Lead | Dashboard URL (startup), usage ALERTs. |
