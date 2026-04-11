@@ -63,8 +63,6 @@ if [ -n "$session_id" ] && [ -n "$account_id" ]; then
       updated_at: (now | todate)
     }')
   # Atomic write: update accounts map keyed by account_id (flock to prevent concurrent corruption)
-  # Overwrite guard: never replace higher rate-limit usage with lower values unless the
-  # reset window has passed. Prevents stale data from overwriting active rate limits.
   (
     flock -w 2 9 || exit 0
     if [ -f "$usage_file" ]; then
@@ -72,23 +70,7 @@ if [ -n "$session_id" ] && [ -n "$account_id" ]; then
         --argjson new "$snippet" \
         '
         .accounts //= {} |
-        (.accounts[$key] // null) as $old |
-        # Merge rate limits: keep higher usage if reset window has not passed
-        (if $old and $old.rate_limits and $new.rate_limits then
-          ($new.rate_limits | to_entries | map(
-            .key as $k | .value as $nv |
-            ($old.rate_limits[$k] // null) as $ov |
-            if $ov and $nv and
-               ($ov.used_percentage > $nv.used_percentage) and
-               ($ov.resets_at > now)
-            then {key: $k, value: $ov}
-            else {key: $k, value: $nv}
-            end
-          ) | from_entries)
-        else
-          $new.rate_limits
-        end) as $merged_rl |
-        .accounts[$key] = ($new | .rate_limits = $merged_rl) |
+        .accounts[$key] = $new |
         .updated_at = (now | todate)
         ' \
         "$usage_file" \
