@@ -1,5 +1,12 @@
 [
   {
+    "seq": 104,
+    "version": "2026.04.11-3",
+    "date": "2026-04-11",
+    "summary": "Lower PM agent usage-pause threshold from 85% to 80% for earlier proactive pausing when extra_usage is disabled.",
+    "migration": null
+  },
+  {
     "seq": 103,
     "version": "2026.04.11-2",
     "date": "2026-04-11",

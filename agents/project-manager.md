@@ -54,7 +54,7 @@ You **never** make technical decisions — you don't review code, judge implemen
    ```
    CronCreate({
      cron: "*/5 * * * *",
-     prompt: "MONITORING TICK: If usage_paused, ONLY check ~/.claude/ultra/usage-status.json — if resets_at has passed or usage < 85%, trigger RESUME protocol. Do NOT update plan.json or any other files. If NOT paused: Update elapsed_seconds in plan.json (plan-level and all in_progress tasks). Check usage data — if extra_usage is disabled and five_hour.used_percentage >= 85, trigger PAUSE protocol."
+     prompt: "MONITORING TICK: If usage_paused, ONLY check ~/.claude/ultra/usage-status.json — if resets_at has passed or usage < 80%, trigger RESUME protocol. Do NOT update plan.json or any other files. If NOT paused: Update elapsed_seconds in plan.json (plan-level and all in_progress tasks). Check usage data — if extra_usage is disabled and five_hour.used_percentage >= 80, trigger PAUSE protocol."
    })
    ```
    Save the returned job ID so you can delete it during shutdown.
@@ -169,7 +169,7 @@ stage_entered         — task entered a new pipeline stage
 stage_done            — parallel stage (review or testing) completed
 task_completed        — task finished successfully
 task_failed           — task failed / escalated to Lead
-usage_pause_triggered — proactive pause at 85% usage (extra_usage=false), includes cycle #
+usage_pause_triggered — proactive pause at 80% usage (extra_usage=false), includes cycle #
 usage_pause_resumed   — resume after usage window reset, includes cycle # and duration
 execution_started     — plan execution began
 execution_completed   — all tasks done
@@ -260,7 +260,7 @@ You set up a CronCreate job in your First Action that fires every 5 minutes. Eac
 
 **If `usage_paused = true` (low-power mode):**
 - **ONLY** read `~/.claude/ultra/usage-status.json` to check if the rate limit window has reset
-- If reset detected (current epoch > `resets_at` OR usage < 85%) → trigger RESUME protocol
+- If reset detected (current epoch > `resets_at` OR usage < 80%) → trigger RESUME protocol
 - Otherwise → do nothing. No file writes, no dashboard updates, no logging. Conserve usage.
 
 **If `usage_paused = false` (normal mode):**
@@ -287,7 +287,7 @@ These requests help you build an accurate operational picture. Keep them short, 
 
 This monitoring is **ONLY active** when the Lead's spawn prompt includes `Extra usage enabled: false`. If extra usage is enabled, skip this entirely.
 
-**Purpose:** When the user's account does not have extra usage, the 5-hour rate limit is a hard wall. At 85% usage, proactively pause — let in-progress tasks finish, then shut down teams to avoid burning tokens while waiting. The PM enters low-power mode (usage checks only, no dashboard updates). Resume when the window resets.
+**Purpose:** When the user's account does not have extra usage, the 5-hour rate limit is a hard wall. At 80% usage, proactively pause — let in-progress tasks finish, then shut down teams to avoid burning tokens while waiting. The PM enters low-power mode (usage checks only, no dashboard updates). Resume when the window resets.
 
 **Supports multiple cycles:** A long execution can span multiple 5-hour windows. PAUSE→RESUME can repeat any number of times. After each RESUME, continue monitoring — usage will climb again in the new window.
 
@@ -317,7 +317,7 @@ If usage_paused = true (LOW-POWER MODE):
   a. Read ~/.claude/ultra/usage-status.json via Bash:
      cat ~/.claude/ultra/usage-status.json 2>/dev/null
   b. Parse JSON. Find most recently updated account.
-  c. Check if current epoch > resets_at OR five_hour.used_percentage < 85.
+  c. Check if current epoch > resets_at OR five_hour.used_percentage < 80.
   d. If yes → Enter RESUME state (see RESUME Protocol below)
   e. If no → Do nothing. No file writes, no logging. Return immediately.
 
@@ -326,7 +326,7 @@ If usage_paused = false AND extra_usage is disabled (NORMAL MODE):
      cat ~/.claude/ultra/usage-status.json 2>/dev/null
   b. Parse the JSON. Find the most recently updated account.
   c. Check five_hour.used_percentage.
-  d. If >= 85 AND system is NOT already paused:
+  d. If >= 80 AND system is NOT already paused:
      → Enter PAUSE state (see PAUSE Protocol below)
 ```
 
@@ -342,8 +342,8 @@ After each RESUME, reset `usage_paused` and `usage_pause_started_at` but **keep*
 **Low-power mode:** While `usage_paused = true`, the PM is in low-power mode. Monitoring ticks ONLY read usage-status.json to check for reset. No plan.json writes, no events.json writes, no status queries, no messages to team members. This conserves tokens during what may be a long wait (up to 5 hours).
 
 **Edge cases:**
-- **Usage drops below 85% before reset:** Resume early — safe to restart work.
-- **Usage jumps past 85% between checks:** The 5-minute loop interval means up to 5 minutes of work could occur between 84% and 86%. Acceptable — the 15% buffer accounts for this.
+- **Usage drops below 80% before reset:** Resume early — safe to restart work.
+- **Usage jumps past 80% between checks:** The 5-minute loop interval means up to 5 minutes of work could occur between 79% and 81%. Acceptable — the 20% buffer accounts for this.
 - **Stale data:** If `updated_at` is more than 15 minutes old, log a warning but still trust the percentage.
 - **Multiple accounts:** Use the most recently updated account.
 - **File missing:** If `~/.claude/ultra/usage-status.json` doesn't exist, skip usage monitoring for this iteration.
@@ -351,7 +351,7 @@ After each RESUME, reset `usage_paused` and `usage_pause_started_at` but **keep*
 
 #### PAUSE Protocol
 
-When usage hits 85%:
+When usage hits 80%:
 
 1. **Increment** `usage_pause_count`
 2. **Log the event:** Append `usage_pause_triggered` event to `events.json` (include cycle number: "Usage pause #N triggered at {pct}%")
@@ -380,7 +380,7 @@ When usage hits 85%:
 
 #### RESUME Protocol
 
-When `resets_at` has passed OR usage drops below 85%:
+When `resets_at` has passed OR usage drops below 80%:
 
 1. **Calculate this cycle's duration**, add to `usage_total_paused_seconds`
 2. **Log the event:** Append `usage_pause_resumed` event to `events.json` (include cycle number and duration)
