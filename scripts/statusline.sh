@@ -44,16 +44,22 @@ if [ -n "$session_id" ] && [ -n "$account_id" ]; then
     --arg email "$email" \
     --arg org "$org_name" \
     --arg sub "$sub_type" \
-    '{
+    '
+    # Normalize resets_at: ensure it is always an epoch integer (not ISO string)
+    def epoch_int: if type == "string" then (. | strptime("%Y-%m-%dT%H:%M:%SZ") | mktime) elif type == "number" then (. | floor) else . end;
+    {
       account_id: $account_id,
       email: $email,
       orgName: (if $org == "" then null else $org end),
       subscriptionType: (if $sub == "" then null else $sub end),
-      session_id: .session_id,
+      source_session_id: .session_id,
       model: .model.display_name,
       context_used: .context_window.used_percentage,
       cost_usd: .cost.total_cost_usd,
-      rate_limits: .rate_limits,
+      rate_limits: (.rate_limits | {
+        five_hour: { used_percentage: .five_hour.used_percentage, resets_at: (.five_hour.resets_at | epoch_int) },
+        seven_day: { used_percentage: .seven_day.used_percentage, resets_at: (.seven_day.resets_at | epoch_int) }
+      }),
       updated_at: (now | todate)
     }')
   # Atomic write: update accounts map keyed by account_id (flock to prevent concurrent corruption)

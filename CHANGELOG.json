@@ -1,5 +1,19 @@
 [
   {
+    "seq": 103,
+    "version": "2026.04.11-2",
+    "date": "2026-04-11",
+    "summary": "Fix statusline to normalize resets_at as epoch integers. Claude Code sometimes sends ISO strings which failed Zod validation (z.number().int()) on the server, causing 422 rejections that blocked all usage sync.",
+    "migration": null
+  },
+  {
+    "seq": 102,
+    "version": "2026.04.11-1",
+    "date": "2026-04-11",
+    "summary": "Fix statusline overwrite guard (most-recent-write-wins replaces keep-higher-value), add source_session_id traceability, enrich session files with pid/tmux_pane/last_activity, add /uc:session-cleanup skill for stale session management.",
+    "migration": null
+  },
+  {
     "seq": 101,
     "version": "2026.04.09-2",
     "date": "2026-04-09",
