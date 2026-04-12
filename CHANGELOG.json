@@ -1,5 +1,12 @@
 [
   {
+    "seq": 106,
+    "version": "2026.04.12-2",
+    "date": "2026-04-12",
+    "summary": "Backlog labels: add labels field to item schema, label/unlabel/labels commands with tag/untag aliases, inline #tag parsing on add, #tag filtering on list (AND semantics), label normalization. Update docs site backlog page.",
+    "migration": null
+  },
+  {
     "seq": 105,
     "version": "2026.04.12-1",
     "date": "2026-04-12",

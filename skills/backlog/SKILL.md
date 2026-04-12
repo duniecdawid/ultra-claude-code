@@ -9,8 +9,9 @@ description: >-
   when other skills or agents discover follow-up work or issues worth remembering.
   Triggers on "backlog", "tracker", "track", "add idea", "add bug", "add question",
   "tech debt", "what should we do", "open items", "track this",
-  "note for later", "remember to", "follow up on".
-argument-hint: "command + details (e.g., 'add idea: cache API responses', 'list bugs', 'done B-003', 'block Q-001 I-003')"
+  "note for later", "remember to", "follow up on",
+  "label", "unlabel", "tag", "untag", "#".
+argument-hint: "command + details (e.g., 'add idea: cache API responses #frontend', 'list bugs #api', 'label I-003 frontend', 'done B-003')"
 user-invocable: true
 allowed-tools:
   - Read
@@ -71,7 +72,8 @@ Item schema:
   "related_plan": "",
   "related": [],
   "blocks": [],
-  "doc_refs": []
+  "doc_refs": [],
+  "labels": []
 }
 ```
 
@@ -88,10 +90,17 @@ Item schema:
 
 **Source:** If invoked by the user, use `"user"`. If invoked by another skill, use that skill's name (e.g., `"debug-mode"`).
 
-After adding, confirm:
+**Labels (inline `#tag` parsing):** Extract any `#word` tokens from the input as labels. Strip the `#tag` tokens from the title. Normalize each label (see **Label normalization** under the Label command). Examples:
+
+- `add idea: cache responses #frontend #performance` → title: `"cache responses"`, labels: `["frontend", "performance"]`
+- `add bug: login broken #auth #urgent` → title: `"login broken"`, labels: `["auth", "urgent"]`, priority: high (from "urgent" signal)
+- `add debt: cleanup utils` → title: `"cleanup utils"`, labels: `[]` (no tags)
+
+After adding, confirm (include labels when present):
 
 ```
 Added B-004 [bug] "Dashboard crashes on empty state" (high priority)
+Added I-007 [idea] "cache responses" (medium priority) labels: frontend, performance
 ```
 
 ### List Items
@@ -103,7 +112,9 @@ Read all four category files and merge items. Apply filters:
 - Filter by category: `list bugs`, `list ideas`, `list questions`, `list debt`
 - Filter by status: `list done`, `list open`
 - Filter by priority: `list high priority`
-- Combine: `list open bugs`
+- Filter by label: `list #frontend`, `list #api`
+- Multiple labels (AND): `list #frontend #urgent` — shows items with **both** labels
+- Combine: `list open bugs #frontend`
 
 Default: show **open** and **in-progress** items from **all categories**, sorted by priority (high first).
 
@@ -124,7 +135,7 @@ Output format:
 **Summary:** 4 open, 1 in-progress, 2 done | 2 high priority
 ```
 
-Show `Related`, `Blocks`, `Blocked By`, and `Docs` columns only when items have those fields populated.
+Show `Related`, `Blocks`, `Blocked By`, `Docs`, and `Labels` columns only when items have those fields populated.
 
 ### Update an Item
 
@@ -188,6 +199,67 @@ Add the blocked item's ID to the blocker's `blocks` array. Confirm: `Q-001 now b
 **Triggers:** `unblock` followed by two item IDs (blocker first, blocked second).
 
 Remove the blocked item's ID from the blocker's `blocks` array. Confirm: `Q-001 no longer blocks I-003`
+
+### Label an Item
+
+**Triggers:** `label`, `tag` followed by an item ID and one or more label names.
+
+Add the given labels to the item's `labels` array. Deduplicate — if a label already exists on the item, skip it. Normalize each label before storing (see **Label normalization** below).
+
+Examples:
+- `label I-015 ultra-plugin` — adds one label
+- `tag B-003 frontend api-cache` — adds two labels (natural alias)
+- `label I-015 Front End` — normalized to `front-end`
+
+Confirm: `Labeled I-015 with "ultra-plugin"` or `Labeled B-003 with "frontend", "api-cache"`
+
+### Unlabel an Item
+
+**Triggers:** `unlabel`, `untag` followed by an item ID and one or more label names.
+
+Remove the given labels from the item's `labels` array. If a label is not present, skip it silently.
+
+Examples:
+- `unlabel I-015 ultra-plugin` — removes one label
+- `untag B-003 frontend api-cache` — removes two labels (natural alias)
+
+Confirm: `Removed label "ultra-plugin" from I-015` or `Removed labels "frontend", "api-cache" from B-003`
+
+### List Labels
+
+**Triggers:** `labels`, `tags`, `show labels`, `show tags`.
+
+Read all four category files and collect every unique label across all items. Display a table with per-category counts and a total.
+
+Output format:
+
+```
+## Labels — {project name}
+
+| Label | Bugs | Questions | Ideas | Debt | Total |
+|-------|------|-----------|-------|------|-------|
+| frontend | 1 | 0 | 3 | 0 | 4 |
+| api-cache | 0 | 0 | 1 | 1 | 2 |
+| auth | 2 | 1 | 0 | 0 | 3 |
+
+3 labels across 9 items
+```
+
+If no items have labels: `No labels in use. Add labels with \`label <ID> <name>\` or inline \`#tag\` when adding items.`
+
+### Label Normalization
+
+All labels are normalized at write time (applies to `label`, `tag`, inline `#tag` parsing, and any other label input):
+
+1. Lowercase all characters
+2. Replace spaces and underscores with hyphens
+3. Strip characters not matching `[a-z0-9-]`
+4. Collapse multiple consecutive hyphens into one
+5. Trim leading and trailing hyphens
+
+Examples: `"Front End"` → `"front-end"`, `"API_Cache"` → `"api-cache"`, `"v2.0"` → `"v20"`, `"  my--label  "` → `"my-label"`
+
+Reject empty strings after normalization (skip silently).
 
 ### Migrate from Legacy Formats
 

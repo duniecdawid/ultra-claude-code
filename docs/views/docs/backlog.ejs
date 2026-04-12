@@ -27,17 +27,26 @@
 /uc:backlog add question: should we support OAuth or just JWT?
 /uc:backlog add debt: refactor auth middleware into separate module
 
+<span style="color: var(--muted-foreground)"># Add with labels (inline #tag syntax)</span>
+/uc:backlog add idea: cache API responses #performance #backend
+
 <span style="color: var(--muted-foreground)"># List and manage</span>
 /uc:backlog list              <span style="color: var(--muted-foreground)"># all items across categories</span>
 /uc:backlog list bugs         <span style="color: var(--muted-foreground)"># bugs only</span>
+/uc:backlog list #frontend    <span style="color: var(--muted-foreground)"># filter by label</span>
 /uc:backlog done B-003        <span style="color: var(--muted-foreground)"># mark as completed</span>
 /uc:backlog block Q-001 I-003 <span style="color: var(--muted-foreground)"># Q-001 blocks I-003</span>
-/uc:backlog link D-002 docs/architecture.md <span style="color: var(--muted-foreground)"># link to documentation</span></code></pre>
+
+<span style="color: var(--muted-foreground)"># Labels</span>
+/uc:backlog label I-001 frontend  <span style="color: var(--muted-foreground)"># add a label</span>
+/uc:backlog unlabel I-001 frontend <span style="color: var(--muted-foreground)"># remove a label</span>
+/uc:backlog labels            <span style="color: var(--muted-foreground)"># list all labels with counts</span></code></pre>
 
     <h2>Key principles</h2>
     <ul>
       <li><strong>User-initiated only</strong> &mdash; no skill or agent adds items to the backlog automatically. You decide what gets tracked.</li>
       <li><strong>Priorities</strong> &mdash; items have priority levels that affect sort order when listing</li>
+      <li><strong>Labels</strong> &mdash; tag items with freeform labels using <code>#tag</code> syntax for lightweight categorization beyond the four category files. Labels are normalized to lowercase-hyphenated strings.</li>
       <li><strong>Blocking relationships</strong> &mdash; items can block other items, creating a dependency graph</li>
       <li><strong>Documentation links</strong> &mdash; items can reference documentation files for context</li>
       <li><strong>Source tracking</strong> &mdash; each item records where it came from (which conversation, which skill)</li>
@@ -73,6 +82,7 @@
       "status": "open",
       "source": "feature-mode session",
       "created": "2026-04-07",
+      "labels": ["performance", "backend"],
       "links": [],
       "blocked_by": [],
       "blocks": []
