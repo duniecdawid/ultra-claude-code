@@ -1,5 +1,16 @@
 [
   {
+    "seq": 112,
+    "version": "2026.04.12-8",
+    "date": "2026-04-12",
+    "summary": "Drop elapsed_seconds from plan.json. The field is fully derivable from started_at and ended_at (or now() for in-progress rows), and the Ultra Claude Dashboard now computes elapsed at read time. Project Manager no longer writes elapsed_seconds on monitoring ticks, stage-done events, or execution-complete — removing the only reason the cron tick needed to touch plan.json every 5 minutes when nothing else was happening. plan-status-format reference updated to drop the field from all examples. Existing plan.json files that still contain elapsed_seconds are harmless; the dashboard ingestion silently ignores the field.",
+    "migration": {
+      "precondition": "Project has documentation/plans/*/plan.json files (any Ultra Claude project that has executed a plan).",
+      "actions": "No action required. Existing plan.json files may still contain elapsed_seconds at plan, task, or stage level; the Ultra Claude Dashboard now ignores the field on ingest and computes elapsed from started_at/ended_at. New plan executions will omit the field automatically. If you want to tidy existing plan.json files, delete any elapsed_seconds keys by hand — but it is optional and purely cosmetic.",
+      "conflicts": "None. Removal is backward-compatible: the field is dropped, not renamed, so nothing reads it. Dashboards on older versions that still reference the field will simply see no updates to it — elapsed badges there will freeze at the last written value until the dashboard is upgraded."
+    }
+  },
+  {
     "seq": 111,
     "version": "2026.04.12-7",
     "date": "2026-04-12",

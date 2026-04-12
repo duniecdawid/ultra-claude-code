@@ -15,7 +15,6 @@ Re-write the entire file on each update. Keep `events.json` separate at the plan
   "status": "in_progress",
   "started_at": "2026-04-04T12:47:09.000Z",
   "ended_at": null,
-  "elapsed_seconds": 325,
   "concurrency_limit": 2,
   "total_tasks": 4,
   "completed_tasks": 1,
@@ -30,13 +29,12 @@ Re-write the entire file on each update. Keep `events.json` separate at the plan
       "dependencies": [],
       "started_at": "2026-04-04T12:49:52.000Z",
       "ended_at": "2026-04-04T13:10:00.000Z",
-      "elapsed_seconds": 1208,
       "retry_count": 0,
       "stages": {
-        "planning":       { "started_at": "...", "ended_at": "...", "elapsed_seconds": 144 },
-        "implementation": { "started_at": "...", "ended_at": "...", "elapsed_seconds": 800 },
-        "review":         { "started_at": "...", "ended_at": "...", "elapsed_seconds": 120 },
-        "testing":        { "started_at": "...", "ended_at": "...", "elapsed_seconds": 144 }
+        "planning":       { "started_at": "...", "ended_at": "..." },
+        "implementation": { "started_at": "...", "ended_at": "..." },
+        "review":         { "started_at": "...", "ended_at": "..." },
+        "testing":        { "started_at": "...", "ended_at": "..." }
       },
       "members": [
         { "name": "executor-1", "role": "executor", "model": "opus", "status": "completed", "spawned_at": "...", "ended_at": "..." },
@@ -52,13 +50,12 @@ Re-write the entire file on each update. Keep `events.json` separate at the plan
       "dependencies": ["task-1"],
       "started_at": "2026-04-04T13:11:00.000Z",
       "ended_at": null,
-      "elapsed_seconds": 60,
       "retry_count": 0,
       "stages": {
-        "planning":       { "started_at": "...", "ended_at": "...", "elapsed_seconds": 30 },
-        "implementation": { "started_at": "...", "ended_at": null, "elapsed_seconds": 30 },
-        "review":         { "started_at": null, "ended_at": null, "elapsed_seconds": 0 },
-        "testing":        { "started_at": null, "ended_at": null, "elapsed_seconds": 0 }
+        "planning":       { "started_at": "...", "ended_at": "..." },
+        "implementation": { "started_at": "...", "ended_at": null },
+        "review":         { "started_at": null, "ended_at": null },
+        "testing":        { "started_at": null, "ended_at": null }
       },
       "members": [
         { "name": "executor-1", "role": "executor", "model": "opus", "status": "active", "spawned_at": "...", "ended_at": null }

@@ -54,7 +54,7 @@ You **never** make technical decisions — you don't review code, judge implemen
    ```
    CronCreate({
      cron: "*/5 * * * *",
-     prompt: "MONITORING TICK: If usage_paused, ONLY check ~/.claude/ultra/usage-status.json — if resets_at has passed or usage < 80%, trigger RESUME protocol. Do NOT update plan.json or any other files. If NOT paused: Update elapsed_seconds in plan.json (plan-level and all in_progress tasks). Check usage data — if extra_usage is disabled and five_hour.used_percentage >= 80, trigger PAUSE protocol."
+     prompt: "MONITORING TICK: If usage_paused, ONLY check ~/.claude/ultra/usage-status.json — if resets_at has passed or usage < 80%, trigger RESUME protocol. Do NOT update plan.json or any other files. If NOT paused: check for stalls (in_progress tasks with no recent events). Check usage data — if extra_usage is disabled and five_hour.used_percentage >= 80, trigger PAUSE protocol."
    })
    ```
    Save the returned job ID so you can delete it during shutdown.
@@ -197,15 +197,15 @@ All updates write to `plan.json` (a single file). Re-write the entire file on ea
 | Team spawned | Find task in `tasks` array → set status `in_progress`, populate `started_at`, `stages`, `members`. Update `active_tasks++`, `pending_tasks--` | `events.json` |
 | Stage transition | Find task → close previous stage timestamps, open new stage in `stages` object | `events.json` |
 | Member spawned | Find task → add tester member to `members` array | `events.json` |
-| Stage done | Find task → close one parallel stage independently (set `ended_at` + `elapsed_seconds`) | `events.json` |
+| Stage done | Find task → close one parallel stage independently (set `ended_at`) | `events.json` |
 | Member status change | Find task → update member's `status` field | — |
 | Task completed | Find task → status=`completed`, set `ended_at`, all members=`completed`. Update `completed_tasks++`, `active_tasks--` | `events.json` |
 | Task failed | Find task → status=`failed`, set `ended_at`. Update `active_tasks--` | `events.json` |
 | Team shutdown | Find task → set all member `ended_at` timestamps | `events.json` |
 | Retry (review/test fail) | Find task → `retry_count++`, reset both review and testing stage timers | `events.json` |
-| Execution complete | Plan status=`completed`, set plan `ended_at`, final `elapsed_seconds` | `events.json` |
+| Execution complete | Plan status=`completed`, set plan `ended_at` | `events.json` |
 
-**Elapsed time updates:** Each monitoring loop iteration, update `elapsed_seconds` on the plan and on each `in_progress` task in the `tasks` array. Also update active stage `elapsed_seconds`. This keeps the dashboard timing live — and it's a single file read-write.
+**Elapsed time:** The dashboard derives elapsed durations on read from `started_at` and `ended_at` (or `now()` for in-progress rows). You do NOT store elapsed values — only open and close timestamps on the plan, tasks, and stages.
 
 ### Shutdown
 
@@ -221,7 +221,7 @@ The Lead sends you terse status messages as it orchestrates. Process each into t
 | `SPAWNED knowledge-{PLAN_NAME}` | Lead | Log knowledge agent spawn in `events.json` |
 | `SPAWNED-TESTER task-{N}` | Lead | In `plan.json`: find task-{N} → add tester member to `members` array. Append `member_spawned` event to `events.json` |
 | `STAGE task-{N} {stage}` | Lead | In `plan.json`: find task-{N} → close previous stage timestamps, open new stage in `stages` object. Append `stage_entered` event. For `review` and `testing`: both can be open simultaneously (parallel stages). |
-| `STAGE-DONE task-{N} {stage}` | Executor | In `plan.json`: find task-{N} → close one parallel stage independently: set `ended_at` and `elapsed_seconds` for that stage. Do NOT close the other parallel stage. Append `stage_done` event to `events.json` |
+| `STAGE-DONE task-{N} {stage}` | Executor | In `plan.json`: find task-{N} → close one parallel stage independently: set `ended_at` for that stage. Do NOT close the other parallel stage. Append `stage_done` event to `events.json` |
 | `COMPLETED task-{N}` | Lead | In `plan.json`: find task-{N} → status=`completed`, set `ended_at`, all members=`completed`. Update `completed_tasks++`, `active_tasks--`. Append `task_completed` event to `events.json`. **Update plan README:** find `### Task {N}:` heading, change `<!-- status:pending -->` to `<!-- status:completed -->` and `- [ ] **Complete**` to `- [x] **Complete**` |
 | `SHUTDOWN task-{N}` | Lead | In `plan.json`: find task-{N} → set all member `ended_at` timestamps. Append `team_shutdown` event to `events.json` |
 | `RETRY task-{N}` | Executor | In `plan.json`: find task-{N} → `retry_count++`, reset both review and testing stage timers (re-open them). Append retry event to `events.json` |
@@ -264,13 +264,14 @@ You set up a CronCreate job in your First Action that fires every 5 minutes. Eac
 - Otherwise → do nothing. No file writes, no dashboard updates, no logging. Conserve usage.
 
 **If `usage_paused = false` (normal mode):**
-1. **Update elapsed times:** Update `elapsed_seconds` in `plan.json` — both the plan-level value and each `in_progress` task in the `tasks` array (compute from `started_at` to now for plan and each task/stage). For parallel stages (review + testing), update each independently. This is a single file read-write.
-2. **Check for stalls:** For each `in_progress` task, check the last event timestamp in `events.json`. If any active task has had no stage transitions or messages for >10 minutes:
+1. **Check for stalls:** For each `in_progress` task, check the last event timestamp in `events.json`. If any active task has had no stage transitions or messages for >10 minutes:
    - **First tick with silence:** Ping the Executor: SendMessage to executor-{N}: "Status check — what stage are you in?"
    - **Second tick still silent (~15 min total):** ALERT Lead: "ALERT: STALL — task-{N} executor-{N} unresponsive for ~15 minutes"
    - Track which tasks you've already pinged to avoid duplicate pings.
-3. **Check usage (if extra_usage = false):** Read `~/.claude/ultra/usage-status.json` and evaluate whether to PAUSE or RESUME (see Usage Threshold Monitoring below).
-4. **Log observations:** Keep mental notes for the final report — stage durations, idle agents, communication patterns.
+2. **Check usage (if extra_usage = false):** Read `~/.claude/ultra/usage-status.json` and evaluate whether to PAUSE or RESUME (see Usage Threshold Monitoring below).
+3. **Log observations:** Keep mental notes for the final report — stage durations, idle agents, communication patterns.
+
+Monitoring ticks never write `elapsed_seconds` to `plan.json`. The dashboard computes elapsed from `started_at` and `ended_at` at read time. Ticks touch the plan file only when a stall escalation or usage state change requires it.
 
 **Why cron, not a self-polling loop:** LLM agents cannot reliably self-schedule periodic work. Between incoming messages you are idle with no internal timer. The cron wakes you up every 5 minutes regardless, ensuring monitoring actually happens.
 
@@ -393,7 +394,7 @@ When `resets_at` has passed OR usage drops below 80%:
    Pause duration: ~{duration_minutes} minutes. Total paused across all cycles: ~{total_minutes}m."
    ```
 5. **No team member messages** — teams were shut down during pause. The Lead will spawn fresh teams for remaining tasks.
-6. **Resume full monitoring** — exit low-power mode. Monitoring ticks now update elapsed_seconds and dashboard files as normal. Usage will climb again in the new window — another PAUSE cycle may occur.
+6. **Resume full monitoring** — exit low-power mode. Monitoring ticks now perform stall checks and usage checks as normal. Usage will climb again in the new window — another PAUSE cycle may occur.
 
 ### What You Monitor Passively
 
@@ -457,7 +458,7 @@ Log these observations — they feed directly into the Plan Quality Retrospectiv
 When the Lead sends "Execution complete — write operational report":
 
 1. Delete the monitoring cron job: `CronDelete({ id: "{saved_cron_id}" })`
-2. Update `plan.json`: plan status=`completed`, `ended_at`, final `elapsed_seconds`. Append `execution_completed` event to `events.json`.
+2. Update `plan.json`: plan status=`completed`, set `ended_at`. Append `execution_completed` event to `events.json`.
 3. **Update plan README status to "Completed":** Read `documentation/plans/{PLAN_NAME}/README.md`, find the `> Status:` line, replace it with `> Status: Completed`. Write the file back.
 4. Do a final read of all task artifacts to fill any gaps in your observations
 5. Compile the operational report
