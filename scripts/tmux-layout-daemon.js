@@ -120,21 +120,58 @@ function classifyPanes(panes) {
   return result;
 }
 
+const TASK_COLUMN_CAPACITY = 3; // executor + reviewer + tester
+
+// Fold unnamed panes into the rightmost task column (up to TASK_COLUMN_CAPACITY).
+// Returns any leftover unnamed panes that overflow into their own column.
+function foldUnnamedIntoLastTask(tasks, taskNums, unnamed) {
+  const leftover = [...unnamed];
+  if (taskNums.length === 0 || leftover.length === 0) return leftover;
+  const lastTask = tasks[taskNums[taskNums.length - 1]];
+  const space = Math.max(0, TASK_COLUMN_CAPACITY - lastTask.length);
+  if (space > 0) lastTask.push(...leftover.splice(0, space));
+  return leftover;
+}
+
+// Compute the target layout as an ordered list of columns. Used both by
+// arrangeWindow and by the tick loop (for change detection).
+function computeTargetColumns(classified) {
+  const { mainPane, pmPane, tkPane, gatePane, tasks, unnamed } = classified;
+  const taskNums = Object.keys(tasks).sort((a, b) => parseInt(a) - parseInt(b));
+
+  // Clone tasks so we can mutate for the fold without touching the classification.
+  const taskCols = {};
+  for (const n of taskNums) taskCols[n] = [...tasks[n]];
+  const leftoverUnnamed = foldUnnamedIntoLastTask(taskCols, taskNums, unnamed);
+
+  const columns = [];
+  const leftCol = [mainPane, pmPane, tkPane].filter(Boolean);
+  columns.push(leftCol);
+  for (const n of taskNums) columns.push(taskCols[n]);
+  if (leftoverUnnamed.length > 0) columns.push(leftoverUnnamed);
+  if (gatePane) columns.push([gatePane]);
+  return { columns, taskCols, taskNums, leftoverUnnamed };
+}
+
+function targetSignature(columns) {
+  return columns.map(col => col.join(',')).join('|');
+}
+
 function arrangeWindow(windowId, panes) {
   const classified = classifyPanes(panes);
   if (!classified.mainPane) return;
 
-  const { mainPane, pmPane, tkPane, gatePane, tasks, unnamed } = classified;
-  const taskNums = Object.keys(tasks).sort((a, b) => parseInt(a) - parseInt(b));
+  const { mainPane, pmPane, tkPane, gatePane } = classified;
+  const { taskCols, taskNums, leftoverUnnamed } = computeTargetColumns(classified);
 
   const labeledPanes = [];
   if (pmPane) labeledPanes.push(pmPane);
   if (tkPane) labeledPanes.push(tkPane);
   if (gatePane) labeledPanes.push(gatePane);
   for (const num of taskNums) {
-    labeledPanes.push(...tasks[num]);
+    labeledPanes.push(...taskCols[num]);
   }
-  labeledPanes.push(...unnamed);
+  labeledPanes.push(...leftoverUnnamed);
 
   if (labeledPanes.length === 0) return;
 
@@ -154,10 +191,10 @@ function arrangeWindow(windowId, panes) {
     tmux(`join-pane -v -s ${tkPane} -t ${target} -l 50%`);
   }
 
-  // Rebuild task columns
+  // Rebuild task columns (may include folded unnamed panes stacked at the bottom)
   let columnHeads = [];
   for (const num of taskNums) {
-    const taskPanes = tasks[num];
+    const taskPanes = taskCols[num];
     if (taskPanes.length === 0) continue;
 
     const head = taskPanes[0];
@@ -179,9 +216,10 @@ function arrangeWindow(windowId, panes) {
     }
   }
 
-  // Unnamed column (panes not yet labeled or with unrecognized labels)
-  if (unnamed.length > 0) {
-    const head = unnamed[0];
+  // Leftover unnamed column — only used when the last task column was already
+  // full (TASK_COLUMN_CAPACITY) or when there were no task columns at all.
+  if (leftoverUnnamed.length > 0) {
+    const head = leftoverUnnamed[0];
     if (columnHeads.length === 0) {
       tmux(`join-pane -fh -s ${head} -t ${mainPane}`);
     } else {
@@ -191,11 +229,11 @@ function arrangeWindow(windowId, panes) {
     columnHeads.push(head);
 
     let prev = head;
-    let remaining = unnamed.length - 1;
-    for (let i = 1; i < unnamed.length; i++) {
+    let remaining = leftoverUnnamed.length - 1;
+    for (let i = 1; i < leftoverUnnamed.length; i++) {
       const pct = Math.round(100 * remaining / (remaining + 1));
-      tmux(`join-pane -v -s ${unnamed[i]} -t ${prev} -l ${pct}%`);
-      prev = unnamed[i];
+      tmux(`join-pane -v -s ${leftoverUnnamed[i]} -t ${prev} -l ${pct}%`);
+      prev = leftoverUnnamed[i];
       remaining--;
     }
   }
@@ -245,13 +283,6 @@ function arrangeWindow(windowId, panes) {
   tmux(`select-pane -t ${mainPane}`);
 }
 
-function getSnapshot(panes) {
-  return panes
-    .map(p => `${p.paneId}:${p.label || '_'}`)
-    .sort()
-    .join('|');
-}
-
 function getSize(panes) {
   if (panes.length === 0) return '';
   return `${panes[0].width}x${panes[0].height}`;
@@ -267,29 +298,31 @@ function tick() {
       continue;
     }
 
-    const snapshot = getSnapshot(panes);
+    const classified = classifyPanes(panes);
+    const { columns, leftoverUnnamed } = computeTargetColumns(classified);
+    const signature = targetSignature(columns);
     const size = getSize(panes);
     const prev = managedWindows.get(windowId);
 
-    if (!prev || prev.lastSnapshot !== snapshot || prev.lastSize !== size) {
-      const reason = !prev ? 'new window' : prev.lastSnapshot !== snapshot ? 'panes changed' : 'size changed';
-      const classified = classifyPanes(panes);
+    if (!prev || prev.lastSignature !== signature || prev.lastSize !== size) {
+      const reason = !prev ? 'new window' : prev.lastSignature !== signature ? 'layout changed' : 'size changed';
       const taskNums = Object.keys(classified.tasks).sort();
+      const foldedCount = classified.unnamed.length - leftoverUnnamed.length;
       const summary = [
         classified.mainPane ? 'main' : null,
         classified.pmPane ? 'pm' : null,
         classified.tkPane ? 'tk' : null,
         taskNums.length > 0 ? `tasks:[${taskNums.join(',')}]` : null,
-        classified.unnamed.length > 0 ? `unnamed:${classified.unnamed.length}` : null,
+        foldedCount > 0 ? `folded:${foldedCount}` : null,
+        leftoverUnnamed.length > 0 ? `unnamed:${leftoverUnnamed.length}` : null,
         classified.gatePane ? 'gate' : null,
       ].filter(Boolean).join(' ');
       log(`ARRANGE: ${windowId} (${reason}) — ${summary}`);
 
       arrangeWindow(windowId, panes);
-      const updated = scanPanes().get(windowId) || panes;
       managedWindows.set(windowId, {
-        lastSnapshot: getSnapshot(updated),
-        lastSize: getSize(updated)
+        lastSignature: signature,
+        lastSize: size
       });
     }
   }
@@ -306,7 +339,7 @@ function tick() {
 fs.mkdirSync(path.dirname(PID_FILE), { recursive: true });
 fs.writeFileSync(PID_FILE, String(process.pid));
 
-const INTERVAL = 2000;
+const INTERVAL = 1000;
 setInterval(tick, INTERVAL);
 const startMsg = `Tmux layout daemon running (PID ${process.pid}, ${INTERVAL}ms poll)`;
 console.log(startMsg);

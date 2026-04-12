@@ -1,5 +1,19 @@
 [
   {
+    "seq": 110,
+    "version": "2026.04.12-6",
+    "date": "2026-04-12",
+    "summary": "Tmux layout daemon: fold unlabeled/unnamed panes into the rightmost task column (up to 3 panes per task team) instead of giving them their own column, so teammates spawning into an existing task land in the correct column from the start. Replace label-based change detection with a target-layout signature so labeling a pane that doesn't change the resulting column assignment no longer triggers a redundant break-pane/join-pane cycle (reduces visible pane-tearing). Drop the post-arrange re-scan. Tighten poll interval from 2000ms to 1000ms for snappier reaction to new agent spawns.",
+    "migration": null
+  },
+  {
+    "seq": 109,
+    "version": "2026.04.12-5",
+    "date": "2026-04-12",
+    "summary": "Restructure plan-enhancer skill into a pure reference library at references/planning-framework/. Each planning mode (feature-mode, debug-mode, doc-code-verification-mode) now has its own per-stage reference files (references/stage-{1..4}.md) that progressively import the framework counterparts as the model transitions into each stage. Mode SKILL.md files are lean — they read framework.md once at activation, then point to stage-1.md with an explicit anti-preload rule. Existing-plan handling lives in framework.md with mode extensions in stage-1.md (feature-mode keeps stub-plan detection there). Help skill and docs site updated to surface the planning framework as a reference library, not a skill. Migrate skill no longer reads plan-enhancer (it ran its own simpler approve/execute flow).",
+    "migration": null
+  },
+  {
     "seq": 108,
     "version": "2026.04.12-4",
     "date": "2026-04-12",
