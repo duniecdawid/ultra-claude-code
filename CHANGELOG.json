@@ -1,5 +1,12 @@
 [
   {
+    "seq": 111,
+    "version": "2026.04.12-7",
+    "date": "2026-04-12",
+    "summary": "Tmux layout daemon: replace break-pane/join-pane/resize-pane rearrangement with atomic select-layout. Each tick computes the target column layout, derives a TAILQ permutation via swap-pane (cheap pointer swaps, no layout re-flow), then applies a precomputed layout string (with layout_checksum reproduced in JS from tmux/layout-custom.c) in a single select-layout call. The whole arrange is one batched tmux invocation with exactly one redraw — sub-10ms regardless of pane count, effectively eliminating visible pane tearing. Daemon also sorts task-column members deterministically by role: executor (top), reviewer (middle), tester (bottom). Agents task-executor, code-review, and task-tester now self-label as `task-N-executor`, `task-N-reviewer`, `task-N-tester` respectively; legacy `task-N` labels (no role suffix) still classify correctly and sort after role-labeled siblings for backward compatibility. Project Manager documentation updated with the new label table.",
+    "migration": null
+  },
+  {
     "seq": 110,
     "version": "2026.04.12-6",
     "date": "2026-04-12",

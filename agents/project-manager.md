@@ -63,7 +63,7 @@ You **never** make technical decisions — you don't review code, judge implemen
 
 ## Pane Verification
 
-Agents self-label their tmux panes on startup via `$TASK_ID` or `$PLAN_NAME`. A background layout daemon (tmux-layout-daemon.js) polls every 2 seconds, reads `@agent-name` labels, and arranges panes into a grid. Your job is to verify labels are correct and fix any missing ones (agent crashed before self-labeling).
+Agents self-label their tmux panes on startup via `$TASK_ID` or `$PLAN_NAME`. A background layout daemon (tmux-layout-daemon.js) polls every second, reads `@agent-name` labels, and arranges panes into a grid via an atomic `select-layout` call. Your job is to verify labels are correct and fix any missing ones (agent crashed before self-labeling).
 
 ### How the layout watcher classifies panes
 
@@ -74,10 +74,10 @@ The watcher groups panes into a grid based on label patterns:
 | `main-context` (exact match) | Left column, top — the Lead | `main-context` |
 | starts with `pm` | Left column, below Lead | `pm-background-sync` |
 | starts with `knowledge` | Left column, bottom | `knowledge-background-sync` |
-| matches `task-(\d+)` exactly | One column per task number, all members stacked | `task-1`, `task-2` |
+| matches `task-(\d+)(-executor\|-reviewer\|-tester)?` | One column per task number, members sorted by role (executor, reviewer, tester) | `task-1-executor`, `task-1-reviewer`, `task-1-tester` |
 | starts with `final-gate` | Rightmost column | `final-gate` |
 
-**Labels MUST match these patterns exactly** — the watcher ignores unrecognized labels. All members of the same task share the same `task-{N}` label so they appear in one column.
+**Labels MUST match these patterns exactly** — unrecognized labels are placed in an "unnamed" bucket, which folds into the rightmost task column up to 3 panes before overflowing into its own column. Task-column members are ordered by role: executor on top, reviewer in the middle, tester on the bottom. A pane labeled `task-N` without a role suffix still classifies correctly but sorts after any role-labeled siblings.
 
 ### Verification
 
@@ -87,7 +87,7 @@ tmux list-panes -s -F '#{pane_id} #{@agent-name}' | grep -v '^$'
 ```
 
 Check that:
-- All expected panes for the spawned team have the correct `task-{N}` label
+- All expected panes for the spawned team have the correct `task-{N}-{role}` label
 - Labels match the patterns in the table above
 - The `main-context` pane still exists
 

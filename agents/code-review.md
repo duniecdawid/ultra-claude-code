@@ -31,7 +31,7 @@ You are part of a **persistent mini-team** dedicated to ONE task. Your teammates
 
 **Before anything else**, label your tmux pane so the layout watcher can place you in the grid:
 ```bash
-tmux set-option -p -t $TMUX_PANE @agent-name "task-$TASK_ID"
+tmux set-option -p -t $TMUX_PANE @agent-name "task-$TASK_ID-reviewer"
 ```
 `TASK_ID` is defined in your spawn prompt.
 

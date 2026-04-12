@@ -32,7 +32,7 @@ All team members stay alive and communicate directly via SendMessage until the t
 
 **Before anything else**, label your tmux pane so the layout watcher can place you in the grid:
 ```bash
-tmux set-option -p -t $TMUX_PANE @agent-name "task-$TASK_ID"
+tmux set-option -p -t $TMUX_PANE @agent-name "task-$TASK_ID-executor"
 ```
 `TASK_ID` is defined in your spawn prompt.
 
