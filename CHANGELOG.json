@@ -1,5 +1,12 @@
 [
   {
+    "seq": 108,
+    "version": "2026.04.12-4",
+    "date": "2026-04-12",
+    "summary": "Remove stray skills/critical-brainstorm-workspace eval output that was accidentally committed by skill-creator benchmarking. Add skills/*-workspace/ to .gitignore so future eval runs don't leak into the repo.",
+    "migration": null
+  },
+  {
     "seq": 107,
     "version": "2026.04.12-3",
     "date": "2026-04-12",
