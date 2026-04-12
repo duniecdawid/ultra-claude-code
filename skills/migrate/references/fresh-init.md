@@ -6,7 +6,6 @@ Full initialization pipeline for a project with no existing Ultra Claude structu
 
 Before starting, read these reference files:
 - `${CLAUDE_PLUGIN_ROOT}/skills/docs-manager/SKILL.md`
-- `${CLAUDE_PLUGIN_ROOT}/skills/plan-enhancer/SKILL.md`
 - `${CLAUDE_PLUGIN_ROOT}/skills/docs-manager/references/standard.md`
 
 ## Process
@@ -66,7 +65,7 @@ Only ask questions that are genuinely unresolvable from the survey data. Don't a
 
 ### Phase 2: Plan
 
-Using all survey findings + user answers, produce a comprehensive plan covering everything you intend to do. Apply Plan Enhancer format. Present the complete plan in chat.
+Using all survey findings + user answers, produce a comprehensive plan covering everything you intend to do. Present the complete plan in chat for user approval.
 
 Read these references for Phase 2:
 - `${SKILL_DIR}/references/claude-md-template.md` — the CLAUDE.md section to inject

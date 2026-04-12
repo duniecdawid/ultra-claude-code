@@ -27,8 +27,8 @@
       <tbody>
         <tr><td><strong>Discovery Mode</strong></td><td><code>/uc:discovery-mode</code></td><td>Product research as Head of Product. Spawns parallel internal + external research agents. Produces product description, research, requirements, personas.</td></tr>
         <tr><td><strong>Roadmap</strong></td><td><code>/uc:roadmap</code></td><td>Decomposes a product into sequenced plan stubs with dependency graph and topological ordering.</td></tr>
-        <tr><td><strong>Feature Mode</strong></td><td><code>/uc:feature-mode</code></td><td>Plans features through 4-stage scope challenge, research, discussion, and structured plan output.</td></tr>
-        <tr><td><strong>Debug Mode</strong></td><td><code>/uc:debug-mode</code></td><td>Hypothesis-driven bug investigation with parallel evidence gathering. Produces fix plan with regression criteria.</td></tr>
+        <tr><td><strong>Feature Mode</strong></td><td><code>/uc:feature-mode</code></td><td>Plans features through 4-stage scope challenge, research, discussion, and structured plan output. Extends the planning framework.</td></tr>
+        <tr><td><strong>Debug Mode</strong></td><td><code>/uc:debug-mode</code></td><td>Hypothesis-driven bug investigation with parallel evidence gathering. Produces fix plan with regression criteria. Extends the planning framework.</td></tr>
         <tr><td><strong>Critical Brainstorm</strong></td><td><code>/uc:critical-brainstorm</code></td><td>Devil's advocate mode: stress-tests solutions, identifies risks, stays in dialogue until you're satisfied.</td></tr>
         <tr><td><strong>Tech Research</strong></td><td><code>/uc:tech-research</code></td><td>Focused external library/framework documentation retrieval via Ref.tools (500&ndash;5K tokens vs 50K+ for web search).</td></tr>
       </tbody>
@@ -48,7 +48,7 @@
       <thead><tr><th>Skill</th><th>Command</th><th>Description</th></tr></thead>
       <tbody>
         <tr><td><strong>Docs Manager</strong></td><td><code>/uc:docs-manager</code></td><td>Guards canonical <code>documentation/</code> structure. Routes docs to correct directories, enforces layout, maintains index.</td></tr>
-        <tr><td><strong>Verification</strong></td><td><code>/uc:doc-code-verification-mode</code></td><td>Compares doc claims against code reality using Checker agents. Classifies discrepancies with fix types.</td></tr>
+        <tr><td><strong>Verification</strong></td><td><code>/uc:doc-code-verification-mode</code></td><td>Compares doc claims against code reality using Checker agents. Classifies discrepancies with fix types. Extends the planning framework.</td></tr>
         <tr><td><strong>Context Management</strong></td><td><code>/uc:context-management</code></td><td>Manages <code>context/</code> directory for external API docs and SDK references with git submodule support.</td></tr>
       </tbody>
     </table>
@@ -74,11 +74,16 @@
       </tbody>
     </table>
 
-    <h3>System Meta</h3>
+    <h2>Reference Libraries</h2>
+    <p>Reference libraries are shared instruction sets &mdash; not skills. Planning modes inherit them and extend them per-stage via files in their own <code>references/</code> directories.</p>
     <table>
-      <thead><tr><th>Skill</th><th>Command</th><th>Description</th></tr></thead>
+      <thead><tr><th>Library</th><th>Path</th><th>Description</th></tr></thead>
       <tbody>
-        <tr><td><strong>Plan Enhancer</strong></td><td><em>internal</em></td><td>4-stage planning framework foundation loaded by feature-mode, debug-mode, and verification mode. Not user-invocable.</td></tr>
+        <tr>
+          <td><strong>Planning Framework</strong></td>
+          <td><code>references/planning-framework/</code></td>
+          <td>4-stage planning flow (Understand &rarr; Research &rarr; Discuss &rarr; Write), conversational rules, existing-plan handling, approval gates, and post-approval hard stop. Inherited by feature-mode, debug-mode, and doc-code-verification-mode via per-stage extensions in each mode's <code>references/stage-N.md</code>.</td>
+        </tr>
       </tbody>
     </table>
 

@@ -77,4 +77,4 @@ What are the key trade-offs of the proposed solution?
 ## Cross-References
 
 - Links TO: architecture docs affected by the decision
-- Links FROM: plan-enhancer Stage 3 (creates RFCs during discussion)
+- Links FROM: planning framework Stage 3 (`references/planning-framework/stage-3.md`) — created during discussion when an architectural fork appears

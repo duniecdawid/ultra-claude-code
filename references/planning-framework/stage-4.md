@@ -1,4 +1,4 @@
-# Stage 4: Write
+# Planning Framework — Stage 4: Write
 
 Mandatory for ALL planning modes — no exceptions.
 
@@ -7,6 +7,7 @@ Mandatory for ALL planning modes — no exceptions.
 ## Stage Entry Check
 
 Before beginning any Stage 4 work, verify you actually completed the prior stages. If any of these are false, go back — do not proceed:
+
 - **Stage 1 happened:** You asked the user questions via AskUserQuestion and received answers. (If you cannot point to at least one AskUserQuestion call and response in this conversation, Stage 1 was skipped.)
 - **Stage 2 happened:** You spawned research agents or surveyors and synthesized their results. (If there are no agent results in context, Stage 2 was skipped.)
 - **Stage 3 happened:** You presented your synthesis, the user engaged in discussion, and you used the Stage 3 exit gate (AskUserQuestion with Proceed/Keep discussing/Abandon). (If there was no exit gate interaction, Stage 3 was skipped.)
@@ -15,10 +16,18 @@ This check exists because the most common failure mode is jumping from a detaile
 
 ## Rules
 
-- This is the ONLY stage where files are created or modified
-- Product docs are updated in Step 2, architecture/standards in Step 3 — do it now, not as plan tasks
-- After plan file is written: approval gate via AskUserQuestion
-- After approval: commit, print execution command, STOP
+- This is the ONLY stage where files are created or modified.
+- Product docs are updated in Step 2, architecture/standards in Step 3 — do it now, not as plan tasks.
+- After plan file is written: approval gate via AskUserQuestion (Step 6).
+- After approval: commit, print execution command, STOP (Step 7).
+
+## Prerequisites
+
+Before writing any docs in Steps 2-3, ensure you have read:
+- `${CLAUDE_PLUGIN_ROOT}/skills/docs-manager/SKILL.md` — the authority on document structure, references, routing, naming, and cross-referencing. All documentation written in Steps 2-3 must follow docs-manager rules.
+
+Before writing the plan in Step 4, read the plan template:
+- `${CLAUDE_PLUGIN_ROOT}/templates/plan.md`
 
 ---
 
@@ -39,12 +48,12 @@ This check exists because the most common failure mode is jumping from a detaile
 
 3. **Final folder name**: `{NNN}-{semantic-name}` (e.g., `001-user-auth`, `012-billing`)
 
-4. **Check for existing plan** — if `documentation/plans/*-{name}/` exists (suffix match), read it for revision context
+4. **Check for existing plan** — if `documentation/plans/*-{name}/` exists (suffix match), read it for revision context.
 
 5. **Check for stub plan** — if the matched plan has `Status: Stub` and `Source: Roadmap`:
-   - Do NOT re-create the directory — it already exists with `shared/` and `tasks/`
-   - You will edit the existing `README.md` in place (Step 5) rather than overwriting it
-   - Skip to Step 2 (the plan number and directory are already determined)
+   - Do NOT re-create the directory — it already exists with `shared/` and `tasks/`.
+   - You will edit the existing `README.md` in place (Step 5) rather than overwriting it.
+   - Skip to Step 2 (the plan number and directory are already determined).
 
 **Create the directory** (skip if editing an existing stub):
 
@@ -70,10 +79,10 @@ Documentation is not optional. This step ensures product docs exist and are curr
 
 ### Process
 
-1. **Scan** `documentation/product/description/` and `documentation/product/requirements/` for docs covering the feature area
+1. **Scan** `documentation/product/description/` and `documentation/product/requirements/` for docs covering the feature area.
 2. **If no relevant docs exist** — create them. Look up the correct reference in docs-manager's Document Type References table and read it before writing.
-3. **If docs exist** — review against Stage 1-3 findings and update with any new information
-4. **Follow docs-manager** routing rules for file naming, placement, and cross-referencing between doc types
+3. **If docs exist** — review against Stage 1-3 findings and update with any new information.
+4. **Follow docs-manager** routing rules for file naming, placement, and cross-referencing between doc types.
 
 Skipping this step requires explicit justification: state what you scanned, what exists, and why no changes are needed. "Nothing changed" without evidence is not acceptable.
 
@@ -93,7 +102,7 @@ Architecture and standards docs must exist and be current for the area being pla
 1. **Scan** `documentation/technology/architecture/` and `documentation/technology/standards/` for docs covering the area. Gracefully handle missing or empty directories.
 2. **If no relevant docs exist** — create them. Look up the correct reference in docs-manager's Document Type References table and read it before writing.
 3. **If docs exist** — review against Stage 1-3 findings. Update if decisions during discussion changed the system design, or if the plan requires architectural elements that are not yet documented.
-4. **Follow docs-manager** routing rules for file naming, placement, and cross-referencing between doc types
+4. **Follow docs-manager** routing rules for file naming, placement, and cross-referencing between doc types.
 
 Design the technological changes that will be part of the plan. Skipping this step requires explicit justification: state what you scanned, what exists, and why no changes are needed.
 
@@ -153,17 +162,17 @@ Write to `documentation/plans/{NNN}-{name}/README.md` via the Write tool — thi
 
 **Immediately after writing the README, populate plan.json with tasks:**
 
-1. Parse all `### Task N: {name} <!-- status:pending -->` headings from the README you just wrote
+1. Parse all `### Task N: {name} <!-- status:pending -->` headings from the README you just wrote.
 2. For each task, extract:
    - `task_id`: `"task-N"` (from the heading number)
    - `task_name`: the text between `Task N: ` and ` <!-- status:` (the task title)
    - `status`: `"pending"`
    - `goal`: a 1-line summary from the task's Description or Success criteria
    - `dependencies`: parse from the task's Dependencies field (array of `"task-N"` strings, or `[]` if none)
-3. Read the existing `plan.json` (created in Step 1 with `status: "planning"`)
-4. Set `"tasks"` to the array of task objects, `"total_tasks"` and `"pending_tasks"` to the task count
-5. Keep `"status"` as `"planning"` — do NOT flip to `"pending"` yet (that happens on approval in Step 7)
-6. Write the updated `plan.json` back to disk
+3. Read the existing `plan.json` (created in Step 1 with `status: "planning"`).
+4. Set `"tasks"` to the array of task objects, `"total_tasks"` and `"pending_tasks"` to the task count.
+5. Keep `"status"` as `"planning"` — do NOT flip to `"pending"` yet (that happens on approval in Step 7).
+6. Write the updated `plan.json` back to disk.
 
 This ensures the dashboard can display tasks during the approval window, before the plan is approved.
 
@@ -172,17 +181,20 @@ This ensures the dashboard can display tasks during the approval window, before 
 **Present a concise summary in chat** — NOT the full plan. Include: plan number, plan name, objective, task count, and the file path. The user can read the full plan from the file.
 
 **Include a task list summary** — for each task, show one line with the task name and a brief goal:
+
 ```
 Tasks:
 1. {Task name} — {1-line goal}
 2. {Task name} — {1-line goal}
 ...
 ```
+
 This gives the user a quick overview of the task breakdown alongside the plan summary.
 
 **Ask for approval via AskUserQuestion** — Options: "Approve" / "Reject with feedback" / "Partially reject (specify changes)"
 
 **Approval gate rules — strictly enforce:**
+
 - Only an explicit "Approve" selection counts as approval. Do NOT infer approval from empty, blank, ambiguous, or non-committal responses.
 - If the user selects "Other" with empty or unclear text, re-ask the question. Say: "I need an explicit approval, rejection, or feedback before proceeding."
 - Never skip or auto-approve this step. The plan is not approved until the user explicitly says so.
@@ -220,10 +232,9 @@ When the user explicitly approves the plan, you MUST complete ALL sub-steps befo
 
 If the user rejects or partially rejects the plan:
 
-1. Read their feedback
-2. Edit the existing `documentation/plans/{NNN}-{name}/README.md` using the Edit tool to incorporate changes
-3. Re-present the concise summary with changes highlighted
-4. Re-ask for approval via AskUserQuestion
+1. Read their feedback.
+2. Edit the existing `documentation/plans/{NNN}-{name}/README.md` using the Edit tool to incorporate changes.
+3. Re-present the concise summary with changes highlighted.
+4. Re-ask for approval via AskUserQuestion.
 
 Repeat until approved or the user abandons the plan.
-

@@ -106,10 +106,12 @@ Configures Tailscale to expose local services securely within the tailnet via `t
 **Update** (`/uc:update`)
 Updates Ultra Claude to the latest version via the Claude Code plugin marketplace using `claude plugin update`. Use after hearing about new features or when wanting the latest version. Shows changelog since last update, runs post-update housekeeping (file migration, tmux daemon restart, setup verification), and recommends `/uc:migrate` in each project if structural changes occurred.
 
-### System Meta
+## Reference Libraries
 
-**Plan Enhancer** (not user-invocable)
-Defines the 4-stage planning framework (Understand → Research → Discuss → Write) that all planning modes extend, populating plan.json tasks at README write time so the dashboard shows tasks during the approval window. Loaded by feature-mode, debug-mode, discovery-mode, and roadmap as their foundation. Ensures plans are conversational, evidence-based, and only execute after explicit user approval.
+Reference libraries are shared instruction sets — not skills. Planning modes inherit them and extend them per-stage via files in their own `references/` directories.
+
+**Planning Framework** (`references/planning-framework/`)
+Defines the 4-stage planning flow (Understand → Research → Discuss → Write), conversational rules, existing-plan handling, approval gates, and post-approval hard stop. Inherited by feature-mode, debug-mode, and doc-code-verification-mode through per-stage extensions in each mode's `references/stage-N.md`. Discovery-mode does not use it because it produces docs, not plans.
 
 ## Agents
 

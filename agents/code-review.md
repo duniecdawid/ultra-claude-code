@@ -135,7 +135,7 @@ Check the implemented code against these criteria (you should already be familia
 - If Patterns says "None identified", skip this section
 
 **Broader Pattern Compliance (Secondary)**
-- Follows patterns documented in `documentation/technology/standards/` (catches things plan-enhancer missed)
+- Follows patterns documented in `documentation/technology/standards/` (catches things the planning framework missed)
 - Consistent with existing codebase patterns (use Grep to find similar code)
 - No pattern violations (e.g., direct DB access bypassing the service layer)
 

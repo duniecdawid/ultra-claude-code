@@ -80,7 +80,6 @@ ultra-claude/
 │   ├── feature-mode/
 │   ├── help/
 │   ├── migrate/
-│   ├── plan-enhancer/
 │   ├── plan-execution/
 │   ├── plan-status-sync/
 │   ├── railway/
@@ -91,6 +90,11 @@ ultra-claude/
 │   ├── update/
 │   ├── vscode-launch/
 │   └── vscode-setup/
+├── references/                        # Shared reference libraries (not skills)
+│   ├── plan-status-format.md          # plan.json schema
+│   └── planning-framework/            # 4-stage planning rules inherited by feature/debug/verification modes
+│       ├── framework.md
+│       └── stage-{1,2,3,4}.md
 ├── templates/                         # Documentation templates for target projects
 │   ├── plan.md
 │   ├── task.md
