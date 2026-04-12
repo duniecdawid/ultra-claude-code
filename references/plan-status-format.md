@@ -92,11 +92,11 @@ The `dependencies` field is an array of task IDs (e.g., `["task-1", "task-3"]`) 
 
 | Field         | Allowed values                          |
 |---------------|-----------------------------------------|
-| Plan status   | `pending`, `in_progress`, `completed`   |
+| Plan status   | `planning`, `pending`, `in_progress`, `completed` |
 | Task status   | `pending`, `in_progress`, `completed`, `failed` |
 | Member status | `active`, `completed`, `failed`         |
 
-**Never** use `executing`, `implementing`, `planning`, `reviewing`, `testing`, `escalated`, `idle`, `crashed`, `rate-limited`, or any other value in a status field. Pipeline stage is tracked in the `stages` object, not the status.
+**Never** use `executing`, `implementing`, `reviewing`, `testing`, `escalated`, `idle`, `crashed`, `rate-limited`, or any other value in a task or member status field. Pipeline stage is tracked in the `stages` object, not the status. (`planning` is valid at the plan level only — not for tasks or members.)
 
 ## Active Stage Detection
 

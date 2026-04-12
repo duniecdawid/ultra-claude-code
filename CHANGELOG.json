@@ -1,5 +1,12 @@
 [
   {
+    "seq": 107,
+    "version": "2026.04.12-3",
+    "date": "2026-04-12",
+    "summary": "Early plan.json task population: plan-enhancer now creates plan.json with 'planning' status at scaffold time and populates tasks at Step 5 (README write) instead of Step 7 (post-approval), so the dashboard shows tasks during the approval window. plan-status-sync preserves 'planning' status for plans still being shaped. Project-manager handles 'planning' → 'in_progress' defensively.",
+    "migration": null
+  },
+  {
     "seq": 106,
     "version": "2026.04.12-2",
     "date": "2026-04-12",

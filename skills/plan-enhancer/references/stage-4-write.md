@@ -60,9 +60,9 @@ documentation/plans/001-user-auth/
 └── tasks/             # Per-task pipeline artifacts (created empty, used during execution)
 ```
 
-**Create `plan.json`** at plan root with initial pending status (no tasks array yet — that's populated on approval). Follow `${CLAUDE_PLUGIN_ROOT}/references/plan-status-format.md` for the format. Set `status` to `"pending"`, all counts to 0.
+**Create `plan.json`** at plan root with initial planning status (no tasks array yet — that's populated after writing the README in Step 5). Follow `${CLAUDE_PLUGIN_ROOT}/references/plan-status-format.md` for the format. Set `status` to `"planning"`, all counts to 0.
 
-**When upgrading a stub:** After editing the README status from Stub→Draft, verify `plan.json` at plan root has `"status": "pending"`.
+**When upgrading a stub:** After editing the README status from Stub→Draft, verify `plan.json` at plan root has `"status": "planning"`.
 
 ## Step 2: Update Product Documentation — Mandatory
 
@@ -147,13 +147,38 @@ Each task MUST also have:
 - Success criteria (how to verify it's done)
 - Dependencies on other tasks (if any)
 
-## Step 5: Write Plan File
+## Step 5: Write Plan File and Populate Tasks
 
 Write to `documentation/plans/{NNN}-{name}/README.md` via the Write tool — this is the canonical copy that `/uc:plan-execution` reads from. The plan is on disk before the user reviews it.
+
+**Immediately after writing the README, populate plan.json with tasks:**
+
+1. Parse all `### Task N: {name} <!-- status:pending -->` headings from the README you just wrote
+2. For each task, extract:
+   - `task_id`: `"task-N"` (from the heading number)
+   - `task_name`: the text between `Task N: ` and ` <!-- status:` (the task title)
+   - `status`: `"pending"`
+   - `goal`: a 1-line summary from the task's Description or Success criteria
+   - `dependencies`: parse from the task's Dependencies field (array of `"task-N"` strings, or `[]` if none)
+3. Read the existing `plan.json` (created in Step 1 with `status: "planning"`)
+4. Set `"tasks"` to the array of task objects, `"total_tasks"` and `"pending_tasks"` to the task count
+5. Keep `"status"` as `"planning"` — do NOT flip to `"pending"` yet (that happens on approval in Step 7)
+6. Write the updated `plan.json` back to disk
+
+This ensures the dashboard can display tasks during the approval window, before the plan is approved.
 
 ## Step 6: Present Summary and Request Approval
 
 **Present a concise summary in chat** — NOT the full plan. Include: plan number, plan name, objective, task count, and the file path. The user can read the full plan from the file.
+
+**Include a task list summary** — for each task, show one line with the task name and a brief goal:
+```
+Tasks:
+1. {Task name} — {1-line goal}
+2. {Task name} — {1-line goal}
+...
+```
+This gives the user a quick overview of the task breakdown alongside the plan summary.
 
 **Ask for approval via AskUserQuestion** — Options: "Approve" / "Reject with feedback" / "Partially reject (specify changes)"
 
@@ -164,13 +189,12 @@ Write to `documentation/plans/{NNN}-{name}/README.md` via the Write tool — thi
 
 ## Step 7: Post-Approval — HARD STOP
 
-When the user explicitly approves the plan, you MUST complete ALL THREE sub-steps before stopping:
+When the user explicitly approves the plan, you MUST complete ALL sub-steps before stopping:
 
 1. **Update README status:** change `> Status: Draft` → `> Status: Approved`
-2. **Update `plan.json`** — THIS IS MANDATORY, DO NOT SKIP:
+2. **Flip plan.json status** — THIS IS MANDATORY, DO NOT SKIP:
    - Read the current `plan.json` at `documentation/plans/{NNN}-{name}/plan.json`
-   - Set `"total_tasks"` and `"pending_tasks"` to the actual task count from the README
-   - Populate the `"tasks"` array by parsing all `### Task N: {name}` headings from the README — each task gets `task_id`, `task_name`, and `"status": "pending"`
+   - Change `"status"` from `"planning"` to `"pending"` (tasks array is already populated from Step 5)
    - Follow the format in `${CLAUDE_PLUGIN_ROOT}/references/plan-status-format.md`
    - Write the updated `plan.json` back to disk
 3. **Commit plan files** — Stage all plan files (README.md, plan.json, directories) and commit:

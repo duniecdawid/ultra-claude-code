@@ -90,7 +90,7 @@ Manages the `context/` directory as a structured knowledge base for external sys
 User-initiated-only backlog split across four category files in `documentation/backlog/` — bugs (B-NNN), questions (Q-NNN), ideas (I-NNN), and debt (D-NNN) — with priorities, labels, directional blocking relationships, bidirectional linking, and documentation references. Use to note something for later, log a bug, record a question or blocker, flag tech debt, label items with `#tag` syntax, filter by label, or ask "what should we work on". Saving to backlog NEVER happens automatically — only when the user explicitly requests it. No skill or agent may auto-add items. Provides list/add/update/done/label/unlabel/labels/link/block operations with per-category prefixed IDs, priority sorting, `#tag` filtering (AND semantics), computed blocked-by, and source tracking.
 
 **Plan Status Sync** (`/uc:plan-status-sync`)
-Scans all plans, infers actual status from execution artifacts (operational reports, checkpoints, task completion), and reconciles README statuses with `plan.json` at plan root. Use to fix stale statuses after crashed executions, create missing plan.json for legacy plans, or audit plan state. Produces corrected status files with consolidated plan+task state in a single file.
+Scans all plans, infers actual status from execution artifacts (operational reports, checkpoints, task completion), and reconciles README statuses with `plan.json` at plan root — preserving `planning` status for plans still being shaped. Use to fix stale statuses after crashed executions, create missing plan.json for legacy plans, or audit plan state. Produces corrected status files with consolidated plan+task state in a single file.
 
 **Session Cleanup** (`/uc:session-cleanup`)
 Scans all projects for stale Claude Code session files, classifies them as active (PID alive), stale (PID dead or old), or legacy (missing enriched fields). Use when session files accumulate after crashes, when disk cleanup is needed, or to kill orphaned tmux panes from dead sessions. Produces a cleanup report showing sessions removed, tmux panes killed, and sessions kept.
@@ -109,7 +109,7 @@ Updates Ultra Claude to the latest version via the Claude Code plugin marketplac
 ### System Meta
 
 **Plan Enhancer** (not user-invocable)
-Defines the 4-stage planning framework (Understand → Research → Discuss → Write) that all planning modes extend, governing task creation, approval gates, and post-approval stops. Loaded by feature-mode, debug-mode, discovery-mode, and roadmap as their foundation. Ensures plans are conversational, evidence-based, and only execute after explicit user approval.
+Defines the 4-stage planning framework (Understand → Research → Discuss → Write) that all planning modes extend, populating plan.json tasks at README write time so the dashboard shows tasks during the approval window. Loaded by feature-mode, debug-mode, discovery-mode, and roadmap as their foundation. Ensures plans are conversational, evidence-based, and only execute after explicit user approval.
 
 ## Agents
 

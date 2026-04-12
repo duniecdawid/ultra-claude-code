@@ -33,6 +33,7 @@ For each plan directory, read:
 | `shared/lead.md` with `## Execution Complete` | **Completed** |
 | `plan.json` with `"status": "in_progress"` but no report | **In Progress** (likely abandoned) |
 | `checkpoint-*.md` exists but no report | **In Progress** |
+| `plan.json` with `"status": "planning"` and no execution artifacts | **Planning** (preserve — plan is still being shaped) |
 | No execution artifacts at all | Keep current status (Pending) |
 
 **Legacy compatibility:** Older plans may have `status/plan.json` instead of `plan.json` at root, or may use old status values like `executing`, `draft`, `approved`, `stub`. Treat these as equivalent: `executing` → `in_progress`, `draft`/`approved`/`stub` → `pending`.
@@ -93,6 +94,7 @@ For plans that need dashboard status fixes, create or update `plan.json` at plan
 **Status value mapping:**
 - Inferred "Completed" → `"status": "completed"`
 - Inferred "In Progress" → `"status": "in_progress"`
+- Inferred "Planning" (plan.json has `"planning"` status, no execution artifacts) → `"status": "planning"` (preserve as-is)
 - All other states (Draft, Approved, Stub, or no execution artifacts) → `"status": "pending"`
 
 **Legacy migration:** If `status/plan.json` exists but `plan.json` at root does not, read from `status/plan.json`, migrate status values, add tasks array, and write to `plan.json` at root. Optionally remove the old `status/` directory.
