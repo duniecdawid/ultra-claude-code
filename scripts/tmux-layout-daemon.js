@@ -10,6 +10,18 @@ const { execSync, spawn } = require('child_process');
 
 const HOME = os.homedir();
 const PID_FILE = path.join(HOME, '.claude', 'ultra', 'tmux-layout.pid');
+const LOG_FILE = path.join(HOME, '.claude', 'ultra', 'tmux-layout-daemon.log');
+const LOG_MAX_BYTES = 2 * 1024 * 1024; // 2 MB
+
+function log(msg) {
+  try {
+    try {
+      const stat = fs.statSync(LOG_FILE);
+      if (stat.size > LOG_MAX_BYTES) fs.writeFileSync(LOG_FILE, '');
+    } catch {}
+    fs.appendFileSync(LOG_FILE, `[${new Date().toISOString()}] ${msg}\n`);
+  } catch {}
+}
 
 // --- Singleton management ---
 
@@ -65,7 +77,8 @@ const managedWindows = new Map();
 function tmux(cmd) {
   try {
     return execSync('tmux ' + cmd, { encoding: 'utf8', timeout: 5000 }).trim();
-  } catch {
+  } catch (err) {
+    log(`ERROR: tmux ${cmd} failed: ${err.message || err}`);
     return null;
   }
 }
@@ -86,7 +99,7 @@ function scanPanes() {
 }
 
 function classifyPanes(panes) {
-  const result = { mainPane: null, pmPane: null, tkPane: null, gatePane: null, tasks: {} };
+  const result = { mainPane: null, pmPane: null, tkPane: null, gatePane: null, tasks: {}, unnamed: [] };
 
   for (const p of panes) {
     if (p.label === 'main-context') result.mainPane = p.paneId;
@@ -99,6 +112,8 @@ function classifyPanes(panes) {
         const num = match[1];
         if (!result.tasks[num]) result.tasks[num] = [];
         result.tasks[num].push(p.paneId);
+      } else {
+        result.unnamed.push(p.paneId);
       }
     }
   }
@@ -109,7 +124,7 @@ function arrangeWindow(windowId, panes) {
   const classified = classifyPanes(panes);
   if (!classified.mainPane) return;
 
-  const { mainPane, pmPane, tkPane, gatePane, tasks } = classified;
+  const { mainPane, pmPane, tkPane, gatePane, tasks, unnamed } = classified;
   const taskNums = Object.keys(tasks).sort((a, b) => parseInt(a) - parseInt(b));
 
   const labeledPanes = [];
@@ -119,6 +134,7 @@ function arrangeWindow(windowId, panes) {
   for (const num of taskNums) {
     labeledPanes.push(...tasks[num]);
   }
+  labeledPanes.push(...unnamed);
 
   if (labeledPanes.length === 0) return;
 
@@ -159,6 +175,27 @@ function arrangeWindow(windowId, panes) {
       const pct = Math.round(100 * remaining / (remaining + 1));
       tmux(`join-pane -v -s ${taskPanes[i]} -t ${prev} -l ${pct}%`);
       prev = taskPanes[i];
+      remaining--;
+    }
+  }
+
+  // Unnamed column (panes not yet labeled or with unrecognized labels)
+  if (unnamed.length > 0) {
+    const head = unnamed[0];
+    if (columnHeads.length === 0) {
+      tmux(`join-pane -fh -s ${head} -t ${mainPane}`);
+    } else {
+      const lastCol = columnHeads[columnHeads.length - 1];
+      tmux(`join-pane -fh -s ${head} -t ${lastCol}`);
+    }
+    columnHeads.push(head);
+
+    let prev = head;
+    let remaining = unnamed.length - 1;
+    for (let i = 1; i < unnamed.length; i++) {
+      const pct = Math.round(100 * remaining / (remaining + 1));
+      tmux(`join-pane -v -s ${unnamed[i]} -t ${prev} -l ${pct}%`);
+      prev = unnamed[i];
       remaining--;
     }
   }
@@ -210,8 +247,7 @@ function arrangeWindow(windowId, panes) {
 
 function getSnapshot(panes) {
   return panes
-    .filter(p => p.label)
-    .map(p => `${p.paneId}:${p.label}`)
+    .map(p => `${p.paneId}:${p.label || '_'}`)
     .sort()
     .join('|');
 }
@@ -236,6 +272,19 @@ function tick() {
     const prev = managedWindows.get(windowId);
 
     if (!prev || prev.lastSnapshot !== snapshot || prev.lastSize !== size) {
+      const reason = !prev ? 'new window' : prev.lastSnapshot !== snapshot ? 'panes changed' : 'size changed';
+      const classified = classifyPanes(panes);
+      const taskNums = Object.keys(classified.tasks).sort();
+      const summary = [
+        classified.mainPane ? 'main' : null,
+        classified.pmPane ? 'pm' : null,
+        classified.tkPane ? 'tk' : null,
+        taskNums.length > 0 ? `tasks:[${taskNums.join(',')}]` : null,
+        classified.unnamed.length > 0 ? `unnamed:${classified.unnamed.length}` : null,
+        classified.gatePane ? 'gate' : null,
+      ].filter(Boolean).join(' ');
+      log(`ARRANGE: ${windowId} (${reason}) — ${summary}`);
+
       arrangeWindow(windowId, panes);
       const updated = scanPanes().get(windowId) || panes;
       managedWindows.set(windowId, {
@@ -259,9 +308,14 @@ fs.writeFileSync(PID_FILE, String(process.pid));
 
 const INTERVAL = 2000;
 setInterval(tick, INTERVAL);
-console.log(`Tmux layout daemon running (PID ${process.pid}, ${INTERVAL}ms poll)`);
+const startMsg = `Tmux layout daemon running (PID ${process.pid}, ${INTERVAL}ms poll)`;
+console.log(startMsg);
+log(`STARTUP: ${startMsg}`);
 
 // Clean up on exit
-process.on('exit', () => { try { fs.unlinkSync(PID_FILE); } catch {} });
-process.on('SIGTERM', () => process.exit(0));
-process.on('SIGINT', () => process.exit(0));
+process.on('exit', () => {
+  log('SHUTDOWN: daemon exiting');
+  try { fs.unlinkSync(PID_FILE); } catch {}
+});
+process.on('SIGTERM', () => { log('SIGNAL: received SIGTERM'); process.exit(0); });
+process.on('SIGINT', () => { log('SIGNAL: received SIGINT'); process.exit(0); });

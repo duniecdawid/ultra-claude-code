@@ -1,5 +1,12 @@
 [
   {
+    "seq": 105,
+    "version": "2026.04.12-1",
+    "date": "2026-04-12",
+    "summary": "Tmux layout daemon: add unnamed-pane column (new/unrecognized panes get their own visible column instead of being ignored) and file logging to ~/.claude/ultra/tmux-layout-daemon.log with 2 MB rotation.",
+    "migration": null
+  },
+  {
     "seq": 104,
     "version": "2026.04.11-3",
     "date": "2026-04-11",
