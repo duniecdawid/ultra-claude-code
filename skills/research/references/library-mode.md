@@ -12,6 +12,24 @@ You are researching an external library, framework, SDK, runtime, database, API,
 
 4. **Cross-reference across sources** if the API signature or parameters differ between results — surface the discrepancy in your output.
 
+## Claude / Anthropic Topics
+
+When the topic is about **Claude Code (CLI)**, **Claude Agent SDK**, **Anthropic API / SDK**, or related primitives (hooks, slash commands, MCP servers, sub-agents, settings, plugins, output styles, tool use, prompt caching, etc.), use **both** sources in parallel and merge:
+
+1. **Ref.tools** — `mcp__ref__ref_search_documentation` with the exact feature name. Anthropic docs are well indexed; queries like `"claude code hooks configuration"`, `"anthropic messages api streaming"`, `"agent sdk subagent definition"` return canonical pages.
+
+2. **WebSearch + WebFetch on the curated URL roots** — go directly to:
+   - `https://docs.claude.com/en/docs/claude-code/` — Claude Code CLI (overview, hooks, slash commands, MCP, settings, sub-agents, plugins, IDE integrations, keyboard shortcuts, output styles)
+   - `https://docs.claude.com/en/api/` — Anthropic API (messages, streaming, tool use, prompt caching, files API, batches, admin API)
+   - `https://docs.claude.com/en/api/agent-sdk/` — Claude Agent SDK (TS + Python, building custom agents, managed agents `/v1/agents`)
+   - `https://docs.anthropic.com/` — legacy mirror; same content, sometimes ranks higher in search
+
+   Use WebSearch with `site:docs.claude.com {topic}` or `site:docs.anthropic.com {topic}` to find the exact page, then WebFetch it for verbatim content.
+
+3. **Merge both sources** in your output. Ref.tools gives you fast indexed snippets; the curated URLs give you the full page context and any recent additions Ref.tools may not have re-indexed yet. If the two disagree on a flag, parameter, or default, surface the discrepancy explicitly and prefer the live URL fetch (it's authoritative as of today).
+
+Avoid third-party Claude Code tutorials, Medium posts, and GitHub READMEs unless the official docs are silent on the topic. The Anthropic docs ship updates frequently — verbatim excerpts with the page URL beat any synthesis.
+
 ## What To Include
 
 For each topic section you write:

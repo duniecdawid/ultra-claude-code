@@ -35,6 +35,7 @@ If the user supplied `--mode`, use it and skip classification. Otherwise apply t
 
 - `zod`, `nats jetstream consumer config`, `prisma findUnique`, `Node.js 22`, `redis pub/sub`, `postgres listen/notify`
 - Single-identifier topics or `{identifier} {feature}` patterns
+- **Claude / Anthropic topics always classify as `library`**, even when phrased as how-to. Triggers: `claude code`, `claude agent sdk`, `anthropic api`, `anthropic sdk`, or any Claude Code primitive (`hooks`, `slash commands`, `mcp servers`, `sub-agents`, `output styles`, `plugins`, `claude code settings`, `tool use`, `prompt caching`). The `library-mode.md` reference has a dedicated "Claude / Anthropic Topics" section instructing the researcher to query Ref.tools **and** fetch the curated `docs.claude.com` URLs in parallel.
 
 **`patterns`** — topic is phrased as a strategy, approach, or practice. Examples:
 

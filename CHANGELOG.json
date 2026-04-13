@@ -1,5 +1,12 @@
 [
   {
+    "seq": 124,
+    "version": "2026.04.13-12",
+    "date": "2026-04-13",
+    "summary": "/uc:research now handles Claude Code / Claude Agent SDK / Anthropic API questions natively. Auto-classify treats any topic mentioning `claude code`, `claude agent sdk`, `anthropic api/sdk`, or Claude Code primitives (hooks, slash commands, MCP servers, sub-agents, output styles, plugins, settings, tool use, prompt caching) as `library` mode. The library-mode reference now instructs the researcher to query Ref.tools AND fetch the curated `docs.claude.com` URL roots (`/en/docs/claude-code/`, `/en/api/`, `/en/api/agent-sdk/`) in parallel via WebSearch+WebFetch, merge both, and surface any discrepancies. This avoids needing the built-in `claude-code-guide` agent (which subagents can't spawn anyway) while keeping the same cache/index/file-format pipeline as every other research topic. Help skill description updated to reflect Claude/Anthropic coverage.",
+    "migration": null
+  },
+  {
     "seq": 123,
     "version": "2026.04.13-11",
     "date": "2026-04-13",
