@@ -49,11 +49,11 @@ ROLE=task
 **Your teammates (use SendMessage to communicate):**
 - Reviewer: reviewer-{N} (spawned with you — send plan for feedback, send progress updates during implementation)
 - Tech Knowledge: knowledge-{PLAN_NAME} (for external library/API documentation queries — send "QUERY: {question}")
-- Lead: {lead name} (for orchestration messages — plan reviews, implementation complete, task done, escalations)
+- Lead: {lead name} (for orchestration messages — plan reviews, `code complete — writing impl report`, `planning complete — awaiting implementation approval` if pipeline mode, task done, escalations)
 - Project Manager: pm-{PLAN_NAME} (send stage progress: "STAGE-DONE task-{N} review/testing", "RETRY task-{N}". Also responds to PM status pings.)
 
-**Deferred teammate (spawned after you signal "implementation complete"):**
-- Tester: tester-{N} — spawned by Lead when your code is ready
+**Deferred teammate (spawned after you signal "code complete — writing impl report"):**
+- Tester: tester-{N} — spawned by Lead the moment you signal code complete, while you're still writing `impl.md`
 
 **Context files to read first:**
 - Plan: `documentation/plans/$ARGUMENTS/README.md`
@@ -68,7 +68,26 @@ ROLE=task
 
 **Proactive research:** The Tech Knowledge team member has been notified about your task and may send you a RESEARCH BRIEF before you start. Read it — it contains current docs for the technologies your task involves, which may differ from training data.
 
-Follow the workflow in your team member instructions. Orchestration messages (plan reviews, implementation complete, task done, escalations) go to Lead. Stage progress (STAGE-DONE, RETRY) goes directly to PM.
+Follow the workflow in your team member instructions. Orchestration messages (plan reviews, `code complete — writing impl report`, `planning complete — awaiting implementation approval` if pipeline mode, task done, escalations) go to Lead. Stage progress (STAGE-DONE, RETRY) goes directly to PM.
+```
+
+**If pipeline-spawned, append this block to the executor spawn prompt above:**
+
+```
+**Pipeline mode:** This task was spawned early while predecessor task {P} is still in
+review/test. A concurrency slot was free, so you get to research and plan in parallel
+with {P}'s review/test window — but you MUST NOT begin implementing (your step 4) until
+Lead sends you "Implementation approved".
+
+Follow steps 1 through 3.7 (context, explore, plan, Lead plan review) normally. After
+Lead approves your plan in step 3.7, run step 3.9 (Pipeline Wait Gate) from your agent
+instructions: SendMessage to Lead "Task {N} planning complete — awaiting implementation
+approval", then wait silently for "Implementation approved — predecessor task {P}
+passed all stages. Proceed to implement." Only then proceed to step 3.5 / 4.
+
+While waiting at the gate, you may continue refining `plan.md` and sending follow-up
+QUERY messages to knowledge-{PLAN_NAME}, but you must NOT call Write or Edit on any
+source file.
 ```
 
 ## Reviewer Spawn

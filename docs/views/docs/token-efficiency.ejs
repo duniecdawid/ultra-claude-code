@@ -37,7 +37,7 @@
     <p>Only the Executor runs on Opus (the most capable, most expensive model). Every other role &mdash; Reviewer, Tester, Tech Knowledge, Project Manager &mdash; runs on Sonnet. This concentrates cost where capability matters most: writing code.</p>
 
     <h3>Lazy Tester spawning</h3>
-    <p>The Tester doesn't spawn when the task starts. It's created only after the Executor signals "implementation complete." During the planning and implementation phases (often the longest part), only two agents are active instead of three. This avoids ~10K tokens of idle context per task.</p>
+    <p>The Tester doesn't spawn when the task starts. It's created only after the Executor signals "code complete" &mdash; the moment all source code is written, <em>before</em> the Executor writes the implementation report. During the planning and implementation phases (often the longest part), only two agents are active instead of three, avoiding ~10K tokens of idle context per task. Firing the signal before the impl-report write also gives the Tester its cold-read window "for free", so it's ready to test almost as soon as the Executor is done.</p>
 
     <h3>Shared Tech Knowledge</h3>
     <p>One Knowledge agent serves all task teams for the entire plan. Without sharing, each task team would fetch its own library docs &mdash; duplicating the same lookups across parallel tasks. Shared costs ~100K total instead of ~100K per task.</p>

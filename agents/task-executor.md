@@ -82,6 +82,18 @@ After Reviewer feedback is resolved:
 
 This is a **blocking gate** — the Lead checks domain coherence, scope alignment, and cross-task conflicts. Implementation cannot begin without Lead's explicit approval.
 
+### 3.9 Pipeline Wait Gate (pipeline-spawned tasks only)
+
+If your spawn prompt included the **Pipeline mode** block, there's one more gate after 3.7 and before you write any code:
+
+1. After Lead approves your plan in step 3.7, SendMessage to Lead: `"Task {N} planning complete — awaiting implementation approval"`
+2. Wait silently for Lead to reply: `"Implementation approved — predecessor task {P} passed all stages. Proceed to implement."`
+3. Only after receiving that approval, proceed to step 3.5 / 4.
+
+While waiting you may refine `plan.md`, process late knowledge-query responses, and even send new `QUERY` messages to `knowledge-{PLAN_NAME}` — but you MUST NOT call `Write` or `Edit` on any source file. The predecessor is still in review/test and may yet discover something that invalidates your plan; holding off on code until it passes is the whole point of pipeline mode.
+
+If your spawn prompt did **not** include the Pipeline mode block, skip this step entirely — the normal non-pipeline flow applies.
+
 ### 3.5 Resolve Remaining Unknowns
 
 If you identified unknowns during planning that you cannot resolve yourself:
@@ -102,17 +114,24 @@ After plan feedback:
 - Write code that conforms to the plan, architecture docs, and coding standards
 - Follow patterns established in the codebase — use Grep/Glob to find existing examples
 - Only modify files within the scope of your task
-- Write implementation notes to `tasks/task-N/impl.md`
 - **Send progress updates to Reviewer** — after completing each file, SendMessage to Reviewer: "Progress: completed {file path} — you can start reading". This lets the Reviewer begin reading your code while you're still implementing other files, so the formal review is faster.
 
-### 4.5 Signal Implementation Complete
+**Note on `impl.md` timing:** do NOT write `tasks/task-{N}/impl.md` during this step. The impl report is deliberately deferred to step 4.5 so you can fire the `code complete` signal the moment source code is done — that triggers lazy tester spawn and pipeline pre-spawn in parallel with the impl-report write. See step 4.5.
 
-After ALL implementation files are written and `tasks/task-N/impl.md` is updated:
+### 4.5 Signal Code Complete (before writing impl.md)
 
-1. **SendMessage to Lead** (named in your spawn prompt): "Task {N} implementation complete — entering review/test phase"
-2. **Wait for Lead to confirm** that Tester has been spawned before proceeding to step 5.
+The moment ALL source code files are written — **before** you create or update `tasks/task-{N}/impl.md` and **before** any git commit:
 
-This tells the Lead your code is written. The Lead will spawn the Tester (Reviewer is already alive), then confirm the Tester is ready.
+1. **SendMessage to Lead**: `"Task {N} code complete — writing impl report"`
+2. **Wait for Lead to reply**: `"Tester spawned — proceed with impl report."`
+3. After the reply arrives:
+   - Write `tasks/task-{N}/impl.md` with your full implementation notes
+   - Make any git commit the task requires
+   - Proceed to step 5
+
+**Why send the signal first:** the Lead lazy-spawns `tester-{N}` on this message, so the Tester reads its context files (plan, product docs, testing config) in parallel with you finishing the impl report. The Tester is cold-starting during time you'd be spending writing `impl.md` anyway, shortening the total wall clock to "Ready for test". The same message also lets the Lead pre-spawn the next dependent task's team if a concurrency slot is free — that decision is transparent to you.
+
+**Do NOT write `impl.md` or commit before sending the signal.** The whole optimization depends on the Tester starting its cold-read *during* the impl-report write, not after.
 
 ### 5. Drive Review + Test (Parallel)
 
@@ -168,7 +187,7 @@ You are the hub of your task team. Key principles:
 - **Self-sufficient codebase research** — you have Read/Glob/Grep and are the most capable model. Explore the codebase yourself.
 - **Knowledge agent for external docs** — for library/framework documentation, query `knowledge-{PLAN_NAME}` with `QUERY: {question}`
 - **Lead handles shutdown** — after you report "task done" to Lead, it sends `shutdown_request` to the entire team
-- **You report orchestration events to Lead**: task completion, implementation complete, escalation (max retries), plan-invalidating discoveries, plan reviews
+- **You report orchestration events to Lead**: task completion, `code complete — writing impl report`, `planning complete — awaiting implementation approval` (pipeline mode only), escalation (max retries), plan-invalidating discoveries, plan reviews
 - **You report stage progress directly to PM** (pm-{PLAN_NAME}): "STAGE-DONE task-{N} review/testing", "RETRY task-{N}"
 - **PM may ping you for monitoring status** — reply briefly with your current stage/status
 

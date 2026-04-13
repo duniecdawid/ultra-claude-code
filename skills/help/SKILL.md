@@ -68,7 +68,7 @@ Researches external libraries, frameworks, and services using Ref.tools MCP for 
 ### Execution
 
 **Plan Execution** (`/uc:plan-execution`)
-Orchestrates multi-task plan execution: Executor and Reviewer spawn at task start (reviewer provides continuous standards/architecture review), Tester is lazy-spawned only when implementation is complete. Tasks spawn only when all dependencies are completed — no pipeline pre-spawning. Use after plan approval by running `/uc:plan-execution {number}`.
+Orchestrates multi-task plan execution: Executor and Reviewer spawn at task start (reviewer provides continuous standards/architecture review), Tester is lazy-spawned the moment the Executor signals `code complete` — before the impl report is written, so the Tester cold-reads context in parallel with the impl-report write. The same signal also pre-spawns the next dependent task's team (pipeline mode) when a concurrency slot is free: the successor researches, plans, and gets Lead plan approval during the predecessor's review/test window, then parks at a wait gate until the predecessor passes. Use after plan approval by running `/uc:plan-execution {number}`.
 
 **Checkpoint** (`/uc:checkpoint`)
 Saves execution state (task pipeline stages, active teams, decisions, blockers) to a timestamped file for session recovery. Use periodically during long executions, before session shutdown, or before risky changes. Produces a checkpoint that the Lead can read on resume to reconstruct state and continue execution.

@@ -53,10 +53,11 @@
       <li>The <strong>Lead</strong> (orchestrator) spawns Executor + Reviewer when a concurrency slot opens</li>
       <li>Executor explores the codebase, writes a plan, sends it to Reviewer (advisory) then Lead (blocking approval)</li>
       <li>After approval, Executor implements. Reviewer reads files as they're written.</li>
-      <li>Executor signals "implementation complete" &mdash; Lead spawns Tester</li>
+      <li>The moment the Executor finishes writing code &mdash; <em>before</em> writing the implementation report &mdash; it signals "code complete" to the Lead. The Lead lazy-spawns the Tester immediately, so the Tester reads context in parallel with the Executor finishing the impl report. If a concurrency slot is free, the Lead also pre-spawns the next dependent task's Executor + Reviewer so they can research and plan in parallel with this task's review/test window.</li>
+      <li>Executor writes the impl report, then signals "ready for review" and "ready for test" simultaneously</li>
       <li>Reviewer and Tester run in parallel: code review + testing</li>
       <li>Both must PASS. If either fails, Executor fixes and retries (up to 10 cycles)</li>
-      <li>Both pass &rarr; task done, team shuts down, next task spawns</li>
+      <li>Both pass &rarr; task done. If a pipeline successor is parked, Lead sends it "implementation approved" so it can begin coding. Team shuts down, next task spawns.</li>
     </ol>
 
     <h2>Concurrency</h2>
@@ -71,7 +72,7 @@
         <tr><td>9+ tasks</td><td>3&ndash;4</td></tr>
       </tbody>
     </table>
-    <p>Tasks only spawn when their dependencies are completed and a slot is available. No pre-spawning.</p>
+    <p>Tasks normally spawn when their dependencies are completed and a slot is available. As a pipeline optimization, when an Executor signals "code complete", the Lead may pre-spawn the next dependent task into a planning stage if a concurrency slot is free &mdash; that successor researches and plans during the predecessor's review/test window, then begins coding only after the predecessor fully passes.</p>
 
     <h2>What you see during execution</h2>
     <ul>

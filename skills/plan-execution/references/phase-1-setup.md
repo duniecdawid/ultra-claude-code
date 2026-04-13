@@ -62,9 +62,9 @@ Determine how many task-teams can run concurrently:
 
 Max ceiling: **4 concurrent task-teams**, plus 1 shared knowledge team member.
 
-Each slot = 1 task-team. Executor and Reviewer are spawned when a slot opens. Tester is lazy-spawned when implementation is complete. All members exit together when the task is done.
+Each slot = 1 task-team. Executor and Reviewer are spawned when a slot opens. Tester is lazy-spawned when the Executor signals `code complete` — *before* the Executor writes `impl.md`, so the Tester cold-reads context in parallel with the impl-report write. All members exit together when the task is done.
 
-Tasks only spawn when their slot is available AND all dependencies are completed. No pipeline pre-spawning.
+Tasks normally spawn when their slot is available AND all dependencies are completed. **Exception — pipeline pre-spawn:** when an Executor signals `code complete`, Lead may pre-spawn the next dependent task into a `planning` stage if a concurrency slot is free — see SKILL.md "How a Task-Team Works" and the message handler table for the rules. Pre-spawned successors count toward the concurrency limit and wait at a new gate for `Implementation approved` before writing code. At most one pre-spawn per `code complete` event.
 
 ### Model Assignment
 

@@ -218,6 +218,7 @@ The Lead sends you terse status messages as it orchestrates. Process each into t
 | Message | Source | PM Action |
 |---|---|---|
 | `SPAWNED task-{N}: {description}` | Lead | In `plan.json`: find task-{N} in tasks array → set status `in_progress`, populate `started_at`, `stages`, `members` (executor + reviewer). Update `active_tasks++`, `pending_tasks--`. Append `team_spawned` event to `events.json` |
+| `SPAWNED task-{N}: {description} (pipeline)` | Lead | Same as the regular SPAWNED handler above, but this task was pre-spawned while its predecessor is still in review/test (pipeline mode). The executor will research, plan, get Lead plan approval, and then park at a wait gate until its predecessor reaches `task done`. For the dashboard, treat it identically for now — the `(pipeline)` suffix is informational and can be used later for a visual badge. Append `team_spawned` event with `message: "Pipeline pre-spawn: {description}"`. |
 | `SPAWNED knowledge-{PLAN_NAME}` | Lead | Log knowledge agent spawn in `events.json` |
 | `SPAWNED-TESTER task-{N}` | Lead | In `plan.json`: find task-{N} → add tester member to `members` array. Append `member_spawned` event to `events.json` |
 | `STAGE task-{N} {stage}` | Lead | In `plan.json`: find task-{N} → close previous stage timestamps, open new stage in `stages` object. Append `stage_entered` event. For `review` and `testing`: both can be open simultaneously (parallel stages). |
