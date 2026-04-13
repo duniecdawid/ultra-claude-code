@@ -1,5 +1,12 @@
 [
   {
+    "seq": 120,
+    "version": "2026.04.13-8",
+    "date": "2026-04-13",
+    "summary": "Repo hygiene: .claude/ultra/sessions/ is now gitignored (per-machine Ultra Claude runtime state — tmux pane metadata, session markers, lock files — never belongs in the marketplace repo). Also parks a research scratch note (research-token-tracking.md) exploring per-plan/per-task token accounting as a possible future feature; no implementation planned yet, saved so the exploration isn't lost.",
+    "migration": null
+  },
+  {
     "seq": 119,
     "version": "2026.04.13-7",
     "date": "2026-04-13",
