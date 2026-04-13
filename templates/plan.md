@@ -21,7 +21,7 @@ References to the documentation that informs this plan. Prefer links over prose 
 
 ## Tech Stack
 
-External libraries, frameworks, and services this plan depends on. During plan-execution Phase 1.8, Lead calls `/uc:research` for each item to synthesize the task team's knowledge brief — cache hits are free, cache misses spawn the `researcher` subagent to write or refresh `documentation/technology/research/libraries/{lib}.md`.
+Narrative summary of the external libraries, frameworks, and services this plan depends on. For the authoritative per-task research mapping, see each task's `tasks/task-N/task.md` `**Research:**` section — that's where pointers to the durable research files live.
 
 - {technology 1}
 - {technology 2}
@@ -42,23 +42,13 @@ External libraries, frameworks, and services this plan depends on. During plan-e
 
 ## Task List
 
+Flat index only. Per-task details (description, files, patterns, success criteria, research pointers, dependencies) live in `tasks/task-N/task.md`.
+
 ### Task 1: {Title} <!-- status:pending -->
 - [ ] **Complete**
-- **Description:** What needs to be done
-- **Product context:** Relevant product description or requirements files
-- **Files:** Expected files to create/modify
-- **Patterns:** Architecture/standards files the executor must follow (populated by Standards Review)
-- **Success criteria:** How to verify this task is done
-- **Dependencies:** Other tasks that must complete first
 
 ### Task 2: {Title} <!-- status:pending -->
 - [ ] **Complete**
-- **Description:** What needs to be done
-- **Product context:** Relevant product description or requirements files
-- **Files:** Expected files to create/modify
-- **Patterns:** Architecture/standards files the executor must follow (populated by Standards Review)
-- **Success criteria:** How to verify this task is done
-- **Dependencies:** Other tasks that must complete first
 
 ## Documentation Changes
 

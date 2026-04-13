@@ -2,7 +2,7 @@
 
 Mandatory for ALL planning modes — no exceptions.
 
-**Purpose:** All file writing happens here — documentation updates, plan scaffolding, plan README. Then approval gate. Then post-approval (commit + print execution command + hard stop).
+**Purpose:** All file writing happens here — documentation updates, plan scaffolding, plan README, and per-task `task.md` files. Then approval gate. Then post-approval (commit + print execution command + hard stop).
 
 ## Stage Entry Check
 
@@ -26,8 +26,9 @@ This check exists because the most common failure mode is jumping from a detaile
 Before writing any docs in Steps 2-3, ensure you have read:
 - `${CLAUDE_PLUGIN_ROOT}/skills/docs-manager/SKILL.md` — the authority on document structure, references, routing, naming, and cross-referencing. All documentation written in Steps 2-3 must follow docs-manager rules.
 
-Before writing the plan in Step 4, read the plan template:
-- `${CLAUDE_PLUGIN_ROOT}/templates/plan.md`
+Before writing the plan in Step 4, read both templates:
+- `${CLAUDE_PLUGIN_ROOT}/templates/plan.md` — the plan README (plan-level content + flat task heading index)
+- `${CLAUDE_PLUGIN_ROOT}/templates/task.md` — the per-task file (description, files, patterns, research pointers, success criteria, dependencies)
 
 ---
 
@@ -63,10 +64,14 @@ mkdir -p documentation/plans/{NNN}-{name}/{shared,tasks}
 
 ```
 documentation/plans/001-user-auth/
-├── README.md          # The plan document (task list embedded)
+├── README.md          # The plan document (plan-level content + flat task heading index)
 ├── plan.json          # Dashboard status (created now, updated at approval and execution)
 ├── shared/            # Lead-level shared notes (created empty, used during execution)
-└── tasks/             # Per-task pipeline artifacts (created empty, used during execution)
+└── tasks/             # Per-task content — one subdirectory per task, created in Step 5
+    ├── task-1/
+    │   └── task.md    # Authoritative per-task content (description, files, patterns, research, success criteria, deps)
+    └── task-2/
+        └── task.md
 ```
 
 **Create `plan.json`** at plan root with initial planning status (no tasks array yet — that's populated after writing the README in Step 5). Follow `${CLAUDE_PLUGIN_ROOT}/references/plan-status-format.md` for the format. Set `status` to `"planning"`, all counts to 0.
@@ -121,6 +126,11 @@ Build the plan using the loaded plan template including the `Execute: /uc:plan-e
 
 Reference the documentation updated in Steps 2-3 — do not duplicate content. Each task's **Product context** and **Patterns** fields should point to the relevant files, not restate what's in them.
 
+**Plan README vs per-task files:**
+- The plan `README.md` holds plan-level content (Objective, Context, Tech Stack narrative, Scope, Success Criteria, Documentation Changes, Risk Assessment) plus a **flat task heading index** — just `### Task N: {Title} <!-- status:pending -->` followed by `- [ ] **Complete**`.
+- Per-task content (description, files, patterns, research, success criteria, dependencies) lives in `tasks/task-N/task.md`. The README does NOT contain these fields.
+- The Tech Stack section in the README is a plan-wide narrative overview. The machine-readable research mapping lives per-task in each `task.md`'s `**Research:**` section.
+
 ### Task sizing rules
 
 - **Split by feature, not by tech layer.** Each task delivers a complete vertical slice (database through API/UI). Never split into "backend task" and "frontend task" for the same feature. Testing is part of the execution pipeline, not a separate task.
@@ -130,51 +140,62 @@ Reference the documentation updated in Steps 2-3 — do not duplicate content. E
 
 ### Forbidden task patterns
 
-The task list is a **flat sequence** — no hierarchy, no grouping, no nesting. The execution engine reads `### Task N:` headings sequentially. Anything else breaks parsing and execution.
+The README task index is a **flat sequence** — no hierarchy, no grouping, no nesting. The execution engine reads `### Task N:` headings sequentially from README and loads each task's content from `tasks/task-N/task.md`. Anything else breaks parsing and execution.
 
 **Do NOT:**
-- **Group tasks into phases.** No "Phase 0: Foundation", "Phase 1: Core", etc. If tasks have a natural order, express it through Dependencies fields, not section headers. The task list has one level: `### Task N:`.
+- **Group tasks into phases.** No "Phase 0: Foundation", "Phase 1: Core", etc. If tasks have a natural order, express it through each task.md's Dependencies field, not README section headers. The README task index has one level: `### Task N:`.
 - **Use nested numbering.** No T0.1, T1.2, T2.3. Tasks are numbered sequentially: Task 1, Task 2, Task 3, ... Task N. That's it.
 - **Split by tech layer.** No separate "web implementation", "native implementation", "tests", "review gate" tasks for the same feature. Each task is a complete vertical slice — one component means one task that delivers types + web + native + tests + stories.
-- **Invent custom task formats.** No bold-text pseudo-headings (`**T1.1**`), no bullet-list tasks, no sub-tasks within tasks. Every task is an H3 heading matching the exact format below.
-- **Omit required fields.** Every task has all fields from the template. No abbreviated one-liner tasks.
+- **Invent custom task formats in README.** No bold-text pseudo-headings (`**T1.1**`), no bullet-list tasks, no sub-tasks within tasks. Every task is an H3 heading matching the exact format: `### Task N: {Title} <!-- status:pending -->` followed by `- [ ] **Complete**`.
+- **Put per-task content in README.** Description, files, patterns, research, success criteria, and dependencies go in `tasks/task-N/task.md`. The README is an index only.
+- **Omit required fields in task.md.** Every task.md has all fields from `templates/task.md`. No abbreviated one-liner tasks.
 - **Create tasks for documentation updates.** Doc changes happen in Stage 4 Steps 2-3 (before the plan is written), not as plan tasks.
 
 If a plan has 20+ features that feel like they need phases, the plan is too large — split into multiple plans instead.
 
-### Task fields
+### Task heading format (README)
 
-Each task heading MUST use the format: `### Task N: {Title} <!-- status:pending -->`
+Each task heading in the README MUST use the format: `### Task N: {Title} <!-- status:pending -->`
 
 Immediately after the heading, add a completion checkbox: `- [ ] **Complete**`
 
-Each task MUST also have:
-- A clear description of what to build/change
+Nothing else goes under the heading in the README. All content lives in `tasks/task-N/task.md`.
+
+### Task content (task.md)
+
+Each task's `tasks/task-N/task.md` file MUST contain all fields from `templates/task.md`:
+
+- **Description** — clear paragraph of what to build/change
 - **Product context** — relevant product description or requirements files from Step 2
-- Expected files to create or modify
-- **Patterns** — relevant architecture/standards files from Step 3, with optional section hints (e.g., `documentation/technology/standards/error-handling.md` (API Error Responses section)). If none apply: `None identified`
-- Success criteria (how to verify it's done)
-- Dependencies on other tasks (if any)
+- **Files** — expected files to create or modify
+- **Patterns** — relevant architecture/standards files from Step 3, with optional section hints (e.g., `documentation/technology/standards/error-handling.md (API Error Responses section)`). If none apply: `None identified`
+- **Research** — pointers to durable research files under `documentation/technology/research/` that this task depends on, each with a one-line "why this matters for this task" gloss. Populated from research collected in Stage 2 via `/uc:research`. A research file that applies to multiple tasks appears as a pointer in each of those tasks' `task.md` files — duplicating a path is not duplicating content.
+- **Success criteria** — numbered list of how to verify the task is done
+- **Dependencies** — other tasks that must complete first (or `none`)
 
-## Step 5: Write Plan File and Populate Tasks
+## Step 5: Write Plan Files and Populate plan.json
 
-Write to `documentation/plans/{NNN}-{name}/README.md` via the Write tool — this is the canonical copy that `/uc:plan-execution` reads from. The plan is on disk before the user reviews it.
+Three write actions, in order:
 
-**Immediately after writing the README, populate plan.json with tasks:**
+**5a. Write plan README.md** to `documentation/plans/{NNN}-{name}/README.md` via the Write tool. Plan-level content (Objective, Context, Tech Stack, Scope, Success Criteria, Documentation Changes, Risk Assessment) plus the flat task heading index. The README is the canonical plan overview.
 
-1. Parse all `### Task N: {name} <!-- status:pending -->` headings from the README you just wrote.
-2. For each task, extract:
-   - `task_id`: `"task-N"` (from the heading number)
-   - `task_name`: the text between `Task N: ` and ` <!-- status:` (the task title)
+**5b. Write per-task `task.md` files.** For each task, create `tasks/task-N/` and write `tasks/task-N/task.md` using `templates/task.md`. Populate every field. Key points:
+- Description, files, patterns, success criteria, dependencies come from your Stage 1-3 work.
+- The **Research** section is populated from Stage 2's research-to-task mapping: for every `/uc:research` result that applies to this task, add a pointer entry with a one-line "why this matters for THIS task" gloss. A research file that applies to multiple tasks appears in each of their task.md files — the path is the same, the gloss may differ per task.
+- If any task has no external-research dependencies, write `None applicable` in its Research section (explicit, not blank).
+
+**5c. Populate plan.json with tasks:**
+1. Parse all `### Task N: {name} <!-- status:pending -->` headings from the README.
+2. For each task, extract the `task_id` and `task_name` from the heading and then read `tasks/task-N/task.md` to pull:
+   - `goal`: 1-line summary from the task's Description (first sentence is typically fine)
+   - `dependencies`: parse from the task.md's Dependencies field (array of `"task-N"` strings, or `[]` if `none`)
    - `status`: `"pending"`
-   - `goal`: a 1-line summary from the task's Description or Success criteria
-   - `dependencies`: parse from the task's Dependencies field (array of `"task-N"` strings, or `[]` if none)
 3. Read the existing `plan.json` (created in Step 1 with `status: "planning"`).
 4. Set `"tasks"` to the array of task objects, `"total_tasks"` and `"pending_tasks"` to the task count.
 5. Keep `"status"` as `"planning"` — do NOT flip to `"approved"` yet (that happens on approval in Step 7).
 6. Write the updated `plan.json` back to disk.
 
-This ensures the dashboard can display tasks during the approval window, before the plan is approved.
+This ensures the dashboard can display tasks during the approval window, before the plan is approved. It also means every task has its authoritative `task.md` file on disk before execution begins — `/uc:plan-execution` never has to parse README sections for per-task content.
 
 ## Step 6: Present Summary and Request Approval
 

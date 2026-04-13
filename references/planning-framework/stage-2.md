@@ -16,9 +16,27 @@ Spawn all applicable research skills in parallel. At minimum, always launch `cod
 
 ## Rules
 
-- No files written to disk.
+- No files written to disk by this stage directly. (`/uc:research` itself writes durable files under `documentation/technology/research/` — that's the skill's own persistence, not a stage write.)
 - Research results remain in conversation context.
 - Modes extend by: adding scoping context to surveyors, adding extra agents (e.g., Explore, System Tester, Checker), adding extra research phases. The mode-specific extensions live in the active mode's `references/stage-2.md`.
+
+## Track research-to-task mapping
+
+As you run `/uc:research` for external libraries, frameworks, APIs, and patterns, **note which draft task each research artifact supports**. You're still shaping tasks during Stage 2/3, but by the time you reach Stage 4 you'll have a list like:
+
+```
+task-1 (Add JWT auth middleware):
+  - documentation/technology/research/libraries/jsonwebtoken.md — need v9 algorithms param
+  - documentation/technology/research/libraries/express.md — async error handling
+
+task-2 (User sessions):
+  - documentation/technology/research/libraries/jsonwebtoken.md — shared with task-1, different gloss
+  - documentation/technology/research/libraries/redis.md — session store TTL semantics
+```
+
+Stage 4 Step 5b turns this mapping into the `**Research:**` section of each task's `task.md` file. A research file that applies to multiple tasks becomes a pointer in each of those tasks' task.md files (same path, possibly different one-line gloss per task — duplicating a path is not duplicating content).
+
+Don't just collect research for "the plan" as a whole — keep the per-task attribution in your head or in a scratch note as you go, so Stage 4 doesn't lose it.
 
 ## Stage Transition
 
