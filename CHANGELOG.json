@@ -1,5 +1,12 @@
 [
   {
+    "seq": 117,
+    "version": "2026.04.13-5",
+    "date": "2026-04-13",
+    "summary": "Project Manager: explicit Lead label sanity check on every verification pass. PM now counts how many panes in the window carry `main-context` via `grep -cx`, interprets the count (1=healthy, 0=broken, 2+=duplicate), and self-heals the 0-case by relabeling the Lead pane back to the canonical `main-context`. Catches downstream drift where a project customization writes a non-canonical label like `lead-*` — the tmux layout daemon only anchors windows on `main-context`, so a wrong label silently stops the team grid from updating. PM also logs the incident in its operational report so the Lead can investigate where the bad label came from.",
+    "migration": null
+  },
+  {
     "seq": 116,
     "version": "2026.04.13-4",
     "date": "2026-04-13",
