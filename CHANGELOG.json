@@ -1,5 +1,16 @@
 [
   {
+    "seq": 115,
+    "version": "2026.04.13-3",
+    "date": "2026-04-13",
+    "summary": "Plan status enum: add \"stub\" and \"approved\" as first-class values for plan-level status in plan.json. Roadmap stub scaffolder now writes \"stub\" (was \"pending\"); stage-4 approval gate writes \"approved\" (was \"pending\"); plan-status-format reference table updated to list the new plan enum. plan-status-sync inference rules and status mapping updated to emit the new values and alias legacy plan-level \"pending\" → \"approved\" on read. templates/plan.md header now lists Stub as a valid status so plans upgraded from roadmap stubs render correctly. Consumers of plan.json should alias legacy plan-level \"pending\" → \"approved\" on ingest; no on-disk rewrite of existing plan.json files is required. Task-level status values (pending/in_progress/completed/failed) are unchanged.",
+    "migration": {
+      "precondition": "Any project with plan.json files written by earlier Ultra Claude versions that contain plan-level `\"status\": \"pending\"`.",
+      "actions": "Consumers and tooling that read plan.json should alias legacy plan-level `\"pending\"` to `\"approved\"` on ingest. New plans written after this release will use `\"stub\"` (roadmap scaffolder) or `\"approved\"` (stage-4 approval gate). No mass rewrite of existing plan.json files is required — the alias is read-side only. Task-level `\"pending\"` is unchanged and remains valid.",
+      "conflicts": "None expected. Projects that have hand-edited plan.json files with the old plan-level `\"pending\"` value will continue to work via the alias. Custom tooling that hard-codes plan-level `\"pending\"` should be updated to accept the new enum (`stub`, `planning`, `approved`, `in_progress`, `completed`)."
+    }
+  },
+  {
     "seq": 114,
     "version": "2026.04.13-2",
     "date": "2026-04-13",

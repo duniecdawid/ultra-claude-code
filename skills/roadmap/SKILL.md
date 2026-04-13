@@ -198,7 +198,7 @@ For each plan in the approved sequence:
    - Stub markers for: Task List, Tech Stack, Documentation Changes, Risk Assessment
    - Set `Status: Stub` and `Source: Roadmap`
 
-3. Create `documentation/plans/{NNN}-{name}/plan.json` at plan root following `${CLAUDE_PLUGIN_ROOT}/references/plan-status-format.md`. Set `status` to `"pending"`, all counts to 0, no tasks array (stubs don't have tasks yet).
+3. Create `documentation/plans/{NNN}-{name}/plan.json` at plan root following `${CLAUDE_PLUGIN_ROOT}/references/plan-status-format.md`. Set `status` to `"stub"`, all counts to 0, no tasks array (stubs don't have tasks yet).
 
 Context links must point to real files that exist in `documentation/`. Do not invent links. If a relevant doc doesn't exist, omit that link category.
 
@@ -261,6 +261,6 @@ See documentation/plans/ROADMAP.md for the full dependency graph.
 
 When creating stub plan directories, ALWAYS generate a `plan.json` file at the plan root alongside the README.md. Plan status tracking relies on `plan.json` — without it, the plan is invisible to status tools.
 
-Follow `${CLAUDE_PLUGIN_ROOT}/references/plan-status-format.md` for the format. For stubs: set `status` to `"pending"`, all counts to 0, no tasks array.
+Follow `${CLAUDE_PLUGIN_ROOT}/references/plan-status-format.md` for the format. For stubs: set `status` to `"stub"`, all counts to 0, no tasks array.
 
 The `plan.json` file should be committed to git so plan state persists across machines. Any skill that scaffolds plan directories — roadmap, feature-mode, or manual stub creation — must create this file.

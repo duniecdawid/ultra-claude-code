@@ -171,7 +171,7 @@ Write to `documentation/plans/{NNN}-{name}/README.md` via the Write tool — thi
    - `dependencies`: parse from the task's Dependencies field (array of `"task-N"` strings, or `[]` if none)
 3. Read the existing `plan.json` (created in Step 1 with `status: "planning"`).
 4. Set `"tasks"` to the array of task objects, `"total_tasks"` and `"pending_tasks"` to the task count.
-5. Keep `"status"` as `"planning"` — do NOT flip to `"pending"` yet (that happens on approval in Step 7).
+5. Keep `"status"` as `"planning"` — do NOT flip to `"approved"` yet (that happens on approval in Step 7).
 6. Write the updated `plan.json` back to disk.
 
 This ensures the dashboard can display tasks during the approval window, before the plan is approved.
@@ -206,7 +206,7 @@ When the user explicitly approves the plan, you MUST complete ALL sub-steps befo
 1. **Update README status:** change `> Status: Draft` → `> Status: Approved`
 2. **Flip plan.json status** — THIS IS MANDATORY, DO NOT SKIP:
    - Read the current `plan.json` at `documentation/plans/{NNN}-{name}/plan.json`
-   - Change `"status"` from `"planning"` to `"pending"` (tasks array is already populated from Step 5)
+   - Change `"status"` from `"planning"` to `"approved"` (tasks array is already populated from Step 5)
    - Follow the format in `${CLAUDE_PLUGIN_ROOT}/references/plan-status-format.md`
    - Write the updated `plan.json` back to disk
 3. **Commit plan files** — Stage all plan files (README.md, plan.json, directories) and commit:

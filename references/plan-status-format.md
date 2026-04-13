@@ -89,7 +89,7 @@ The `dependencies` field is an array of task IDs (e.g., `["task-1", "task-3"]`) 
 
 | Field         | Allowed values                          |
 |---------------|-----------------------------------------|
-| Plan status   | `planning`, `pending`, `in_progress`, `completed` |
+| Plan status   | `stub`, `planning`, `approved`, `in_progress`, `completed` |
 | Task status   | `pending`, `in_progress`, `completed`, `failed` |
 | Member status | `active`, `completed`, `failed`         |
 

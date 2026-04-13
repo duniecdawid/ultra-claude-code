@@ -34,9 +34,14 @@ For each plan directory, read:
 | `plan.json` with `"status": "in_progress"` but no report | **In Progress** (likely abandoned) |
 | `checkpoint-*.md` exists but no report | **In Progress** |
 | `plan.json` with `"status": "planning"` and no execution artifacts | **Planning** (preserve — plan is still being shaped) |
-| No execution artifacts at all | Keep current status (Pending) |
+| `plan.json` with `"status": "stub"` and no execution artifacts | **Stub** (preserve — roadmap stub awaiting feature-mode) |
+| `plan.json` with `"status": "approved"` and no execution artifacts | **Approved** (preserve — plan ready for execution) |
+| README `Status: Stub` and no plan.json | **Stub** |
+| README `Status: Draft` and no plan.json | **Planning** |
+| README `Status: Approved` and no plan.json | **Approved** |
+| No artifacts and no recognizable README status | **Planning** (conservative default) |
 
-**Legacy compatibility:** Older plans may have `status/plan.json` instead of `plan.json` at root, or may use old status values like `executing`, `draft`, `approved`, `stub`. Treat these as equivalent: `executing` → `in_progress`, `draft`/`approved`/`stub` → `pending`.
+**Legacy compatibility:** Older plans may have `status/plan.json` instead of `plan.json` at root, or may use old status values. Treat these as equivalent: `executing` → `in_progress`, legacy plan-level `"pending"` → `"approved"` (mirrors the read-side alias that downstream consumers apply). README headers still use `Stub`, `Draft`, `Approved`, `In Progress`, `Completed`.
 
 **Plans without PM tracking:** If a plan has no `plan.json` but DOES have execution artifacts (`shared/lead.md`, task directories with `impl.md` or `plan.md` files), infer status from those artifacts using the rules above.
 
@@ -60,7 +65,7 @@ Plan                    | README Status | Dashboard Status | Correct Status | Ta
 ------------------------|--------------|-----------------|----------------|------
 001-user-auth           | Approved     | (no JSON)       | Completed      | 3/3 done
 002-api-refactor        | Approved     | in_progress     | In Progress    | 1/4 done
-003-new-feature         | Draft        | (no JSON)       | Pending        | (no change)
+003-new-feature         | Draft        | (no JSON)       | Planning       | (no change)
 ```
 
 If no changes needed, inform user and stop.
@@ -95,7 +100,10 @@ For plans that need dashboard status fixes, create or update `plan.json` at plan
 - Inferred "Completed" → `"status": "completed"`
 - Inferred "In Progress" → `"status": "in_progress"`
 - Inferred "Planning" (plan.json has `"planning"` status, no execution artifacts) → `"status": "planning"` (preserve as-is)
-- All other states (Draft, Approved, Stub, or no execution artifacts) → `"status": "pending"`
+- Inferred "Stub" (README `Status: Stub` or plan.json already `"stub"`) → `"status": "stub"`
+- Inferred "Approved" (README `Status: Approved`, plan.json already `"approved"`, or legacy plan.json `"pending"`) → `"status": "approved"`
+- Inferred "Draft" (README `Status: Draft`) → `"status": "planning"`
+- Anything else (no README status, no artifacts) → `"status": "planning"` (conservative default)
 
 **Legacy migration:** If `status/plan.json` exists but `plan.json` at root does not, read from `status/plan.json`, migrate status values, add tasks array, and write to `plan.json` at root. Optionally remove the old `status/` directory.
 
