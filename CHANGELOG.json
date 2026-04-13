@@ -1,5 +1,12 @@
 [
   {
+    "seq": 122,
+    "version": "2026.04.13-10",
+    "date": "2026-04-13",
+    "summary": "Plan-execution Lead-as-Sage refactor (Task 2 of plan 041): remove the shared Tech Knowledge teammate, make Lead the team's knowledge broker via the /uc:research skill. Rewrites skills/plan-execution/SKILL.md's principle from a blanket 'all delegation through teammates' rule into a typed distinction between Teammates (TeamCreate, persistent, stateful, team-graph-tracked — Executor/Reviewer/Tester/PM) and Subagents (Task tool, stateless, one-shot, invisible to team graph — currently the researcher agent). Phase 1.8 now spawns only the PM teammate, then loops /uc:research over the plan's Tech Stack and writes a Knowledge Brief to shared/knowledge-brief.md. The brief is embedded in every executor/reviewer/tester spawn prompt — teammates read it first and fall back to sending QUERY: messages to Lead for anything not covered. Lead answers via /uc:research (cache hit = free, cache miss = one Task-tool subagent spawn), replies ANSWER:, and broadcasts KNOWLEDGE UPDATE: snippets only when new info is broadly relevant across tasks. Phase 5 completion removes the Tech Knowledge shutdown step. Rewires task-executor.md, code-review.md, task-tester.md, project-manager.md (removes knowledge- grid row + SPAWNED knowledge-* event handler). Updates all docs/views/*.ejs pages (index, getting-started, reference, context, plan-execution, setup, feature-planning, token-efficiency, standards, discovery) to describe the new Lead-as-Sage model. Help skill entry for Task Executor updated to describe Knowledge Brief + QUERY routing. Depends on the previous commit (plan 041, Task 1) which introduced /uc:research and the researcher agent.",
+    "migration": null
+  },
+  {
     "seq": 121,
     "version": "2026.04.13-9",
     "date": "2026-04-13",

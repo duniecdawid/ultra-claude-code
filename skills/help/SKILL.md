@@ -139,7 +139,7 @@ Monitors live plan execution by maintaining dashboard state, tracking parallel r
 Reproduces reported bugs scientifically following exact steps, observing outputs and trying variations to understand boundary conditions — never fixes code. Spawned by Debug Mode to validate bug reports and test proposed fixes. Produces structured reproduction reports with evidence and observations informing fix strategies.
 
 **Task Executor**
-Coordinates per-task execution: reads context, writes implementation plans, implements code, and drives parallel review/test cycles until both pass. Spawned as the hub of each task team, querying shared Tech Knowledge for external docs. Produces implementation notes documenting changes and integration points.
+Coordinates per-task execution: reads context, writes implementation plans, implements code, and drives parallel review/test cycles until both pass. Spawned as the hub of each task team, reading the pre-synthesized Knowledge Brief and sending `QUERY:` messages to Lead for any uncovered library questions (Lead brokers via `/uc:research`). Produces implementation notes documenting changes and integration points.
 
 **Task Tester**
 Verifies code against requirements by running tests, writing missing coverage, and launching frontend in a browser to visually confirm UI works. Spawned as the last quality gate in per-task teams, working independently from Executor. Produces pass/fail verdicts with evidence that either clears code or identifies failures needing re-work.

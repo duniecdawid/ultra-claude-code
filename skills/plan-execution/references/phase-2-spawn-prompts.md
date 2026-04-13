@@ -10,7 +10,7 @@ Use TeamCreate with `team_name` set to the active team. **MANDATORY naming conve
 | 2 | `executor-2` | `reviewer-2` | `tester-2` |
 | N | `executor-N` | `reviewer-N` | `tester-N` |
 
-**Shared (plan-wide):** `knowledge-{PLAN_NAME}` — spawned once, serves all tasks.
+**Shared (plan-wide):** `pm-{PLAN_NAME}` — the only plan-wide teammate. Knowledge is brokered by Lead via the `/uc:research` skill; no persistent knowledge teammate exists.
 
 **NEVER** use alternative formats like `task-1-executor`, `e1`, `Executor_1`, or descriptive names.
 
@@ -48,8 +48,7 @@ ROLE=task
 
 **Your teammates (use SendMessage to communicate):**
 - Reviewer: reviewer-{N} (spawned with you — send plan for feedback, send progress updates during implementation)
-- Tech Knowledge: knowledge-{PLAN_NAME} (for external library/API documentation queries — send "QUERY: {question}")
-- Lead: {lead name} (for orchestration messages — plan reviews, `code complete — writing impl report`, `planning complete — awaiting implementation approval` if pipeline mode, task done, escalations)
+- Lead: {lead name} (for orchestration messages — plan reviews, `code complete — writing impl report`, `planning complete — awaiting implementation approval` if pipeline mode, task done, escalations. **Also for knowledge queries** — send `QUERY: {question}` and Lead will answer via `/uc:research`.)
 - Project Manager: pm-{PLAN_NAME} (send stage progress: "STAGE-DONE task-{N} review/testing", "RETRY task-{N}". Also responds to PM status pings.)
 
 **Deferred teammate (spawned after you signal "code complete — writing impl report"):**
@@ -58,6 +57,7 @@ ROLE=task
 **Context files to read first:**
 - Plan: `documentation/plans/$ARGUMENTS/README.md`
 - Lead notes: `documentation/plans/$ARGUMENTS/shared/lead.md`
+- **Knowledge Brief**: `documentation/plans/$ARGUMENTS/shared/knowledge-brief.md` — Lead's pre-synthesized one-paragraph-per-tech summary with pointers to full research files under `documentation/technology/research/libraries/`. Read this BEFORE you start coding. For deeper detail, read the pointed-to file directly. For new questions not covered by the brief, send `QUERY: {question}` to Lead.
 - Patterns: Read the files listed in your task's **Patterns:** field below
 
 **Patterns:** {patterns from plan task}
@@ -66,9 +66,9 @@ ROLE=task
 - Plan: `documentation/plans/$ARGUMENTS/tasks/task-{N}/plan.md`
 - Implementation notes: `documentation/plans/$ARGUMENTS/tasks/task-{N}/impl.md`
 
-**Proactive research:** The Tech Knowledge team member has been notified about your task and may send you a RESEARCH BRIEF before you start. Read it — it contains current docs for the technologies your task involves, which may differ from training data.
+**Knowledge flow:** Your primary knowledge source is the Knowledge Brief above plus the research files it points to. If you hit a question the brief and files don't cover, send `QUERY: {question}` to Lead. Lead runs `/uc:research` and replies with `ANSWER: ...`. If the same information applies to other active tasks, Lead may also broadcast a `KNOWLEDGE UPDATE:` message — read it if received and incorporate into your work.
 
-Follow the workflow in your team member instructions. Orchestration messages (plan reviews, `code complete — writing impl report`, `planning complete — awaiting implementation approval` if pipeline mode, task done, escalations) go to Lead. Stage progress (STAGE-DONE, RETRY) goes directly to PM.
+Follow the workflow in your team member instructions. Orchestration messages (plan reviews, `code complete — writing impl report`, `planning complete — awaiting implementation approval` if pipeline mode, task done, escalations) AND knowledge queries go to Lead. Stage progress (STAGE-DONE, RETRY) goes directly to PM.
 ```
 
 **If pipeline-spawned, append this block to the executor spawn prompt above:**
@@ -86,8 +86,7 @@ approval", then wait silently for "Implementation approved — predecessor task 
 passed all stages. Proceed to implement." Only then proceed to step 3.5 / 4.
 
 While waiting at the gate, you may continue refining `plan.md` and sending follow-up
-QUERY messages to knowledge-{PLAN_NAME}, but you must NOT call Write or Edit on any
-source file.
+QUERY messages to Lead, but you must NOT call Write or Edit on any source file.
 ```
 
 ## Reviewer Spawn
@@ -107,12 +106,13 @@ ROLE=task
 **Your teammates (use SendMessage to communicate):**
 - Executor: executor-{N}
 - Tester: tester-{N}
-- Tech Knowledge: knowledge-{PLAN_NAME} (for external library/API documentation queries — send "QUERY: {question}")
+- Lead: {lead name} (for knowledge queries — send `QUERY: {question}`; Lead answers via `/uc:research`)
 - Project Manager: pm-{PLAN_NAME} (may ping you for monitoring status — reply briefly)
 
 **Context files to read (while Executor plans and implements):**
 - Plan: `documentation/plans/$ARGUMENTS/README.md`
 - Lead notes: `documentation/plans/$ARGUMENTS/shared/lead.md`
+- **Knowledge Brief**: `documentation/plans/$ARGUMENTS/shared/knowledge-brief.md` — per-tech summaries and pointers to `documentation/technology/research/libraries/` files. Read this during early context-building so your review has current external-library context.
 - Architecture: `documentation/technology/architecture/`
 - Standards: `documentation/technology/standards/`
 
@@ -120,7 +120,7 @@ ROLE=task
 Verify compliance with these first, then check broader docs.
 Tester-written tests are in your review scope.
 
-**You are spawned with the Executor.** Use planning and implementation time to build deep context. Review the Executor's plan when they send it (advisory feedback). Read files as the Executor sends progress updates. Send QUERY messages to knowledge-{PLAN_NAME} for external library docs during early reading.
+**You are spawned with the Executor.** Use planning and implementation time to build deep context. Review the Executor's plan when they send it (advisory feedback). Read files as the Executor sends progress updates. Send `QUERY:` messages to Lead for any external library questions not covered by the knowledge brief — Lead will reply with `ANSWER:` from the research cache or a freshly-spawned researcher subagent.
 
 Follow the workflow in your team member instructions.
 ```
@@ -142,11 +142,12 @@ ROLE=task
 **Your teammates (use SendMessage to communicate):**
 - Executor: executor-{N}
 - Reviewer: reviewer-{N}
-- Tech Knowledge: knowledge-{PLAN_NAME} (for external library/API documentation queries — send "QUERY: {question}")
+- Lead: {lead name} (for knowledge queries — send `QUERY: {question}`; Lead answers via `/uc:research`)
 - Project Manager: pm-{PLAN_NAME} (may ping you for monitoring status — reply briefly)
 
 **Context files to read FIRST (before starting testing):**
 - Plan: `documentation/plans/$ARGUMENTS/README.md` (PRIMARY — success criteria live here)
+- **Knowledge Brief**: `documentation/plans/$ARGUMENTS/shared/knowledge-brief.md` — external-library context if your tests need it
 - Product docs: `documentation/product/` (ALL product documentation)
 - Testing instructions: ALL `.md` files from `documentation/technology/testing/` (skip `final-gate.md` — it applies only during final gate).
 
@@ -205,7 +206,7 @@ ROLE=oversight
 **Lead name:** {lead name}
 **Total tasks:** {N}
 **Concurrency limit:** {M} concurrent task-teams
-**Team naming convention:** Task N team name: `task-{N}-team`. Executor-N and reviewer-N spawn at task start; tester-N is lazy-spawned when implementation is complete. Shared: knowledge-{PLAN_NAME}
+**Team naming convention:** Task N team name: `task-{N}-team`. Executor-N and reviewer-N spawn at task start; tester-N is lazy-spawned when implementation is complete. The only plan-wide teammate is yourself (PM) — knowledge is handled by Lead via the `/uc:research` skill, not by a persistent teammate.
 
 **Task dependency graph:**
 {For each task, list its dependencies. Example:}

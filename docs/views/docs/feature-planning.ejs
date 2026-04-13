@@ -11,7 +11,7 @@
     <h2>When to use</h2>
     <p>Run <code>/uc:feature-mode {description}</code> when you're adding new functionality, making changes that touch multiple files, or working on something where you're unsure about the right approach. Feature mode is for work that benefits from upfront planning.</p>
     <div class="callout">
-      <p><strong>Not for small fixes.</strong> For bugs, use <a href="/docs/debugging">/uc:debug-mode</a>. For library research, run <code>/uc:tech-research</code>.</p>
+      <p><strong>Not for small fixes.</strong> For bugs, use <a href="/docs/debugging">/uc:debug-mode</a>. For library/pattern/market research, run <code>/uc:research</code>.</p>
     </div>
 
     <h2>The 4-stage process</h2>
@@ -21,7 +21,7 @@
     <p>The AI challenges your feature request before accepting it. It asks "why?", splits vague requests into concrete pieces, identifies hidden complexity, surfaces edge cases, and proposes its own hypotheses about the right approach. This is a dialogue &mdash; the AI brings its perspective for you to react to, not just collects requirements.</p>
 
     <h3>2. Research</h3>
-    <p>Agents survey your codebase and documentation in parallel, finding existing patterns, potential conflicts, and relevant architecture decisions. If external libraries are involved, the Tech Research skill fetches focused documentation.</p>
+    <p>Agents survey your codebase and documentation in parallel, finding existing patterns, potential conflicts, and relevant architecture decisions. If external libraries are involved, the cache-first <code>/uc:research</code> skill fetches focused documentation and writes it to the project knowledge base under <code>documentation/technology/research/</code>.</p>
 
     <h3>3. Discuss</h3>
     <p>The AI synthesizes all findings and presents its perspective. You brainstorm the approach together. If the AI identifies genuine concerns, it pushes back &mdash; respectfully but firmly. The goal is convergence toward an approach you both believe in.</p>

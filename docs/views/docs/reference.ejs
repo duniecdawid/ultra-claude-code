@@ -30,7 +30,7 @@
         <tr><td><strong>Feature Mode</strong></td><td><code>/uc:feature-mode</code></td><td>Plans features through 4-stage scope challenge, research, discussion, and structured plan output. Extends the planning framework.</td></tr>
         <tr><td><strong>Debug Mode</strong></td><td><code>/uc:debug-mode</code></td><td>Hypothesis-driven bug investigation with parallel evidence gathering. Produces fix plan with regression criteria. Extends the planning framework.</td></tr>
         <tr><td><strong>Critical Brainstorm</strong></td><td><code>/uc:critical-brainstorm</code></td><td>Devil's advocate mode: stress-tests solutions, identifies risks, stays in dialogue until you're satisfied.</td></tr>
-        <tr><td><strong>Tech Research</strong></td><td><code>/uc:tech-research</code></td><td>Focused external library/framework documentation retrieval via Ref.tools (500&ndash;5K tokens vs 50K+ for web search).</td></tr>
+        <tr><td><strong>Research</strong></td><td><code>/uc:research</code></td><td>Cache-first external research — library/API docs, architectural patterns, market/competitor analysis via a single auto-classified interface. Writes committed research files under <code>documentation/technology/research/</code> (libraries + patterns) or <code>documentation/product/research/</code> (market) with per-entry staleness (library 10d, patterns 90d, market 30d, historical frozen).</td></tr>
       </tbody>
     </table>
 
@@ -97,11 +97,10 @@
         <tr><td><strong>Code Reviewer</strong></td><td>Sonnet</td><td>Read-only quality gate: reads standards early, gives plan feedback, formal pass/fail review</td></tr>
         <tr><td><strong>Task Tester</strong></td><td>Sonnet</td><td>Tests against product docs, writes missing coverage, verifies UI in browser</td></tr>
         <tr><td><strong>Project Manager</strong></td><td>Sonnet</td><td>Monitors execution: live dashboard, stall detection, usage tracking, operational reports</td></tr>
-        <tr><td><strong>Tech Knowledge</strong></td><td>Sonnet</td><td>Shared documentation database: loads external library docs, serves excerpts on query</td></tr>
+        <tr><td><strong>Researcher</strong></td><td>Sonnet</td><td>Stateless one-shot researcher spawned by the <code>/uc:research</code> skill on cache miss. Fetches library/pattern/market docs via Ref.tools or web search, writes to <code>documentation/technology/research/</code> or <code>documentation/product/research/</code>, atomically updates the index. Never reads project source code.</td></tr>
         <tr><td><strong>Checker</strong></td><td>Sonnet</td><td>Single-topic doc-vs-code comparison with severity levels and file:line references</td></tr>
         <tr><td><strong>Code Surveyor</strong></td><td>Sonnet</td><td>Fast structural code scan: catalogs files, components, patterns for orchestrators</td></tr>
         <tr><td><strong>Doc Surveyor</strong></td><td>Sonnet</td><td>Documentation section exploration: identifies content types, topics, specs</td></tr>
-        <tr><td><strong>Market Analyzer</strong></td><td>Sonnet</td><td>External market research, competitor analysis, technology trends</td></tr>
         <tr><td><strong>System Tester</strong></td><td>Sonnet</td><td>Scientific bug reproduction: follows exact steps, tries variations, never fixes code</td></tr>
       </tbody>
     </table>

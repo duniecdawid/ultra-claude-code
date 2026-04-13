@@ -31,10 +31,10 @@
     <details>
       <summary>How parallel research works</summary>
       <div class="details-content">
-        <p>Two research agents run simultaneously to maximize coverage:</p>
+        <p>Two research streams run simultaneously to maximize coverage:</p>
         <ul>
-          <li><strong>Internal (Explore agent)</strong> &mdash; investigates your existing codebase, documentation, and external library references. Finds patterns, capabilities, and constraints that exist today.</li>
-          <li><strong>External (Market Analyzer agent)</strong> &mdash; searches the web for competitor analysis, market trends, technology landscape, and user archetypes. Cites sources for every claim.</li>
+          <li><strong>Internal (Explore agent)</strong> &mdash; investigates your existing codebase, documentation, and context directory. Finds patterns, capabilities, and constraints that exist today.</li>
+          <li><strong>External (<code>/uc:research --mode=market</code>)</strong> &mdash; the cache-first research skill runs in market mode, producing a committed report at <code>documentation/product/research/</code> with competitor analysis, market trends, technology landscape, and user archetypes. Cites sources for every claim. Cache hits on previously-researched market topics return immediately; misses spawn the stateless researcher subagent.</li>
         </ul>
         <p>Results are merged in the synthesis phase with strict content separation &mdash; product descriptions contain user-facing information, research reports contain market data. No duplication across document types.</p>
       </div>

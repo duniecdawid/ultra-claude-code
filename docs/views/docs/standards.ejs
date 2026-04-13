@@ -56,7 +56,7 @@
     <p>Review verdicts are binary: <strong>PASS</strong> or <strong>FAIL</strong>. There are no "pass with reservations." Every <code>[PATTERN]</code> failure references the exact standards document and section. "I prefer" is an invalid review comment &mdash; enforcement is standards-based only.</p>
 
     <div class="callout callout-purple">
-      <p><strong>The Reviewer also queries external documentation.</strong> If your task uses external libraries, the Reviewer checks compliance with library best practices (deprecated APIs, security defaults) by querying the shared Tech Knowledge agent.</p>
+      <p><strong>The Reviewer also queries external documentation.</strong> If your task uses external libraries, the Reviewer reads the Knowledge Brief (synthesized by Lead at Phase 1.8) and the research files it points to under <code>documentation/technology/research/libraries/</code>. For any uncovered questions, the Reviewer sends <code>QUERY: {question}</code> to Lead, who answers via <code>/uc:research</code>.</p>
     </div>
 
     <h2>Verify</h2>

@@ -1,10 +1,16 @@
 ---
-description: Executes approved plans through per-task pipeline teams. Each task gets a dedicated mini-team (Executor/Reviewer/Tester) that self-coordinates internally, plus a shared Tech Knowledge team member for external library documentation. Lead spawns teams and tracks progress. Use when user says 'execute plan', 'run plan', 'start execution', or '/uc:plan-execution'. NEVER auto-trigger after plan approval — planning modes print the execution command for the user to run manually.
+description: Executes approved plans through per-task pipeline teams. Each task gets a dedicated mini-team (Executor/Reviewer/Tester) that self-coordinates internally, with Lead acting as the team's knowledge broker (Sage) via the /uc:research skill. Lead spawns teams, synthesizes a knowledge brief from cached research at Phase 1.8, and tracks progress. Use when user says 'execute plan', 'run plan', 'start execution', or '/uc:plan-execution'. NEVER auto-trigger after plan approval — planning modes print the execution command for the user to run manually.
 argument-hint: "plan number or name (e.g., '1', '001-user-auth')"
 user-invocable: true
 ---
 
-> **All work delegation in this skill happens through teammates (TeamCreate / SendMessage), not the Agent tool.** Teammates are persistent team members that stay alive, communicate peer-to-peer, and coordinate through the full task lifecycle. Never use the Agent tool for execution — always use TeamCreate to spawn and SendMessage to communicate.
+> **Two types of spawns — Teammates and Subagents — and they serve different purposes.**
+>
+> **Teammate spawns (TeamCreate):** persistent, stateful roles with SendMessage coordination and team-graph tracking. Examples: Executor, Reviewer, Tester, Project Manager. Teammates stay alive through the full task lifecycle, communicate peer-to-peer, appear in the PM dashboard, and exit via `shutdown_request`.
+>
+> **Subagent spawns (Task tool):** stateless, one-shot workers that return a single result and exit. Invisible to the team graph by design. Used for stateless research-type work — currently the `researcher` agent, invoked indirectly by Lead via the `/uc:research` skill during Phase 1.8 and mid-execution QUERY handling. Subagents do not need coordination, cannot receive SendMessage, and are not tracked by PM. They're the right tool when "do this one thing, return the answer, die" fits the workload.
+>
+> **Never** use the Task tool for execution roles (Executor/Reviewer/Tester/PM) — those are teammates, period. **Always** use the Task tool for stateless research — trying to make research a persistent teammate wastes tokens and couples unrelated lifecycles. The distinction is load-bearing: it keeps the team graph focused on real pipeline work while allowing cheap, isolated research lookups.
 
 # Plan Execution
 
@@ -42,7 +48,7 @@ If prerequisites 1-3 are missing, suggest running `/uc:setup` and stop.
 
 ## Phase 1: Setup
 
-Read plan, detect resume state, decide concurrency, create tasks, spawn shared team members (PM + Knowledge).
+Read plan, detect resume state, decide concurrency, create tasks, spawn the Project Manager, and synthesize the Knowledge Brief from `/uc:research` lookups against the plan's Tech Stack.
 → Read `references/phase-1-setup.md`
 
 ---
@@ -57,7 +63,8 @@ Executor and Reviewer spawn together at task start. Tester is lazy-spawned when 
 
 ```
 Executor:   explores codebase → plans → sends plan to Reviewer (advisory) then Lead (blocking)
-            → queries knowledge-{PLAN_NAME} for external library docs as needed
+            → reads the Knowledge Brief embedded in its spawn prompt for current library context
+            → sends `QUERY:` to Lead for any external docs not covered in the brief (Lead runs /uc:research)
             → writes code files, sends per-file progress updates to Reviewer
             → signals Lead "code complete — writing impl report" BEFORE writing impl.md
               (Lead spawns Tester + may pre-spawn the next dependent team in parallel)
@@ -78,16 +85,16 @@ Both PASS:  Executor confirms teammates ready to exit → tells Lead "task done"
 - **Reviewer spawns early** — the Reviewer has unique context (standards, architecture, technology docs) and applies it continuously: plan feedback, early file reading, and formal review. This catches pattern mistakes before they spread.
 - **Tester is lazy-spawned (but early)** — the Tester is spawned by the Lead when the Executor signals `code complete — writing impl report`, which fires *before* the Executor writes `impl.md` or makes any commit. The Tester reads plan + product docs + testing config while the Executor finishes the impl report, hiding the Tester's cold-start latency behind work the Executor is doing anyway. Tester never sits idle during research or implementation — it's still lazy, just triggered a few seconds earlier.
 - **Successor pre-spawn (pipeline)** — the same `code complete` signal also evaluates whether the next dependent task can start early. If there's a free concurrency slot and a pending task whose only remaining blocker is this task, the Lead pre-spawns that successor's Executor + Reviewer in `planning` stage. The pre-spawned Executor researches, plans, and receives Lead plan approval while the predecessor finishes review/test, then parks at a wait gate until Lead sends `Implementation approved` once the predecessor reaches `task done`. At most one pre-spawn per `code complete` event — no cascading chains.
-- **Shared knowledge team member** — `knowledge-{PLAN_NAME}` is spawned once and serves all task teams with external library documentation.
+- **Lead is the team's Sage** — at Phase 1.8, Lead loops `/uc:research` over the plan's Tech Stack and synthesizes a Knowledge Brief written to `shared/knowledge-brief.md`. The brief is embedded in every task team's spawn prompt. Mid-execution, any teammate sending `QUERY:` to Lead gets an answer sourced from the research cache (free) or a freshly-spawned `researcher` subagent (one Task-tool call). No persistent knowledge teammate.
 - **Executor is the team coordinator** — it drives the pipeline sequence internally and does its own codebase research.
-- **Lead is the orchestrator** — spawns executor + reviewer, lazy-spawns tester (early), pre-spawns successors when slots allow, shuts down teams, reviews plans for coherence, handles escalations.
+- **Lead is the orchestrator** — spawns executor + reviewer, lazy-spawns tester (early), pre-spawns successors when slots allow, shuts down teams, reviews plans for coherence, handles escalations, and brokers knowledge queries via `/uc:research`.
 - **PM is the monitoring layer** — maintains the dashboard, tracks parallel review/test timing, monitors usage limits.
-- **Reviewer and Tester can query the knowledge team member** if they need external library documentation during their work.
+- **Reviewer and Tester send `QUERY:` to Lead** if they need external library documentation during their work.
 - **Max 10 fix cycles** between executor/reviewer/tester before escalating to Lead → user.
 
 ### Team Composition
 
-Every task gets the same team: **Executor + Reviewer + Tester**. The shared Tech Knowledge team member (`knowledge-{PLAN_NAME}`) serves all tasks.
+Every task gets the same team: **Executor + Reviewer + Tester**. The only plan-wide shared teammate is the **Project Manager** (`pm-{PLAN_NAME}`). Knowledge access flows through Lead via the `/uc:research` skill — no persistent knowledge teammate exists.
 
 ### Phase 2 Startup
 
@@ -95,7 +102,8 @@ Spawn initial task-teams to fill concurrency slots. For each slot: find next pen
 
 After spawning each team:
 - SendMessage to PM: `"SPAWNED task-{N}: {task description}"` then `"STAGE task-{N} planning"`
-- SendMessage to knowledge-{PLAN_NAME}: `"TASK-START: Task {N} — {task title}\nDescription: {task description}\nSuccess criteria: {success criteria}\nExecutor: executor-{N}\nPlan path (when available): documentation/plans/$ARGUMENTS/tasks/task-{N}/plan.md"`
+
+(No knowledge-agent notification needed — the Knowledge Brief synthesized in Phase 1.8 is already embedded in the executor's spawn prompt. If a task involves technologies you identify as missing from the brief, invoke `/uc:research` yourself before spawning the team so the brief is up to date.)
 
 ### Message Handlers
 
@@ -170,9 +178,10 @@ Executors write implementation plans to `tasks/task-N/plan.md` and request feedb
 **Two channels — orchestration (Lead) and monitoring (PM):**
 
 - **Team-internal**: Executor↔Reviewer, Executor↔Tester — direct peer-to-peer
-- **Knowledge queries**: Any team member → knowledge-{PLAN_NAME} — "QUERY: {question}" for external library docs
-- **Executor → Lead**: ALL operational status — "code complete — writing impl report", "planning complete — awaiting implementation approval" (pipeline-spawned only), "task done", "escalation needed", plan reviews, plan-invalidating discoveries
-- **Lead → Executor**: Plan review responses (APPROVED/CONCERNS), "Tester spawned — proceed with impl report" confirmation, "Implementation approved" for pipeline-spawned tasks once their predecessor completes, shutdown_request
+- **Knowledge queries**: Any team member → Lead — "QUERY: {question}" for external library docs. Lead answers via the `/uc:research` skill (cache hit returns instantly; cache miss spawns the `researcher` subagent).
+- **Executor → Lead**: ALL operational status — "code complete — writing impl report", "planning complete — awaiting implementation approval" (pipeline-spawned only), "task done", "escalation needed", plan reviews, plan-invalidating discoveries, `QUERY:` knowledge requests
+- **Lead → Executor**: Plan review responses (APPROVED/CONCERNS), "Tester spawned — proceed with impl report" confirmation, "Implementation approved" for pipeline-spawned tasks once their predecessor completes, `ANSWER:` knowledge responses, shutdown_request
+- **Lead → Active teammates**: `KNOWLEDGE UPDATE: {topic} — {new info}. See {file}.` broadcast when newly-acquired research contradicts or supersedes the knowledge brief AND the update is relevant to multiple tasks. Narrow task-specific answers stay point-to-point.
 - **Lead → PM**: Terse status updates (`SPAWNED task-1: ...`, `COMPLETED task-2`, `STAGE task-3 review`, etc.)
 - **PM → Lead**: Dashboard URL (once at startup), health ALERTs (stalls, rate limits)
 - **PM → any team member**: Status checks for monitoring purposes
@@ -238,9 +247,9 @@ When a teammate discovers something that invalidates part of the plan:
 | Channel | Direction | Use For |
 |---------|-----------|---------|
 | **Team-internal** | Executor↔Reviewer, Executor↔Tester | Direct peer-to-peer within the task team. Technical collaboration. |
-| **Knowledge query** | Any team member → knowledge-{PLAN_NAME} | "QUERY: {question}" for external library docs. Returns verbatim excerpts. |
-| **Knowledge task-start** | Lead → knowledge-{PLAN_NAME} | "TASK-START: Task {N} — ..." on task spawn. Knowledge team member proactively researches and sends RESEARCH BRIEF to executor. |
-| **Knowledge load** | Lead → knowledge-{PLAN_NAME} | "LOAD: {technology}" to add docs mid-execution. |
+| **Knowledge query** | Any team member → Lead | `QUERY: {question}` for external library/API docs. Lead runs `/uc:research` — cache hit returns immediately, cache miss spawns the `researcher` subagent via Task tool. Lead replies with `ANSWER: ...`. |
+| **Knowledge broadcast** | Lead → all active teammates | `KNOWLEDGE UPDATE: {topic} — {summary}. See {file}.` Sent when new research contradicts the knowledge brief OR is relevant to multiple tasks. Narrow single-task answers stay point-to-point. |
+| **Knowledge brief (injection)** | Lead → Executor/Reviewer/Tester | One paragraph per Tech Stack item + file pointer, embedded inline in the spawn prompt. No runtime message — the brief is part of the team member's initial context. |
 | **Plan review (teammate)** | Executor → Reviewer | Advisory feedback on `tasks/task-N/plan.md`. Reviewer replies LGTM/CONCERNS. |
 | **Plan review (Lead)** | Executor → Lead | Domain/coherence review of plan. **Blocking gate.** Lead replies APPROVED/CONCERNS. |
 | **Operational status** | Executor → Lead | "Code complete — writing impl report", "planning complete — awaiting implementation approval" (pipeline-spawned), "task done", "escalation needed", "plan-invalidating". Lead acts on these. |
@@ -271,6 +280,7 @@ You are the **orchestrator and domain authority**. You spawn executor + reviewer
 - Review executor plans for domain coherence and cross-task alignment (APPROVED/CONCERNS) — works identically for pipeline-spawned tasks
 - Handle escalations (relay to user, keep parked successors alive unless user aborts)
 - Handle plan-invalidating discoveries (pause, evaluate, amend; shut down parked successors if their tasks are dropped)
+- **Broker knowledge `QUERY:` messages** from teammates — invoke `/uc:research` with the question, reply with `ANSWER:`. Broadcast `KNOWLEDGE UPDATE:` only when new info is broadly relevant.
 - Send status updates to PM after each action (SPAWNED, SPAWNED-TESTER, STAGE, COMPLETED, SHUTDOWN, etc.) — note: STAGE-DONE and RETRY go directly from Executor to PM
 - **Display the dashboard URL to the user** when PM sends it — this is the user's primary monitoring tool
 - Handle usage pause/resume from PM (defer spawning during pause, shut down teams as tasks complete, checkpoint on pause, go quiet until USAGE-RESUME)
@@ -292,7 +302,7 @@ Real examples from past executions — do NOT produce output like this:
 - "Executor-1 passed review. Publishing."
 - "Waiting for executor-1 results. Executor-2 building fast."
 - "Shared documentation plan and style guide with executor-1 and executor-2."
-- "Executor-1 is idle waiting for knowledge team member response. Normal flow..."
+- "Executor-1 is idle waiting for knowledge response. Normal flow..."
 - "Tester-1 ready and waiting. All team members standing by"
 - "Plan looks solid." (unless formal APPROVED response to plan review)
 - "Executor-1 processing the approval"

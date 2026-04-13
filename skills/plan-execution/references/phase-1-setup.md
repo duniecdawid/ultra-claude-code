@@ -48,7 +48,7 @@ If `checkpoint-*.md` files exist:
 
 ### 1.3 Task Pipeline
 
-Every task gets the full pipeline team: **Executor + Reviewer + Tester**. There is no classification step. A shared Tech Knowledge team member handles external library documentation for all tasks.
+Every task gets the full pipeline team: **Executor + Reviewer + Tester**. There is no classification step. External library documentation is handled by Lead via the `/uc:research` skill — Lead synthesizes a Knowledge Brief once in Phase 1.8 and brokers mid-execution QUERY messages from teammates.
 
 ### 1.4 Concurrency Decision
 
@@ -73,18 +73,18 @@ Tasks normally spawn when their slot is available AND all dependencies are compl
 | **Executor** | **opus** | Code generation, architectural decisions, codebase research — highest capability required |
 | Reviewer | sonnet | Pattern recognition, architecture conformance |
 | Tester | sonnet | Test execution, failure diagnosis |
-| Tech Knowledge | sonnet | Documentation retrieval — shared across all tasks |
 | Project Manager | sonnet | Operational observation — read-only, low overhead |
+| Researcher (subagent) | sonnet | One-shot external documentation retrieval — spawned by Lead via `/uc:research` on cache miss |
 
 ### Permission Modes
 
 | Role | Mode | Rationale |
 |------|------|-----------|
 | **Executor** | **`bypassPermissions`** | **Writes code autonomously; plan reviewed by teammates before implementation** |
-| Tech Knowledge | `bypassPermissions` | Read-only documentation retrieval, no approval needed |
 | Reviewer | `bypassPermissions` | Read-only analysis, no approval needed |
 | Tester | `bypassPermissions` | Runs tests autonomously, no approval needed |
 | Project Manager | `bypassPermissions` | Read-only observation, no approval needed |
+| Researcher (subagent) | `bypassPermissions` | Writes to `documentation/technology/research/` and `documentation/product/research/` only, stateless, no approval needed |
 
 ### 1.5 Cost Estimate & Usage Mode
 
@@ -98,7 +98,8 @@ Estimated cost: ~[N * 120]K tokens
 
 Cost per task pipeline: ~120K tokens (Executor ~80K + Reviewer ~30K + Tester ~10K)
   (Reviewer spawns with executor for continuous review; Tester is lazy-spawned — only active during test phase)
-Tech Knowledge (plan-wide): ~100K tokens (shared documentation retrieval)
+Knowledge brief synthesis (Phase 1.8, plan-wide): ~20K tokens amortized (Lead invokes /uc:research once per Tech Stack item — cache hits are free, misses spawn a short-lived researcher subagent)
+Mid-execution knowledge queries: ~1K per QUERY (cache hit) or ~15K (cache miss with subagent spawn)
 Project Manager (plan-wide): ~50K tokens (observational, runs entire execution)
 ```
 
@@ -173,41 +174,51 @@ Create `shared/lead.md` with: plan overview, concurrency decision, key architect
 
 Create `tasks/` directory. Per-task subdirs (`tasks/task-N/`) are created just-in-time when the first team member spawns for that task.
 
-### 1.8 Shared Team Members Setup
+### 1.8 Project Manager Spawn + Knowledge Brief Synthesis
 
-Before spawning any task-teams, set up both plan-wide shared team members: **Project Manager** and **Tech Knowledge**. Their spawn prompts are in `references/phase-2-spawn-prompts.md`.
+Before spawning any task-teams, set up the PM teammate and synthesize the Knowledge Brief. **Only the PM is a teammate**; knowledge is handled by Lead via `/uc:research` + the `researcher` subagent (one-shot, Task-tool spawned on cache miss).
 
-**Spawn order:**
+**Order:**
 
-1. **Project Manager first** — spawn `pm-{PLAN_NAME}` using the PM spawn prompt. The PM has Bash access and will self-label its pane on startup (the spawn prompt includes the labeling instruction). No tmux commands needed from you.
+1. **Spawn Project Manager** — spawn `pm-{PLAN_NAME}` via TeamCreate using the PM spawn prompt in `references/phase-2-spawn-prompts.md`. PM has Bash access and self-labels its pane on startup. No tmux commands needed from you.
 
-2. **Tech Knowledge second** — read plan README.md `## Tech Stack` section for the technology list. Also scan `documentation/technology/architecture/` and `.claude/ultra/app-context.md` for additional technology references. Spawn `knowledge-{PLAN_NAME}` using the Tech Knowledge spawn prompt below. Tech Knowledge self-labels its pane on startup — no labeling needed from you.
+2. **Synthesize the Knowledge Brief:**
 
-   After spawning, send PM: `"SPAWNED knowledge-{PLAN_NAME}"`
+   a. Read the plan README.md `## Tech Stack` section and collect the list of technologies. Also scan `documentation/technology/architecture/` and `.claude/ultra/app-context.md` for additional implicit technology references (connectors, databases, protocols the plan assumes).
 
-   Agent: `${CLAUDE_PLUGIN_ROOT}/agents/tech-knowledge.md`
-   Model: `sonnet` | Mode: `bypassPermissions`
+   b. For each tech item, invoke the `/uc:research` skill directly (via the Skill tool, not via Task). The skill is cache-first — items already researched in this project hit the cache and return immediately with zero agent spawn. Items not yet researched spawn the `researcher` subagent, write a new file under `documentation/technology/research/libraries/`, and return a summary. Lead's context absorbs the summary but not the full doc body — that lives in the committed file.
 
    ```
-   You are the shared **Tech Knowledge** team member for the "$ARGUMENTS" plan execution.
-
-   PLAN_NAME={PLAN_NAME}
-   ROLE=oversight
-
-   **Technologies to load documentation for:**
-   {list from Tech Stack section + any additional technologies identified}
-
-   **Architecture docs to read for context:**
-   - `documentation/technology/architecture/`
-   - `.claude/ultra/app-context.md` (if exists)
-
-   **Lead name:** {lead name}
-
-   Load documentation for all listed technologies using mcp__ref__ref_search_documentation and mcp__ref__ref_read_url. Read the architecture docs for project context. Then SendMessage to Lead: "Knowledge base ready — loaded docs for: {technology list}"
-
-   You will receive QUERY and LOAD messages from team members throughout execution. Respond per your team member instructions.
-
-   Exit only when shutdown_request arrives from Lead. Approve it to exit.
+   For each tech in Tech Stack:
+     /uc:research {tech}
+     → skill returns {summary, file_path, expires, cache_hit: true|false}
+     → record {tech, one-sentence summary, file_path} in the brief
    ```
 
-3. **Wait for "Knowledge base ready"** signal before proceeding to Phase 2.
+   c. Compose the **Knowledge Brief** — one paragraph per tech (≤3 sentences), each ending with the pointer to the research file. Include any gotchas or breaking changes surfaced by the research summaries. The brief should be ≤800 words total — it's a pointer document, not a reference.
+
+   d. Write the brief to `documentation/plans/$ARGUMENTS/shared/knowledge-brief.md` with this structure:
+
+   ```markdown
+   # Knowledge Brief — {PLAN_NAME}
+
+   > Synthesized: {today}. Re-invoke `/uc:research {tech}` to refresh any entry.
+
+   ## {Tech 1}
+
+   {1-3 sentence summary of what the team needs to know}. Details: `documentation/technology/research/libraries/{tech1}.md`.
+
+   ## {Tech 2}
+
+   ...
+
+   ## Knowledge Update Log
+
+   (Lead appends here when broadcasting `KNOWLEDGE UPDATE:` messages during execution.)
+   ```
+
+3. **No teammate spawning here.** There is no "Knowledge base ready" signal to wait for — the brief is written to disk synchronously.
+
+### 1.9 Proceed to Phase 2
+
+Shared setup is done. Project Manager is live. Knowledge Brief is on disk. Task teams can now be spawned per Phase 2.

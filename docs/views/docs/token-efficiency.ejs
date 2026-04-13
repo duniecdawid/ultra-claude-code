@@ -15,35 +15,39 @@
       <thead><tr><th>Component</th><th>Cost</th><th>Details</th></tr></thead>
       <tbody>
         <tr><td><strong>Per-task pipeline</strong></td><td>~120K tokens</td><td>Executor ~80K + Reviewer ~30K + Tester ~10K</td></tr>
-        <tr><td><strong>Tech Knowledge</strong></td><td>~100K tokens</td><td>Shared across all tasks, loaded once</td></tr>
+        <tr><td><strong>Knowledge Brief synthesis</strong></td><td>~20K tokens amortized</td><td>Lead loops <code>/uc:research</code> over the plan's Tech Stack in Phase 1.8. Cache hits are free; misses spawn a short-lived researcher subagent.</td></tr>
+        <tr><td><strong>Mid-execution knowledge QUERYs</strong></td><td>~1K (hit) / ~15K (miss)</td><td>Teammates send <code>QUERY:</code> to Lead; Lead runs <code>/uc:research</code>. Subsequent queries for the same topic hit the cache.</td></tr>
         <tr><td><strong>Project Manager</strong></td><td>~50K tokens</td><td>Observational monitoring, entire execution</td></tr>
       </tbody>
     </table>
 
-    <p>A 5-task plan costs roughly <strong>750K tokens</strong> (5 &times; 120K + 100K + 50K). The estimate is shown before any agents spawn &mdash; you confirm before spending.</p>
+    <p>A 5-task plan costs roughly <strong>670K tokens</strong> (5 &times; 120K + 20K + 50K, plus a few mid-execution QUERY misses). The estimate is shown before any agents spawn &mdash; you confirm before spending. Second and third plans in the same project benefit more from cache hits, driving the per-plan knowledge cost toward zero over time.</p>
 
     <h2>Why it's worth it</h2>
     <p>Normal Claude Code development is one agent doing everything &mdash; writing code, hoping it follows patterns, and trusting it works. Ultra Claude adds dedicated roles:</p>
     <ul>
       <li><strong>Reviewer</strong> catches pattern violations and standards drift <em>before</em> code is merged</li>
       <li><strong>Tester</strong> validates against product docs, not just "does it compile"</li>
-      <li><strong>Tech Knowledge</strong> serves current API docs so agents work with real signatures, not stale training data</li>
+      <li><strong>Cache-first research</strong> serves current API docs so agents work with real signatures, not stale training data &mdash; and the cache persists across plans, so a second plan touching the same libraries pays almost nothing for knowledge</li>
     </ul>
     <p>The extra tokens buy you code that follows your standards, passes real tests, and uses current library APIs. Without them, you spend the same tokens later fixing the bugs that review and testing would have caught.</p>
 
     <h2>How the framework saves tokens</h2>
 
     <h3>Model assignment</h3>
-    <p>Only the Executor runs on Opus (the most capable, most expensive model). Every other role &mdash; Reviewer, Tester, Tech Knowledge, Project Manager &mdash; runs on Sonnet. This concentrates cost where capability matters most: writing code.</p>
+    <p>Only the Executor runs on Opus (the most capable, most expensive model). Every other role &mdash; Reviewer, Tester, Project Manager &mdash; runs on Sonnet. The researcher subagent (spawned on cache miss) also runs on Sonnet. This concentrates cost where capability matters most: writing code.</p>
 
     <h3>Lazy Tester spawning</h3>
     <p>The Tester doesn't spawn when the task starts. It's created only after the Executor signals "code complete" &mdash; the moment all source code is written, <em>before</em> the Executor writes the implementation report. During the planning and implementation phases (often the longest part), only two agents are active instead of three, avoiding ~10K tokens of idle context per task. Firing the signal before the impl-report write also gives the Tester its cold-read window "for free", so it's ready to test almost as soon as the Executor is done.</p>
 
-    <h3>Shared Tech Knowledge</h3>
-    <p>One Knowledge agent serves all task teams for the entire plan. Without sharing, each task team would fetch its own library docs &mdash; duplicating the same lookups across parallel tasks. Shared costs ~100K total instead of ~100K per task.</p>
+    <h3>Cache-first research (Lead as Sage)</h3>
+    <p>Research findings are committed as first-class project documentation under <code>documentation/technology/research/</code>, not invisible cache. The <code>/uc:research</code> skill checks a small JSON index via <code>jq</code> before spawning anything &mdash; fresh entries (per-file <code>expires</code> field, library 10d / patterns 90d / market 30d / historical frozen) return immediately with zero agent overhead. Cache misses spawn the stateless <code>researcher</code> subagent one-shot via the Task tool; it writes the target file, updates the index, and exits. No persistent knowledge teammate, no per-task duplicate lookups, and the knowledge base grows across plans.</p>
+
+    <h3>Typed spawn distinction</h3>
+    <p>Teammates (TeamCreate) are persistent, stateful, and tracked on the PM dashboard. Subagents (Task tool) are stateless, one-shot, and invisible to the team graph. The researcher is a subagent because it fits the pattern "do this one thing, return the answer, die" &mdash; making it a persistent teammate would waste tokens on a lifecycle it doesn't need.</p>
 
     <h3>Ref.tools integration</h3>
-    <p>External library documentation is fetched via <a href="/docs/setup">Ref.tools MCP</a> at ~500&ndash;5K tokens per query. The fallback (raw web search) costs 50K+ tokens for the same information. Across a plan with dozens of library queries, this saves hundreds of thousands of tokens.</p>
+    <p>External library documentation is fetched via <a href="/docs/setup">Ref.tools MCP</a> at ~500&ndash;5K tokens per query. The fallback (raw web search) costs 50K+ tokens for the same information. Combined with the cache, the per-lookup cost on a repeated topic drops to zero.</p>
 
     <h3>Checkpoint recovery</h3>
     <p>When a session dies mid-execution, checkpoints let you resume without re-running completed tasks. A 10-task plan interrupted after task 5 resumes from task 6 &mdash; the 600K tokens already spent on tasks 1&ndash;5 are not re-spent.</p>

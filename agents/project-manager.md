@@ -73,9 +73,10 @@ The watcher groups panes into a grid based on label patterns:
 |---------------|--------------|---------|
 | `main-context` (exact match) | Left column, top — the Lead | `main-context` |
 | starts with `pm` | Left column, below Lead | `pm-background-sync` |
-| starts with `knowledge` | Left column, bottom | `knowledge-background-sync` |
 | matches `task-(\d+)(-executor\|-reviewer\|-tester)?` | One column per task number, members sorted by role (executor, reviewer, tester) | `task-1-executor`, `task-1-reviewer`, `task-1-tester` |
 | starts with `final-gate` | Rightmost column | `final-gate` |
+
+Note: there is no `knowledge-*` row — the old Tech Knowledge teammate was removed in favor of Lead's `/uc:research` skill, which spawns stateless `researcher` subagents on cache miss. Those subagents are invisible to the team graph by design, so they neither self-label nor appear in the grid.
 
 **Labels MUST match these patterns exactly** — unrecognized labels are placed in an "unnamed" bucket, which folds into the rightmost task column up to 3 panes before overflowing into its own column. Task-column members are ordered by role: executor on top, reviewer in the middle, tester on the bottom. A pane labeled `task-N` without a role suffix still classifies correctly but sorts after any role-labeled siblings.
 
@@ -237,7 +238,6 @@ The Lead sends you terse status messages as it orchestrates. Process each into t
 |---|---|---|
 | `SPAWNED task-{N}: {description}` | Lead | In `plan.json`: find task-{N} in tasks array → set status `in_progress`, populate `started_at`, `stages`, `members` (executor + reviewer). Update `active_tasks++`, `pending_tasks--`. Append `team_spawned` event to `events.json` |
 | `SPAWNED task-{N}: {description} (pipeline)` | Lead | Same as the regular SPAWNED handler above, but this task was pre-spawned while its predecessor is still in review/test (pipeline mode). The executor will research, plan, get Lead plan approval, and then park at a wait gate until its predecessor reaches `task done`. For the dashboard, treat it identically for now — the `(pipeline)` suffix is informational and can be used later for a visual badge. Append `team_spawned` event with `message: "Pipeline pre-spawn: {description}"`. |
-| `SPAWNED knowledge-{PLAN_NAME}` | Lead | Log knowledge agent spawn in `events.json` |
 | `SPAWNED-TESTER task-{N}` | Lead | In `plan.json`: find task-{N} → add tester member to `members` array. Append `member_spawned` event to `events.json` |
 | `STAGE task-{N} {stage}` | Lead | In `plan.json`: find task-{N} → close previous stage timestamps, open new stage in `stages` object. Append `stage_entered` event. For `review` and `testing`: both can be open simultaneously (parallel stages). |
 | `STAGE-DONE task-{N} {stage}` | Executor | In `plan.json`: find task-{N} → close one parallel stage independently: set `ended_at` for that stage. Do NOT close the other parallel stage. Append `stage_done` event to `events.json` |

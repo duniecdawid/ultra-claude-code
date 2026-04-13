@@ -42,11 +42,12 @@
       </tbody>
     </table>
 
-    <p>Two plan-wide agents support all tasks:</p>
+    <p>One plan-wide teammate supports all tasks:</p>
     <ul>
-      <li><strong>Tech Knowledge</strong> (Sonnet) &mdash; serves external library documentation to any team member on demand</li>
       <li><strong>Project Manager</strong> (Sonnet) &mdash; monitors progress, detects stalls, tracks usage, maintains a live dashboard</li>
     </ul>
+
+    <p>Knowledge is handled by the <strong>Lead</strong> as the team's Sage. At Phase 1.8, Lead loops <code>/uc:research</code> over the plan's Tech Stack and writes a <em>Knowledge Brief</em> to <code>shared/knowledge-brief.md</code>, embedded into every task team's spawn prompt. Mid-execution, any teammate sending <code>QUERY: {question}</code> to Lead gets an answer from the research cache (free) or a freshly-spawned <code>researcher</code> subagent (one Task-tool call). No persistent knowledge teammate — the typed distinction between <em>Teammates</em> (TeamCreate, stateful, tracked) and <em>Subagents</em> (Task tool, stateless, invisible to the team graph) keeps the team focused on real pipeline work while allowing cheap isolated research lookups.</p>
 
     <h2>How a task flows</h2>
     <ol>
