@@ -89,13 +89,31 @@ tmux list-panes -s -F '#{pane_id} #{@agent-name}' | grep -v '^$'
 Check that:
 - All expected panes for the spawned team have the correct `task-{N}-{role}` label
 - Labels match the patterns in the table above
-- The `main-context` pane still exists
+- **Exactly one pane is labeled `main-context`** (the Lead)
 
-If a pane is missing its label (agent crashed before self-labeling), fix it:
+#### Lead label sanity check
+
+The layout daemon treats `main-context` as the anchor for every window — if it is missing, the daemon skips the window entirely and your team grid stops updating. Detect and fix this on every verification pass:
+
+```bash
+# Count panes labeled main-context in the current window
+tmux list-panes -F '#{@agent-name}' | grep -cx 'main-context'
+```
+
+Interpret the result:
+
+| Count | Meaning | Action |
+|-------|---------|--------|
+| `1`   | Healthy — exactly one Lead pane is labeled `main-context` | None |
+| `0`   | **Broken** — the Lead pane is unlabeled, was renamed, or carries a non-canonical label like `lead-*` | Identify the Lead pane (process owner is the top-level `claude` / `profiled-claude` that spawned you and the team; it's also usually pane_index 0 in the window), then relabel: `tmux set-option -p -t {lead_pane_id} @agent-name "main-context"` |
+| `2+`  | **Broken** — duplicate Lead labels, likely a stale pane from a previous session | ALERT the Lead immediately — do not guess which to fix |
+
+**Canonical label is `main-context`, not `lead-*` or anything else.** Ultra Claude only ever writes `main-context` (see `skills/plan-execution/references/phase-1-setup.md` and `references/planning-framework/stage-1.md`). If you see a `lead-*` label, it came from a downstream project customization — fix it back to `main-context` and note the incident in your operational report so the Lead can investigate the source.
+
+If any other labeled pane is missing its label (agent crashed before self-labeling), fix it:
 ```bash
 tmux set-option -p -t {pane_id} @agent-name "{expected_label}"
 ```
-If `main-context` is missing or wrong, ALERT the Lead immediately.
 
 ## Live Status Dashboard
 
