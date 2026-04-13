@@ -1,5 +1,12 @@
 [
   {
+    "seq": 123,
+    "version": "2026.04.13-11",
+    "date": "2026-04-13",
+    "summary": "tmux-layout-daemon: remove dead `knowledge-*` pane handling (follow-up to plan 041 Task 2). The daemon classified any pane whose label started with `knowledge` into a dedicated `tkPane` slot and placed it in the left column below PM — leftover from the removed Tech Knowledge teammate. With /uc:research replacing the knowledge teammate entirely, that code path is unreachable, so it's deleted: `classifyPanes` no longer sets `tkPane`, `computeTargetColumns` builds the left column from `[main, pm]` only, and the log summary drops the `tk` marker. No behavior change for any current label; purely dead-code removal.",
+    "migration": null
+  },
+  {
     "seq": 122,
     "version": "2026.04.13-10",
     "date": "2026-04-13",
