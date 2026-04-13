@@ -47,16 +47,18 @@
     <details>
       <summary>Task structure in plans</summary>
       <div class="details-content">
-        <p>Each task in a plan is a complete vertical slice &mdash; database through API and UI, not split by tech layer. Tasks include:</p>
+        <p>Each task in a plan is a complete vertical slice &mdash; database through API and UI, not split by tech layer. The plan README holds a flat task heading index only; each task's authoritative content lives in its own file at <code>documentation/plans/{plan}/tasks/task-N/task.md</code>. Each task.md includes:</p>
         <ul>
           <li><strong>Description</strong> &mdash; what to build</li>
           <li><strong>Product context</strong> &mdash; links to relevant product docs and requirements</li>
           <li><strong>Files</strong> &mdash; expected files to create or modify</li>
           <li><strong>Patterns</strong> &mdash; architecture and standards files the executor must follow</li>
-          <li><strong>Success criteria</strong> &mdash; how to verify it's done</li>
+          <li><strong>Research</strong> &mdash; per-task pointers to durable research files under <code>documentation/technology/research/</code>, populated from Stage 2's <code>/uc:research</code> results. Each pointer has a one-line "why this matters for this task" gloss.</li>
+          <li><strong>Success criteria</strong> &mdash; numbered list of how to verify it's done</li>
           <li><strong>Dependencies</strong> &mdash; other tasks that must complete first</li>
         </ul>
         <p>Task sizing targets ~7-20 files per task. Fewer than 7 gets absorbed into a larger task; more than 20 gets split along feature boundaries.</p>
+        <p><strong>Why a separate file per task?</strong> During execution, every team member (Executor, Reviewer, Tester) reads its task's directory on startup. Keeping per-task content in dedicated files means spawn prompts carry no inline content, crash re-spawns reload context from disk with zero Lead intervention, and amendments are a simple file edit + broadcast instead of a mass message round-trip.</p>
       </div>
     </details>
 

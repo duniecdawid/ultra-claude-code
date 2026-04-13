@@ -47,19 +47,23 @@
       <li><strong>Project Manager</strong> (Sonnet) &mdash; monitors progress, detects stalls, tracks usage, maintains a live dashboard</li>
     </ul>
 
-    <p>Knowledge is handled by the <strong>Lead</strong> as the team's Sage. At Phase 1.8, Lead loops <code>/uc:research</code> over the plan's Tech Stack and writes a <em>Knowledge Brief</em> to <code>shared/knowledge-brief.md</code>, embedded into every task team's spawn prompt. Mid-execution, any teammate sending <code>QUERY: {question}</code> to Lead gets an answer from the research cache (free) or a freshly-spawned <code>researcher</code> subagent (one Task-tool call). No persistent knowledge teammate — the typed distinction between <em>Teammates</em> (TeamCreate, stateful, tracked) and <em>Subagents</em> (Task tool, stateless, invisible to the team graph) keeps the team focused on real pipeline work while allowing cheap isolated research lookups.</p>
+    <p>Knowledge lives <strong>per-task</strong> in each <code>tasks/task-N/task.md</code>'s <code>**Research:**</code> section &mdash; a list of pointers to durable files under <code>documentation/technology/research/</code>, populated by planning Stage 2 via <code>/uc:research</code>. Lead reviews research coverage per-task just before spawning each team and fills any gaps. Mid-execution, teammates send <code>QUERY: {question}</code> to Lead for external docs; Lead runs <code>/uc:research</code>, replies with an <code>ANSWER:</code>, and appends the new pointer to the task's task.md so it's durable for re-spawns and future teammates. The typed distinction between <em>Teammates</em> (TeamCreate, stateful, tracked) and <em>Subagents</em> (Task tool, stateless, invisible to the team graph) keeps the team focused on pipeline work while allowing cheap isolated research lookups.</p>
 
     <h2>How a task flows</h2>
     <ol>
-      <li>The <strong>Lead</strong> (orchestrator) spawns Executor + Reviewer when a concurrency slot opens</li>
-      <li>Executor explores the codebase, writes a plan, sends it to Reviewer (advisory) then Lead (blocking approval)</li>
-      <li>After approval, Executor implements. Reviewer reads files as they're written.</li>
-      <li>The moment the Executor finishes writing code &mdash; <em>before</em> writing the implementation report &mdash; it signals "code complete" to the Lead. The Lead lazy-spawns the Tester immediately, so the Tester reads context in parallel with the Executor finishing the impl report. If a concurrency slot is free, the Lead also pre-spawns the next dependent task's Executor + Reviewer so they can research and plan in parallel with this task's review/test window.</li>
-      <li>Executor writes the impl report, then signals "ready for review" and "ready for test" simultaneously</li>
-      <li>Reviewer and Tester run in parallel: code review + testing</li>
-      <li>Both must PASS. If either fails, Executor fixes and retries (up to 10 cycles)</li>
-      <li>Both pass &rarr; task done. If a pipeline successor is parked, Lead sends it "implementation approved" so it can begin coding. Team shuts down, next task spawns.</li>
+      <li>Planning modes have already written <code>tasks/task-N/task.md</code> for every task (authoritative content: description, files, patterns, Research pointers, success criteria, dependencies). The plan README holds a flat task heading index only.</li>
+      <li>Lead runs its <strong>pre-spawn checklist</strong> &mdash; reviews task.md's Research pointers, runs <code>/uc:research</code> for any gap or staleness, then spawns Executor + Reviewer in parallel (minimal pointer prompts; agents read the task directory on startup).</li>
+      <li><strong>Reviewer speaks first.</strong> After its startup read, Reviewer synthesizes a <code>REVIEWER TAKE</code> from task.md + standards + architecture + patterns and sends it to Executor <em>before</em> Executor plans.</li>
+      <li>Executor reads task.md, explores the codebase, receives the <code>REVIEWER TAKE</code>, and writes <code>tasks/task-N/plan.md</code> as a thin execution delta (approach per file, criterion-to-approach mapping by ID, reviewer-take incorporation, risks). It does not restate task.md content.</li>
+      <li>Executor runs a <strong>deviation self-check</strong> against task.md. If clean (all files in scope, all criteria mapped, no reviewer-take contradictions) it proceeds directly to implementation &mdash; no Lead gate. If the plan deviates, Executor sends <code>ADVICE REQUEST task-N [deviation]</code> and waits for APPROVED (Lead amends task.md and broadcasts) or AMEND.</li>
+      <li>Executor implements. Reviewer reads files as they're written via progress updates.</li>
+      <li>The moment code is done &mdash; <em>before</em> writing impl.md &mdash; Executor signals "code complete" to Lead. Lead lazy-spawns the Tester (which runs its own startup read in parallel) and may pre-spawn the next dependent task's team into a pipeline-wait gate.</li>
+      <li>Executor writes <code>tasks/task-N/impl.md</code> (delta only &mdash; created/modified files, exports, INTEGRATION, GOTCHA), broadcasts <code>FILE-UPDATED</code>, then signals "ready for review" and "ready for test" simultaneously.</li>
+      <li>Reviewer and Tester run in parallel. Both must PASS. If either fails, Executor fixes, updates impl.md with fix notes, re-broadcasts, and re-submits.</li>
+      <li>Both pass &rarr; task done. Lead sends <code>Implementation approved</code> to any parked pipeline successor, shuts the team down, and fills the slot with the next unblocked task.</li>
     </ol>
+
+    <p>An optional <strong>ADVICE</strong> channel is open throughout for Executor to ask Lead for judgment on complicated problems, deep-reasoning design calls, or knowledge about orchestration context (other tasks in flight, plan history, user intent). ADVICE is non-blocking except for the mandatory <code>[deviation]</code> case.</p>
 
     <h2>Concurrency</h2>
     <p>Multiple tasks run in parallel based on plan size:</p>
@@ -97,14 +101,44 @@
     </details>
 
     <details>
-      <summary>The two-level plan review</summary>
+      <summary>Task directory as the team's single source of truth</summary>
       <div class="details-content">
-        <p>Before implementing, the Executor's plan goes through two review levels:</p>
+        <p>Every task gets its own directory at <code>documentation/plans/{plan}/tasks/task-N/</code> containing three files, each written by a different role:</p>
         <ul>
-          <li><strong>Level 1 &mdash; Teammate review (advisory):</strong> The Reviewer checks for technical issues: pattern compliance, standards conformance, feasibility. Replies LGTM or CONCERNS.</li>
-          <li><strong>Level 2 &mdash; Lead review (blocking):</strong> The Lead checks for strategic issues: scope alignment, cross-task coherence, domain correctness. Must approve before implementation starts.</li>
+          <li><strong><code>task.md</code></strong> &mdash; written by the planning mode at Stage 4 (Lead may amend mid-execution). Authoritative task brief: description, files, patterns, <code>**Research:**</code> pointers, success criteria, dependencies. Every team member reads this on startup.</li>
+          <li><strong><code>plan.md</code></strong> &mdash; written by the Executor during its Phase 3. A thin execution delta that extends task.md &mdash; concrete function/class/signature choices per file, criterion-to-approach mapping by ID, reviewer-take incorporation, risks. Does not restate task.md content.</li>
+          <li><strong><code>impl.md</code></strong> &mdash; written by the Executor during Phase 4.5 after code complete. An implementation delta &mdash; created/modified files with line ranges, exports, INTEGRATION notes for other tasks, GOTCHA notes for library quirks. Does not restate task.md or plan.md content.</li>
         </ul>
-        <p>This catches both technical and strategic problems before any code is written.</p>
+        <p>Spawn prompts carry no inline task content &mdash; they're minimal pointers. All team members (including lazy-spawned Tester, pipeline successors, and crash re-spawns) follow the shared task-team-startup protocol to read the task directory on their first action. File writes broadcast <code>FILE-UPDATED task-N/{file}: reason</code> to active teammates so state stays in sync without verbose messages.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Why Reviewer speaks first</summary>
+      <div class="details-content">
+        <p>Reviewer's unique value is standards / architecture / patterns knowledge &mdash; the stuff it reads from <code>documentation/technology/standards/</code> and <code>documentation/technology/architecture/</code> that Executor doesn't touch. In the old model, that knowledge only surfaced after Executor had already written a plan, making Reviewer's input an advisory round-trip on work that was already done.</p>
+        <p>In the new model, Reviewer front-loads that knowledge as a <code>REVIEWER TAKE</code> message sent to Executor <em>before</em> plan.md is written. Executor incorporates it directly into plan.md as a primary input. Three wins:</p>
+        <ul>
+          <li><strong>Parallelizes work.</strong> Reviewer reads standards while Executor explores the codebase &mdash; no serial bottleneck.</li>
+          <li><strong>Plan.md gets written once.</strong> No draft/feedback/rewrite cycle &mdash; reviewer input is already baked in.</li>
+          <li><strong>Lean plan.md.</strong> plan.md is a thin extension of task.md + reviewer take, not a multi-section document retro-fit to accommodate teammate concerns.</li>
+        </ul>
+        <p>Reviewer's later role (formal code review on "ready for review") is unchanged. Its upfront voice is new; its backend voice is the same.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Lead plan review is gone &mdash; ADVICE and deviation self-check</summary>
+      <div class="details-content">
+        <p>The old blocking "Lead plan review" gate is removed. Rationale: task.md already encodes the authoritative scope (user-approved at Stage 4), REVIEWER TAKE covers standards/architecture fit, and Executor's plan.md is structurally a thin delta that can't silently expand scope without visible deviation.</p>
+        <p>Before implementing, Executor runs a <strong>deviation self-check</strong>:</p>
+        <ul>
+          <li>Every file plan.md proposes to touch appears in task.md's Files list</li>
+          <li>Every success criterion in task.md has a mapping entry in plan.md</li>
+          <li>plan.md does not contradict any constraint from the REVIEWER TAKE</li>
+        </ul>
+        <p>If all three pass, Executor proceeds to implementation with zero Lead round-trips. If any fails, Executor sends <code>ADVICE REQUEST task-N [deviation]: {reason}</code> and waits for <code>APPROVED</code> (Lead amends task.md and broadcasts) or <code>AMEND: {instructions}</code>.</p>
+        <p>Executor can also pull Lead's judgment at any time (planning or implementation) via <code>ADVICE REQUEST task-N [complicated|deep-reasoning|knowledge]: {context + question}</code>. Those cases are non-blocking &mdash; Executor decides whether to wait. ADVICE is distinct from <code>QUERY:</code> (external library docs via <code>/uc:research</code>): ADVICE is for Lead's judgment and orchestration context, QUERY is for external knowledge.</p>
       </div>
     </details>
 

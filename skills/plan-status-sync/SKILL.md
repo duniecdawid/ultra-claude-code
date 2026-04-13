@@ -17,12 +17,16 @@ Glob for `documentation/plans/*/README.md`. If none found, inform user and stop.
 
 For each plan directory, read:
 
-1. **README.md** — current `> Status:` line, task checkbox states, and task count
+1. **README.md** — current `> Status:` line, task checkbox states in the flat task heading index, and task count
 2. **plan.json** (at plan root) — if exists, check `"status"` field and `"ended_at"`
 3. **operational-report.md** — if exists, plan completed
 4. **shared/lead.md** — if contains `## Execution Complete`, check which tasks are listed as completed
 5. **checkpoint-*.md** — if exist, execution was at least started
 6. **Git history** — `git log --oneline --diff-filter=A -- documentation/plans/{PLAN_NAME}/` to get creation date
+
+**Do NOT read per-task content from README sections.** In the new layout, the README is a plan-level overview + flat task heading index only. Per-task content (description, files, patterns, success criteria, research pointers, dependencies) lives in `tasks/task-N/task.md`. This skill only cares about plan-level status and task checkbox markers — it does not read or write per-task content. If you need a task's goal for display purposes, read it from `tasks/task-N/task.md`'s Description field (not from README).
+
+**Legacy plans** with embedded per-task sections in README still work — the checkbox format is the same, and the status markers sit on the `### Task N:` headings regardless of whether per-task fields follow them inline. This skill does not split legacy plans; that's `/uc:plan-execution`'s Phase 1.1 self-heal on resume (or `/uc:migrate`).
 
 ### Status Inference Rules
 
@@ -51,8 +55,8 @@ For plans inferred as **Completed**, determine which tasks finished:
 
 1. Read `shared/lead.md` — the "Tasks Completed" section lists finished tasks
 2. Read `plan.json` tasks array — check for `"status": "completed"` on each task
-3. Check for `tasks/task-N/impl.md` existence — if impl.md exists, the task was at minimum implemented
-4. Cross-reference task numbers with README headings
+3. Check for `tasks/task-N/impl.md` existence — if impl.md exists, the task was at minimum implemented (Executor writes impl.md during its Phase 4.5, after review/test passes trigger shutdown)
+4. Cross-reference task numbers with README headings (the flat task index)
 
 For plans inferred as **In Progress**, check completed tasks the same way — some tasks may have finished before execution stopped.
 
