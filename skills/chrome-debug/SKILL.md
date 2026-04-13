@@ -132,6 +132,19 @@ EXT_ID=$(jq -r '.allowed_origins[0]' "$CHROMIUM_NMH" 2>/dev/null \
   | sed 's|chrome-extension://||;s|/.*||')
 ```
 
+### Step 3b: Verify browser/Claude Code account match (multi-account setups)
+
+**Skip this step** in single-account setups. Relevant when multiple Anthropic accounts are in use on this machine — e.g., a `CLAUDE_CONFIG_DIR`-based profile switcher, or simply multiple browser profiles logged into different Anthropic accounts. Machine-specific multi-account tooling (if any) is documented in `~/.claude/skills/machine-context/claude-profiles.md`.
+
+The bridge pairs Claude Code and the browser extension by matching Anthropic account identities. If Claude Code is authenticated as account X but the browser is logged into account Y, pairing silently fails or behaves erratically.
+
+```bash
+# What account is Claude Code authenticated as?
+claude auth status
+```
+
+Ask the user to confirm the target browser is logged into claude.ai with the **same** Anthropic account. If they differ, either switch the browser login or switch the Claude Code authentication to match. See "Browser logged into different Claude account than Claude Code" in Known Failure Modes for details.
+
 ### Step 4: Test primary browser connection
 
 Call `mcp__claude-in-chrome__tabs_context_mcp` (with `createIfEmpty: true` if needed).
@@ -286,6 +299,19 @@ for p in [
     except FileNotFoundError: pass
 "
 ```
+
+### Browser logged into different Claude account than Claude Code (multi-account setups)
+**Symptom**: Bridge pairing fails or connects intermittently despite a healthy native host, valid manifest, and no timeouts at the transport layer. `tabs_context_mcp` may return empty results or time out. Symptoms persist across restarts.
+**Cause**: The bridge (`wss://bridge.claudeusercontent.com`) pairs a Claude Code session with a browser extension by matching Anthropic account identities on both ends. Claude Code authenticates via the OAuth token in `$CLAUDE_CONFIG_DIR/.credentials.json` (default `~/.claude/.credentials.json`); the Claude-in-Chrome extension authenticates via the user's claude.ai browser login. **Both must be the same Anthropic account.** When Claude Code is authenticated as account X but the browser is logged into account Y, pairing silently fails. This applies to any multi-account setup — whether via `CLAUDE_CONFIG_DIR`-based profile switchers or simply multiple browser sessions.
+**Check**:
+```bash
+# What account is THIS Claude Code session using?
+claude auth status
+
+# What account is the browser logged into?
+# → Open claude.ai in the target browser and check the account menu (top-right avatar).
+```
+**Fix**: Either log the browser into the same Anthropic account Claude Code is using (sign out of claude.ai, sign back in with the matching account), or switch the Claude Code authentication to match the browser. Machine-specific profile-management commands (if any) are documented in `~/.claude/skills/machine-context/claude-profiles.md`. After the accounts match, reload the Claude-in-Chrome extension once to force a clean bridge handshake.
 
 ### Chrome/Chromium process bloat
 **Symptom**: Sluggish browser, extension unresponsive.

@@ -1,5 +1,12 @@
 [
   {
+    "seq": 119,
+    "version": "2026.04.13-7",
+    "date": "2026-04-13",
+    "summary": "/uc:chrome-debug gains a multi-account failure mode: browser/Claude Code account mismatch. The bridge (wss://bridge.claudeusercontent.com) pairs Claude Code and the Claude-in-Chrome extension by matching Anthropic account identities on both ends — when Claude Code is authenticated as account X but the browser is logged into account Y, pairing silently fails and symptoms look like transport-layer problems (empty tabs_context_mcp, intermittent timeouts) that no amount of native-host restarting will fix. New Step 3b preflight asks the user to confirm account match before running transport diagnostics, skipped automatically in single-account setups. New Known Failure Mode entry captures the full symptom/cause/check/fix cycle with `claude auth status` as the Claude Code side check and claude.ai account menu as the browser side check. Machine-specific profile-management commands (e.g., profiled-claude on the reference machine) are delegated to ~/.claude/skills/machine-context/claude-profiles.md, keeping the marketplace skill portable. Help skill entry unchanged (the skill's purpose statement still captures this).",
+    "migration": null
+  },
+  {
     "seq": 118,
     "version": "2026.04.13-6",
     "date": "2026-04-13",
