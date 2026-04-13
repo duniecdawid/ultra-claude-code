@@ -28,6 +28,7 @@
       <li><strong>Node.js</strong> &mdash; required for the tmux layout daemon that manages agent panes</li>
       <li><strong>Statusline</strong> &mdash; per-account usage tracking displayed in tmux</li>
       <li><strong>Session hooks</strong> &mdash; start/end hooks for usage tracking</li>
+      <li><strong>Agent updates</strong> &mdash; if the <code>ultraclaude-agent</code> npm package is already installed, setup checks for a newer published version and offers to update it (never installs from scratch)</li>
     </ul>
     <p>Setup is idempotent &mdash; safe to re-run after updates or if anything changes. It writes a version marker to <code>~/.claude/ultra/uc-setup.json</code> so other skills can verify your environment is current.</p>
 

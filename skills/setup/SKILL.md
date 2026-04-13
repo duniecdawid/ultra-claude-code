@@ -1,5 +1,5 @@
 ---
-description: One-time machine setup for Ultra Claude. Checks and configures shell environment (1M context, agent teams), installs prerequisites (tmux, node), configures tmux for Claude Code (fixes screen tearing via DEC 2026 synchronized output passthrough), configures the statusline for per-account usage tracking, and optionally sets up Tailscale for remote access. Idempotent — safe to re-run. Writes version marker to ~/.claude/ultra/uc-setup.json so other skills can quickly check if setup is current. Use when onboarding a new machine, after Ultra Claude install, when plan-execution reports missing prerequisites, or when experiencing screen tearing/flickering in tmux. Triggers on "setup", "machine setup", "environment setup", "configure machine", "setup 1m context", "enable agent teams", "screen tearing", "tmux tearing", "flickering".
+description: One-time machine setup for Ultra Claude. Checks and configures shell environment (1M context, agent teams), installs prerequisites (tmux, node), configures tmux for Claude Code (fixes screen tearing via DEC 2026 synchronized output passthrough), configures the statusline for per-account usage tracking, optionally sets up Tailscale for remote access, and — if the `ultraclaude-agent` npm package is already installed — checks for and offers to update it to the latest published version. Idempotent — safe to re-run. Writes version marker to ~/.claude/ultra/uc-setup.json so other skills can quickly check if setup is current. Use when onboarding a new machine, after Ultra Claude install, when plan-execution reports missing prerequisites, or when experiencing screen tearing/flickering in tmux. Triggers on "setup", "machine setup", "environment setup", "configure machine", "setup 1m context", "enable agent teams", "screen tearing", "tmux tearing", "flickering".
 user-invocable: true
 ---
 
@@ -117,7 +117,28 @@ which tailscale 2>/dev/null && tailscale status --self --json 2>/dev/null
 
 Record status but don't mark as MISSING — this is optional.
 
-### 3.9 Machine Context (optional)
+### 3.9 Agent (optional — only if installed)
+
+If the `ultraclaude-agent` npm package is installed, check whether a newer version is published. The agent is an independent package (not part of this plugin) that some users install to sync project plans to an external dashboard — do **not** offer to install it from this skill. Only flag it as OUTDATED when it is already present.
+
+```bash
+if command -v ultraclaude-agent >/dev/null 2>&1; then
+  INSTALLED=$(ultraclaude-agent --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+  # Short timeout so setup never hangs on a slow/offline npm registry
+  LATEST=$(timeout 5 npm view ultraclaude-agent version 2>/dev/null)
+  echo "agent installed: ${INSTALLED:-unknown}"
+  echo "agent latest:    ${LATEST:-unavailable}"
+fi
+```
+
+Status:
+- SKIP (treat as `— not installed`) if `ultraclaude-agent` is not on `PATH`.
+- PASS if installed AND (a) latest cannot be fetched (offline) OR (b) installed == latest.
+- OUTDATED if installed and latest differ — surface in Step 4 and offer the update in Step 5.10.
+
+Never auto-install the agent from `/uc:setup`. Installation is the user's choice.
+
+### 3.10 Machine Context (optional)
 
 Check whether the user's local `~/.claude/skills/machine-context/` skill exists:
 
@@ -142,6 +163,7 @@ Ultra Claude Environment Check (plugin v{version})
   Statusline                ✗ not configured
   Session Hooks             ✗ not configured
   Tailscale (optional)      — not installed
+  Agent (optional)          — not installed   # or "✓ 0.0.26 (latest)" / "✗ 0.0.25 → 0.0.26"
   Machine Context (optional) — not configured
 ```
 
@@ -340,7 +362,31 @@ rm -f ~/.claude/ultra/usage-status.json
 
 If the user selected Tailscale, invoke `/uc:tailscale-setup` which handles all Tailscale configuration.
 
-### 5.9 Fix: Machine Context
+### 5.9 Fix: Update Agent
+
+Only run this fix if check 3.9 flagged the agent as OUTDATED (installed and newer version available on npm). Never run it when the agent is not installed — `/uc:setup` does not install the agent from scratch.
+
+```bash
+# Preserve the original install mechanism. `npm update -g` works whether the
+# agent was installed via plain npm, nvm, or Homebrew's npm. Homebrew users
+# who manage node via brew may see a "symlinks" notice — that's expected.
+npm update -g ultraclaude-agent
+```
+
+After updating, verify the new version is installed and offer to restart the daemon if it was running:
+
+```bash
+NEW=$(ultraclaude-agent --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+echo "ultraclaude-agent now at v$NEW"
+
+# If a daemon is running, the upgrade-check mechanism in the agent itself
+# triggers a restart. Print a status line for the user's benefit.
+ultraclaude-agent status 2>/dev/null | head -5 || true
+```
+
+If `npm update` fails (permission errors, registry unreachable), print the exact command the user would run themselves (`npm update -g ultraclaude-agent`) and move on — a failed agent update must not block the rest of setup.
+
+### 5.10 Fix: Machine Context
 
 If the user selected Machine Context, run the interview-driven scaffolding procedure defined in `references/machine-context-interview.md`. The procedure creates `~/.claude/skills/machine-context/SKILL.md` plus topic files (`environment.md`, `chrome-debug.md`, `claude-profiles.md`, `development.md`, `network.md`, `warnings.md`). Each topic file is populated from targeted questions with sensible defaults from runtime detection.
 
@@ -378,6 +424,7 @@ After all fixes are applied, write `~/.claude/ultra/uc-setup.json`:
     "statusline": true/false,
     "sessionHooks": true/false,
     "tailscale": true/false,
+    "agent": "{installed version or null if not installed}",
     "machineContext": true/false
   }
 }

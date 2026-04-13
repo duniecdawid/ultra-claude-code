@@ -1,5 +1,12 @@
 [
   {
+    "seq": 118,
+    "version": "2026.04.13-6",
+    "date": "2026-04-13",
+    "summary": "/uc:setup now checks whether the `ultraclaude-agent` npm package is installed and, if so, compares the installed version against the latest published on npm. When outdated, setup surfaces the gap in its status table and offers to run `npm update -g ultraclaude-agent` as part of the fix-missing-prerequisites flow (step 5.9). Never auto-installs the agent — installation remains a deliberate user choice. This closes a gap where users who installed the agent once and never ran `npm update` would miss every subsequent bug fix (including the project-path-with-spaces fix that blocks project discovery for any path containing a space). The npm lookup uses a 5-second timeout so offline/slow registries never stall setup. Marker file `~/.claude/ultra/uc-setup.json` now records the installed agent version (or null). Docs site `docs/views/docs/setup.ejs` mentions the new behavior. Help skill entry for /uc:setup updated with the new sentence.",
+    "migration": null
+  },
+  {
     "seq": 117,
     "version": "2026.04.13-5",
     "date": "2026-04-13",
