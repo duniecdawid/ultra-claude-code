@@ -22,7 +22,7 @@ Do not skip this step. Do not copy skill content into this file — always load 
 
 - **Documentation governs code.** Architecture docs are the source of truth. When code diverges from specs, update the spec first.
 - **Canonical documentation** lives in `documentation/` — do not create docs outside this structure.
-- **Plans** are stored in `documentation/plans/{NNN}-{name}/` with sequential numbering and embedded task lists.
+- **Plans** are stored in `documentation/plans/{NNN}-{name}/` with sequential numbering. Each plan has a `README.md` with a flat task heading index plus per-task content in `tasks/task-N/task.md` files (description, files, patterns, research pointers, success criteria, dependencies).
 - **External system context** (API docs, SDK references) goes in `context/`.
 - **Project configuration** for Ultra Claude is in `.claude/ultra/` (app-context, environments, docs-format, version marker). Testing config lives in `documentation/technology/testing/`.
 

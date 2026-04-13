@@ -103,10 +103,19 @@ Since task status is always `in_progress` during execution (never `planning`, `r
 
 ```
 documentation/plans/{slug}/
-├── README.md        # Plan document with task list
+├── README.md        # Plan document (plan-level overview + flat task heading index only)
 ├── plan.json        # All plan + task state (this format)
 ├── events.json      # Event log (append-style, separate)
-├── shared/          # Lead-level shared notes
-├── tasks/           # Per-task pipeline artifacts
+├── shared/
+│   └── lead.md      # Lead-level shared notes and amendments log
+├── tasks/
+│   ├── task-1/
+│   │   ├── task.md  # Authoritative per-task content (description, files, patterns, research pointers, success criteria, dependencies). Written by planning mode in Stage 4; Lead amends at spawn time or mid-execution.
+│   │   ├── plan.md  # Executor's thin execution delta (written in Phase 3)
+│   │   └── impl.md  # Executor's implementation delta (written in Phase 4.5)
+│   └── task-2/
+│       └── ...
 └── ...
 ```
+
+**README is not a source of per-task content.** Everything per-task lives in `tasks/task-N/task.md`. The README holds plan-level content (Objective, Context, Tech Stack narrative, Scope, Success Criteria, Documentation Changes, Risk Assessment) plus a flat task heading index with status markers (`### Task N: {Title} <!-- status:pending -->` followed by `- [ ] **Complete**`) for the plan-status-sync skill and Project Manager dashboard state tracking.

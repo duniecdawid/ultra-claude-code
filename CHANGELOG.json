@@ -1,5 +1,25 @@
 [
   {
+    "seq": 125,
+    "version": "2026.04.13-13",
+    "date": "2026-04-13",
+    "summary": "File-based Lead↔team communication refactor. Per-task content moves out of plan README and into dedicated `tasks/task-N/task.md` files (authoritative description, files, patterns, success criteria, dependencies, plus new **Research:** pointer section populated from Stage 2's `/uc:research` results). Plan README becomes a plan-level overview + flat task heading index. Spawn prompts become minimal pointers — all team members (Executor, Reviewer, Tester, including lazy-spawns, pipeline successors, and crash re-spawns) read their task directory via the new shared `task-team-startup.md` protocol. New FILE-UPDATED broadcast protocol keeps active teammates in sync without verbose messages. Reviewer speaks first: synthesizes a `REVIEWER TAKE` from task.md + standards + architecture and sends to Executor BEFORE plan.md is written, replacing the old advisory plan-review round-trip. Executor's plan.md becomes a thin execution delta (no restating task.md content); Executor runs a deviation self-check before implementing. Universal Lead plan-review gate removed — replaced by ADVICE channel with four cases (complicated / deep-reasoning / knowledge / deviation). Lead now reviews per-task research coverage at spawn time (pre-spawn checklist) instead of synthesizing a plan-wide Knowledge Brief at Phase 1.8. `shared/knowledge-brief.md` is removed from the model (legacy files left inert). Affects: templates/plan.md + new templates/task.md, planning-framework stage-2/4, debug-mode + doc-code-verification-mode stage-4, plan-execution SKILL + all phase references + new task-team-startup.md, task-executor/code-review/task-tester/project-manager agents, plan-status-sync, migrate claude-md-template, plan-status-format reference, help skill, docs site (plan-execution.ejs + feature-planning.ejs).",
+    "migration": {
+      "precondition": {
+        "exists": "documentation/plans"
+      },
+      "actions": [
+        "For each plan in documentation/plans/ that has a README.md containing `### Task N:` headings with embedded per-task fields (Description, Product context, Files, Patterns, Success criteria, Dependencies), split each task section out into `documentation/plans/{plan}/tasks/task-N/task.md` using `${CLAUDE_PLUGIN_ROOT}/templates/task.md` as the template. Rewrite the README to contain only plan-level content + a flat task heading index (`### Task N: {Title} <!-- status:pending -->` followed by `- [ ] **Complete**`).",
+        "For each newly-created task.md, populate the **Research:** section by scanning the plan's old Tech Stack list and mapping each entry to `documentation/technology/research/libraries/{lib}.md` if that file exists. If the research file doesn't exist, write `None applicable` — Lead's pre-spawn knowledge review will fill real gaps at execution time via `/uc:research`.",
+        "Skip plans where `tasks/task-N/task.md` already exists — migration is idempotent.",
+        "If a legacy `shared/knowledge-brief.md` exists in any plan, leave it on disk as an inert historical artifact. Plan execution no longer reads it; per-task `task.md` Research sections are authoritative.",
+        "Completed plans (with operational-report.md or plan.json status `completed`) are safe to migrate — they just get a cleaner structure. In-progress plans will pick up the new structure automatically on their next `/uc:plan-execution` resume via the legacy-plan self-heal in phase-1-setup §1.1.",
+        "If you prefer not to migrate, `/uc:plan-execution` will self-heal each plan on resume — but migrating ahead of time keeps the git history cleaner and avoids mixed formats."
+      ],
+      "conflicts": "Projects with hand-customized plan README task sections (e.g., extra fields, non-standard markdown structure) may need manual review when splitting. The migration preserves all field content — the risk is only at the parsing boundary. If a plan has unusually-formatted task sections, extract them by hand. The CHANGELOG migration action is idempotent: running it twice is safe. Plans created by `/uc:roadmap` as stubs have no embedded per-task content yet, so they're a no-op."
+    }
+  },
+  {
     "seq": 124,
     "version": "2026.04.13-12",
     "date": "2026-04-13",
