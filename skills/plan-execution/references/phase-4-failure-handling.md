@@ -36,14 +36,18 @@ Options:
 Lead detects: idle notification without preceding "task done" message, or extended silence.
 
 Recovery:
-1. Re-spawn the crashed role into the existing team with per-task file context
-2. Include names of surviving teammates in the spawn prompt
-3. Surviving teammates continue — Executor drives re-coordination
-4. Log crash in `shared/lead.md`
+1. Re-spawn the crashed role into the existing team using the SAME minimal spawn prompt from `phase-2-spawn-prompts.md`. No context is rebuilt — the re-spawned agent runs the startup protocol (`task-team-startup.md`) and reads `tasks/task-$TASK_ID/{task,plan,impl}.md` plus `shared/lead.md` directly from disk.
+2. Include names of surviving teammates in the spawn prompt (the standard teammate list).
+3. Surviving teammates continue — Executor drives re-coordination.
+4. Log crash in `shared/lead.md`.
+
+**The per-task file trio is the re-spawn context.** There is no separate "resume prompt" — `task.md` tells the agent what to do, `plan.md` (if present) shows what was planned, `impl.md` (if present) shows what was implemented so far. Re-spawned agents infer pipeline stage from file presence + any message that triggered their re-spawn.
 
 ## Session Death
 
-Handled automatically by Phase 1.2 (Resume Detection) when user reruns `/uc:plan-execution $ARGUMENTS`. Checkpoint + `shared/lead.md` + `tasks/*/` files preserve all progress. Lead reconstructs task state from metadata.stage and per-task files on disk, then re-spawns teams for incomplete tasks.
+Handled automatically by Phase 1.2 (Resume Detection) when user reruns `/uc:plan-execution $ARGUMENTS`. Checkpoint + `shared/lead.md` + `tasks/*/` files preserve all progress. Lead reconstructs task state from metadata.stage and per-task files on disk, then re-spawns teams for incomplete tasks using the same minimal spawn prompts as initial spawn.
+
+**Legacy plan resume:** if Phase 1.1 detects a plan with embedded per-task sections in README but no `tasks/task-N/task.md` files, run the legacy-plan self-heal from `phase-1-setup.md` §1.1 BEFORE re-spawning anything. Teams can't re-spawn without their task.md files on disk.
 
 ## Pipeline-Spawned Successors During Failure
 

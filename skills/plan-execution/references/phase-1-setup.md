@@ -4,10 +4,13 @@
 
 Read ALL files in `documentation/plans/$ARGUMENTS/`:
 
-- `README.md` — plan document with embedded task list
-- `tasks/*/` — existing per-task pipeline artifacts (if resuming)
+- `README.md` — plan-level overview + flat task heading index
+- `tasks/task-*/task.md` — authoritative per-task content (description, files, patterns, research pointers, success criteria, dependencies). Written by the planning mode in Stage 4.
+- `tasks/task-*/plan.md`, `tasks/task-*/impl.md` — existing per-task pipeline artifacts (if resuming)
 - `shared/lead.md` — Lead-level shared notes (if resuming)
 - `checkpoint-*.md` — checkpoint files (if any)
+
+**Legacy-plan self-heal:** if README contains `### Task N:` headings but `tasks/task-N/task.md` does NOT exist, the plan was written in the pre-split format. Before continuing, extract each task's embedded fields from README into `tasks/task-N/task.md` (following `${CLAUDE_PLUGIN_ROOT}/templates/task.md`), then rewrite README to the flat-index form. For the `**Research:**` section, scan the README's Tech Stack list and map each entry to `documentation/technology/research/libraries/{lib}.md` if that file exists; otherwise write `None applicable` (Lead's pre-spawn knowledge review in Phase 2 will fill the real gaps). If a legacy `shared/knowledge-brief.md` exists, leave it on disk as an inert artifact but don't read it — per-task task.md files are now authoritative. Log the migration in `shared/lead.md`.
 
 You now have the full picture.
 
@@ -48,7 +51,7 @@ If `checkpoint-*.md` files exist:
 
 ### 1.3 Task Pipeline
 
-Every task gets the full pipeline team: **Executor + Reviewer + Tester**. There is no classification step. External library documentation is handled by Lead via the `/uc:research` skill — Lead synthesizes a Knowledge Brief once in Phase 1.8 and brokers mid-execution QUERY messages from teammates.
+Every task gets the full pipeline team: **Executor + Reviewer + Tester**. There is no classification step. External library knowledge comes from each task's `**Research:**` pointers in `tasks/task-N/task.md`, populated by planning Stage 2 and reviewed per-task by Lead just before spawning (see Phase 2). Mid-execution gaps flow through the `ADVICE` channel; Lead invokes `/uc:research` as needed and appends new pointers to task.md.
 
 ### 1.4 Concurrency Decision
 
@@ -60,7 +63,7 @@ Determine how many task-teams can run concurrently:
 | 4-8 tasks | 2-3 |
 | 9+ tasks  | 3-4 |
 
-Max ceiling: **4 concurrent task-teams**, plus 1 shared knowledge team member.
+Max ceiling: **4 concurrent task-teams**. The only plan-wide teammate is the Project Manager — no persistent knowledge teammate exists.
 
 Each slot = 1 task-team. Executor and Reviewer are spawned when a slot opens. Tester is lazy-spawned when the Executor signals `code complete` — *before* the Executor writes `impl.md`, so the Tester cold-reads context in parallel with the impl-report write. All members exit together when the task is done.
 
@@ -96,10 +99,10 @@ Tasks: N total
 Concurrency: up to M task-teams in parallel
 Estimated cost: ~[N * 120]K tokens
 
-Cost per task pipeline: ~120K tokens (Executor ~80K + Reviewer ~30K + Tester ~10K)
-  (Reviewer spawns with executor for continuous review; Tester is lazy-spawned — only active during test phase)
-Knowledge brief synthesis (Phase 1.8, plan-wide): ~20K tokens amortized (Lead invokes /uc:research once per Tech Stack item — cache hits are free, misses spawn a short-lived researcher subagent)
-Mid-execution knowledge queries: ~1K per QUERY (cache hit) or ~15K (cache miss with subagent spawn)
+Cost per task pipeline: ~100K tokens (Executor ~70K + Reviewer ~20K + Tester ~10K)
+  (Reviewer spawns with Executor and immediately sends a REVIEWER TAKE; Tester is lazy-spawned — only active during test phase)
+Pre-spawn knowledge review (per task, at spawn time): ~2K per task for cache hits, up to ~15K if /uc:research fires on a gap — Lead only researches if the planner's Research pointers don't cover the task
+Mid-execution ADVICE + QUERY: ~1K per message (cache hit) or ~15K (cache miss with researcher subagent)
 Project Manager (plan-wide): ~50K tokens (observational, runs entire execution)
 ```
 
@@ -142,83 +145,51 @@ Proceed directly to 1.6.
 
 ### 1.6 Create Task List
 
-Create ONE task per plan task — no role prefixes. Pipeline stage is tracked in metadata:
+Create ONE Lead-side task per plan task — no role prefixes. Pipeline stage is tracked in metadata. Source the task subject/description from `tasks/task-N/task.md` (it's already on disk from planning Stage 4 — do NOT parse README sections for task content):
 
 ```
 TaskCreate({
-  subject: "task-1: Add JWT middleware",
-  description: "Success criteria: ...\nFiles: src/middleware/auth.ts\n...",
-  activeForm: "Processing task 1: Add JWT middleware",
+  subject: "task-1: {title from task.md heading}",
+  description: "{1-line summary from task.md Description} | See tasks/task-1/task.md",
+  activeForm: "Processing task 1: {title}",
   metadata: { "stage": "pending", "retry_count": 0 }
   // stage values: "pending" | "planning" | "impl" | "review" | "test" | "done"
 })
 ```
 
-Each task description must include:
-- Success criteria from the plan
-- Files involved
-- Dependencies on other tasks (use `addBlockedBy` for sequential ordering)
+Set `addBlockedBy` from each task.md's Dependencies field (sequential ordering). The TaskCreate description is a pointer, not a content duplicate — the authoritative content is task.md itself.
 
 ### 1.7 Set Up Directory Structure
 
 ```
 documentation/plans/$ARGUMENTS/
-  README.md
+  README.md              # plan-level overview + flat task heading index
+  plan.json              # canonical task state (PM maintains)
   shared/
-    lead.md              # Global Lead notes
-  tasks/                 # Per-task pipeline artifacts (created just-in-time)
+    lead.md              # Lead-level shared notes, amendments log
+  tasks/
+    task-1/
+      task.md            # authoritative per-task content (from planning Stage 4)
+      plan.md            # Executor writes in Phase 3 of its workflow (execution delta only)
+      impl.md            # Executor writes in Phase 4.5 (implementation delta + gotchas)
+    task-2/
+      task.md
+      ...
   checkpoint-*.md
 ```
 
-Create `shared/lead.md` with: plan overview, concurrency decision, key architectural constraints, task dependency graph, critical decisions, and execution config (extra_usage setting from 1.5).
+`tasks/task-N/task.md` files already exist from planning Stage 4 — do NOT re-create them. Do create or update `shared/lead.md` with: plan overview, concurrency decision, key architectural constraints, task dependency graph, critical decisions, execution config (extra_usage setting from 1.5), and the amendments log (initially empty).
 
-Create `tasks/` directory. Per-task subdirs (`tasks/task-N/`) are created just-in-time when the first team member spawns for that task.
+`plan.md` and `impl.md` are written later by the Executor during its workflow — do not pre-create them here.
 
-### 1.8 Project Manager Spawn + Knowledge Brief Synthesis
+### 1.8 Project Manager Spawn
 
-Before spawning any task-teams, set up the PM teammate and synthesize the Knowledge Brief. **Only the PM is a teammate**; knowledge is handled by Lead via `/uc:research` + the `researcher` subagent (one-shot, Task-tool spawned on cache miss).
+Before spawning any task-teams, spawn the Project Manager teammate. **Only the PM is a plan-wide teammate.**
 
-**Order:**
+Spawn `pm-{PLAN_NAME}` via TeamCreate using the PM spawn prompt in `references/phase-2-spawn-prompts.md`. PM has Bash access and self-labels its pane on startup. No tmux commands needed from you.
 
-1. **Spawn Project Manager** — spawn `pm-{PLAN_NAME}` via TeamCreate using the PM spawn prompt in `references/phase-2-spawn-prompts.md`. PM has Bash access and self-labels its pane on startup. No tmux commands needed from you.
-
-2. **Synthesize the Knowledge Brief:**
-
-   a. Read the plan README.md `## Tech Stack` section and collect the list of technologies. Also scan `documentation/technology/architecture/` and `.claude/ultra/app-context.md` for additional implicit technology references (connectors, databases, protocols the plan assumes).
-
-   b. For each tech item, invoke the `/uc:research` skill directly (via the Skill tool, not via Task). The skill is cache-first — items already researched in this project hit the cache and return immediately with zero agent spawn. Items not yet researched spawn the `researcher` subagent, write a new file under `documentation/technology/research/libraries/`, and return a summary. Lead's context absorbs the summary but not the full doc body — that lives in the committed file.
-
-   ```
-   For each tech in Tech Stack:
-     /uc:research {tech}
-     → skill returns {summary, file_path, expires, cache_hit: true|false}
-     → record {tech, one-sentence summary, file_path} in the brief
-   ```
-
-   c. Compose the **Knowledge Brief** — one paragraph per tech (≤3 sentences), each ending with the pointer to the research file. Include any gotchas or breaking changes surfaced by the research summaries. The brief should be ≤800 words total — it's a pointer document, not a reference.
-
-   d. Write the brief to `documentation/plans/$ARGUMENTS/shared/knowledge-brief.md` with this structure:
-
-   ```markdown
-   # Knowledge Brief — {PLAN_NAME}
-
-   > Synthesized: {today}. Re-invoke `/uc:research {tech}` to refresh any entry.
-
-   ## {Tech 1}
-
-   {1-3 sentence summary of what the team needs to know}. Details: `documentation/technology/research/libraries/{tech1}.md`.
-
-   ## {Tech 2}
-
-   ...
-
-   ## Knowledge Update Log
-
-   (Lead appends here when broadcasting `KNOWLEDGE UPDATE:` messages during execution.)
-   ```
-
-3. **No teammate spawning here.** There is no "Knowledge base ready" signal to wait for — the brief is written to disk synchronously.
+There is no Knowledge Brief synthesis step. Research lives per-task in each `tasks/task-N/task.md`'s `**Research:**` section (populated by planning Stage 4), and Lead reviews it per-task at spawn time in Phase 2.
 
 ### 1.9 Proceed to Phase 2
 
-Shared setup is done. Project Manager is live. Knowledge Brief is on disk. Task teams can now be spawned per Phase 2.
+Shared setup is done. Project Manager is live. Task teams can now be spawned per Phase 2.
