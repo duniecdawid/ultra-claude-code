@@ -117,6 +117,16 @@ which tailscale 2>/dev/null && tailscale status --self --json 2>/dev/null
 
 Record status but don't mark as MISSING — this is optional.
 
+### 3.9 Machine Context (optional)
+
+Check whether the user's local `~/.claude/skills/machine-context/` skill exists:
+
+```bash
+test -f ~/.claude/skills/machine-context/SKILL.md && echo present || echo missing
+```
+
+Record status but don't mark as MISSING — this is optional. The `machine-context` skill holds per-machine values (Chrome install, VM/host topology, dev runtimes, network conventions, warnings) that other Ultra Claude skills read at runtime. Skills like `/uc:chrome-debug` fall back to pure runtime detection when it's absent, so the skill is not strictly required, but populating it makes future diagnostics and workflows more targeted.
+
 ## Step 4: Present Status
 
 Display a status table:
@@ -124,14 +134,15 @@ Display a status table:
 ```
 Ultra Claude Environment Check (plugin v{version})
 
-  tmux                  ✓ installed (v3.4)
-  tmux.conf             ✗ missing passthrough
-  Agent teams env var   ✗ missing
-  1M context env vars   ✗ missing
-  Node.js               ✓ v22.0.0
-  Statusline            ✗ not configured
-  Session Hooks         ✗ not configured
-  Tailscale (optional)  — not installed
+  tmux                      ✓ installed (v3.4)
+  tmux.conf                 ✗ missing passthrough
+  Agent teams env var       ✗ missing
+  1M context env vars       ✗ missing
+  Node.js                   ✓ v22.0.0
+  Statusline                ✗ not configured
+  Session Hooks             ✗ not configured
+  Tailscale (optional)      — not installed
+  Machine Context (optional) — not configured
 ```
 
 If ALL required checks pass (3.1–3.7):
@@ -329,6 +340,25 @@ rm -f ~/.claude/ultra/usage-status.json
 
 If the user selected Tailscale, invoke `/uc:tailscale-setup` which handles all Tailscale configuration.
 
+### 5.9 Fix: Machine Context
+
+If the user selected Machine Context, run the interview-driven scaffolding procedure defined in `references/machine-context-interview.md`. The procedure creates `~/.claude/skills/machine-context/SKILL.md` plus topic files (`environment.md`, `chrome-debug.md`, `claude-profiles.md`, `development.md`, `network.md`, `warnings.md`). Each topic file is populated from targeted questions with sensible defaults from runtime detection.
+
+**Detection-first defaults** the interview uses without asking the user:
+- OS from `/etc/os-release` (Linux) or `uname -s` (macOS/others)
+- Username from `whoami`, home from `$HOME`
+- Shell from `$SHELL`
+- Node version from `node -v 2>/dev/null`
+- Python version from `python3 --version 2>/dev/null`
+- Active Claude profile from `cat ~/.claude-profiles/.active 2>/dev/null`
+- Available profiles from `ls -1 ~/.claude-profiles/ 2>/dev/null | grep -v '^\.'`
+- Chrome extension ID from `jq -r '.allowed_origins[0]' ~/.config/chromium/NativeMessagingHosts/com.anthropic.claude_code_browser_extension.json 2>/dev/null`
+- Plugin-dir entries from `~/.claude/plugin-dirs.txt`
+
+**Rerun-safe behavior**: if `~/.claude/skills/machine-context/` already exists, ask whether to skip, update specific topic files, or regenerate from scratch. **Never clobber user-written content** without an explicit confirmation.
+
+See `references/machine-context-interview.md` for the full question set and file templates.
+
 ## Step 6: Write Marker File
 
 After all fixes are applied, write `~/.claude/ultra/uc-setup.json`:
@@ -347,7 +377,8 @@ After all fixes are applied, write `~/.claude/ultra/uc-setup.json`:
     "node": true/false,
     "statusline": true/false,
     "sessionHooks": true/false,
-    "tailscale": true/false
+    "tailscale": true/false,
+    "machineContext": true/false
   }
 }
 ```

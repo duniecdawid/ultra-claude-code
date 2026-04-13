@@ -1,5 +1,23 @@
 [
   {
+    "seq": 114,
+    "version": "2026.04.13-2",
+    "date": "2026-04-13",
+    "summary": "Add /uc:chrome-debug skill (portable Claude-in-Chrome diagnostics: stale native host, service worker idle, bridge race, profile-scoped manifest, switch_browser naming prompt) and extend /uc:setup with optional machine-context scaffolding. The chrome-debug skill reads per-machine values from ~/.claude/skills/machine-context/chrome-debug.md when present (primary Chrome install, dual-browser setup, VM-to-host routing, paths, extension ID) and falls back to runtime detection via $HOME/whoami/jq otherwise. /uc:setup step 5.9 creates ~/.claude/skills/machine-context/ interactively with 6 topic files (environment, chrome-debug, claude-profiles, development, network, warnings) via the new references/machine-context-interview.md procedure; idempotent and non-clobbering on rerun. This is the first user-level skill slot Ultra Claude explicitly supports for per-machine configuration that other marketplace skills can read — the pattern scales to future machine-specific needs without hardcoding them into shipped skills.",
+    "migration": {
+      "precondition": "Any machine that installs Ultra Claude. This is an additive change — no existing project files are affected.",
+      "actions": "Optional on existing installs: re-run /uc:setup to scaffold ~/.claude/skills/machine-context/. Users who already have a local ~/.claude/skills/chrome-debug/ personal skill should delete it after verifying /uc:chrome-debug (marketplace-namespaced) loads — the two do not collide because they live in different namespaces, but keeping both is misleading.",
+      "conflicts": "None expected. The marketplace /uc:chrome-debug and any personal /chrome-debug skill live in different namespaces (plugin namespace vs personal namespace per Claude Code skill loading rules), so they can coexist until the personal copy is cleaned up."
+    }
+  },
+  {
+    "seq": 113,
+    "version": "2026.04.13-1",
+    "date": "2026-04-13",
+    "summary": "task-tester: invoke /chrome-debug before falling back to code-level verification on mcp__claude-in-chrome__* failures. Plan 003 and plan 009 both saw testers give up after 3-4 browser failures and revert to code-level analysis, when a 30-second chrome-debug run would have auto-recovered the connection in most cases (stale native host, suspended service worker, bridge race). The task-tester agent now invokes chrome-debug as the first recourse, escalates to PM/user only if chrome-debug cannot recover, and falls back to code-level verification only after both attempts. Aligns with chrome-debug s existing autonomous auto-recovery operating mode. NOTE: this commit references /chrome-debug (personal namespace); the follow-up in seq 114 corrects it to the plugin-namespaced /uc:chrome-debug once chrome-debug itself moved into the marketplace.",
+    "migration": null
+  },
+  {
     "seq": 112,
     "version": "2026.04.12-8",
     "date": "2026-04-12",

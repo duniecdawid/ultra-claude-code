@@ -37,7 +37,7 @@ Skills read the codebase and documentation, spawn agents for parallel work, and 
 ### Setup & Onboarding
 
 **Setup** (`/uc:setup`)
-One-time machine configuration that installs prerequisites (tmux, Node.js), configures shell environment (1M context, agent teams), and optimizes tmux for Claude Code. Use after plugin installation or on a new machine. Idempotent — writes a version marker so other skills can verify setup is current.
+One-time machine configuration that installs prerequisites (tmux, Node.js), configures shell environment (1M context, agent teams), optimizes tmux for Claude Code, and (optionally) scaffolds a user-level `machine-context` skill at `~/.claude/skills/machine-context/` via an interactive interview capturing the user's Chrome setup, VM/host topology, dev runtimes, and network conventions. Use after plugin installation, on a new machine, or to add machine-context after the fact. Idempotent — writes a version marker, never clobbers user-written machine-context files without explicit confirmation.
 
 **Migrate** (`/uc:migrate`)
 Brings projects into Ultra Claude and keeps them current — handles fresh initialization, legacy project detection, and version-aware incremental upgrades via structured migrations in CHANGELOG.json. Use when onboarding a new project, after running `/uc:update`, or when upgrading an existing project to the latest Ultra structure. Produces scaffolded documentation, `.claude/ultra/` configuration, coding standards, and a version marker for future upgrades.
@@ -96,6 +96,9 @@ Scans all plans, infers actual status from execution artifacts (operational repo
 Scans all projects for stale Claude Code session files, classifies them as active (PID alive), stale (PID dead or old), or legacy (missing enriched fields). Use when session files accumulate after crashes, when disk cleanup is needed, or to kill orphaned tmux panes from dead sessions. Produces a cleanup report showing sessions removed, tmux panes killed, and sessions kept.
 
 ### Infrastructure
+
+**Chrome Debug** (`/uc:chrome-debug`)
+Diagnoses and auto-recovers Claude-in-Chrome browser connection failures — stale native host after auto-updates, suspended service workers, bridge pairing races, profile-scoped manifest paths, and `switch_browser` naming-prompt timeouts. Use on any `mcp__claude-in-chrome__*` failure or as a pre-flight health check before browser automation; supports single-browser and dual-browser setups. Reads machine-specific paths and preferences from `~/.claude/skills/machine-context/chrome-debug.md` when present and falls back to runtime detection via `$HOME`/`whoami`/`jq` otherwise.
 
 **Railway** (`/uc:railway`)
 Manages Railway.com deployments via CLI with environment variable-based multi-account token switching, handling deployments, logs, variables, and config-as-code. Use for Railway deployment workflows, account switching, or service configuration. Provides command wrappers that resolve the correct token per project directory.
