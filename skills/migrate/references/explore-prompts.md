@@ -14,7 +14,7 @@ One per approved standard topic:
 > - User-provided context: {if any, from "I'll add context" responses}
 >
 > Focus on:
-> 0. Invoke the `/uc:tech-research` skill with args "{topic} best practices {stack}" to get external documentation and established conventions for this topic. Incorporate these findings alongside codebase patterns.
+> 0. Invoke the `/uc:research` skill with args "{topic} best practices {stack}" to get external documentation and established conventions for this topic (auto-classified as patterns mode). The skill is cache-first — if this topic was already researched in this project, you'll get an immediate hit. Incorporate these findings alongside codebase patterns.
 > 1. Read all files identified in survey signals for this topic
 > 2. Grep for additional patterns related to {topic}
 > 3. Catalogue findings: file path, line, pattern description, whether it's a good pattern (-> rule) or bad pattern (-> FORBIDDEN)
@@ -22,7 +22,7 @@ One per approved standard topic:
 > 5. Check for existing conventions files
 >
 > Return findings in this format:
-> ## External Best Practices (from tech-research)
+> ## External Best Practices (from /uc:research)
 > - {best practice}: {source}
 >
 > ## Good Patterns Found

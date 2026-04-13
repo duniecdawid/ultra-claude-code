@@ -1,5 +1,21 @@
 [
   {
+    "seq": 121,
+    "version": "2026.04.13-9",
+    "date": "2026-04-13",
+    "summary": "Unified research (Task 1 of plan 041): replace the split tech-research skill, Tech Knowledge agent, and Market Analyzer agent with a single cache-first `/uc:research` skill fronting a stateless `researcher` subagent. Research findings become first-class project documentation under `documentation/technology/research/{libraries,patterns}/` (new) with frontmatter-driven per-entry staleness — library docs default to 10 days, patterns to 90 days, market snapshots to 30 days, and historical/retrospective research freezes (expires:null). Market research continues to go to `documentation/product/research/` unchanged. A machine-maintained `index.json` (written atomically by the researcher, queried via jq by the skill) drives fast cache-hit lookups with zero agent spawn on hits. The skill auto-classifies query mode (library/patterns/market) with signal heuristics; ambiguous queries ask via AskUserQuestion. Progressive disclosure: `agents/researcher.md` holds spawn protocol + file format + io-protocol inline, and one of three mode-specific references (`skills/research/references/{library,patterns,market}-mode.md`) is read per call. `skills/docs-manager/` gains a new `references/technology-research.md` and routing-table/layout updates so research files are a first-class citizen of the canonical documentation structure. Rewired callers: discovery-mode (market-analyzer subagent → /uc:research --mode=market), critical-brainstorm, migrate (explore/executor/claude-md-template), planning-framework stage-2, feature-mode stage-2, debug-mode stage-2, help skill, templates/plan.md Tech Stack section, README. Deleted: skills/tech-research/, agents/tech-knowledge.md, agents/market-analyzer.md. Plan-execution refactor (Task 2 — Lead-as-Sage, typed teammate-vs-subagent distinction, executor/reviewer/tester rewiring, docs/views/*.ejs) ships in a follow-up commit.",
+    "migration": {
+      "precondition": "Project uses Ultra Claude and has a CLAUDE.md or plans referencing `/uc:tech-research`, or has Discovery Mode output documents that relied on the Market Analyzer agent's spawn.",
+      "actions": [
+        "Re-run `/uc:migrate` to refresh the project's CLAUDE.md template — this rewrites the Key Commands table entry from `/uc:tech-research` to `/uc:research`.",
+        "No action needed for existing research files: `documentation/product/research/` files are unchanged. The new `documentation/technology/research/` tree is created on first `/uc:research` invocation (bootstrap path in the skill handles it).",
+        "Older plan files referencing `/uc:tech-research` are historical records and remain valid — no need to rewrite them.",
+        "Discovery Mode continues to work; it now invokes `/uc:research --mode=market` internally instead of spawning the Market Analyzer subagent, but the output location (`documentation/product/research/`) is unchanged."
+      ],
+      "conflicts": "Projects that hand-customized skills/tech-research/SKILL.md or wrote their own Tech Knowledge spawn-prompt variant need to re-point to skills/research/SKILL.md and the new researcher agent. Projects that directly imported `agents/market-analyzer.md` from Discovery Mode spawns need to switch to the /uc:research skill invocation."
+    }
+  },
+  {
     "seq": 120,
     "version": "2026.04.13-8",
     "date": "2026-04-13",

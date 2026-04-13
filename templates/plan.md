@@ -21,7 +21,7 @@ References to the documentation that informs this plan. Prefer links over prose 
 
 ## Tech Stack
 
-External libraries, frameworks, and services this plan depends on. The shared Tech Knowledge agent loads documentation for these at execution startup.
+External libraries, frameworks, and services this plan depends on. During plan-execution Phase 1.8, Lead calls `/uc:research` for each item to synthesize the task team's knowledge brief — cache hits are free, cache misses spawn the `researcher` subagent to write or refresh `documentation/technology/research/libraries/{lib}.md`.
 
 - {technology 1}
 - {technology 2}

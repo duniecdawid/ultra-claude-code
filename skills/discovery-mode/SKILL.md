@@ -68,9 +68,9 @@ Present the scoping summary to the user before proceeding. Be concise — 5-8 li
 
 ### Phase 2: Parallel Research
 
-Spawn two subagents in parallel via the Task tool:
+Run two research streams in parallel:
 
-**Explore subagent** — internal codebase and technical research:
+**1. Explore subagent** (spawn via Task tool) — internal codebase and technical research:
 
 > Research topic: [topic from $ARGUMENTS]
 >
@@ -79,25 +79,22 @@ Spawn two subagents in parallel via the Task tool:
 > Focus on:
 > 1. Existing codebase patterns related to this topic (read code for understanding, not modification)
 > 2. Internal documentation about this domain (`documentation/`)
-> 3. External library documentation via `mcp__ref__ref_search_documentation`
-> 4. Technical feasibility and constraints in the current architecture
-> 5. Related context in `context/` directory
-> 6. Domain context from `.claude/ultra/app-context.md` (if exists)
-> 7. Existing personas in `documentation/product/personas/` and requirements in `documentation/product/requirements/` — build on what exists, do not duplicate
+> 3. Technical feasibility and constraints in the current architecture
+> 4. Related context in `context/` directory
+> 5. Domain context from `.claude/ultra/app-context.md` (if exists)
+> 6. Existing personas in `documentation/product/personas/` and requirements in `documentation/product/requirements/` — build on what exists, do not duplicate
 >
-> Return a structured research summary. Include file:line references for internal findings and source URLs for external findings. Separate facts from inferences.
+> Return a structured research summary. Include file:line references for internal findings. Separate facts from inferences.
 
-**Market Analyzer subagent** — external market and competitor research:
+**2. `/uc:research --mode=market` call** — external competitor / market / trend research:
 
-> Research topic: [topic from $ARGUMENTS]
-> Focus areas: [specific focus areas from Phase 1]
->
-> Research competitors, market trends, technology options, and industry patterns related to this topic.
-> Cite all sources. Present conflicting views fairly. Distinguish facts from opinions.
->
-> If user/persona research is relevant: look for common user archetypes, pain points, and behavioral patterns in this domain.
->
-> Return structured findings with: key findings, competitor analysis, technology landscape, market trends, user insights (if applicable), and recommendations.
+Invoke the Research skill directly with `--mode=market` and the topic + focus areas. The skill routes to the `researcher` subagent in market mode, which writes findings to `documentation/product/research/{topic-slug}.md` following the existing market research format. The skill returns a summary for synthesis.
+
+```
+/uc:research --mode=market {topic} — focus: {focus areas from Phase 1}
+```
+
+This replaces the old Market Analyzer subagent. The new path is cache-first: if the same market topic has been researched recently (within 30 days), the skill returns the cached findings without spawning the researcher. Re-running Discovery on a closely related topic also benefits from the cache.
 
 ### Phase 3: Synthesis
 

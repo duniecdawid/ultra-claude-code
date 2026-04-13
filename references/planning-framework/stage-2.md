@@ -10,9 +10,9 @@ These are always available and run when applicable.
 
 - **`code-surveyor`** — structural survey of relevant code packages
 - **`doc-surveyor`** — structural survey of relevant documentation sections
-- **`tech-research`** — external library/framework documentation via Ref.tools
+- **`/uc:research`** — cache-first external library, API, pattern, or market research. Writes committed research files under `documentation/technology/research/` (libraries + patterns) or `documentation/product/research/` (market). Cache hits return instantly; misses spawn the `researcher` subagent.
 
-Spawn all applicable research skills in parallel. At minimum, always launch `code-surveyor` + `doc-surveyor` together — even for seemingly simple issues, because doc-surveyor frequently reveals context that changes your understanding of "simple." Add `tech-research` when external libraries are involved. If you genuinely believe only one surveyor applies (e.g., pure documentation change with zero code impact), state which one you are skipping and why in your stage transition message.
+Spawn all applicable research skills in parallel. At minimum, always launch `code-surveyor` + `doc-surveyor` together — even for seemingly simple issues, because doc-surveyor frequently reveals context that changes your understanding of "simple." Invoke `/uc:research` whenever external libraries or unfamiliar patterns are involved. If you genuinely believe only one surveyor applies (e.g., pure documentation change with zero code impact), state which one you are skipping and why in your stage transition message.
 
 ## Rules
 

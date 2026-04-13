@@ -36,7 +36,7 @@ Do not skip this step. Do not copy skill content into this file — always load 
 | `/uc:doc-code-verification-mode` | Verify documentation matches code |
 | `/uc:discovery-mode` | Product research and requirements |
 | `/uc:plan-execution` | Execute approved plans with agent teams |
-| `/uc:tech-research` | Research external library docs via Ref.tools |
+| `/uc:research` | Research external library/API/patterns/market via cache-first knowledge base |
 | `/uc:migrate` | Upgrade project to latest Ultra Claude structure |
 
 ### Workflow
@@ -49,6 +49,6 @@ Do not skip this step. Do not copy skill content into this file — always load 
 ## Adaptation Rules
 
 Adapt the section content based on survey findings:
-- If the project has specific technologies, mention relevant tech-research triggers
+- If the project has specific technologies, mention relevant `/uc:research` triggers
 - If external integrations were found, mention the context/ directory for those specific systems
 - Keep the core structure above, but tailor examples to the project

@@ -8,7 +8,7 @@ The instructions below extend the base rules with debug-mode-specific behavior.
 
 ## Mode Extensions
 
-Use the base research skills (code-surveyor, doc-surveyor, tech-research) to understand the affected code and expected system behavior. Also check **recent `git log`** — most bugs are regressions, and the diff that introduced the bug is often the diff that explains it.
+Use the base research skills (code-surveyor, doc-surveyor, research) to understand the affected code and expected system behavior. Also check **recent `git log`** — most bugs are regressions, and the diff that introduced the bug is often the diff that explains it.
 
 ### Hypothesis Gate — MANDATORY
 

@@ -57,7 +57,7 @@ Before you challenge anything, make sure you understand the full picture:
 1. **Parse what the user is proposing** — Restate it back in your own words to confirm understanding. If it's vague, ask clarifying questions before proceeding.
 
 2. **Research the problem space** — This is critical. Don't rely on stale training data when you can get current information:
-   - For **libraries, frameworks, APIs**: Use the `/tech-research` skill (invoke it via the Skill tool) to get focused, up-to-date documentation. This is far more efficient than raw web search for technical docs.
+   - For **libraries, frameworks, APIs, and architectural patterns**: Use the `/uc:research` skill (invoke it via the Skill tool) to get focused, up-to-date documentation. It's cache-first, so repeated lookups are free, and it auto-classifies the query into library / patterns / market mode.
    - For **broader topics** (architecture patterns, industry practices, case studies, comparisons): Use WebSearch and WebFetch to find real-world experiences, post-mortems, benchmark data, and community discussions.
    - For **the user's codebase**: Use Read/Grep/Glob to understand current architecture, existing patterns, and constraints before suggesting changes.
    - Spawn research Agent subagents in parallel when multiple topics need investigation simultaneously.

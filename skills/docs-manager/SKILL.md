@@ -43,9 +43,18 @@ documentation/
 │   ├── testing/
 │   │   ├── README.md                  # Testing overview (docsify)
 │   │   └── ...
-│   └── rfcs/
-│       ├── README.md                  # RFCs overview (docsify)
-│       └── ...
+│   ├── rfcs/
+│   │   ├── README.md                  # RFCs overview (docsify)
+│   │   └── ...
+│   └── research/
+│       ├── README.md                  # Technology research overview (docsify)
+│       ├── index.json                 # Machine-maintained research index (researcher agent)
+│       ├── libraries/
+│       │   ├── README.md              # Library/API research (docsify)
+│       │   └── ...                    # One file per library, multiple H2 topics
+│       └── patterns/
+│           ├── README.md              # Patterns / best-practices research (docsify)
+│           └── ...                    # One file per pattern topic
 ├── product/
 │   ├── README.md                      # Product overview (docsify)
 │   ├── description/
@@ -86,8 +95,10 @@ When any mode, agent, or user creates documentation, route it to the correct loc
 | Coding conventions, API standards, patterns | `technology/standards/` | Contains: convention, standard, pattern, style guide, coding rules |
 | Test strategy, commands, tester agent rules, security testing | `technology/testing/` | Contains: test strategy, test commands, tester rules, security testing, final gate, test infrastructure |
 | Decision reviews (problem, options, outcome) | `technology/rfcs/` | Contains: RFC, decision review, trade-off analysis, options evaluation |
+| Library / API research (Ref.tools excerpts, verbatim docs) | `technology/research/libraries/` | Contains: API signatures, library docs, SDK reference, package documentation. Written by the `researcher` agent via `/uc:research`. |
+| Pattern / best-practices research | `technology/research/patterns/` | Contains: architectural patterns, strategy comparisons, tradeoff analyses. Written by the `researcher` agent via `/uc:research`. |
 | Product vision, positioning, product briefs | `product/description/` | Contains: vision, positioning, product brief, description |
-| Market research, competitor analysis, technology landscape | `product/research/` | Contains: competitor, market, research, technology landscape, trends |
+| Market research, competitor analysis, technology landscape | `product/research/` | Contains: competitor, market, research, technology landscape, trends. Written by Discovery Mode or the `researcher` agent via `/uc:research --mode=market`. |
 | Formal requirements, user stories | `product/requirements/` | Contains: requirement, FR-, NFR-, acceptance criteria, user story, must have, should have |
 | User personas, audience profiles | `product/personas/` | Contains: persona, user profile, demographics, pain points, user archetype |
 | Plans, task lists, execution context | `plans/{name}/` | Contains: plan, task list, implementation steps |
@@ -123,6 +134,7 @@ Before creating any new document, read the reference for the target content type
 | Coding conventions, patterns | `references/standard.md` | `technology/standards/` |
 | Test strategy, commands, agent rules | `references/testing.md` | `technology/testing/` |
 | Decision reviews | `references/rfc.md` | `technology/rfcs/` |
+| Library / API / pattern research | `references/technology-research.md` | `technology/research/libraries/`, `technology/research/patterns/` |
 | Product vision, positioning | `references/product-description.md` | `product/description/` |
 | Market research, competitor analysis | `references/research.md` | `product/research/` |
 | Formal requirements, user stories | `references/requirement.md` | `product/requirements/` |
@@ -176,7 +188,7 @@ Before writing any document to `documentation/`:
 
 ### Docsify README.md Audit
 
-When format is `docsify`, during any audit or document creation, verify that every existing category directory contains a `README.md`. Category directories to check: `technology/`, `technology/architecture/`, `technology/standards/`, `technology/testing/`, `technology/rfcs/`, `product/`, `product/description/`, `product/research/`, `product/requirements/`, `product/personas/`.
+When format is `docsify`, during any audit or document creation, verify that every existing category directory contains a `README.md`. Category directories to check: `technology/`, `technology/architecture/`, `technology/standards/`, `technology/testing/`, `technology/rfcs/`, `technology/research/`, `technology/research/libraries/`, `technology/research/patterns/`, `product/`, `product/description/`, `product/research/`, `product/requirements/`, `product/personas/`.
 
 If a category directory exists without a `README.md`, create one using the category README template.
 
@@ -223,6 +235,9 @@ Category descriptions:
 | `technology/standards/` | Standards | Coding conventions, patterns, quality bars, style guides. |
 | `technology/testing/` | Testing | Test strategy, commands, agent rules, coverage standards. |
 | `technology/rfcs/` | RFCs | Structured decision reviews for ambiguous/high-risk decisions. |
+| `technology/research/` | Research | External library, API, and pattern research. Machine-maintained by the `researcher` agent via `/uc:research`. |
+| `technology/research/libraries/` | Libraries | Per-library research — API signatures, code examples, breaking changes. One file per library. |
+| `technology/research/patterns/` | Patterns | Architectural pattern and best-practices research. One file per topic. |
 | `product/` | Product | Product documentation — vision, research, requirements, personas. |
 | `product/description/` | Description | Product briefs, vision, positioning. |
 | `product/research/` | Research | Market research, competitor analysis, technology landscape. |
@@ -298,6 +313,10 @@ Covers: what the project is, the problem it solves, who it's for, and its core a
 ### RFCs
 - [Doc Name](technology/rfcs/filename.md) — One-line description
 
+### Research
+- [Library name](technology/research/libraries/filename.md) — One-line description
+- [Pattern name](technology/research/patterns/filename.md) — One-line description
+
 ## Plans
 See [Plans](plans/) for implementation plans and execution status.
 ```
@@ -305,8 +324,9 @@ See [Plans](plans/) for implementation plans and execution status.
 ### Section Rules
 
 - **Product** — flat list combining description, requirements, and personas docs. Only include subcategories that have docs.
-- **Research** — flat list of research docs. Omit entire section if `product/research/` is empty.
-- **Technology** — subsections for architecture, standards, testing, RFCs. Only include subsections that have docs. If no technology docs exist at all, omit the entire Technology section.
+- **Research** (top-level) — flat list of **market** research docs from `product/research/`. Omit entire section if `product/research/` is empty.
+- **Technology** — subsections for architecture, standards, testing, RFCs, research. Only include subsections that have docs. If no technology docs exist at all, omit the entire Technology section. The Research subsection merges files from `technology/research/libraries/` and `technology/research/patterns/`.
+- **Index.json** — never rendered in the index; it's a machine file.
 - **Plans** — check if `documentation/plans/` contains at least one subdirectory with a `README.md`. If yes, render the single-line link. If no, omit entirely.
 - **Backlog** — never included in the index. Backlog is managed separately.
 

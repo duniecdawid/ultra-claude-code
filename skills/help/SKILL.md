@@ -48,7 +48,7 @@ Configures VS Code for optimal Claude Code development by managing remote-side s
 ### Planning & Research
 
 **Discovery Mode** (`/uc:discovery-mode`)
-Leads product research as a Head of Product persona, spawning parallel internal (Explore) and external (Market Analyzer) research agents, then synthesizing findings into product documentation. Use for product vision, requirements, user personas, competitive analysis, or technology landscape assessment. Produces documentation artifacts (product description, research report, requirements, personas) — never code.
+Leads product research as a Head of Product persona, spawning an internal Explore subagent in parallel with a `/uc:research --mode=market` call for external competitor/trend analysis, then synthesizing findings into product documentation. Use for product vision, requirements, user personas, competitive analysis, or technology landscape assessment. Produces documentation artifacts (product description, research report, requirements, personas) — never code.
 
 **Roadmap** (`/uc:roadmap`)
 Decomposes a product into sequenced plan stubs by analyzing product/architecture docs, building a dependency graph, and topologically sorting build phases. Use after discovery/migrate when the product is too large for a single plan. Produces `ROADMAP.md` with execution order and numbered stub plans ready for `/uc:feature-mode` to detail.
@@ -62,8 +62,8 @@ Investigates bugs through structured hypothesis generation, parallel evidence ga
 **Critical Brainstorm** (`/uc:critical-brainstorm`)
 Interactive devil's advocate mode that stress-tests solutions through research-backed challenge, tradeoff analysis, risk identification, and future problem prediction. Use when you want opinions challenged, need to debate approaches, or think critically about any decision. Stays in dialogue mode through multiple exchanges until you signal satisfaction — no implementation.
 
-**Tech Research** (`/uc:tech-research`)
-Researches external libraries, frameworks, and services using Ref.tools MCP for focused documentation retrieval (500–5k tokens vs 50k+ for raw web search). Use when adding libraries, debugging external dependencies, checking breaking changes, or researching best practices. Produces structured findings comparing documentation guidance with existing codebase patterns.
+**Research** (`/uc:research`)
+Cache-first external research covering library/API documentation, architectural patterns, and market/competitor analysis via a single auto-classified interface — fresh cache hits read directly from `documentation/technology/research/` while cache misses spawn the stateless `researcher` subagent. Use when adding libraries, investigating patterns or best practices, running competitor analysis, or any "how does X work / what changed in X / best practice for X" question. Produces committed research files under `documentation/technology/research/{libraries,patterns}/` or `documentation/product/research/` with frontmatter-driven per-entry staleness (library 10d, patterns 90d, market 30d, historical research frozen), plus a machine-maintained `index.json` for fast jq lookups.
 
 ### Execution
 
@@ -132,9 +132,6 @@ Performs fast structural scans of code packages to catalog files, components, da
 **Doc Surveyor**
 Explores documentation sections to identify content type, key topics, specifications, and implementation references. Spawned by migrate and verification orchestrators to understand what's documented. Returns structured overviews for mapping documentation claims to implementations and identifying gaps.
 
-**Market Analyzer**
-Conducts market research, competitor analysis, and technology trend investigation using web search and documentation lookup. Spawned by Discovery Mode to research external conditions as inputs to product decisions. Produces structured research reports with source attribution for market positioning and technology choices.
-
 **Project Manager**
 Monitors live plan execution by maintaining dashboard state, tracking parallel review/test timing independently, monitoring usage limits, and collecting operational data. Spawned once per plan execution to run for the entire duration as the oversight layer. Produces comprehensive operational reports analyzing token efficiency, repeated work, and system improvement recommendations.
 
@@ -147,8 +144,8 @@ Coordinates per-task execution: reads context, writes implementation plans, impl
 **Task Tester**
 Verifies code against requirements by running tests, writing missing coverage, and launching frontend in a browser to visually confirm UI works. Spawned as the last quality gate in per-task teams, working independently from Executor. Produces pass/fail verdicts with evidence that either clears code or identifies failures needing re-work.
 
-**Tech Knowledge**
-Loads external library and framework documentation on startup, then serves verbatim excerpts to executor queries as a documentation database. Spawned once per plan and shared across all task teams. Enables all team members to work with current API signatures, deprecation notices, and best practices.
+**Researcher**
+Stateless one-shot researcher spawned by the `/uc:research` skill on cache miss. Fetches external documentation via Ref.tools or web search in one of three modes (library / patterns / market), merges findings into the target file under `documentation/technology/research/` or `documentation/product/research/`, and atomically upserts the research index. Never reads project source code — caller owns cross-referencing.
 
 ## Extending the System
 

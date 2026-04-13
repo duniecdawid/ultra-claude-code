@@ -62,12 +62,11 @@ ultra-claude/
 │   ├── code-review.md
 │   ├── code-surveyor.md
 │   ├── doc-surveyor.md
-│   ├── market-analyzer.md
 │   ├── project-manager.md
+│   ├── researcher.md
 │   ├── system-tester.md
 │   ├── task-executor.md
-│   ├── task-tester.md
-│   └── tech-knowledge.md
+│   └── task-tester.md
 ├── skills/                            # Skills (SKILL.md with YAML frontmatter)
 │   ├── backlog/
 │   ├── checkpoint/
@@ -83,10 +82,10 @@ ultra-claude/
 │   ├── plan-execution/
 │   ├── plan-status-sync/
 │   ├── railway/
+│   ├── research/
 │   ├── roadmap/
 │   ├── setup/
 │   ├── tailscale-setup/
-│   ├── tech-research/
 │   ├── update/
 │   ├── vscode-launch/
 │   └── vscode-setup/
