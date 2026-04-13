@@ -1,5 +1,19 @@
 [
   {
+    "seq": 127,
+    "version": "2026.04.13-15",
+    "date": "2026-04-13",
+    "summary": "Four small follow-ups to the file-based team context refactor (seq 125). (1) Remove a leftover `shared/knowledge-brief.md` reference from phase-5-completion.md — the brief was deleted from the model in seq 125 but this shutdown-time instruction still told Lead to preserve it. (2) Strip the redundant `files changed: {list}` from Executor's ready-for-review / ready-for-test / re-review / re-test messages in agents/task-executor.md. The FILE-UPDATED broadcast on impl.md is the authoritative source of 'what changed'; carrying a parallel list in the trigger message creates a second source of truth that drifts on fix cycles. Messages become pure triggers. (3) Normalize path notation in agents/task-executor.md from `tasks/task-{N}/impl.md` to `tasks/task-$TASK_ID/impl.md` — file-system paths use the runtime variable, while operational message templates (`Task {N} done`, `Task {N} escalation needed`) correctly stay on the `{N}` convention because Lead's message handler table matches them literally. (4) Update the anti-pattern list fossil in plan-execution/SKILL.md: `\"Plan looks solid.\" (unless formal APPROVED response to plan review)` → references `ADVICE REQUEST task-N [deviation]` instead, since there is no formal plan-review step anymore.",
+    "migration": null
+  },
+  {
+    "seq": 126,
+    "version": "2026.04.13-14",
+    "date": "2026-04-13",
+    "summary": "/uc:research splits cache into two scopes. Product/domain research stays at `documentation/technology/research/` (libraries, patterns) + `documentation/product/research/` (market). Claude Code / Claude Agent SDK / Anthropic API research now lands in a dedicated harness scope at `.claude/ultra/research/{subject}.md` (flat layout, e.g. `claude-code.md`, `claude-agent-sdk.md`, `anthropic-api.md`) with its own `.claude/ultra/research/index.json`. Rationale: Claude knowledge is meta — about the tooling we build *with*, not about the product domain — so it belongs alongside other harness state in `.claude/ultra/`, not under `documentation/technology/research/libraries/` (which implies importable libraries the product depends on). Skill auto-detects Claude/Anthropic topics in Step 2 and routes Step 3 (target path) and Step 4 (index path) to the harness scope. The researcher agent gained scope-aware bootstrap (creates `.claude/ultra/research/` with README + empty index on first Claude lookup), scope-aware index key format (flat for harness, relative-from-research-root for product), and an explicit `rm -f {index_path}.tmp` step in the atomic-write protocol to fix a tmp-file leak observed in testing. library-mode reference notes the dedicated output path; help skill description updated.",
+    "migration": null
+  },
+  {
     "seq": 125,
     "version": "2026.04.13-13",
     "date": "2026-04-13",

@@ -62,5 +62,5 @@ Append to `documentation/plans/$ARGUMENTS/shared/lead.md`:
 1. All task-teams have already self-exited after their tasks passed
 2. Final Gate Tester exits after reporting
 3. Project Manager exits last (after delivering operational report)
-4. Keep plan directory with all artifacts (including `operational-report.md` and the `shared/knowledge-brief.md` synthesized in Phase 1.8)
+4. Keep plan directory with all artifacts (including `operational-report.md`, `tasks/task-N/task.md`/`plan.md`/`impl.md`, and `shared/lead.md`)
 5. Present summary to user — mention that the operational report is available at `documentation/plans/$ARGUMENTS/operational-report.md`

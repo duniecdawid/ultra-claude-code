@@ -313,7 +313,7 @@ Real examples from past executions — do NOT produce output like this:
 - "Shared documentation plan and style guide with executor-1 and executor-2."
 - "Executor-1 is idle waiting for knowledge response. Normal flow..."
 - "Tester-1 ready and waiting. All team members standing by"
-- "Plan looks solid." (unless formal APPROVED response to plan review)
+- "Plan looks solid." (unless it's a formal `APPROVED` response to an `ADVICE REQUEST task-N [deviation]`)
 - "Executor-1 processing the approval"
 - "Executor-1 has finished implementation and notified both"
 

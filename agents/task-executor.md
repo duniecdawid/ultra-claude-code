@@ -115,11 +115,11 @@ After the deviation self-check passes (and the pipeline wait gate clears, if app
 - Only modify files within task.md's `**Files:**` list. If you discover you need to touch a file outside that list, STOP and send `ADVICE REQUEST task-$TASK_ID [deviation]: {reason}` — don't silently expand scope.
 - **Send progress updates to Reviewer** — after completing each file, SendMessage to Reviewer: "Progress: completed {file path} — you can start reading". This lets the Reviewer begin reading your code while you're still implementing other files, so the formal review is faster.
 
-**Note on `impl.md` timing:** do NOT write `tasks/task-{N}/impl.md` during this step. The impl report is deliberately deferred to step 4.5 so you can fire the `code complete` signal the moment source code is done — that triggers lazy tester spawn and pipeline pre-spawn in parallel with the impl-report write. See step 4.5.
+**Note on `impl.md` timing:** do NOT write `tasks/task-$TASK_ID/impl.md` during this step. The impl report is deliberately deferred to step 4.5 so you can fire the `code complete` signal the moment source code is done — that triggers lazy tester spawn and pipeline pre-spawn in parallel with the impl-report write. See step 4.5.
 
 ### 4.5 Signal Code Complete (before writing impl.md)
 
-The moment ALL source code files are written — **before** you create or update `tasks/task-{N}/impl.md` and **before** any git commit:
+The moment ALL source code files are written — **before** you create or update `tasks/task-$TASK_ID/impl.md` and **before** any git commit:
 
 1. **SendMessage to Lead**: `"Task $TASK_ID code complete — writing impl report"`
 2. **Wait for Lead to reply**: `"Tester spawned — proceed with impl report."`
@@ -147,8 +147,10 @@ The moment ALL source code files are written — **before** you create or update
 After ALL implementation is complete:
 
 1. **Send BOTH signals simultaneously:**
-   - SendMessage to Reviewer: "Ready for review — implementation in tasks/task-N/impl.md, files changed: {list}"
-   - SendMessage to Tester: "Ready for test — implementation complete, files changed: {list}"
+   - SendMessage to Reviewer: "Ready for review"
+   - SendMessage to Tester: "Ready for test"
+
+   These are pure triggers — no path, no file list. Reviewer and Tester already received the `FILE-UPDATED task-$TASK_ID/impl.md: initial impl notes` broadcast you sent in step 4.5, so they know where to read the delta from. Duplicating the file list in the message creates two sources of truth that drift on fix cycles.
 
 2. **Track two independent verdicts:**
    - Review verdict: pending/pass/fail
@@ -156,10 +158,12 @@ After ALL implementation is complete:
 
 3. **Process verdicts as they arrive:**
    - **Review FAIL** or **Test FAIL**: Fix code, update impl.md with the fix notes, broadcast `FILE-UPDATED task-$TASK_ID/impl.md: fix cycle {K} — {summary}`, then:
-     - SendMessage to Reviewer: "Ready for re-review — fixed: {summary}"
-     - SendMessage to Tester: "Ready for re-test — fixed: {summary}"
+     - SendMessage to Reviewer: "Ready for re-review"
+     - SendMessage to Tester: "Ready for re-test"
      - SendMessage to PM (pm-{PLAN_NAME}): "RETRY task-$TASK_ID"
      - Reset BOTH verdicts to pending (both must re-verify after any code change)
+
+     The FILE-UPDATED broadcast you sent before messaging already tells teammates what changed. Keep the re-review/re-test messages as pure triggers for the same reason.
    - **Review PASS**: SendMessage to PM (pm-{PLAN_NAME}): "STAGE-DONE task-$TASK_ID review". If test also PASS → step 6.
    - **Test PASS**: SendMessage to PM (pm-{PLAN_NAME}): "STAGE-DONE task-$TASK_ID testing". If review also PASS → step 6.
 
