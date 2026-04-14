@@ -160,10 +160,10 @@
       <div class="details-content">
         <p>Before execution starts, you choose whether to enable extra usage:</p>
         <ul>
-          <li><strong>Extra usage enabled:</strong> Runs as fast as possible with no pauses</li>
-          <li><strong>Extra usage disabled:</strong> The PM monitors your 5-hour rate limit. At 85% usage, development auto-pauses &mdash; in-progress tasks finish, teams shut down. When the window resets, execution resumes automatically with fresh teams.</li>
+          <li><strong>Extra usage enabled:</strong> Runs at full speed. The Haiku watchdog still monitors for stalls but Lead does not perform budget assessments.</li>
+          <li><strong>Extra usage disabled:</strong> A Haiku watchdog agent (costing ~$0.03/5h) ticks every minute checking usage thresholds (75% soft, 90% hard) and executor staleness. On alert, it signals the PM, who validates and forwards to Lead with context. Lead decides what to do &mdash; from "continue with caution" to "stop all teams immediately." Lead can even decide not to start task 1 if usage is already elevated.</li>
         </ul>
-        <p>Multiple pause/resume cycles are supported for long-running plans that span rate limit windows.</p>
+        <p>The three-agent chain (watchdog &rarr; PM &rarr; Lead) separates detection (cheap Haiku), coordination (PM validates and adds context), and decisions (Lead knows the work). Per-task budget data (usage % at start/end) is tracked in plan.json for the operational report.</p>
       </div>
     </details>
 

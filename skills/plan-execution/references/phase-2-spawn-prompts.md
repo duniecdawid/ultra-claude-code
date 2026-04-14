@@ -185,7 +185,7 @@ PLAN_DIR=documentation/plans/$ARGUMENTS
 **Concurrency limit:** {M} concurrent task-teams
 **Team naming convention:** Task N team name: `task-{N}-team`. Executor-N and
 reviewer-N spawn at task start; tester-N is lazy-spawned when implementation
-is complete. The only plan-wide teammate is yourself (PM).
+is complete. Plan-wide teammates: yourself (PM) and the Haiku watchdog.
 
 **Task dependency graph:**
 (Read each tasks/task-N/task.md's Dependencies field to build this graph.
@@ -198,30 +198,68 @@ Example:)
 **Extra usage enabled:** {true/false}
 **Usage status file:** ~/.claude/ultra/usage-status.json
 
-If extra usage is DISABLED: your monitoring cron (set up in First Action)
-checks usage-status.json every 5 minutes. At 85% five_hour usage → ALERT
-Lead with USAGE-PAUSE. Do NOT message individual team members — they finish
-their current task naturally, then Lead shuts down their teams. PM enters
-low-power mode during pause. When resets_at passes or usage < 85% → ALERT
-Lead with USAGE-RESUME.
+**You are event-driven — no cron.** You receive messages from Lead (status
+updates, task completions with current_pct), from the Haiku watchdog
+(usage alerts, stall alerts, stale-data warnings), and from Executors
+(stage completions, retries). You validate watchdog signals by reading
+the source data yourself, add operational context, and forward to Lead
+with recommendations. See your agent instructions for the full signal
+handling protocol.
+
+**Per-task budget tracking:** On SPAWNED, read current usage % and record
+budget.start_pct. On COMPLETED (Lead includes current_pct), compute
+cost_pct = end_pct - start_pct and persist to plan.json.
 
 **Pane verification:** Agents self-label their panes on startup per their
 agent instructions. After each SPAWNED message from Lead, verify labels.
 
 **What Lead sends you (process into dashboard):**
-- `SPAWNED task-{N}: {description}` — create team JSON, update counts, event
+- `SPAWNED task-{N}: {description}` — create team JSON, update counts, event, record budget.start_pct
 - `SPAWNED-TESTER task-{N}` — add tester member, event
 - `STAGE task-{N} {stage}` — update team status + timestamps, event
-- `COMPLETED task-{N}` — team completed, counts, event
+- `COMPLETED task-{N}, current_pct={pct}` — team completed, counts, event, compute budget.cost_pct
 - `SHUTDOWN task-{N}` — member ended_at timestamps, event
+
+**What the Haiku watchdog sends you:**
+- `WATCH: HARD-LIMIT pct={pct} resets_at={epoch}` — validate, forward to Lead
+- `WATCH: SOFT-LIMIT pct={pct} resets_at={epoch}` — validate, forward with context
+- `WATCH: USAGE-RESET pct={pct}` — forward to Lead
+- `WATCH: STALL task-{N} silent {minutes}m` — ping executor, escalate if persists
+- `WATCH: STALE-DATA ... last updated {minutes}m ago` — forward to Lead
 
 **What Executors send you directly (same handling as Lead messages):**
 - `STAGE-DONE task-{N} {stage}` — close one parallel stage, event
 - `RETRY task-{N}` — increment retry_count, reset stage timers, event
 
-**What you send to Lead (alerts only):**
-- `ALERT: USAGE-PAUSE (#N) — 5-hour rate limit at {pct}%...`
-- `ALERT: USAGE-RESUME (#N) — Rate limit window has reset...`
+**What you send to Lead (validated alerts from watchdog):**
+- `USAGE HARD-LIMIT: {pct}% used. ...` — emergency
+- `USAGE SOFT-LIMIT: {pct}% used. ...` — advisory with context
+- `USAGE RESET: rate-limit window cleared. ...`
+- `STALL: executor-{N} unresponsive for ~{minutes}m. ...`
+- `STALE DATA: usage-status.json not updated for {minutes}m. ...`
 
 Follow the workflow in your team member instructions.
+```
+
+## Watchdog Spawn
+
+Agent: `${CLAUDE_PLUGIN_ROOT}/agents/watchdog.md`
+Model: `haiku` | Mode: `bypassPermissions`
+
+Spawn **once** alongside PM, before any task-teams. Name it `watchdog-{PLAN_NAME}`.
+
+```
+You are the health watchdog for the "$ARGUMENTS" plan execution.
+
+PLAN_NAME={PLAN_NAME}
+ROLE=watchdog
+PLAN_DIR=documentation/plans/$ARGUMENTS
+
+**PM name:** pm-{PLAN_NAME}
+
+You tick every 1 minute. Check usage thresholds (75% soft, 90% hard) and
+executor staleness (>10 min silence). Signal PM only when something needs
+attention. Stay silent when everything is fine.
+
+Follow the workflow in your agent instructions.
 ```

@@ -119,7 +119,7 @@ When you receive a message, match it against the table below and execute the act
 
 | Message | Action |
 |---------|--------|
-| Executor: `"Task {N} done — all stages passed"` | Send shutdown_request to executor-{N}, reviewer-{N}, tester-{N}. SendMessage to PM: `"COMPLETED task-{N}"` then `"SHUTDOWN task-{N}"`. **Then check for parked successors:** scan your `shared/lead.md` pipeline-parked list — if any pre-spawned executor-{M} is parked at the wait gate with its predecessor recorded as task-{N}, SendMessage to executor-{M}: `"Implementation approved — predecessor task {N} passed all stages. Proceed to implement."` and clear M from the parked list. **Then fill freed slot:** find the next unblocked, non-pre-spawned pending task → run Pre-Spawn Checklist + spawn if found, SendMessage to PM: `"SPAWNED task-{K}: {description}"` then `"STAGE task-{K} planning"`. |
+| Executor: `"Task {N} done — all stages passed"` | Read current usage: `jq ... ~/.claude/ultra/usage-status.json`. Send shutdown_request to executor-{N}, reviewer-{N}, tester-{N}. SendMessage to PM: `"COMPLETED task-{N}, current_pct={pct}"` then `"SHUTDOWN task-{N}"`. **Then check for parked successors:** scan your `shared/lead.md` pipeline-parked list — if any pre-spawned executor-{M} is parked at the wait gate with its predecessor recorded as task-{N}, SendMessage to executor-{M}: `"Implementation approved — predecessor task {N} passed all stages. Proceed to implement."` and clear M from the parked list. **Then fill freed slot:** find the next unblocked, non-pre-spawned pending task → run Pre-Spawn Checklist + spawn if found, SendMessage to PM: `"SPAWNED task-{K}: {description}"` then `"STAGE task-{K} planning"`. |
 | Executor: `"Task {N} code complete — writing impl report"` | **Lazy-spawn tester-{N}** (use the Tester Spawn prompt from `references/phase-2-spawn-prompts.md` — minimal pointer prompt, no per-task content inline). SendMessage to PM: `"SPAWNED-TESTER task-{N}"`, `"STAGE task-{N} review"`, `"STAGE task-{N} testing"`. Reply to Executor: `"Tester spawned — proceed with impl report."` **Then evaluate pipeline pre-spawn:** find at most one pending task M where (a) all of M's blockers are `done` except for task N, (b) current active task-teams `<` concurrency limit, and (c) no other pre-spawned successor is already parked at the wait gate. If found: run the Pre-Spawn Checklist for task-{M} (knowledge review, append Pipeline mode block to `tasks/task-{M}/task.md`), TeamCreate executor-{M} + reviewer-{M}, set task-{M} stage = `planning`, record `M → blocked_by N` in the pipeline-parked list in `shared/lead.md`. SendMessage to PM: `"SPAWNED task-{M}: {description} (pipeline)"` then `"STAGE task-{M} planning"`. If no eligible successor or slot unavailable: do nothing — the normal slot-fill will handle it when task N reaches `task done`. |
 | Executor: `"Task {M} planning complete — awaiting implementation approval"` | Pipeline-spawned executor has finished planning (including its own deviation self-check) and is now parked at the wait gate. Confirm M is in your `shared/lead.md` parked list. No reply needed — the executor waits silently. When the predecessor's `task done` arrives, the done-row handler above sends the `Implementation approved` message. |
 | Executor: `"ADVICE REQUEST task-{N} [deviation]: {reason}"` | **Blocking.** Read `tasks/task-{N}/plan.md` and the specific deviation reason. Decide: is the deviation justified by new information discovered during planning/codebase exploration? If yes, reply `APPROVED` AND amend `tasks/task-{N}/task.md` to reflect the new scope (e.g., add files to the Files list, adjust success criteria) then broadcast `FILE-UPDATED task-{N}/task.md: deviation approved — {short reason}`. If no, reply `AMEND: {specific instructions}` telling the Executor how to bring plan.md back into task.md scope. |
@@ -129,26 +129,29 @@ When you receive a message, match it against the table below and execute the act
 | Executor: `"Task {N} escalation needed"` | Escalate to user with evidence. If any pre-spawned successor M is parked with N as its predecessor, note this in the escalation — the parked team stays alive while the user decides. On user "abort/skip": shut down parked M before proceeding. On user "continue/retry": M stays parked and will receive `Implementation approved` when N eventually reaches `task done`. |
 | Executor: `"PLAN-INVALIDATING: ..."` | Pause pipeline. Evaluate scope. Amend (update `tasks/task-N/task.md` + broadcast FILE-UPDATED) or escalate. Parked pipeline successors stay parked through the pause. If the amendment drops or materially changes a parked successor's task, shut down that successor explicitly before resuming. |
 | PM: `"Dashboard live at {URL}"` | Display to user immediately: `"📊 Live dashboard: {URL}"` — do NOT silently consume. |
-| PM: `"ALERT: USAGE-PAUSE ..."` | Enter usage-pause mode (see below). |
-| PM: `"ALERT: USAGE-RESUME ..."` | Exit usage-pause mode, resume spawning (see below). |
-| PM: `"ALERT: STALL ..."` | Investigate — check if agent crashed, re-spawn if needed. |
+| PM: `"USAGE HARD-LIMIT: ..."` | Emergency. Read `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/usage-control.md`. Stop all active teams immediately. Do not spawn anything new. Wait for USAGE RESET. |
+| PM: `"USAGE SOFT-LIMIT: ..."` | Advisory. Read `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/usage-control.md`. Decide: continue with caution, stop spawning, or pause teams — based on active work, remaining tasks, and PM's reported context. |
+| PM: `"USAGE RESET: ..."` | Rate-limit window cleared. Resume normal operations — reassess budget, start spawning remaining tasks. |
+| PM: `"STALL: executor-{N} ..."` | Investigate — check if agent crashed, re-spawn if needed. |
+| PM: `"STALE DATA: ..."` | Usage readings may be outdated. Correlate with stall reports. Investigate if teams should be active. |
 
 After processing a message, return to waiting silently. Checkpoint if triggered. Fill slots whenever one frees up.
 
-### Usage-Pause Protocol
+### Usage Response Protocol
 
-**On USAGE-PAUSE:**
-1. Do NOT spawn any new task-teams until USAGE-RESUME
-2. Note expected resume time in `shared/lead.md`
-3. Trigger checkpoint (Phase 3) — ensures clean recovery if session dies during pause
-4. Process incoming "task done" messages — shut down teams as tasks complete, but do NOT fill slots
-5. Do NOT send status updates or queries to PM — PM is in low-power mode
-6. Do NOT query team members for status — the system is idle, just wait
+When PM forwards a usage alert from the watchdog, Lead reads `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/usage-control.md` for the full decision framework. Summary:
 
-**On USAGE-RESUME:**
-1. Resume normal spawning — fill any empty concurrency slots (spawn fresh teams for remaining tasks)
-2. Update `shared/lead.md` to record the pause duration
-3. Send appropriate status updates to PM for any teams spawned
+**On USAGE SOFT-LIMIT:** Lead decides based on active teams, remaining work, and PM's context (avg task cost, projected burn). May: continue with caution, stop spawning new teams, or pause active teams.
+
+**On USAGE HARD-LIMIT:** Lead stops all active teams immediately. No new spawns. Waits for USAGE RESET.
+
+**On USAGE RESET:** Lead resumes normal operations — reassesses budget, fills concurrency slots.
+
+**During any usage pause:**
+1. Note expected resume time in `shared/lead.md`
+2. Trigger checkpoint (Phase 3)
+3. Process incoming "task done" messages — shut down teams, do NOT fill slots
+4. The watchdog continues ticking and will signal PM when usage resets; PM forwards USAGE RESET to Lead
 
 ### Lead Priority Order
 

@@ -63,7 +63,7 @@ Determine how many task-teams can run concurrently:
 | 4-8 tasks | 2-3 |
 | 9+ tasks  | 3-4 |
 
-Max ceiling: **4 concurrent task-teams**. The only plan-wide teammate is the Project Manager — no persistent knowledge teammate exists.
+Max ceiling: **4 concurrent task-teams**. Plan-wide teammates are the **Project Manager** and the **Haiku Watchdog** — no persistent knowledge teammate exists.
 
 Each slot = 1 task-team. Executor and Reviewer are spawned when a slot opens. Tester is lazy-spawned when the Executor signals `code complete` — *before* the Executor writes `impl.md`, so the Tester cold-reads context in parallel with the impl-report write. All members exit together when the task is done.
 
@@ -76,7 +76,8 @@ Tasks normally spawn when their slot is available AND all dependencies are compl
 | **Executor** | **opus** | Code generation, architectural decisions, codebase research — highest capability required |
 | Reviewer | sonnet | Pattern recognition, architecture conformance |
 | Tester | sonnet | Test execution, failure diagnosis |
-| Project Manager | sonnet | Operational observation — read-only, low overhead |
+| Project Manager | sonnet | Event-driven coordination — dashboard, watchdog validation, budget tracking |
+| Watchdog | haiku | 1-min cron sensor — usage thresholds, stall detection. Cheapest possible model. |
 | Researcher (subagent) | sonnet | One-shot external documentation retrieval — spawned by Lead via `/uc:research` on cache miss |
 
 ### Permission Modes
@@ -86,7 +87,8 @@ Tasks normally spawn when their slot is available AND all dependencies are compl
 | **Executor** | **`bypassPermissions`** | **Writes code autonomously; plan reviewed by teammates before implementation** |
 | Reviewer | `bypassPermissions` | Read-only analysis, no approval needed |
 | Tester | `bypassPermissions` | Runs tests autonomously, no approval needed |
-| Project Manager | `bypassPermissions` | Read-only observation, no approval needed |
+| Project Manager | `bypassPermissions` | Event-driven coordination, no approval needed |
+| Watchdog | `bypassPermissions` | Read-only sensor, no approval needed |
 | Researcher (subagent) | `bypassPermissions` | Writes to `documentation/technology/research/` and `documentation/product/research/` only, stateless, no approval needed |
 
 ### 1.5 Cost Estimate & Usage Mode
@@ -103,7 +105,8 @@ Cost per task pipeline: ~100K tokens (Executor ~70K + Reviewer ~20K + Tester ~10
   (Reviewer spawns with Executor and immediately sends a REVIEWER TAKE; Tester is lazy-spawned — only active during test phase)
 Pre-spawn knowledge review (per task, at spawn time): ~2K per task for cache hits, up to ~15K if /uc:research fires on a gap — Lead only researches if the planner's Research pointers don't cover the task
 Mid-execution ADVICE + QUERY: ~1K per message (cache hit) or ~15K (cache miss with researcher subagent)
-Project Manager (plan-wide): ~50K tokens (observational, runs entire execution)
+Project Manager (plan-wide): ~20K tokens (event-driven, no cron — wakes only on messages)
+Watchdog (plan-wide, Haiku): ~60K Haiku tokens ≈ ~2.5K Opus-equivalent (1-min ticks, silent when healthy)
 ```
 
 Then ask the usage mode question:
@@ -118,11 +121,11 @@ AskUserQuestion({
       options: [
         {
           label: "No — auto-pause at limits (Recommended)",
-          description: "Ultra Claude pauses before the 5-hour rate limit is exhausted and resumes after reset."
+          description: "Ultra Claude monitors usage and pauses/resumes automatically when approaching the 5-hour rate limit."
         },
         {
           label: "Yes — full speed",
-          description: "No pauses — runs as fast as possible. If you don't have extra usage enabled on your Anthropic account, work will stop at the rate limit and you'll have to recover manually."
+          description: "No usage monitoring or pausing. If you don't have extra usage enabled on your Anthropic account, work will stop at the rate limit and you'll have to recover manually."
         }
       ]
     }
@@ -137,9 +140,9 @@ After the user answers, store in `shared/lead.md` under a config header:
 - extra_usage: true  (or false)
 ```
 
-This value is read by the PM agent to decide whether to activate usage threshold monitoring.
-- **If extra_usage = false:** PM monitors `~/.claude/ultra/usage-status.json` and triggers PAUSE/RESUME at 85% five-hour usage. On PAUSE: in-progress tasks finish, teams are shut down, PM enters low-power mode (usage checks only). On RESUME: Lead spawns fresh teams. Multiple cycles supported across 5-hour windows.
-- **If extra_usage = true:** No special monitoring. The system trusts the account has extra usage capacity.
+Usage management is a three-agent system: **Haiku watchdog → PM → Lead.**
+- **If extra_usage = false:** A Haiku watchdog agent ticks every minute, checking usage thresholds (75% soft, 90% hard) and executor staleness. On alert, it signals PM. PM validates, adds operational context, and forwards to Lead with a recommendation. Lead decides what to do (stop spawning, pause teams, hard-stop, or continue with caution) — guided by `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/usage-control.md`. Lead also performs a pre-task-1 budget assessment before starting any work.
+- **If extra_usage = true:** The watchdog still runs (it also handles stall detection), but Lead does not load the usage-control reference and does not perform budget assessments. Usage alerts from PM are noted but Lead trusts the account has extra usage capacity.
 
 Proceed directly to 1.6.
 
@@ -182,14 +185,30 @@ documentation/plans/$ARGUMENTS/
 
 `plan.md` and `impl.md` are written later by the Executor during its workflow — do not pre-create them here.
 
-### 1.8 Project Manager Spawn
+### 1.8 Project Manager & Watchdog Spawn
 
-Before spawning any task-teams, spawn the Project Manager teammate. **Only the PM is a plan-wide teammate.**
+Before spawning any task-teams, spawn the plan-wide utility agents: **PM and Haiku watchdog.**
 
-Spawn `pm-{PLAN_NAME}` via TeamCreate using the PM spawn prompt in `references/phase-2-spawn-prompts.md`. PM has Bash access and self-labels its pane on startup. No tmux commands needed from you.
+1. Spawn `pm-{PLAN_NAME}` via TeamCreate using the PM spawn prompt in `references/phase-2-spawn-prompts.md`. PM has Bash access and self-labels its pane on startup.
+
+2. Spawn `watchdog-{PLAN_NAME}` via TeamCreate using the watchdog spawn prompt in `references/phase-2-spawn-prompts.md`. The watchdog runs on Haiku (cheap), ticks every 1 minute, and signals PM on usage thresholds and stalls. It always runs regardless of `extra_usage` setting — stall detection is useful in all cases.
+
+Both agents self-label their tmux panes. No tmux commands needed from you.
 
 There is no Knowledge Brief synthesis step. Research lives per-task in each `tasks/task-N/task.md`'s `**Research:**` section (populated by planning Stage 4), and Lead reviews it per-task at spawn time in Phase 2.
 
-### 1.9 Proceed to Phase 2
+### 1.9 Pre-Task-1 Budget Assessment
 
-Shared setup is done. Project Manager is live. Task teams can now be spawned per Phase 2.
+Before spawning the first task-team, read the current usage percentage:
+
+```bash
+pct=$(jq -r '.accounts | [.[]] | sort_by(.updated_at) | last | .rate_limits.five_hour.used_percentage // 0' ~/.claude/ultra/usage-status.json 2>/dev/null || echo 0)
+```
+
+If `extra_usage = false` and usage is already elevated, read `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/usage-control.md` and assess whether the plan can complete within the remaining budget. You may decide to proceed normally, reduce concurrency, or wait for the rate-limit window to reset. This is your judgment call based on the total plan scope.
+
+If `extra_usage = true`, skip this assessment.
+
+### 1.10 Proceed to Phase 2
+
+Shared setup is done. Project Manager and watchdog are live. Task teams can now be spawned per Phase 2.

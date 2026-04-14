@@ -40,7 +40,13 @@ Re-write the entire file on each update. Keep `events.json` separate at the plan
         { "name": "executor-1", "role": "executor", "model": "opus", "status": "completed", "spawned_at": "...", "ended_at": "..." },
         { "name": "reviewer-1", "role": "reviewer", "model": "sonnet", "status": "completed", "spawned_at": "...", "ended_at": "..." },
         { "name": "tester-1", "role": "tester", "model": "sonnet", "status": "completed", "spawned_at": "...", "ended_at": "..." }
-      ]
+      ],
+      "budget": {
+        "start_pct": 12,
+        "end_pct": 17,
+        "cost_pct": 5,
+        "completed_at": "2026-04-04T13:10:00.000Z"
+      }
     },
     {
       "task_id": "task-2",
@@ -80,6 +86,19 @@ Re-write the entire file on each update. Keep `events.json` separate at the plan
 ## Field Notes
 
 **`name`**: Always use the full plan directory name (`PLAN_NAME`) — the slug that includes the number prefix (e.g., `012-dedicated-plan-page-v2`). Do NOT extract the name from the plan README title or strip the number prefix. The directory name is the canonical identifier.
+
+## Per-Task Budget
+
+The optional `budget` object tracks usage-limit percentage at task start and end. Written by PM:
+
+| Field | When written | Source |
+|-------|-------------|--------|
+| `start_pct` | On `SPAWNED task-{N}` | PM reads `usage-status.json` |
+| `end_pct` | On `COMPLETED task-{N}, current_pct={Y}` | From Lead's message |
+| `cost_pct` | On `COMPLETED` | `end_pct - start_pct` |
+| `completed_at` | On `COMPLETED` | ISO timestamp |
+
+Tasks that haven't started yet have no `budget` field. In-progress tasks have only `start_pct`. PM uses the accumulated budget data to compute `avg_cost_pct` for soft-limit alert context.
 
 ## Dependencies
 

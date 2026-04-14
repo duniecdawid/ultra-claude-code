@@ -218,7 +218,7 @@ const ROLE_PRIORITY = { executor: 0, reviewer: 1, tester: 2 };
 const ROLE_PRIORITY_UNKNOWN = 3;
 
 function classifyPanes(panes) {
-  const result = { mainPane: null, pmPane: null, gatePane: null, tasks: {}, unnamed: [] };
+  const result = { mainPane: null, pmPane: null, watchdogPane: null, gatePane: null, tasks: {}, unnamed: [] };
 
   // Intermediate buckets carry (role, scan order) so we can sort each task
   // column deterministically by role (executor, reviewer, tester).
@@ -229,6 +229,7 @@ function classifyPanes(panes) {
     const sIdx = scanIdx++;
     if (p.label === 'main-context') result.mainPane = p.paneId;
     else if (p.label.startsWith('pm')) result.pmPane = p.paneId;
+    else if (p.label.startsWith('watchdog')) result.watchdogPane = p.paneId;
     else if (p.label.startsWith('final-gate')) result.gatePane = p.paneId;
     else {
       const match = p.label.match(TASK_LABEL_RE);
@@ -272,7 +273,7 @@ function foldUnnamedIntoLastTask(tasks, taskNums, unnamed) {
 // Compute the target layout as an ordered list of columns. Used both by
 // arrangeWindow and by the tick loop (for change detection).
 function computeTargetColumns(classified) {
-  const { mainPane, pmPane, gatePane, tasks, unnamed } = classified;
+  const { mainPane, pmPane, watchdogPane, gatePane, tasks, unnamed } = classified;
   const taskNums = Object.keys(tasks).sort((a, b) => parseInt(a) - parseInt(b));
 
   // Clone tasks so we can mutate for the fold without touching the classification.
@@ -281,7 +282,7 @@ function computeTargetColumns(classified) {
   const leftoverUnnamed = foldUnnamedIntoLastTask(taskCols, taskNums, unnamed);
 
   const columns = [];
-  const leftCol = [mainPane, pmPane].filter(Boolean);
+  const leftCol = [mainPane, pmPane, watchdogPane].filter(Boolean);
   columns.push(leftCol);
   for (const n of taskNums) columns.push(taskCols[n]);
   if (leftoverUnnamed.length > 0) columns.push(leftoverUnnamed);
@@ -384,6 +385,7 @@ function tick() {
       const summary = [
         classified.mainPane ? 'main' : null,
         classified.pmPane ? 'pm' : null,
+        classified.watchdogPane ? 'watchdog' : null,
         taskNums.length > 0 ? `tasks:[${taskNums.join(',')}]` : null,
         foldedCount > 0 ? `folded:${foldedCount}` : null,
         leftoverUnnamed.length > 0 ? `unnamed:${leftoverUnnamed.length}` : null,

@@ -71,14 +71,13 @@
     <p>Development runs as fast as possible with no pauses. Use this when you need results quickly and your Anthropic account has extra usage capacity.</p>
 
     <h3>Extra usage disabled</h3>
-    <p>The Project Manager monitors your 5-hour rate limit by reading <code>~/.claude/ultra/usage-status.json</code> every 5 minutes. When usage hits 85%:</p>
+    <p>A three-agent chain handles usage management with ~6x less token cost than the old PM polling approach:</p>
     <ol>
-      <li>In-progress tasks finish naturally &mdash; no work is lost</li>
-      <li>Teams shut down, PM enters low-power mode (only checks usage)</li>
-      <li>When the 5-hour window resets, PM signals the Lead</li>
-      <li>Fresh teams spawn for remaining tasks, execution continues</li>
+      <li><strong>Haiku watchdog</strong> ticks every minute (~$0.03/5h) checking usage thresholds (75% soft, 90% hard) and executor staleness. Silent when healthy.</li>
+      <li><strong>PM</strong> validates watchdog alerts, adds operational context (team count, avg task cost), forwards to Lead with recommendations. Event-driven, no cron.</li>
+      <li><strong>Lead</strong> makes the actual decision &mdash; from "continue with caution" to "stop all teams immediately." Can even decide not to start task 1 if budget is too tight.</li>
     </ol>
-    <p>Multiple pause/resume cycles are supported. A long-running plan can span several 5-hour windows automatically.</p>
+    <p>Per-task budget data (usage % at start/end of each task) is tracked in plan.json. Multiple pause/resume cycles are supported across rate-limit windows.</p>
 
     <div class="callout callout-purple">
       <p><strong>Plan during the day, execute overnight.</strong> Planning modes (feature, debug, verification) are interactive and use modest tokens. Execution is autonomous and token-heavy. Start a plan during the day when you can discuss scope, then kick off execution before bed &mdash; most plans complete within a single rate limit window.</p>
