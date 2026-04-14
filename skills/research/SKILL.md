@@ -41,7 +41,15 @@ From `$ARGUMENTS`:
 
 - Extract the topic text (everything that isn't a flag)
 - Extract an explicit `--mode=library|patterns|market` if present
+- Extract the `--fill-only` flag if present
 - If no `--mode`, classify automatically (Step 2)
+
+**`--fill-only` mode** is for callers that want to ensure research exists without absorbing its content into their own context. It's designed for bulk sweeps from planning modes (see Stage 2 Tech Stack sweep). Semantics:
+
+- Full flow runs (classify → canonicalize → cache check → spawn on miss) exactly as in the default path. The researcher agent still writes the file if spawned. The index still updates.
+- The only difference is the caller's return payload: instead of returning the H2 section content (cache hit) or the agent's summary paragraph (cache miss), return a compact envelope: `{target_path, mode, subject, status: "hit" | "spawned" | "refreshed" | "failed", expires}`.
+- This saves the caller ~2–5K tokens per sweep entry when it just needs "is this research on disk now?" rather than "what does it say?"
+- If the caller later needs the content, it reads the returned `target_path` directly.
 
 ### Step 2: Auto-Classify Mode
 
@@ -65,23 +73,82 @@ If the user supplied `--mode`, use it and skip classification. Otherwise apply t
 
 **Ambiguous case** — when the topic fits two modes or neither (e.g., bare `GraphQL` could be library or patterns), ask the user via AskUserQuestion which mode applies. Do not silently default; ambiguity is rare enough that asking is the right move.
 
-### Step 3: Compute Target Path & Subject Slug
+### Step 3: Canonicalize Subject Slug & Compute Target Path
 
-From `mode`, topic, and Claude-detection (Step 2), derive:
+**Duplicate prevention is load-bearing.** Different callers will phrase the same topic differently — `zod`, `zod v4`, `zod schemas`, `zod object validation`, `zod error maps` must ALL route to `libraries/zod.md`, not create five separate files. The canonicalization rules below make that automatic.
 
-- **Subject slug** — kebab-case, ≤4 tokens. For library mode, strip the library/API name (e.g., "zod object schema validation" → `zod`). For patterns mode, use the core pattern phrase (e.g., "rate limiting strategies" → `rate-limiting`). For market mode, use the domain phrase (e.g., "AI coding assistant landscape" → `ai-coding-assistants`). For Claude topics, slug the specific surface (e.g., "claude code hooks" → `claude-code`, "claude agent sdk subagents" → `claude-agent-sdk`, "anthropic prompt caching" → `anthropic-api`).
-- **Target path:**
-  - **Claude / Anthropic topics** (any topic that matched the Claude triggers in Step 2) → `.claude/ultra/research/{subject}.md` — flat layout, harness scope
-  - `library` (non-Claude) → `documentation/technology/research/libraries/{subject}.md`
-  - `patterns` → `documentation/technology/research/patterns/{subject}.md`
-  - `market` → `documentation/product/research/{subject}.md`
-- **Index path** (used in Step 4):
+#### 3a. Raw slug derivation
+
+Start with a loose slug from the topic:
+
+- Lowercase the topic text
+- Hyphenate spaces
+- Strip punctuation except hyphens
+- Collapse multiple hyphens into one
+
+Example: "NATS JetStream consumer config" → raw slug `nats-jetstream-consumer-config`.
+
+#### 3b. Canonicalization (reduce to the shortest stable form)
+
+Apply these rules in order to reduce the raw slug to a canonical form:
+
+1. **Strip version markers anywhere in the slug:** drop tokens matching `v\d+(\.\d+)?` (e.g., `v4`, `v9.1`), `\d+\.\d+(\.\d+)?` (e.g., `4.5`, `2.10.1`), and bare `\d+` when it appears AFTER an identifier token (e.g., `node-22` → `node`, but `16-bit` stays `16-bit`). Examples: `zod-v4` → `zod`, `react-16-class-components` → `react-class-components`.
+2. **For library mode**, strip these topic-noise words from the slug: `api`, `sdk`, `client`, `server`, `schema`, `schemas`, `schema-validation`, `validation`, `config`, `configuration`, `consumer`, `producer`, `middleware`, `hook`, `hooks`, `plugin`, `plugins`, `module`, `modules`, `library`, `lib`, `docs`, `documentation`, `best`, `practices`, `breaking`, `changes`, `deprecation`, `notes`, `guide`, `tutorial`, `intro`, `overview`, `getting-started`. Also strip method-level qualifiers that aren't package names: `find-unique`, `find-first`, `insert`, `update`, `delete`, `query`, `pub-sub`, `listen-notify`, `stream`, `streams`, `jetstream`. Example: `nats-jetstream-consumer-config` → `nats`, `prisma-find-unique` → `prisma`, `zod-object-schema-validation` → `zod-object` → `zod`.
+3. **For patterns mode**, strip filler words: `strategies`, `strategy`, `pattern`, `patterns`, `approach`, `approaches`, `how-to`, `best`, `practices`, `for`, `with`, `the`, `a`, `an`. Example: `rate-limiting-strategies-for-apis` → `rate-limiting`.
+4. **For market mode**, strip filler: `competitors`, `alternatives`, `current`, `state`, `landscape`, `market`, `trends`, `in`, `for`, `of`, `the`. Example: `current-state-of-vector-databases` → `vector-databases`.
+5. **Collapse** any resulting double-hyphens and trim leading/trailing hyphens.
+6. **Minimum length check:** if canonicalization would leave an empty slug, fall back to the raw slug's first token. (Defensive.)
+
+The result is the **canonical subject slug**. For library mode it should be just the package/protocol name (`zod`, `nats`, `prisma`, `redis`, `postgres`, `react`, `express`). For patterns mode it's the core pattern identifier. For market mode it's the domain.
+
+#### 3c. Pre-flight broader match (duplicate prevention)
+
+Before assuming a new file needs to be created, check the index for an existing entry that this canonical slug should merge into. The rule:
+
+- An existing entry matches if (a) its `type` equals the current mode AND (b) its `subject` exactly equals the canonical slug OR is a prefix of the canonical slug OR the canonical slug is a prefix of it.
+- "Prefix" is whole-token: `nats` is a prefix of `nats-jetstream` only if split on hyphens; `na` is NOT a prefix of `nats`.
+
+Run this jq query against the chosen index path (per 3d below — do it before Step 4's freshness check):
+
+```bash
+jq --arg c "$CANONICAL_SLUG" \
+   --arg type "$MODE" \
+'.entries
+ | to_entries
+ | map(select(.value.type == $type))
+ | map(select(
+     .value.subject == $c
+     or ((.value.subject + "-") | startswith($c + "-"))
+     or (($c + "-") | startswith(.value.subject + "-"))
+   ))
+ | sort_by(.value.subject | length)
+ | .[0]' "$INDEX_PATH"
+```
+
+The `sort_by(subject | length)` prefers the shortest matching subject — so when both `zod` and `zod-schemas` exist (they shouldn't, but defensively), `zod` wins as the canonical home.
+
+**If the pre-flight finds a match:** use that entry's key (path) as `target_path` and its `subject` as the effective subject for this invocation. Go straight to Step 4 (freshness check on the matched entry). If the matched entry is fresh, it's a cache hit; if stale, the researcher spawns to refresh the existing file. **Either way, no new file is created.**
+
+**If no pre-flight match:** compute `target_path` from the canonical subject slug and proceed to Step 4 with the canonical slug as the query target.
+
+#### 3d. Target path & index path from canonical slug
+
+- **Target path** (used only when no pre-flight match exists):
+  - **Claude / Anthropic topics** (any topic that matched the Claude triggers in Step 2) → `.claude/ultra/research/{canonical-subject}.md` — flat layout, harness scope
+  - `library` (non-Claude) → `documentation/technology/research/libraries/{canonical-subject}.md`
+  - `patterns` → `documentation/technology/research/patterns/{canonical-subject}.md`
+  - `market` → `documentation/product/research/{canonical-subject}.md`
+- **Index path:**
   - Claude / Anthropic topics → `.claude/ultra/research/index.json`
   - everything else → `documentation/technology/research/index.json`
 
-### Step 4: Check the Index
+### Step 4: Freshness Check on Matched Entry
 
-Pick the index path per Step 3 (`.claude/ultra/research/index.json` for Claude topics, `documentation/technology/research/index.json` otherwise). If it doesn't exist, skip to Step 6 (cache miss, bootstrap path).
+At this point Step 3c has either:
+- **Found a pre-flight match** — the target entry is chosen; you just verify freshness here.
+- **Found no match** — check the index normally using the canonical slug as the query term.
+
+Pick the index path per Step 3d. If it doesn't exist, skip to Step 6 (cache miss, bootstrap path).
 
 Run this jq query to find a matching fresh entry (substitute `$INDEX_PATH` for the chosen index):
 
@@ -119,8 +186,8 @@ Evaluate the jq result. **A cache hit requires ALL of these to be true:**
 
 **If all three are true → cache hit:**
 
-1. Read the target file referenced by the entry's key.
-2. Find the H2 section whose title contains the user's topic keywords. If no H2 section matches on title, **that is a cache miss** — the index claimed coverage the file doesn't actually deliver. Fall through to Step 6.
+1. **If `--fill-only`:** return the compact envelope `{target_path, mode, subject, status: "hit", expires}` and stop. Do NOT read the file body.
+2. **Otherwise (default mode):** read the target file referenced by the entry's key. Find the H2 section whose title contains the user's topic keywords. If no H2 section matches on title, **that is a cache miss** — the index claimed coverage the file doesn't actually deliver. Fall through to Step 6.
 3. Return a structured response:
    - One-sentence header identifying the source file and its `fetched_at` / `expires`
    - The relevant H2 section content
@@ -155,7 +222,7 @@ Evaluate the jq result. **A cache hit requires ALL of these to be true:**
 
    The agent reads its own root file + one mode-specific reference from `skills/research/references/{mode}-mode.md`, does the research, writes the target file, updates the index, and returns a one-paragraph summary.
 
-4. **Relay the agent's return** to the caller. Also include the target file path so the caller can read it directly if needed.
+4. **Relay the agent's return** to the caller. In default mode, this includes the summary paragraph plus the target file path. In `--fill-only` mode, return the compact envelope `{target_path, mode, subject, status, expires}` where `status` is `"spawned"` (new file written) or `"refreshed"` (stale entry updated) or `"failed"` (agent reported failure; `error` field carries the reason). Do NOT include the agent's summary paragraph in fill-only mode — the caller will read `target_path` directly if it needs content.
 
 ## Output Format
 
@@ -188,6 +255,21 @@ Fetched: {today}. Expires: {agent-chosen expires}.
 Sources:
 {source URLs}
 ```
+
+**`--fill-only` mode** (cache hit or miss — same compact envelope):
+
+```
+{
+  "target_path": "documentation/technology/research/libraries/zod.md",
+  "mode": "library",
+  "subject": "zod",
+  "status": "hit" | "spawned" | "refreshed" | "failed",
+  "expires": "2026-04-24" | null,
+  "error": "..."        // only on status=failed
+}
+```
+
+Callers that invoked `--fill-only` use the `status` field to decide whether the research is available (any value other than `failed`) and read `target_path` themselves when they need the content. A `failed` status should never happen silently — the skill still returns the envelope so callers can log/report the gap.
 
 ## Examples
 

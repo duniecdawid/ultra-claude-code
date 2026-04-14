@@ -14,6 +14,35 @@ These are always available and run when applicable.
 
 Spawn all applicable research skills in parallel. At minimum, always launch `code-surveyor` + `doc-surveyor` together — even for seemingly simple issues, because doc-surveyor frequently reveals context that changes your understanding of "simple." Invoke `/uc:research` whenever external libraries or unfamiliar patterns are involved. If you genuinely believe only one surveyor applies (e.g., pure documentation change with zero code impact), state which one you are skipping and why in your stage transition message.
 
+## Tech Stack Sweep — MANDATORY
+
+Beyond researching *new* or unfamiliar things, sweep `/uc:research` over **every core technology the draft plan will touch**, even libraries the project already uses. This is a hard rule, not a heuristic — planners used to skip "established" libraries on the assumption that executors already knew them, and the knowledge base stayed permanently empty. The sweep makes the knowledge base bootstrap itself.
+
+**Strict derivation rule (mechanical, hard to skip):**
+
+1. From the code-surveyor's output and your draft task breakdown, enumerate the files this plan will create or modify. For tasks that extend existing components, include the files being extended.
+2. For each file, read the imports/requires/use declarations and list every **external** package (anything not a relative import or a stdlib/builtin module).
+3. Deduplicate the list.
+4. For each library in the deduplicated list, run:
+   ```
+   /uc:research {library} --fill-only
+   ```
+   The `--fill-only` flag keeps research summaries out of your planner context — the skill classifies, canonicalizes, checks the cache, and spawns the researcher on miss, but returns only `{target_path, status}` per call. Bulk sweeps of 10 libraries cost ~10 small tool calls instead of 10 large summary absorptions.
+5. When you need to actually read a research file during Stage 3 discussion or Stage 4 writing, read the file at `target_path` directly. The file is already on disk.
+
+**What the sweep produces:**
+
+- Every library in the plan's surface area has a fresh research file under `documentation/technology/research/libraries/` (or in the harness scope for Claude/Anthropic topics).
+- The `/uc:research` skill's canonicalization rules ensure different phrasings (`zod`, `zod v4`, `zod schemas`) all route to the same file — no duplicates.
+- Stage 4 populates `task.md` Research pointers directly from the files on disk; no additional research fires at that point.
+- Lead's pre-spawn coverage check at execution time becomes a rarely-firing safety net.
+
+**Why strict:** "core technology the plan touches" is a judgment call that lets planners skip things. "Every external package imported in any file on the plan's Files list" is mechanical and unambiguous. Use the mechanical rule.
+
+**Subsystem expansion (optional, judgment call):** if the plan touches messaging/auth/db/cache layers in a way that depends on the subsystem's semantics even though no file directly imports it, add those libraries to the sweep too. This is a nice-to-have, not a rule — add them if you notice, skip them if you don't.
+
+**Research-to-task mapping:** track which library supports which draft task as you sweep. Stage 4 Step 5b turns this mapping into the `**Research:**` section of each `task.md`. A library that applies to multiple tasks becomes a pointer in each of those tasks' task.md files (same path, possibly different one-line gloss per task).
+
 ## Rules
 
 - No files written to disk by this stage directly. (`/uc:research` itself writes durable files under `documentation/technology/research/` — that's the skill's own persistence, not a stage write.)
