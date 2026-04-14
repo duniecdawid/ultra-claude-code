@@ -1,5 +1,12 @@
 [
   {
+    "seq": 133,
+    "version": "2026.04.14-6",
+    "date": "2026-04-14",
+    "summary": "Rewrite /uc:session-cleanup around the actual schema the session-start/session-end hooks produce. Previous version classified by `pid`, `last_activity`, and `tmux_pane` — fields that were documented but never written by any hook, so classification silently defaulted every real file to ENDED/LEGACY and the stuck-active bucket was invisible. Also fixed a lossy project-discovery bug: decoding `~/.claude/projects/` directory names by replacing every dash with a slash drops every project whose name contains a hyphen, so large project trees were missed entirely. The new flow: (1) walk the filesystem with `find $HOME -path '*/.claude/ultra/sessions'` instead of decoding encoded names; (2) build a `session_id → transcript_mtime` index from `$HOME/.claude/projects/**/*.jsonl` because Claude Code's transcript is the only file that gets appended on every turn — the Ultra session.json is written once at start and once at end, so it is useless as a liveness signal; (3) classify each session file using `started_at` age + transcript-mtime silence against a single user-supplied threshold (default 1 day): young sessions are always kept, old sessions are killed unless their transcript was touched within the threshold, legacy sessions (no `started_at`) are killed unless transcript-active; (4) present a per-project kill plan and delete via a simple `rm` stream over a temp kill-list file. Added a Background section explaining the real schema so future readers don't rebuild the same wrong mental model. Tmux-pane killing removed — the schema never carried a tmux reference. help/SKILL.md entry rewritten to match. Also removes 7 session-state files that had been accidentally tracked in this repo before `.gitignore` started excluding `.claude/ultra/sessions/`.",
+    "migration": null
+  },
+  {
     "seq": 132,
     "version": "2026.04.14-5",
     "date": "2026-04-14",

@@ -1,6 +1,6 @@
 {
   "name": "uc",
-  "version": "2026.04.14-5",
+  "version": "2026.04.14-6",
   "description": "Specification-driven development platform for Claude Code",
   "author": {
     "name": "Dawid Duniec"

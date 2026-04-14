@@ -93,7 +93,7 @@ User-initiated-only backlog split across four category files in `documentation/b
 Scans all plans, infers actual status from execution artifacts (operational reports, checkpoints, task completion), and reconciles README statuses with `plan.json` at plan root — preserving `planning` status for plans still being shaped. Use to fix stale statuses after crashed executions, create missing plan.json for legacy plans, or audit plan state. Produces corrected status files with consolidated plan+task state in a single file.
 
 **Session Cleanup** (`/uc:session-cleanup`)
-Scans all projects for stale Claude Code session files, classifies them as active (PID alive), stale (PID dead or old), or legacy (missing enriched fields). Use when session files accumulate after crashes, when disk cleanup is needed, or to kill orphaned tmux panes from dead sessions. Produces a cleanup report showing sessions removed, tmux panes killed, and sessions kept.
+Walks the filesystem for `.claude/ultra/sessions/*.json` across every project, cross-references each session id against Claude Code's own transcript jsonl for real liveness, and removes files whose `started_at` is older than the threshold (default 1 day) AND whose transcript has been silent for the same threshold. Use when session files accumulate after crashes, when disk cleanup is needed, or to clear stuck-active sessions left behind by abruptly-killed terminals. Produces a per-project kill report showing files removed and sessions kept due to recent transcript activity.
 
 ### Infrastructure
 

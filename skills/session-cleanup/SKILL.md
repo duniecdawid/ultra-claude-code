@@ -1,12 +1,14 @@
 ---
 description: >-
-  Scan and clean stale Claude Code session files across all projects.
-  Discovers sessions via ~/.claude/projects/, classifies as active/stale/legacy,
-  prompts for cleanup criteria, removes matching session files and optionally
-  kills dead tmux panes. Use when session files accumulate, disk needs cleaning,
-  or after crashes leave orphaned sessions. Triggers on "session cleanup",
-  "clean sessions", "stale sessions", "orphaned sessions", "session files".
-argument-hint: "(no arguments — interactive)"
+  Scan and clean stale Ultra Claude session files across all projects on this
+  machine. Walks the filesystem for `.claude/ultra/sessions/*.json`, cross-
+  references each session id against Claude Code's own transcript jsonl for
+  real liveness, and removes files whose `started_at` is older than the
+  threshold AND whose transcript has been silent for the same threshold.
+  Use when session files accumulate, disk needs cleaning, or after crashes
+  leave orphaned sessions. Triggers on "session cleanup", "clean sessions",
+  "stale sessions", "orphaned sessions", "session files".
+argument-hint: "(no arguments — interactive, asks for threshold)"
 user-invocable: true
 allowed-tools:
   - Bash
@@ -20,110 +22,110 @@ allowed-tools:
 
 Scan all Ultra Claude projects for stale session files and clean them up after user confirmation.
 
+## Background — session file schema
+
+Ultra Claude session files are written by two hooks and nothing else:
+
+- `SessionStart` hook creates `<cwd>/.claude/ultra/sessions/<session_id>.json` with exactly:
+  ```json
+  { "account_id": "...", "started_at": "<ISO8601>", "active": true }
+  ```
+- `SessionEnd` hook (on clean exits only) flips `active` to `false` and adds `ended_at`.
+
+**Important:** the session file is written once at start and optionally once at end. It contains no `pid`, no `last_activity`, no `tmux_pane`, no mid-session heartbeat. The `active` flag is **not** a liveness signal — it is "was started and never got a clean goodbye." Every session killed abruptly (terminal closed, tmux pane killed, crash, VM shutdown) leaves `active: true` forever.
+
+The only reliable liveness signal comes from **outside** the session file: Claude Code's own transcript at `~/.claude/projects/<encoded-cwd>/<session_id>.jsonl` is appended on every turn, so its mtime tracks real activity.
+
 ## Process
 
-### Step 1: Discover Projects
+### Step 1: Ask for threshold
 
-Find all projects by scanning `~/.claude/projects/` — each subdirectory contains a symlink to the project's `.claude` directory. Resolve each symlink to get the project root path:
+Use `AskUserQuestion` to get the cleanup threshold in days. Default is **1 day**. This single value drives both rules — session-start age and transcript silence — so one knob is enough.
 
-```bash
-projects=()
-for entry in ~/.claude/projects/*/; do
-  # Each entry is a directory named after the project path (with dashes replacing slashes)
-  # Inside it are files that Claude Code manages — the parent of .claude is the project root
-  # Resolve by reading the actual path stored in the directory
-  if [ -d "$entry" ]; then
-    # The project path is encoded in the directory name: leading dash removed, dashes-that-were-slashes restored
-    dir_name=$(basename "$entry")
-    # Convert the encoded name back to a path
-    project_path="/${dir_name//-//}"
-    # Verify it has Ultra Claude sessions
-    if [ -d "${project_path}/.claude/ultra/sessions" ]; then
-      projects+=("$project_path")
-    fi
-  fi
-done
-echo "Found ${#projects[@]} projects with session directories"
-```
+### Step 2: Build the transcript index
 
-If the symlink-based discovery doesn't yield results, fall back to listing the directory names and trying common path patterns.
-
-### Step 2: Collect and Classify Sessions
-
-For each project, read all `*.json` files in `.claude/ultra/sessions/`:
+Before scanning sessions, index Claude Code's transcripts so each session id can be looked up in O(1):
 
 ```bash
-for project in "${projects[@]}"; do
-  sessions_dir="${project}/.claude/ultra/sessions"
-  for session_file in "$sessions_dir"/*.json; do
-    [ -f "$session_file" ] || continue
-    # Read session data
-    data=$(cat "$session_file")
-    active=$(echo "$data" | jq -r '.active // false')
-    pid=$(echo "$data" | jq -r '.pid // empty')
-    last_activity=$(echo "$data" | jq -r '.last_activity // empty')
-    tmux_pane=$(echo "$data" | jq -r '.tmux_pane // empty')
-    # Classify...
-  done
-done
+tidx=$(mktemp)
+find "$HOME/.claude/projects" -maxdepth 2 -name '*.jsonl' -type f 2>/dev/null \
+  -printf '%f\t%T@\n' \
+  | awk -F'\t' '{gsub(/\.jsonl$/,"",$1); print $1"\t"int($2)}' \
+  | sort -t$'\t' -k1,1 -k2,2nr \
+  | awk -F'\t' '!seen[$1]++' > "$tidx"
 ```
 
-**Classification rules:**
+The result is a tab-separated `session_id\tmtime_epoch` map, with the freshest transcript per id kept when duplicates exist (the same session can appear under multiple encoded-cwd directories on machines with bind mounts).
 
-| Classification | Criteria |
-|---|---|
-| **Active** | `active: true` AND `pid` exists AND `kill -0 $pid 2>/dev/null` succeeds (process alive) |
-| **Stale** | `pid` exists but process dead (`kill -0` fails), OR `last_activity` older than threshold |
-| **Legacy** | No `last_activity` field (old session format, before enrichment) |
-| **Ended** | `active: false` (session ended normally) — stale if older than threshold |
+### Step 3: Walk projects for session files
 
-Note: A session with `active: true` but a dead PID is **stale** (crashed session).
+Discover session directories by walking the filesystem directly — **do not** decode `~/.claude/projects/` directory names into paths, because project names with hyphens collide with the dash-as-slash encoding and get dropped silently.
 
-### Step 3: Present Summary and Options
+```bash
+find "$HOME" -maxdepth 6 -type d -name sessions -path '*/.claude/ultra/sessions' 2>/dev/null
+```
 
-Use `AskUserQuestion` to present findings and get cleanup preferences. Include:
+Tune `maxdepth` up if some of your projects live deeper than six levels under `$HOME`.
+
+### Step 4: Classify each session file
+
+For every `.json` in each sessions directory:
+
+1. Parse `started_at` from the JSON.
+2. Look up the session id in the transcript index → `transcript_mtime` (may be empty).
+3. Apply these rules with threshold `T` seconds:
+
+| Case | started_at | Transcript mtime | Action |
+|---|---|---|---|
+| Young | ≤ T ago | — | **Keep** (session is recent, regardless of transcript) |
+| Legacy | missing / unparseable | — | Check transcript — kill unless `now - transcript_mtime ≤ T` |
+| Old | > T ago | missing or > T ago | **Kill** |
+| Old but active | > T ago | ≤ T ago | **Keep** (real recent activity) |
+
+Write the kill list to a temp file (one absolute path per line) so the subsequent delete step is a simple stream over it.
+
+### Step 5: Present summary via AskUserQuestion
+
+Show counts before deleting:
 
 ```
-Session Scan Results
+Session Cleanup Plan
 ====================
-Projects scanned: N
-Total sessions found: N
+Threshold: N day(s)
 
-  Active (PID alive):  N  — will be kept
-  Stale (PID dead):    N
-  Ended (normal):      N
-  Legacy (no activity): N
+Total session files found:       N
+  Young (started within N days): N  — keep
+  Kept due to recent transcript: N  — keep
+  Legacy (no started_at):        N  — in kill list
+  Old + transcript silent:       N  — in kill list
 
-Options:
-1. Stale threshold in days [default: 7] — ended sessions older than this are cleaned
-2. Include legacy sessions without last_activity? [default: yes]
-3. Kill tmux panes for dead sessions? [default: no]
+Kill list total: N
 
-Enter options as: threshold_days,include_legacy(y/n),kill_panes(y/n)
-Example: 7,y,n (defaults)
+Per project (kill counts):
+  <path>  N
+  ...
 ```
 
-### Step 4: Execute Cleanup
+Ask the user to confirm, cancel, or adjust the threshold and rerun.
 
-Based on user's choices:
+### Step 6: Execute deletion
 
-1. **Remove stale session files** — sessions where PID is dead
-2. **Remove old ended sessions** — `active: false` with `ended_at` older than threshold
-3. **Remove legacy sessions** (if user opted in) — sessions without `last_activity`
-4. **Kill tmux panes** (if user opted in) — for stale sessions that have a `tmux_pane` value:
-   ```bash
-   tmux kill-pane -t "$tmux_pane" 2>/dev/null
-   ```
+Stream the kill list into `rm` and track success/failure counts:
 
-### Step 5: Report Results
-
+```bash
+deleted=0; failed=0
+while IFS= read -r f; do
+  if rm -f "$f" 2>/dev/null; then deleted=$((deleted+1))
+  else failed=$((failed+1)); fi
+done < "$kill_list"
 ```
-Cleanup Complete
-================
-Sessions removed: N
-  - Stale (dead PID): N
-  - Old ended: N
-  - Legacy: N
-Tmux panes killed: N
-Sessions kept: N (active)
-```
+
+### Step 7: Report
+
+Print the deletion counts, remaining session-file count by project, and note any kept-by-transcript sessions so the user knows which stuck-active files were spared.
+
+## Notes
+
+- This skill only removes the Ultra Claude session state files under `.claude/ultra/sessions/`. It never touches Claude Code's own transcripts under `~/.claude/projects/` — those belong to Claude Code, not Ultra Claude.
+- Tmux-pane killing is **not supported**: the session file schema carries no tmux reference. If you need to clean up dead panes, that is a separate concern.
+- If you're on a machine where projects live outside `$HOME` (e.g. mounted shared folders), extend the Step 3 `find` root list accordingly — but prefer resolving symlinks so duplicate project views are deduped by realpath.
