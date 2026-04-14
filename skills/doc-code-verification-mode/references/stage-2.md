@@ -10,6 +10,8 @@ The instructions below extend the base rules with verification-mode-specific beh
 
 Use the base research skills (code-surveyor + doc-surveyor) to survey code and documentation in scope. Then run two verification dimensions in parallel.
 
+**Tech Stack sweep input for verification mode:** the base framework's mandatory Tech Stack sweep needs an in-scope file set. For verification mode, that's the code files being checked against documentation claims — whatever is in the verification matrix (Dimension 1 below). Sweep those files' imports via `/uc:research --fill-only`. Library research is particularly valuable here because "docs claim X, code does Y" is sometimes actually "docs claim X, library behavior is Z, code correctly implements Z, docs are wrong" — and you need current library docs to tell those cases apart.
+
 ### Dimension 1: Code-Documentation Accuracy
 
 1. **Build a verification matrix** — pair documentation sections with the code they describe. Each row is a (doc section, code path) pair to compare.

@@ -10,15 +10,7 @@ The instructions below extend the base rules with debug-mode-specific behavior.
 
 Use the base research skills (code-surveyor, doc-surveyor, research) to understand the affected code and expected system behavior. Also check **recent `git log`** — most bugs are regressions, and the diff that introduced the bug is often the diff that explains it.
 
-### Debug-Mode Tech Stack Sweep
-
-The base Stage 2 rules mandate a Tech Stack sweep via `/uc:research --fill-only`. For debug mode, the file set is **the files under investigation for the bug** — not the whole repo, not even the whole subsystem. Concretely:
-
-1. From the bug report and your initial code-surveyor pass, identify the files most likely involved in the bug path (the file(s) containing the symptom, the file(s) containing the suspected cause per your initial hypotheses).
-2. For each file, read its imports and list external packages.
-3. Deduplicate. Sweep: `/uc:research {library} --fill-only` per library.
-4. Library research is especially high-value in debug mode because many bugs are caused by subtly wrong use of an external library — deprecated options, changed defaults, version-specific behavior. Fresh library docs often reveal the bug faster than codebase investigation.
-5. Pass the research file paths to any per-hypothesis Explore agents you spawn — they can read the research directly for library-specific context.
+**Tech Stack sweep input for debug mode:** the base framework's mandatory Tech Stack sweep needs an in-scope file set. For debug mode, that's the files under investigation for the bug — the file(s) containing the symptom plus the file(s) containing the suspected cause per your initial hypotheses. Not the whole repo, not even the whole subsystem. Pass the resulting research file paths to any per-hypothesis Explore agents you spawn so they can read them directly for library-specific context — many bugs are caused by subtly wrong use of an external library (deprecated options, changed defaults, version-specific behavior), and fresh library docs often reveal the cause faster than codebase investigation.
 
 ### Hypothesis Gate — MANDATORY
 

@@ -1,5 +1,12 @@
 [
   {
+    "seq": 131,
+    "version": "2026.04.14-4",
+    "date": "2026-04-14",
+    "summary": "Consolidate Tech Stack sweep rule into the planning framework base (follow-up to seq 130). The previous commit put the mandatory sweep in references/planning-framework/stage-2.md AND duplicated mode-specific expansions in feature-mode and debug-mode stage-2.md — redundant restatements that would drift from the base rule over time. Consolidation: (1) base rule in planning-framework/stage-2.md rewritten to be fully mode-agnostic — 'Every planning mode ... must sweep /uc:research over every core technology the in-scope files will touch,' with the in-scope file set defined as 'whatever the active mode flags as in-scope for this planning session.' (2) mode extensions in feature-mode, debug-mode, and doc-code-verification-mode stage-2.md reduced to one-paragraph notes that name each mode's in-scope file source: feature = draft task breakdown's Files list; debug = files under investigation for the bug; verification = code files in the verification matrix. The mechanical sweep rule, strict derivation, canonicalization note, research-to-task mapping, and downstream effect all live in the base and are inherited by all modes. (3) doc-code-verification-mode gains its Tech Stack sweep note for the first time (wasn't in seq 130).",
+    "migration": null
+  },
+  {
     "seq": 130,
     "version": "2026.04.14-3",
     "date": "2026-04-14",
