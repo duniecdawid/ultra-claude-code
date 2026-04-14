@@ -1,5 +1,12 @@
 [
   {
+    "seq": 136,
+    "version": "2026.04.14-9",
+    "date": "2026-04-14",
+    "summary": "Remove the original Ultra session-file cleanup sub-flow from /uc:session-cleanup. The skill is now exclusively the tmux disconnected-session reaper installer from seq 135 — no more Step 0 AskUserQuestion with two paths, no more transcript index, no more `.claude/ultra/sessions/*.json` walking or classification. The file-based method was never reliable in practice: the Ultra session file schema has no `pid`, no `last_activity`, and no tmux linkage, and cross-referencing Claude Code transcript jsonl files for liveness proved fragile (dash-as-slash encoding collisions, bind-mount duplicates, stuck-active files that outlived the transcripts). Keeping the tmux reaper as the only method — it has a precise liveness signal (`session_last_attached` + `session_created` from tmux format vars), runs out-of-band via a user-level systemd timer, and solves the actual pain point for VSCode Remote SSH users. The help skill entry and docs/views/docs/reference.ejs row are updated to describe the single remaining sub-flow. A short note in the skill's Notes section acknowledges the removed session-file method so users re-reading the skill understand why it's gone. The skill frontmatter is tightened: Glob/Grep dropped from allowed-tools (no longer walks projects), argument-hint clarifies the install/repair/remove decision tree. No project-template files change — the skill only writes under $HOME — so migration is null.",
+    "migration": null
+  },
+  {
     "seq": 135,
     "version": "2026.04.14-8",
     "date": "2026-04-14",

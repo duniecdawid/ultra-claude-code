@@ -1,158 +1,30 @@
 ---
 description: >-
-  Clean up stale sessions on this machine. Two independent sub-flows, chosen
-  at invocation: (a) Ultra Claude session files — walks the filesystem for
-  `.claude/ultra/sessions/*.json`, cross-references each session id against
-  Claude Code's own transcript jsonl for real liveness, and removes files
-  whose `started_at` is older than the threshold AND whose transcript has
-  been silent for the same threshold; (b) Tmux disconnected-session reaper
-  (Linux/systemd only) — installs a user-level systemd timer that kills
-  tmux sessions detached from any client for more than 24 hours, designed
-  for VSCode Remote SSH workflows where integrated terminals leave orphaned
-  tmux sessions behind. Use when session files accumulate, disk needs
-  cleaning, tmux sessions are piling up after closing a VSCode window,
-  or after crashes leave orphaned sessions. Triggers on "session cleanup",
-  "clean sessions", "stale sessions", "orphaned sessions", "session files",
-  "tmux sessions", "tmux reaper", "tmux cleanup".
-argument-hint: "(no arguments — interactive, asks which sub-flow to run)"
+  Install, check, repair, or remove a user-level systemd timer that kills
+  tmux sessions detached from any client for more than 24 hours. Designed
+  for VSCode Remote SSH workflows where integrated terminals auto-launch
+  tmux and leave orphaned sessions behind after the VSCode window closes.
+  Uses tmux's `session_last_attached` / `session_created` format vars to
+  compute disconnect age; never touches currently-attached sessions.
+  Linux/systemd only. Use when tmux sessions are piling up on a remote
+  machine after VSCode disconnects, or to verify / reinstall / remove an
+  existing install. Triggers on "session cleanup", "clean sessions",
+  "tmux sessions", "tmux reaper", "tmux cleanup", "orphaned tmux",
+  "kill stale tmux", "reap tmux".
+argument-hint: "(no arguments — interactive, detects current state and asks to install/repair/remove)"
 user-invocable: true
 allowed-tools:
   - Bash
-  - Glob
-  - Grep
   - Read
   - Write
   - AskUserQuestion
 ---
 
-# Session Cleanup
+# Session Cleanup — Tmux Disconnected-Session Reaper
 
-Two sub-flows, picked at the start via `AskUserQuestion`:
+Installs (or updates, or removes) a user-level systemd timer that periodically kills tmux sessions detached from any client for more than 24 hours. Currently-attached sessions are never touched.
 
-1. **Ultra Claude session files** — scan all projects for stale `.claude/ultra/sessions/*.json` and delete the ones whose transcripts have been silent past the threshold. Original behavior of this skill.
-2. **Tmux disconnected-session reaper** — install/check/remove a user-level systemd timer that kills tmux sessions detached from any client for more than 24 hours. Solves the common "VSCode Remote SSH closes, tmux keeps piling up on the VM" problem.
-
-The two flows share nothing except the name. The user picks one per invocation (or both in sequence).
-
-## Background — session file schema
-
-Ultra Claude session files are written by two hooks and nothing else:
-
-- `SessionStart` hook creates `<cwd>/.claude/ultra/sessions/<session_id>.json` with exactly:
-  ```json
-  { "account_id": "...", "started_at": "<ISO8601>", "active": true }
-  ```
-- `SessionEnd` hook (on clean exits only) flips `active` to `false` and adds `ended_at`.
-
-**Important:** the session file is written once at start and optionally once at end. It contains no `pid`, no `last_activity`, no `tmux_pane`, no mid-session heartbeat. The `active` flag is **not** a liveness signal — it is "was started and never got a clean goodbye." Every session killed abruptly (terminal closed, tmux pane killed, crash, VM shutdown) leaves `active: true` forever.
-
-The only reliable liveness signal comes from **outside** the session file: Claude Code's own transcript at `~/.claude/projects/<encoded-cwd>/<session_id>.jsonl` is appended on every turn, so its mtime tracks real activity.
-
-## Process
-
-### Step 0: Pick the sub-flow
-
-Use `AskUserQuestion` to ask which cleanup to run. Options:
-
-- **Ultra session files** — proceed to sub-flow A (Steps 1–7).
-- **Tmux reaper** — proceed to sub-flow B (Steps 8–11).
-- **Both** — run sub-flow A to completion, then sub-flow B.
-
-If the user picks a flow that includes sub-flow B and `uname -s` is not `Linux` or `command -v systemctl` fails, tell the user the tmux reaper is Linux/systemd-only and skip sub-flow B cleanly. Sub-flow A still runs if they picked "Both".
-
-## Sub-flow A — Ultra session file cleanup
-
-### Step 1: Ask for threshold
-
-Use `AskUserQuestion` to get the cleanup threshold in days. Default is **1 day**. This single value drives both rules — session-start age and transcript silence — so one knob is enough.
-
-### Step 2: Build the transcript index
-
-Before scanning sessions, index Claude Code's transcripts so each session id can be looked up in O(1):
-
-```bash
-tidx=$(mktemp)
-find "$HOME/.claude/projects" -maxdepth 2 -name '*.jsonl' -type f 2>/dev/null \
-  -printf '%f\t%T@\n' \
-  | awk -F'\t' '{gsub(/\.jsonl$/,"",$1); print $1"\t"int($2)}' \
-  | sort -t$'\t' -k1,1 -k2,2nr \
-  | awk -F'\t' '!seen[$1]++' > "$tidx"
-```
-
-The result is a tab-separated `session_id\tmtime_epoch` map, with the freshest transcript per id kept when duplicates exist (the same session can appear under multiple encoded-cwd directories on machines with bind mounts).
-
-### Step 3: Walk projects for session files
-
-Discover session directories by walking the filesystem directly — **do not** decode `~/.claude/projects/` directory names into paths, because project names with hyphens collide with the dash-as-slash encoding and get dropped silently.
-
-```bash
-find "$HOME" -maxdepth 6 -type d -name sessions -path '*/.claude/ultra/sessions' 2>/dev/null
-```
-
-Tune `maxdepth` up if some of your projects live deeper than six levels under `$HOME`.
-
-### Step 4: Classify each session file
-
-For every `.json` in each sessions directory:
-
-1. Parse `started_at` from the JSON.
-2. Look up the session id in the transcript index → `transcript_mtime` (may be empty).
-3. Apply these rules with threshold `T` seconds:
-
-| Case | started_at | Transcript mtime | Action |
-|---|---|---|---|
-| Young | ≤ T ago | — | **Keep** (session is recent, regardless of transcript) |
-| Legacy | missing / unparseable | — | Check transcript — kill unless `now - transcript_mtime ≤ T` |
-| Old | > T ago | missing or > T ago | **Kill** |
-| Old but active | > T ago | ≤ T ago | **Keep** (real recent activity) |
-
-Write the kill list to a temp file (one absolute path per line) so the subsequent delete step is a simple stream over it.
-
-### Step 5: Present summary via AskUserQuestion
-
-Show counts before deleting:
-
-```
-Session Cleanup Plan
-====================
-Threshold: N day(s)
-
-Total session files found:       N
-  Young (started within N days): N  — keep
-  Kept due to recent transcript: N  — keep
-  Legacy (no started_at):        N  — in kill list
-  Old + transcript silent:       N  — in kill list
-
-Kill list total: N
-
-Per project (kill counts):
-  <path>  N
-  ...
-```
-
-Ask the user to confirm, cancel, or adjust the threshold and rerun.
-
-### Step 6: Execute deletion
-
-Stream the kill list into `rm` and track success/failure counts:
-
-```bash
-deleted=0; failed=0
-while IFS= read -r f; do
-  if rm -f "$f" 2>/dev/null; then deleted=$((deleted+1))
-  else failed=$((failed+1)); fi
-done < "$kill_list"
-```
-
-### Step 7: Report
-
-Print the deletion counts, remaining session-file count by project, and note any kept-by-transcript sessions so the user knows which stuck-active files were spared.
-
-## Sub-flow B — Tmux disconnected-session reaper
-
-This sub-flow installs (or updates, or removes) a user-level systemd timer that periodically kills tmux sessions detached from any client for more than 24 hours. Currently-attached sessions are never touched. The threshold and cadence are configured at install time and baked into the units — re-run the skill to change them.
-
-**Scope:** Linux + systemd only. macOS has no systemd; on macOS the sub-flow exits cleanly with a note.
+**Scope:** Linux + systemd only. On any other platform (e.g. macOS) the skill exits cleanly with a note.
 
 **Design choices** (why not alternatives):
 - `destroy-unattached on` in `.tmux.conf` is rejected — that option kills sessions on *any* detach, including manual `Ctrl-b d`, which destroys long-running work.
@@ -161,9 +33,18 @@ This sub-flow installs (or updates, or removes) a user-level systemd timer that 
 
 Using `session_last_attached` from tmux's format vars gives a precise disconnect timestamp. The reaper script also considers `session_created` as a fallback for sessions that were created detached and never attached (in which case `session_last_attached` is `0`).
 
-### Step 8: Detect current install state
+## Process
 
-Check for three artifacts:
+### Step 1: Platform gate
+
+```bash
+[ "$(uname -s)" = "Linux" ] || { echo "This skill is Linux/systemd-only. Skipping."; exit 0; }
+command -v systemctl >/dev/null 2>&1 || { echo "systemctl not found. Skipping."; exit 0; }
+```
+
+### Step 2: Detect current install state
+
+Check for three artifacts and report:
 
 ```bash
 REAPER_BIN="$HOME/.local/bin/tmux-reap-disconnected.sh"
@@ -181,7 +62,7 @@ systemctl --user is-active  tmux-reap.timer >/dev/null 2>&1 && timer_active=true
 loginctl show-user "$USER" 2>/dev/null | grep -q '^Linger=yes' && linger_enabled=true
 ```
 
-Also capture the current tmux session inventory so the user sees what would be affected by the reaper if it were run right now:
+Also capture the current tmux session inventory so the user sees what would be affected by the reaper if it ran right now:
 
 ```bash
 if command -v tmux >/dev/null 2>&1 && tmux list-sessions >/dev/null 2>&1; then
@@ -189,7 +70,7 @@ if command -v tmux >/dev/null 2>&1 && tmux list-sessions >/dev/null 2>&1; then
 fi
 ```
 
-### Step 9: Describe behavior and ask for confirmation
+### Step 3: Describe behavior and ask for confirmation
 
 Present this to the user (concrete, no hand-waving):
 
@@ -232,7 +113,7 @@ Then `AskUserQuestion` with options appropriate to current state:
 - If installed and healthy: `[Reinstall/update] [Remove] [Leave as is]`
 - If installed but timer inactive or linger off: `[Repair] [Remove] [Leave as is]`
 
-### Step 10: Implement
+### Step 4: Implement
 
 Only run this step if the user confirmed install/reinstall/repair. Write the three files exactly as below (use the `Write` tool so the files land atomically; do not `cat <<EOF` via Bash).
 
@@ -318,7 +199,7 @@ sudo loginctl enable-linger "$USER"
 
 If the user doesn't have passwordless sudo, tell them exactly what to paste and wait for them to run it — do not silently proceed.
 
-### Step 11: Verify and report
+### Step 5: Verify and report
 
 After install, verify:
 
@@ -350,7 +231,7 @@ Do **not** disable linger automatically on remove — other user services may re
 
 ## Notes
 
-- Sub-flow A only removes the Ultra Claude session state files under `.claude/ultra/sessions/`. It never touches Claude Code's own transcripts under `~/.claude/projects/` — those belong to Claude Code, not Ultra Claude.
-- Sub-flow A does not kill tmux panes or sessions — that is sub-flow B's job, and it operates by disconnect time, not by any linkage to Ultra Claude session files.
-- If you're on a machine where projects live outside `$HOME` (e.g. mounted shared folders), extend the Step 3 `find` root list accordingly — but prefer resolving symlinks so duplicate project views are deduped by realpath.
-- Sub-flow B is idempotent: re-running "Install" over an existing install is equivalent to "Reinstall" — the three files are overwritten, the timer is re-enabled, and linger is re-checked. Safe to run as many times as you want.
+- This skill installs machine-local systemd units under `$HOME` — nothing is written into any project directory.
+- The skill is idempotent: re-running "Install" over an existing install is equivalent to "Reinstall" — the three files are overwritten, the timer is re-enabled, and linger is re-checked. Safe to run as many times as you want.
+- To change the threshold without reinstalling, add `Environment=TMUX_REAP_THRESHOLD=<seconds>` under `[Service]` in `tmux-reap.service` and `systemctl --user daemon-reload`.
+- This skill does **not** clean up Ultra Claude session state files under `.claude/ultra/sessions/`. An earlier version of this skill attempted that, but the approach was abandoned — the session file schema has no reliable liveness signal and cross-referencing Claude Code transcripts proved unreliable in practice.

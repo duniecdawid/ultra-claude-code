@@ -59,7 +59,7 @@
       <tbody>
         <tr><td><strong>Backlog</strong></td><td><code>/uc:backlog</code></td><td>Four-category backlog (bugs/questions/ideas/debt) with priorities and blocking relationships. User-initiated only.</td></tr>
         <tr><td><strong>Plan Status Sync</strong></td><td><code>/uc:plan-status-sync</code></td><td>Scans plans, infers status from execution artifacts, reconciles README with <code>plan.json</code>.</td></tr>
-        <tr><td><strong>Session Cleanup</strong></td><td><code>/uc:session-cleanup</code></td><td>Scans all projects for stale session files, classifies by liveness, prompts for cleanup criteria, removes matching files and optionally kills dead tmux panes.</td></tr>
+        <tr><td><strong>Session Cleanup</strong></td><td><code>/uc:session-cleanup</code></td><td>Installs a user-level systemd timer that hourly kills tmux sessions detached from any client for more than 24h — for VSCode Remote SSH users whose tmux sessions pile up after window close. Linux/systemd only.</td></tr>
         <tr><td><strong>Help</strong></td><td><code>/uc:help</code></td><td>System advisor: recommends the right skill, agent, or workflow for any task. Shows recent changelog.</td></tr>
       </tbody>
     </table>
