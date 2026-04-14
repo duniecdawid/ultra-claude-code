@@ -14,7 +14,14 @@ You are researching an external library, framework, SDK, runtime, database, API,
 
 ## Claude / Anthropic Topics
 
-When the topic is about **Claude Code (CLI)**, **Claude Agent SDK**, **Anthropic API / SDK**, or related primitives (hooks, slash commands, MCP servers, sub-agents, settings, plugins, output styles, tool use, prompt caching, etc.), use **both** sources in parallel and merge:
+When the topic is about **Claude Code (CLI)**, **Claude Agent SDK**, **Anthropic API / SDK**, or related primitives (hooks, slash commands, MCP servers, sub-agents, settings, plugins, output styles, tool use, prompt caching, etc.), the skill will route the output to a dedicated harness location:
+
+- **Target path**: `.claude/ultra/research/{subject}.md` (flat layout, e.g. `claude-code.md`, `claude-agent-sdk.md`, `anthropic-api.md`)
+- **Index path**: `.claude/ultra/research/index.json` (separate from the product `documentation/technology/research/index.json`)
+
+You'll receive these paths in your spawn prompt. Do not write Claude/Anthropic research under `documentation/technology/research/libraries/` — that directory is reserved for libraries the *product* depends on (zod, prisma, nats…), not for the tooling we build with.
+
+For research itself, use **both** sources in parallel and merge:
 
 1. **Ref.tools** — `mcp__ref__ref_search_documentation` with the exact feature name. Anthropic docs are well indexed; queries like `"claude code hooks configuration"`, `"anthropic messages api streaming"`, `"agent sdk subagent definition"` return canonical pages.
 

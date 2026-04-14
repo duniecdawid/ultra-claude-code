@@ -205,7 +205,9 @@ Before spawning the first task-team, read the current usage percentage:
 pct=$(jq -r '.accounts | [.[]] | sort_by(.updated_at) | last | .rate_limits.five_hour.used_percentage // 0' ~/.claude/ultra/usage-status.json 2>/dev/null || echo 0)
 ```
 
-If `extra_usage = false` and usage is already elevated, read `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/usage-control.md` and assess whether the plan can complete within the remaining budget. You may decide to proceed normally, reduce concurrency, or wait for the rate-limit window to reset. This is your judgment call based on the total plan scope.
+`pct` is the **used** percentage (how much of the 5-hour window has been consumed). Low pct (e.g., 5%) = plenty of budget. High pct (e.g., 80%) = little remaining.
+
+If `extra_usage = false` and pct is already elevated (e.g., >50%), read `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/usage-control.md` and assess whether the plan can complete within the remaining budget (100 - pct). You may decide to proceed normally, reduce concurrency, or wait for the rate-limit window to reset. This is your judgment call based on the total plan scope. If pct is low (e.g., <30%), proceed normally — no need to read the reference.
 
 If `extra_usage = true`, skip this assessment.
 

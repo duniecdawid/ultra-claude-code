@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "updated_at": "2026-04-13T00:00:00Z",
+  "entries": {
+    "claude-code.md": {
+      "type": "library",
+      "subject": "claude-code",
+      "fetched_at": "2026-04-13",
+      "expires": "2026-04-23",
+      "topics": [
+        "overview",
+        "hook events reference",
+        "configuration",
+        "hook handler types",
+        "hook input and output",
+        "event-specific input and decision schemas",
+        "environment variables for script references",
+        "hooks and permission modes",
+        "complete examples",
+        "troubleshooting"
+      ],
+      "summary": "Verbatim reference for Claude Code hooks: all event types, configuration schema, matcher patterns, handler types (command/http/prompt/agent), input/output JSON schemas, exit codes, and troubleshooting.",
+      "sources": [
+        "https://code.claude.com/docs/en/hooks",
+        "https://code.claude.com/docs/en/hooks-guide",
+        "https://docs.claude.com/en/docs/claude-code/hooks",
+        "https://docs.claude.com/en/docs/claude-code/hooks-guide"
+      ]
+    }
+  }
+}

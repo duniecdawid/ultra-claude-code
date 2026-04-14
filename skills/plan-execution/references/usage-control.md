@@ -10,15 +10,17 @@ Before spawning the first task-team, Lead reads the current usage percentage:
 pct=$(jq -r '.accounts | [.[]] | sort_by(.updated_at) | last | .rate_limits.five_hour.used_percentage // 0' ~/.claude/ultra/usage-status.json 2>/dev/null || echo 0)
 ```
 
-If usage is already elevated, Lead reasons about whether the plan can complete within the remaining budget. Consider:
+`pct` is the **used** percentage — how much of the 5-hour rate-limit window has been consumed. `remaining = 100 - pct`. Low pct (e.g., 5%) means plenty of budget; high pct (e.g., 80%) means little budget left.
+
+If usage is already elevated (e.g., pct > 50%), Lead reasons about whether the plan can complete within the remaining budget. Consider:
 - Total number of tasks in the plan
 - Complexity of the work (from task.md descriptions)
-- Remaining percentage available (100 - current_pct)
+- Remaining percentage available (100 - pct). Example: pct=60 means 40% remaining.
 
 Lead may decide:
-- **Proceed normally** — plenty of budget for the work.
-- **Proceed with reduced concurrency** — run 1 team at a time instead of parallel.
-- **Wait for reset** — usage is too high to start. Enter low-power mode (see below). Inform the user if possible.
+- **Proceed normally** — pct is low (e.g., <50%), plenty of budget for the work.
+- **Proceed with reduced concurrency** — pct is moderate (e.g., 50-70%), run 1 team at a time instead of parallel.
+- **Wait for reset** — pct is high (e.g., >70% with a large plan), too little budget remaining to complete. Enter low-power mode (see below). Inform the user if possible.
 
 There is no formula. This is Lead's judgment call based on the scope of the plan.
 

@@ -100,7 +100,12 @@ If the topic is ambiguous — e.g., "zod" could mean "current zod" or "history o
 
 ## Index Write Protocol
 
-The index file is at `documentation/technology/research/index.json`. You own it; humans do not edit it. The schema:
+The index file path arrives in your spawn prompt as `index_path`. There are two possible scopes:
+
+- `documentation/technology/research/index.json` — product/domain research (libraries, patterns) and (via key prefix) `documentation/product/research/` market files.
+- `.claude/ultra/research/index.json` — Claude Code / Claude Agent SDK / Anthropic API harness research. Separate cache scope, separate index file.
+
+You own whichever index your spawn prompt names; humans do not edit it. The schema:
 
 ```json
 {
@@ -120,7 +125,10 @@ The index file is at `documentation/technology/research/index.json`. You own it;
 }
 ```
 
-**Key format:** for `technology/research/libraries/zod.md`, use key `libraries/zod.md`. For `documentation/product/research/foo.md`, use key `../product/research/foo.md` (relative from `technology/research/`). Keep it consistent so jq queries work.
+**Key format:** make the key relative to the index file's directory.
+
+- For `documentation/technology/research/index.json` + target `documentation/technology/research/libraries/zod.md` → key `libraries/zod.md`. For target `documentation/product/research/foo.md` → key `../product/research/foo.md`.
+- For `.claude/ultra/research/index.json` + target `.claude/ultra/research/claude-code.md` → key `claude-code.md` (flat — no nested directories in the harness scope).
 
 ### Atomic write
 
@@ -128,17 +136,22 @@ The index file is at `documentation/technology/research/index.json`. You own it;
 # 1. Read existing index (or start with {"version": 1, "updated_at": null, "entries": {}} if missing)
 # 2. Compute the new entry for your target_path
 # 3. Merge it into entries, update updated_at
-# 4. Write to index.json.tmp
+# 4. Write to index.json.tmp (sibling of index.json)
 # 5. Rename index.json.tmp → index.json
+# 6. On success or final failure, ensure no stale index.json.tmp remains: `rm -f {index_path}.tmp`
 ```
 
-Use the Write tool to write `index.json.tmp` then a Bash `mv` for the rename. If the rename finds that `index.json` was modified between your read and write (rare — another parallel researcher ran), re-read it, re-merge your entry, retry. Optimistic concurrency, at most 2 retries, then give up and log the conflict in your return summary.
+Use the Write tool to write `{index_path}.tmp` then a Bash `mv` for the rename. If the rename finds that `index.json` was modified between your read and write (rare — another parallel researcher ran), re-read it, re-merge your entry, retry. Optimistic concurrency, at most 2 retries. After the final attempt (success or give-up), always `rm -f {index_path}.tmp` so retries don't leave stray files behind.
 
 **Topics field** — extract the H2 section titles from the file you just wrote, lowercase them, strip punctuation, store as an array. This is what the skill greps against for lookup matches.
 
 **Summary field** — one concise sentence describing what the file covers. Not a list of topics; a descriptive sentence the skill can return to the caller on cache hit without reading the file body.
 
 ## Bootstrap (first-ever call in a project)
+
+Bootstrap depends on which scope your spawn prompt named.
+
+### Product/domain scope (`documentation/technology/research/index.json`)
 
 If `documentation/technology/research/` doesn't exist yet:
 
@@ -149,6 +162,16 @@ If `documentation/technology/research/` doesn't exist yet:
 5. Proceed with the normal workflow.
 
 Don't bootstrap market mode's target directory — `documentation/product/research/` is already managed by docs-manager and the existing `research.md` reference.
+
+### Claude harness scope (`.claude/ultra/research/index.json`)
+
+If `.claude/ultra/research/` doesn't exist yet:
+
+1. Create the directory: `.claude/ultra/research/` (assume `.claude/ultra/` already exists — if it doesn't, create it too).
+2. Create `.claude/ultra/research/README.md` with a one-paragraph note: this directory holds Claude Code / Claude Agent SDK / Anthropic API research (harness/meta knowledge about the tooling we build with), separate from product research under `documentation/`. Cache is managed by `/uc:research`; do not edit by hand.
+3. Create `index.json` with `{ "version": 1, "updated_at": "{now}", "entries": {} }`.
+4. No subdirectories — layout is flat (`claude-code.md`, `claude-agent-sdk.md`, `anthropic-api.md`).
+5. Proceed with the normal workflow.
 
 ## Constraints
 
