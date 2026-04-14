@@ -54,7 +54,7 @@
       <li>Planning modes have already written <code>tasks/task-N/task.md</code> for every task (authoritative content: description, files, patterns, Research pointers, success criteria, dependencies). The plan README holds a flat task heading index only.</li>
       <li>Lead runs its <strong>pre-spawn checklist</strong> &mdash; reviews task.md's Research pointers, runs <code>/uc:research</code> for any gap or staleness, then spawns Executor + Reviewer in parallel (minimal pointer prompts; agents read the task directory on startup).</li>
       <li><strong>Reviewer speaks first.</strong> After its startup read, Reviewer synthesizes a <code>REVIEWER TAKE</code> from task.md + standards + architecture + patterns and sends it to Executor <em>before</em> Executor plans.</li>
-      <li>Executor reads task.md, explores the codebase, receives the <code>REVIEWER TAKE</code>, and writes <code>tasks/task-N/plan.md</code> as a thin execution delta (approach per file, criterion-to-approach mapping by ID, reviewer-take incorporation, risks). It does not restate task.md content.</li>
+      <li>Executor reads task.md and explores the codebase while the Reviewer is still building its take. It <strong>blocks on <code>REVIEWER TAKE</code> before writing <code>tasks/task-N/plan.md</code></strong> &mdash; waiting time is productive exploration and mental drafting, not idle. Once the take arrives, plan.md is written once, with the take baked in, as a thin execution delta (approach per file, criterion-to-approach mapping by ID, reviewer-take incorporation, risks). It does not restate task.md content.</li>
       <li>Executor runs a <strong>deviation self-check</strong> against task.md. If clean (all files in scope, all criteria mapped, no reviewer-take contradictions) it proceeds directly to implementation &mdash; no Lead gate. If the plan deviates, Executor sends <code>ADVICE REQUEST task-N [deviation]</code> and waits for APPROVED (Lead amends task.md and broadcasts) or AMEND.</li>
       <li>Executor implements. Reviewer reads files as they're written via progress updates.</li>
       <li>The moment code is done &mdash; <em>before</em> writing impl.md &mdash; Executor signals "code complete" to Lead. Lead lazy-spawns the Tester (which runs its own startup read in parallel) and may pre-spawn the next dependent task's team into a pipeline-wait gate.</li>
@@ -120,7 +120,7 @@
         <p>In the new model, Reviewer front-loads that knowledge as a <code>REVIEWER TAKE</code> message sent to Executor <em>before</em> plan.md is written. Executor incorporates it directly into plan.md as a primary input. Three wins:</p>
         <ul>
           <li><strong>Parallelizes work.</strong> Reviewer reads standards while Executor explores the codebase &mdash; no serial bottleneck.</li>
-          <li><strong>Plan.md gets written once.</strong> No draft/feedback/rewrite cycle &mdash; reviewer input is already baked in.</li>
+          <li><strong>Plan.md gets written once.</strong> Executor blocks on the take before writing, so plan.md is authored a single time with the take baked in &mdash; no draft/feedback/rewrite cycle.</li>
           <li><strong>Lean plan.md.</strong> plan.md is a thin extension of task.md + reviewer take, not a multi-section document retro-fit to accommodate teammate concerns.</li>
         </ul>
         <p>Reviewer's later role (formal code review on "ready for review") is unchanged. Its upfront voice is new; its backend voice is the same.</p>
@@ -161,7 +161,7 @@
         <p>Before execution starts, you choose whether to enable extra usage:</p>
         <ul>
           <li><strong>Extra usage enabled:</strong> Runs at full speed. The Haiku watchdog still monitors for stalls but Lead does not perform budget assessments.</li>
-          <li><strong>Extra usage disabled:</strong> A Haiku watchdog agent (costing ~$0.03/5h) ticks every minute checking usage thresholds (75% soft, 90% hard) and executor staleness. On alert, it signals the PM, who validates and forwards to Lead with context. Lead decides what to do &mdash; from "continue with caution" to "stop all teams immediately." Lead can even decide not to start task 1 if usage is already elevated.</li>
+          <li><strong>Extra usage disabled:</strong> A Haiku watchdog agent (costing ~$0.03/5h) ticks every minute checking two independent rate-limit windows (5h: 80% soft / 90% hard, 7d: 90% soft / 95% hard) and executor staleness. On alert, it signals the PM, who validates and forwards to Lead with window-qualified context. On soft, Lead lets in-flight work finish and stops spawning until reset. On hard, Lead stops all teams immediately and checkpoints. Lead can also decide not to start task 1 if either window is already elevated.</li>
         </ul>
         <p>The three-agent chain (watchdog &rarr; PM &rarr; Lead) separates detection (cheap Haiku), coordination (PM validates and adds context), and decisions (Lead knows the work). Per-task budget data (usage % at start/end) is tracked in plan.json for the operational report.</p>
       </div>

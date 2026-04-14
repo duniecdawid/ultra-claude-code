@@ -1,5 +1,26 @@
 [
   {
+    "seq": 139,
+    "version": "2026.04.14-12",
+    "date": "2026-04-14",
+    "summary": "Make REVIEWER TAKE a hard blocking gate on plan.md writing in the Task Executor. Executor may (and should) explore the codebase and mentally draft the approach in parallel with the Reviewer's take synthesis, but it is now forbidden to call Write on tasks/task-$TASK_ID/plan.md until REVIEWER TAKE has actually arrived from the Reviewer. Removes the 'if it still doesn't arrive, proceed and note the gap in plan.md's reviewer take incorporation section' fallback from agents/task-executor.md step 3 — that path guaranteed rework because plan.md always had to be updated once the take landed. On genuinely stalled takes, Executor now escalates via ADVICE REQUEST task-$TASK_ID [knowledge] to Lead and waits for a ruling instead of writing a stub. Reviewer side (agents/code-review.md step 2) tightened to treat take synthesis as critical-path work — the Executor is explicitly blocked on this message. Flow descriptions updated in skills/plan-execution/SKILL.md (ASCII diagram, Reviewer-speaks-first bullet, narrative at line 199), skills/plan-execution/references/task-team-startup.md (wait rules table), and docs/views/docs/plan-execution.ejs (step 57 + 'Plan.md gets written once' bullet). plugin.json and marketplace.json bumped from 2026.04.14-10 to 2026.04.14-12 (skipping -11, which the previous seq 138 entry never bumped). No project-template files change — migration is null.",
+    "migration": null
+  },
+  {
+    "seq": 138,
+    "version": "2026.04.14-11",
+    "date": "2026-04-14",
+    "summary": "Extend plan-execution usage control to monitor BOTH rate-limit windows (5-hour and 7-day) with independent thresholds, and unify Lead's response across windows. New thresholds: 5h soft 80% / hard 90% (was 75/90), 7d soft 90% / hard 95% (new). Watchdog reads both .rate_limits.five_hour.used_percentage and .rate_limits.seven_day.used_percentage from ~/.claude/ultra/usage-status.json on every tick and applies signal rules independently per window. Signals are now window-qualified: WATCH: SOFT-LIMIT window={5h|7d} pct=X resets_at=Y (same for HARD-LIMIT and USAGE-RESET). The watchdog state file gains per-window last_signal tracking under .five_hour and .seven_day keys — the two windows never suppress each other, so it is expected to see two signals on the same tick when both cross their thresholds simultaneously. PM validates window-qualified signals against the matching window field and forwards to Lead with a [5h] or [7d] label. Lead's behavior is now uniform across windows and encoded in the new shared/lead.md ## Usage Blocks section: on SOFT-LIMIT, active teams finish their current task but no new teams are spawned and a Phase 3 checkpoint fires on the next task done; on HARD-LIMIT, all active teams are stopped immediately via SendMessage STOP messages and a checkpoint fires right away; on USAGE-RESET, only the named window's entry clears, and Lead resumes spawning only when no blocks remain. Pre-task-1 budget assessment now considers both pct_5h and pct_7d — the binding constraint is whichever window runs out first. The 7d reset horizon can be hours or days, so usage-control.md advises Lead to inform the user when entering a 7d hard pause. Operational report gains window-qualified usage-event breakdowns. plugin.json and marketplace.json NOT bumped in this entry — committer must chain the version bump to 2026.04.14-11 after the pending seq 137 commit lands. No project-template files change — migration is null.",
+    "migration": null
+  },
+  {
+    "seq": 137,
+    "version": "2026.04.14-10",
+    "date": "2026-04-14",
+    "summary": "Fold the tmux disconnected-session reaper (formerly /uc:session-cleanup) into /uc:setup as an optional, strictly opt-in step backed by a new reference file at skills/setup/references/session-cleanup.md. The standalone skill directory skills/session-cleanup/ is removed along with its help entry and the dedicated row in docs/views/docs/reference.ejs — setup now owns the entire install/repair/remove lifecycle for the reaper. New check 3.11 in setup detects platform (Linux + systemctl), file presence, systemd timer enable/active state, and linger; new fix 5.11 presents the tradeoff explicitly before touching anything. The opt-in prompt in the reference spells out that the reaper CLEANS UP stale tmux sessions but DISRUPTS the ability to resume any detached session older than 24 hours (scrollback and running processes are lost) — users who rely on long-lived detached tmux sessions are told to skip. The setup marker file grows a new checks.sessionCleanup slot with values installed|skipped|not-linux|opted-out. Help skill and docs reference page are updated to mention the new capability on the Setup entry. No project-template files change — the reaper still writes under $HOME only — so migration is null.",
+    "migration": null
+  },
+  {
     "seq": 136,
     "version": "2026.04.14-9",
     "date": "2026-04-14",

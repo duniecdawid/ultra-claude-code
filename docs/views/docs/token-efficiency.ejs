@@ -73,9 +73,9 @@
     <h3>Extra usage disabled</h3>
     <p>A three-agent chain handles usage management with ~6x less token cost than the old PM polling approach:</p>
     <ol>
-      <li><strong>Haiku watchdog</strong> ticks every minute (~$0.03/5h) checking usage thresholds (75% soft, 90% hard) and executor staleness. Silent when healthy.</li>
-      <li><strong>PM</strong> validates watchdog alerts, adds operational context (team count, avg task cost), forwards to Lead with recommendations. Event-driven, no cron.</li>
-      <li><strong>Lead</strong> makes the actual decision &mdash; from "continue with caution" to "stop all teams immediately." Can even decide not to start task 1 if budget is too tight.</li>
+      <li><strong>Haiku watchdog</strong> ticks every minute (~$0.03/5h) checking two independent rate-limit windows (5h: 80% soft / 90% hard, 7d: 90% soft / 95% hard) and executor staleness. Silent when healthy.</li>
+      <li><strong>PM</strong> validates watchdog alerts, adds operational context (team count, avg task cost), forwards to Lead with window-qualified recommendations. Event-driven, no cron.</li>
+      <li><strong>Lead</strong> acts uniformly across windows &mdash; on soft, in-flight work finishes and spawning stops until reset; on hard, all teams stop immediately. Multiple blocks (5h + 7d) track independently; Lead resumes only when all windows clear.</li>
     </ol>
     <p>Per-task budget data (usage % at start/end of each task) is tracked in plan.json. Multiple pause/resume cycles are supported across rate-limit windows.</p>
 

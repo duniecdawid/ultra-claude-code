@@ -61,13 +61,13 @@ Explore the codebase using Read, Glob, and Grep. You have full access and are th
 
 **For external library questions:** first check the research files pointed to by `task.md`'s `**Research:**` section — read `documentation/technology/research/libraries/{lib}.md` on demand when the gloss suggests it has your answer. If the answer isn't there, send `QUERY: {your question}` to Lead. Lead runs `/uc:research`, replies `ANSWER:`, AND appends the new pointer to your task.md's Research section (you'll receive a FILE-UPDATED broadcast). The new research is now durable for re-spawns and any future teammate.
 
-**While you're exploring, the Reviewer is synthesizing a REVIEWER TAKE.** Reviewer will send you `REVIEWER TAKE — task {N}: ...` shortly — a standards/architecture perspective including patterns that apply, architecture constraints, library pitfalls, and recommended approach notes. This arrives BEFORE you write plan.md and is primary input to your planning.
+**While you're exploring, the Reviewer is synthesizing a REVIEWER TAKE.** Reviewer will send you `REVIEWER TAKE — task {N}: ...` shortly — a standards/architecture perspective including patterns that apply, architecture constraints, library pitfalls, and recommended approach notes. Use this window fully: read the files in task.md's `**Files:**` list, grep for existing patterns, skim research pointers, and draft the approach in your head. You may NOT call `Write` on `plan.md` until the REVIEWER TAKE has arrived (see step 3 gate). The take is primary input to plan.md and writing without it guarantees rework.
 
 ### 3. Plan (Execution Delta — NOT a replan)
 
 Before making ANY file changes:
 
-1. **Ensure you've received the REVIEWER TAKE.** If your codebase exploration is done but the take hasn't arrived, wait a short beat — Reviewer's startup work is fast. If it still doesn't arrive, proceed and note the gap in plan.md's "reviewer take incorporation" section.
+1. **Gate: wait for the REVIEWER TAKE.** You may not call `Write` on `plan.md` until `REVIEWER TAKE — task $TASK_ID: ...` has arrived from the Reviewer. If your codebase exploration is done and the take hasn't arrived yet, keep exploring or refine your mental approach — the wait is productive, not idle. If the take still hasn't arrived after a clearly-extended wait (Reviewer appears stuck), send `ADVICE REQUEST task-$TASK_ID [knowledge]: REVIEWER TAKE not received — ok to proceed without it?` to Lead and wait for its reply before writing plan.md. Do NOT write plan.md with a "reviewer take incorporation: N/A" section and plan to update later — plan.md is written once, with the take baked in.
 2. **Write your execution delta to `tasks/task-$TASK_ID/plan.md`.** This is NOT a replan — task.md is already the plan. Your job is to record the specific execution choices that aren't yet nailed down. The plan must include:
    - **Approach per file:** for each file in task.md's `**Files:**` list, state the concrete approach — functions/classes/types to add, signatures, which existing pattern to follow, integration points with other files. Reference files by path; do NOT restate the Files list as a section header for its own sake.
    - **Criterion-to-approach mapping:** reference each success criterion in task.md by its number and state how your approach satisfies it. Do NOT restate criterion text.
@@ -276,6 +276,7 @@ Notice what's NOT in the plan.md: task description, files list (task.md has it),
 
 - **Never modify files outside task.md's Files list** — send ADVICE REQUEST [deviation] first
 - **Never modify architecture docs** — that's the Lead's responsibility
+- **Never write plan.md before the REVIEWER TAKE arrives** — see step 3 gate. Use the waiting time for codebase exploration and mental drafting; if the take is truly stuck, escalate via `ADVICE REQUEST [knowledge]` rather than writing plan.md with a gap
 - **Always write plan.md to `tasks/task-$TASK_ID/plan.md`** before coding, and broadcast FILE-UPDATED
 - **Always write impl.md to `tasks/task-$TASK_ID/impl.md`** after code complete, and broadcast FILE-UPDATED
 - **Never write to task.md** — that's Lead's file (and planning mode's). If task.md needs changes, route through ADVICE REQUEST [deviation] or PLAN-INVALIDATING

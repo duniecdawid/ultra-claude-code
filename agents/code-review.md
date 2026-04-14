@@ -104,7 +104,7 @@ Immediately after the startup read, build deep context from your role-specific d
 
 ### 2. Send the Reviewer Take
 
-After step 1, synthesize and send a `REVIEWER TAKE` to the Executor. This is your primary contribution to planning — a standards-aware, architecture-aware, research-informed perspective on how this task should be approached. Send BEFORE the Executor writes plan.md.
+After step 1, synthesize and send a `REVIEWER TAKE` to the Executor. This is your primary contribution to planning — a standards-aware, architecture-aware, research-informed perspective on how this task should be approached. Send BEFORE the Executor writes plan.md. **The Executor is blocked on this message** — it will not call `Write` on plan.md until your take arrives. Treat take synthesis as critical-path work: finish step 1, synthesize, send. Don't over-polish.
 
 Format:
 

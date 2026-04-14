@@ -1,5 +1,5 @@
 ---
-description: One-time machine setup for Ultra Claude. Checks and configures shell environment (1M context, agent teams), installs prerequisites (tmux, node), configures tmux for Claude Code (fixes screen tearing via DEC 2026 synchronized output passthrough), configures the statusline for per-account usage tracking, optionally sets up Tailscale for remote access, and — if the `ultraclaude-agent` npm package is already installed — checks for and offers to update it to the latest published version. Idempotent — safe to re-run. Writes version marker to ~/.claude/ultra/uc-setup.json so other skills can quickly check if setup is current. Use when onboarding a new machine, after Ultra Claude install, when plan-execution reports missing prerequisites, or when experiencing screen tearing/flickering in tmux. Triggers on "setup", "machine setup", "environment setup", "configure machine", "setup 1m context", "enable agent teams", "screen tearing", "tmux tearing", "flickering".
+description: One-time machine setup for Ultra Claude. Checks and configures shell environment (1M context, agent teams), installs prerequisites (tmux, node), configures tmux for Claude Code (fixes screen tearing via DEC 2026 synchronized output passthrough), configures the statusline for per-account usage tracking, optionally sets up Tailscale for remote access, optionally installs a tmux disconnected-session reaper for VSCode Remote SSH users whose tmux sessions pile up, and — if the `ultraclaude-agent` npm package is already installed — checks for and offers to update it to the latest published version. Idempotent — safe to re-run. Writes version marker to ~/.claude/ultra/uc-setup.json so other skills can quickly check if setup is current. Use when onboarding a new machine, after Ultra Claude install, when plan-execution reports missing prerequisites, when experiencing screen tearing/flickering in tmux, or when stale tmux sessions are accumulating on a remote machine. Triggers on "setup", "machine setup", "environment setup", "configure machine", "setup 1m context", "enable agent teams", "screen tearing", "tmux tearing", "flickering", "session cleanup", "tmux reaper", "reap tmux", "orphaned tmux", "stale tmux sessions".
 user-invocable: true
 ---
 
@@ -148,6 +148,37 @@ test -f ~/.claude/skills/machine-context/SKILL.md && echo present || echo missin
 
 Record status but don't mark as MISSING — this is optional. The `machine-context` skill holds per-machine values (Chrome install, VM/host topology, dev runtimes, network conventions, warnings) that other Ultra Claude skills read at runtime. Skills like `/uc:chrome-debug` fall back to pure runtime detection when it's absent, so the skill is not strictly required, but populating it makes future diagnostics and workflows more targeted.
 
+### 3.11 Session Cleanup (optional, Linux/systemd only)
+
+Optional opt-in tmux disconnected-session reaper for users whose tmux sessions accumulate on a remote machine (typically VSCode Remote SSH workflows). Full procedure — including the tradeoff prompt, file templates, and systemd unit definitions — lives in `references/session-cleanup.md`.
+
+Platform gate first:
+
+```bash
+[ "$(uname -s)" = "Linux" ] || echo "skip: not linux"
+command -v systemctl >/dev/null 2>&1 || echo "skip: no systemctl"
+```
+
+If the gate fails, record SKIP and move on — never mark as MISSING on non-Linux platforms.
+
+Otherwise detect current state per the reference's "Detection" section:
+
+```bash
+REAPER_BIN="$HOME/.local/bin/tmux-reap-disconnected.sh"
+SERVICE_UNIT="$HOME/.config/systemd/user/tmux-reap.service"
+TIMER_UNIT="$HOME/.config/systemd/user/tmux-reap.timer"
+[ -f "$REAPER_BIN" ] && [ -f "$SERVICE_UNIT" ] && [ -f "$TIMER_UNIT" ] && echo "files: yes" || echo "files: no"
+systemctl --user is-enabled tmux-reap.timer >/dev/null 2>&1 && echo "enabled: yes" || echo "enabled: no"
+systemctl --user is-active  tmux-reap.timer >/dev/null 2>&1 && echo "active: yes"  || echo "active: no"
+loginctl show-user "$USER" 2>/dev/null | grep -q '^Linger=yes' && echo "linger: yes" || echo "linger: no"
+```
+
+Record status but don't mark as MISSING — this is **strictly opt-in**. Treat as:
+
+- **PASS** — all three files exist AND timer is enabled AND active AND linger is on.
+- **OPT-IN AVAILABLE** — platform gate passed but files are absent or partial. Surface in Step 4 with the optional label; the fix in Step 5.11 must explicitly ask the user to opt in before touching anything.
+- **SKIP** — non-Linux or systemctl unavailable.
+
 ## Step 4: Present Status
 
 Display a status table:
@@ -165,6 +196,7 @@ Ultra Claude Environment Check (plugin v{version})
   Tailscale (optional)      — not installed
   Agent (optional)          — not installed   # or "✓ 0.0.26 (latest)" / "✗ 0.0.25 → 0.0.26"
   Machine Context (optional) — not configured
+  Session Cleanup (optional) — not installed  # or "✓ reaper active (24h)" / "— skipped (not linux)"
 ```
 
 If ALL required checks pass (3.1–3.7):
@@ -175,7 +207,7 @@ If ALL required checks pass (3.1–3.7):
 
 ## Step 5: Fix Missing Prerequisites
 
-Use AskUserQuestion with a multi-select to let the user choose which items to fix. List only MISSING items. Always include Tailscale if not installed (marked as optional in the description).
+Use AskUserQuestion with a multi-select to let the user choose which items to fix. List only MISSING items. Always include Tailscale if not installed (marked as optional in the description). On Linux, always include Session Cleanup if not yet installed (marked as optional, with a short one-liner about the tradeoff — the full warning lives in the fix step's own prompt).
 
 ### 5.1 Fix: tmux
 
@@ -405,6 +437,32 @@ If the user selected Machine Context, run the interview-driven scaffolding proce
 
 See `references/machine-context-interview.md` for the full question set and file templates.
 
+### 5.11 Fix: Session Cleanup (opt-in, Linux/systemd only)
+
+Skip this fix entirely if the platform gate in 3.11 failed (not Linux, or no systemctl). Skip it also if check 3.11 already reported PASS — the user has a working reaper, leave it alone unless they explicitly picked "Reinstall" or "Repair".
+
+This is **strictly opt-in**. Before writing any files, present the user with the tradeoff prompt from `references/session-cleanup.md` (section "Opt-in prompt"). The prompt must make clear that:
+
+1. The reaper **cleans up** stale tmux sessions — great for VSCode Remote SSH users whose integrated terminals leave orphaned sessions behind.
+2. The reaper **disrupts your ability to resume work** in any detached tmux session older than 24 hours — including sessions you deliberately detached with `Ctrl-b d` intending to come back later. Scrollback and running processes inside those sessions are lost.
+3. If the user relies on long-lived detached sessions to pick up work across days, they should pick `[Skip]`.
+
+Use `AskUserQuestion` with the options described in the reference — at minimum `[Install]` and `[Skip]`, adding `[Reinstall]`, `[Repair]`, `[Remove]`, or `[Leave as is]` when the current install state calls for them. Default to the non-destructive option.
+
+Only if the user explicitly chose Install / Reinstall / Repair, follow the "Install / repair implementation" section of `references/session-cleanup.md`:
+
+1. Write `$HOME/.local/bin/tmux-reap-disconnected.sh` with the `Write` tool (the exact content is in the reference). `chmod +x` it afterwards.
+2. Write `$HOME/.config/systemd/user/tmux-reap.service`.
+3. Write `$HOME/.config/systemd/user/tmux-reap.timer`.
+4. Run `systemctl --user daemon-reload` and `systemctl --user enable --now tmux-reap.timer`.
+5. If `loginctl show-user "$USER"` reports `Linger=no`, run `sudo loginctl enable-linger "$USER"`. If the user doesn't have passwordless sudo, print the exact command and wait for them to run it — do **not** silently proceed.
+
+If the user picked `[Remove]`, follow the "Remove" section of the reference and stop.
+
+After any install/reinstall/repair, run the "Verify" block from the reference and report: timer enabled/active, next scheduled run, linger state, threshold (default 24h, tunable via `TMUX_REAP_THRESHOLD` in the service unit), and the three file paths.
+
+All writes land under `$HOME`. Nothing touches project directories.
+
 ## Step 6: Write Marker File
 
 After all fixes are applied, write `~/.claude/ultra/uc-setup.json`:
@@ -425,7 +483,8 @@ After all fixes are applied, write `~/.claude/ultra/uc-setup.json`:
     "sessionHooks": true/false,
     "tailscale": true/false,
     "agent": "{installed version or null if not installed}",
-    "machineContext": true/false
+    "machineContext": true/false,
+    "sessionCleanup": "installed" | "skipped" | "not-linux" | "opted-out"
   }
 }
 ```

@@ -257,9 +257,10 @@ PLAN_DIR=documentation/plans/$ARGUMENTS
 
 **PM name:** pm-{PLAN_NAME}
 
-You tick every 1 minute. Check usage thresholds (75% soft, 90% hard) and
-executor staleness (>10 min silence). Signal PM only when something needs
-attention. Stay silent when everything is fine.
+You tick every 1 minute. Check two rate-limit windows independently
+(5h: 80% soft / 90% hard, 7d: 90% soft / 95% hard) and executor staleness
+(>10 min silence). Emit window-qualified signals to PM only when something
+needs attention. Stay silent when everything is fine.
 
 Follow the workflow in your agent instructions.
 ```

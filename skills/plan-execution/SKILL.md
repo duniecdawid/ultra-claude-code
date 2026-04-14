@@ -67,7 +67,7 @@ Executor and Reviewer spawn together at task start. Tester is lazy-spawned when 
 Reviewer:   reads task.md + standards + architecture + patterns → synthesizes REVIEWER TAKE
             → sends to Executor IMMEDIATELY (before Executor plans) → reads files as Executor progresses
             → formal review on "ready for review" → sends PASS/FAIL to Executor
-Executor:   reads task.md (startup) → explores codebase → receives REVIEWER TAKE
+Executor:   reads task.md (startup) → explores codebase → BLOCKS until REVIEWER TAKE arrives
             → writes plan.md (thin execution delta that extends task.md — does not restate it)
             → runs deviation self-check → if clean, proceeds to implement (no Lead gate)
             → if deviation: sends ADVICE REQUEST task-N [deviation] to Lead, waits for APPROVED/AMEND
@@ -87,7 +87,7 @@ Both PASS:  Executor confirms teammates ready to exit → tells Lead "task done"
 **Key principles:**
 - **ONE dedicated team per task, NO sharing.** Task 1 gets its own Executor-1, Reviewer-1, Tester-1. Task 2 gets its own set. They never cross.
 - **File-based team context** — spawn prompts are minimal. Per-task content lives in `tasks/task-N/task.md` (Lead-authored at planning time, amended by Lead during execution), `plan.md` (Executor's execution delta), and `impl.md` (Executor's implementation notes). Agents read the task directory as their first action on startup.
-- **Reviewer speaks first** — Reviewer's unique standards/architecture knowledge is front-loaded as a `REVIEWER TAKE` message sent to Executor immediately after Reviewer's startup read, BEFORE Executor writes plan.md. This replaces the old advisory plan-review round-trip. Reviewer's formal code review later is unchanged.
+- **Reviewer speaks first** — Reviewer's unique standards/architecture knowledge is front-loaded as a `REVIEWER TAKE` message sent to Executor immediately after Reviewer's startup read, BEFORE Executor writes plan.md. **Executor cannot call `Write` on plan.md until the take arrives** — while waiting it continues codebase exploration and mental drafting, so the wait is productive not idle. If the take stalls, Executor escalates to Lead via `ADVICE REQUEST [knowledge]`. This replaces the old advisory plan-review round-trip. Reviewer's formal code review later is unchanged.
 - **Executor's plan.md is a thin extension, not a replan.** It records only what task.md doesn't already contain — concrete function/class/signature choices, criterion-to-approach mapping by ID, reviewer-take incorporation, risks. task.md stays authoritative.
 - **Lead plan review is replaced by deviation-check + ADVICE.** Default happy path: Executor writes plan.md, self-checks for deviation from task.md, and proceeds directly to implementation. Lead only sees plan.md if Executor self-detects a deviation (new files, skipped criterion, reviewer-take contradiction) and sends `ADVICE REQUEST task-N [deviation]`. Non-deviation ADVICE cases (complicated, deep-reasoning, knowledge) are optional and non-blocking — Executor can pull Lead's judgment at any time.
 - **Tester is lazy-spawned (but early)** — Tester is spawned by the Lead when Executor signals `code complete — writing impl report`, which fires *before* Executor writes `impl.md` or commits. Tester reads task.md + product docs + testing config while Executor finishes the impl report, hiding cold-start latency.
@@ -112,7 +112,7 @@ After spawning each team:
 
 When you receive a message, match it against the table below and execute the action.
 
-**Wake-up trace (temporary diagnostic mode):** every time a message wakes you up, your **first** user-visible output for that turn is exactly **one sentence** describing the message you just received — sender, type, and task ID if applicable. Examples: `Received: FILE-UPDATED task-3/impl.md from executor-3.` / `Received: code complete from executor-2.` / `Received: USAGE SOFT-LIMIT from PM.` Then process the handler row. Between wake-ups, stay silent — do NOT narrate state, plans, or what teammates are doing. This trace exists so the user can audit which senders are noisy and decide whether Lead actually needs each message; it replaces the old "be silent between messages" rule for now.
+**Wake-up trace (temporary diagnostic mode):** every time a message wakes you up, your **first** user-visible output for that turn is exactly **one sentence** describing the message you just received — sender, type, and task ID if applicable. Examples: `Received: FILE-UPDATED task-3/impl.md from executor-3.` / `Received: code complete from executor-2.` / `Received: USAGE SOFT-LIMIT [5h] from PM.` Then process the handler row. Between wake-ups, stay silent — do NOT narrate state, plans, or what teammates are doing. This trace exists so the user can audit which senders are noisy and decide whether Lead actually needs each message; it replaces the old "be silent between messages" rule for now.
 
 **Other user-visible outputs from the Lead during execution:**
 1. The dashboard URL (relay from PM)
@@ -131,9 +131,9 @@ When you receive a message, match it against the table below and execute the act
 | Executor: `"Task {N} escalation needed"` | Escalate to user with evidence. If any pre-spawned successor M is parked with N as its predecessor, note this in the escalation — the parked team stays alive while the user decides. On user "abort/skip": shut down parked M before proceeding. On user "continue/retry": M stays parked and will receive `Implementation approved` when N eventually reaches `task done`. |
 | Executor: `"PLAN-INVALIDATING: ..."` | Pause pipeline. Evaluate scope. Amend (update `tasks/task-N/task.md` + broadcast FILE-UPDATED) or escalate. Parked pipeline successors stay parked through the pause. If the amendment drops or materially changes a parked successor's task, shut down that successor explicitly before resuming. |
 | PM: `"Dashboard live at {URL}"` | Display to user immediately: `"📊 Live dashboard: {URL}"` — do NOT silently consume. |
-| PM: `"USAGE HARD-LIMIT: ..."` | Emergency. Read `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/usage-control.md`. Stop all active teams immediately. Do not spawn anything new. Wait for USAGE RESET. |
-| PM: `"USAGE SOFT-LIMIT: ..."` | Advisory. Read `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/usage-control.md`. Decide: continue with caution, stop spawning, or pause teams — based on active work, remaining tasks, and PM's reported context. |
-| PM: `"USAGE RESET: ..."` | Rate-limit window cleared. Resume normal operations — reassess budget, start spawning remaining tasks. |
+| PM: `"USAGE HARD-LIMIT [{window}]: ..."` | Emergency (5h ≥90% or 7d ≥95%). Read `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/usage-control.md`. **Stop all active teams immediately** (SendMessage each active executor/reviewer/tester: "STOP: usage emergency {window}={pct}%. Save work and stop."). Record `{window}: hard` in the `## Usage Blocks` section of `shared/lead.md`. Trigger checkpoint (Phase 3). Do not spawn anything new until USAGE RESET clears ALL blocks. |
+| PM: `"USAGE SOFT-LIMIT [{window}]: ..."` | Advisory (5h ≥80% or 7d ≥90%). Read `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/usage-control.md`. **Do NOT stop current work** — active teams finish their current task. **Stop spawning new teams** — no slot-fill, no pipeline pre-spawn. Record `{window}: soft` in the `## Usage Blocks` section of `shared/lead.md`. On the next `task done` message, trigger checkpoint (Phase 3) in addition to the normal shutdown. Keep processing incoming task-done messages — shut down teams but do NOT fill slots. |
+| PM: `"USAGE RESET [{window}]: ..."` | That window cleared. Remove `{window}:` entry from `## Usage Blocks` in `shared/lead.md`. **If other usage blocks remain** (e.g., 7d still at soft while 5h reset), stay paused. **If all blocks cleared**, resume normal operations — reassess budget, fill concurrency slots with next unblocked tasks. |
 | PM: `"STALL: executor-{N} ..."` | Investigate — check if agent crashed, re-spawn if needed. |
 | PM: `"STALE DATA: ..."` | Usage readings may be outdated. Correlate with stall reports. Investigate if teams should be active. |
 
@@ -141,19 +141,40 @@ After processing a message (one-sentence trace + handler action), return to wait
 
 ### Usage Response Protocol
 
-When PM forwards a usage alert from the watchdog, Lead reads `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/usage-control.md` for the full decision framework. Summary:
+The watchdog monitors two independent rate-limit windows: the 5-hour window (soft ≥80%, hard ≥90%) and the 7-day window (soft ≥90%, hard ≥95%). PM validates the watchdog's signals and forwards them to Lead with a `[5h]` or `[7d]` label. Lead's behavior is **uniform across windows** — only the thresholds and reset horizons differ. Read `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/usage-control.md` for the full decision framework. Summary:
 
-**On USAGE SOFT-LIMIT:** Lead decides based on active teams, remaining work, and PM's context (avg task cost, projected burn). May: continue with caution, stop spawning new teams, or pause active teams.
+**On USAGE SOFT-LIMIT [window]:**
+- Record `{window}: soft` in the `## Usage Blocks` section of `shared/lead.md` (create the section if missing).
+- **Allow active teams to finish their current task** — do NOT stop them, do NOT interrupt in-flight work.
+- **Stop spawning new teams** — no slot-fill, no pipeline pre-spawn. Parked pipeline successors stay parked.
+- On the next incoming `task done` message, process shutdown normally AND trigger a Phase 3 checkpoint.
 
-**On USAGE HARD-LIMIT:** Lead stops all active teams immediately. No new spawns. Waits for USAGE RESET.
+**On USAGE HARD-LIMIT [window]:**
+- Record `{window}: hard` in the `## Usage Blocks` section of `shared/lead.md`.
+- **Stop all active teams immediately.** SendMessage each active executor/reviewer/tester: `"STOP: usage emergency {window}={pct}%. Save work and stop."`
+- Trigger a Phase 3 checkpoint immediately.
+- Do not spawn anything new until USAGE RESET clears all blocks.
 
-**On USAGE RESET:** Lead resumes normal operations — reassesses budget, fills concurrency slots.
+**On USAGE RESET [window]:**
+- Remove the `{window}:` entry from `## Usage Blocks`.
+- **If other blocks remain** (e.g., 5h reset but 7d still at soft): stay paused.
+- **If all blocks cleared**: resume normal operations — reassess budget, fill concurrency slots with next unblocked tasks.
 
-**During any usage pause:**
-1. Note expected resume time in `shared/lead.md`
-2. Trigger checkpoint (Phase 3)
+**Usage Blocks tracking in `shared/lead.md`:**
+
+```markdown
+## Usage Blocks
+- 5h: soft        (since 2026-04-14T10:30:00Z, reset_at 2026-04-14T15:00:00Z)
+- 7d: none
+```
+
+Whenever any block entry is non-`none`, Lead does not spawn new teams. Any `hard` entry means all teams are stopped. The watchdog continues ticking during pauses and will emit USAGE RESET events when either window clears.
+
+**During any usage pause, regardless of window:**
+1. Note state in `## Usage Blocks` in `shared/lead.md`
+2. Trigger checkpoint (Phase 3) — immediately on hard, on next `task done` on soft
 3. Process incoming "task done" messages — shut down teams, do NOT fill slots
-4. The watchdog continues ticking and will signal PM when usage resets; PM forwards USAGE RESET to Lead
+4. The watchdog continues ticking and will signal PM when either window resets; PM forwards USAGE RESET [window] to Lead
 
 ### Lead Priority Order
 
@@ -175,7 +196,7 @@ When ready to spawn teammates, read the detailed spawn prompts for each role.
 
 In the new model there is NO universal Lead plan review. Planning flows like this:
 
-1. **Reviewer speaks first** — immediately after spawn, Reviewer reads task.md + standards + architecture + patterns and sends a `REVIEWER TAKE` to Executor. This captures the Reviewer's standards-aware perspective BEFORE Executor plans, replacing the old advisory plan-review round-trip.
+1. **Reviewer speaks first** — immediately after spawn, Reviewer reads task.md + standards + architecture + patterns and sends a `REVIEWER TAKE` to Executor. This captures the Reviewer's standards-aware perspective BEFORE Executor plans, replacing the old advisory plan-review round-trip. **Executor blocks on this message before writing plan.md** — the take is primary planning input, not an optional enhancement. If the take stalls, Executor escalates via `ADVICE REQUEST [knowledge]` rather than writing plan.md with a gap.
 2. **Executor writes plan.md** — a thin execution delta that extends task.md (concrete functions/classes/signatures, criterion-to-approach mapping by ID, reviewer-take incorporation, risks). plan.md does NOT restate task.md content.
 3. **Deviation self-check** — before implementing, Executor verifies plan.md against task.md: every proposed file appears in task.md's Files list, every success criterion has a mapping entry, no contradiction with REVIEWER TAKE. If all three pass, implement. If any fails, Executor sends `ADVICE REQUEST task-{N} [deviation]` and waits for `APPROVED` or `AMEND`.
 4. **ADVICE is open throughout** — Executor can pull Lead's judgment at any time via `ADVICE REQUEST task-{N} [{case}]: ...` for complicated / deep-reasoning / knowledge / deviation cases. Non-deviation cases are non-blocking. See `references/phase-2-spawn-prompts.md` and agent files for details.

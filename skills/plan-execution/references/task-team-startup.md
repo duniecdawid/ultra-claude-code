@@ -31,7 +31,7 @@ Role-specific reads (standards/architecture/product docs/testing docs) are NOT p
 | File | Executor | Reviewer | Tester |
 |---|---|---|---|
 | `task.md` | Must exist at startup (hard error if missing) | Must exist at startup | Must exist at startup |
-| `plan.md` | Creates it in step 3.2 of its workflow after receiving REVIEWER TAKE and exploring the codebase | Does NOT read plan.md — Reviewer's upfront input is sent BEFORE plan.md exists; later formal review reads source files, not plan.md | Absent at lazy-spawn (Executor already wrote it before code-complete); read during startup pass if present, otherwise on first `FILE-UPDATED` broadcast |
+| `plan.md` | Blocks on REVIEWER TAKE before calling `Write` on plan.md. Explores codebase + mentally drafts the approach while waiting. Creates it in step 3 of its workflow once the take has arrived. | Does NOT read plan.md — Reviewer's upfront input is sent BEFORE plan.md exists; later formal review reads source files, not plan.md | Absent at lazy-spawn (Executor already wrote it before code-complete); read during startup pass if present, otherwise on first `FILE-UPDATED` broadcast |
 | `impl.md` | Creates it in step 4.5 of its workflow | Absent until "ready for review"; read on that signal | Absent at lazy-spawn (Executor is writing it in parallel with your startup); read when "ready for test" arrives — ONLY for the file list |
 
 ## 5. FILE-UPDATED broadcast protocol
