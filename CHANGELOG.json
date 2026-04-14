@@ -1,5 +1,12 @@
 [
   {
+    "seq": 132,
+    "version": "2026.04.14-5",
+    "date": "2026-04-14",
+    "summary": "Plan-execution Lead: replace the 'be silent between messages' rule with a temporary wake-up trace requirement so the user can audit which senders are actually noisy. Background: Lead has been spamming 'Waiting for executor-N' / state-narration text between handler turns. Root cause is structural — Claude's assistant loop must produce either a tool call or text per turn, and rows like FILE-UPDATED ('No Lead action') and pipeline 'planning complete — awaiting implementation approval' ('No reply needed') give Lead nothing to call, so the model fills the empty turn with narration. Prose telling it to 'be silent' can't beat the mechanical constraint. Interim diagnostic fix: every wake-up must produce exactly one sentence describing the message just received (sender + type + task ID), e.g. 'Received: FILE-UPDATED task-3/impl.md from executor-3.' or 'Received: code complete from executor-2.' This is the only allowed per-wake-up text — no commentary, no prediction, no 'waiting for X.' Once the user has reviewed the trace logs, we'll cut the noisy senders at the source (likely: stop CC'ing Lead on FILE-UPDATED broadcasts, drop the pipeline parking confirmation ping) and remove the trace requirement. Edits in skills/plan-execution/SKILL.md: rewrote the Message Handlers preamble (line 113), updated the post-handler return rule (line 138), expanded the Anti-Patterns section to clarify that the trace is the only allowed output and is not a license for narration, and tightened the constraint bullet.",
+    "migration": null
+  },
+  {
     "seq": 131,
     "version": "2026.04.14-4",
     "date": "2026-04-14",
