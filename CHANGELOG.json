@@ -1,5 +1,19 @@
 [
   {
+    "seq": 129,
+    "version": "2026.04.14-2",
+    "date": "2026-04-14",
+    "summary": "/uc:research: fix silent cache-miss bailouts. The skill had conditional language in Step 6 ('If the index query returned null...') and no top-level invariant enforcing that every invocation produces a result. Agents running the skill could hit ambiguous in-between cases — index returned a fresh-by-date entry whose topics[] didn't actually cover the user's topic, or a weak summary-only match, or classification ambiguity that resolved to 'idk' — and silently return 'no match found' without firing Step 6. Fix: (1) new mandatory Invariant section at the top stating every invocation ends in one of two outcomes — cache hit or agent spawn, no third option; (2) rewrite Step 5 as an explicit three-check list (non-null entry AND topics/subject substring match AND not expired) with explicit fall-through to Step 6 on any miss, including H2-section-not-found-in-file (index claimed coverage the file doesn't deliver); (3) rewrite Step 6 header as 'MANDATORY ON ANY NON-HIT' with an enumerated list of cases that land there; (4) add 'cache miss is the default fallback, not a separate condition' guideline. No behavior change on successful cache hits; the fix closes the 'I checked the cache and nothing was a good match' failure mode where the agent would narrate instead of spawn.",
+    "migration": null
+  },
+  {
+    "seq": 128,
+    "version": "2026.04.14-1",
+    "date": "2026-04-14",
+    "summary": "Usage-limit management redesign: replace PM's 5-min cron polling with a three-agent system (Haiku watchdog → PM → Lead). New Haiku watchdog agent ticks every 1 minute checking usage thresholds (75% soft, 90% hard) and executor staleness (>10 min silence), signals PM only when something needs attention. PM becomes event-driven (no cron) — validates watchdog alerts, adds operational context, forwards to Lead with recommendations, tracks per-task budget data (usage % at start/end of each task). Lead is the decision-maker — can decide not to start task 1, stop spawning, pause teams, hard-stop, or resume, guided by new usage-control.md reference. Watchdog placed in PM column in tmux layout. Per-task budget object added to plan.json schema. ~6x token cost reduction for monitoring.",
+    "migration": null
+  },
+  {
     "seq": 127,
     "version": "2026.04.13-15",
     "date": "2026-04-13",
