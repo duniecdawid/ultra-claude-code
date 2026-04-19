@@ -114,6 +114,8 @@ When you receive a message, match it against the table below and execute the act
 
 **Wake-up trace (temporary diagnostic mode):** every time a message wakes you up, your **first** user-visible output for that turn is exactly **one sentence** describing the message you just received — sender, type, and task ID if applicable. Examples: `Received: FILE-UPDATED task-3/impl.md from executor-3.` / `Received: code complete from executor-2.` / `Received: USAGE PAUSE [5h] from PM.` Then process the handler row. Between wake-ups, stay silent — do NOT narrate state, plans, or what teammates are doing. This trace exists so the user can audit which senders are noisy and decide whether Lead actually needs each message; it replaces the old "be silent between messages" rule for now.
 
+**Exception — watchdog noise:** The Haiku watchdog is instructed to produce zero text on clean ticks, but it sometimes leaks words like "healthy", "no issues", "monitoring", or similar. If you receive text from the watchdog that is NOT a PM-forwarded alert (i.e., does not match `USAGE CONSERVE/PAUSE/KILL/RESET`, `STALL`, or `STALE DATA`), **discard it silently** — do not trace it, do not process it, do not produce any output for it. The watchdog's only meaningful communication flows through PM.
+
 **Other user-visible outputs from the Lead during execution:**
 1. The dashboard URL (relay from PM)
 2. Escalation questions (relay to user)
