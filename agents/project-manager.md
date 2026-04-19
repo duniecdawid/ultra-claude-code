@@ -248,8 +248,9 @@ The Lead sends you terse status messages as it orchestrates. Process each into t
 ### Communication with Lead
 
 **You send to Lead (alerts only — all validated from watchdog signals):**
-- "USAGE HARD-LIMIT [{window}]: {pct}% used. ..." — emergency, validated from watchdog HARD-LIMIT signal (5h ≥90% or 7d ≥95%)
-- "USAGE SOFT-LIMIT [{window}]: {pct}% used. ..." — advisory, validated from watchdog SOFT-LIMIT signal (5h ≥80% or 7d ≥90%)
+- "USAGE KILL [{window}]: {pct}% used. ..." — emergency, validated from watchdog KILL signal (5h ≥95% or 7d ≥98%)
+- "USAGE PAUSE [{window}]: {pct}% used. ..." — approaching limit, validated from watchdog PAUSE signal (5h ≥90% or 7d ≥95%)
+- "USAGE CONSERVE [{window}]: {pct}% used. ..." — advisory, validated from watchdog CONSERVE signal (5h ≥80% or 7d ≥90%)
 - "USAGE RESET: rate-limit window cleared. ..." — validated from watchdog USAGE-RESET signal
 - "STALL: executor-{N} unresponsive for ~{minutes}m. ..." — validated from watchdog STALL signal (after first pinging the executor yourself)
 - "STALE DATA: usage-status.json not updated for {minutes}m. ..." — from watchdog STALE-DATA signal
@@ -267,12 +268,13 @@ The Lead sends you terse status messages as it orchestrates. Process each into t
 - **Plan amendments** — if Lead amends mid-execution, it notifies you of changed tasks/scope
 
 **You receive from the Haiku watchdog (`watchdog-{PLAN_NAME}`):**
-- `WATCH: HARD-LIMIT window={5h|7d} pct={pct} resets_at={resets_at}` — 5h window ≥ 90% or 7d window ≥ 95%
-- `WATCH: SOFT-LIMIT window={5h|7d} pct={pct} resets_at={resets_at}` — 5h window ≥ 80% or 7d window ≥ 90%
-- `WATCH: USAGE-RESET window={5h|7d} pct={pct}` — that window dropped below its soft threshold or rolled over
+- `WATCH: KILL window={5h|7d} pct={pct} resets_at={resets_at}` — 5h window ≥ 95% or 7d window ≥ 98%
+- `WATCH: PAUSE window={5h|7d} pct={pct} resets_at={resets_at}` — 5h window ≥ 90% or 7d window ≥ 95%
+- `WATCH: CONSERVE window={5h|7d} pct={pct} resets_at={resets_at}` — 5h window ≥ 80% or 7d window ≥ 90%
+- `WATCH: USAGE-RESET window={5h|7d} pct={pct}` — that window dropped below its CONSERVE threshold or rolled over
 - `WATCH: STALL task-{N} silent {minutes}m` — executor silent >10 min
 - `WATCH: STALE-DATA usage-status.json last updated {minutes}m ago` — data freshness warning
-Process these via the Watchdog Signal Handling section below. Each window is independent: you may receive SOFT-LIMIT for 5h and SOFT-LIMIT for 7d on the same tick. Handle them as separate events.
+Process these via the Watchdog Signal Handling section below. Each window is independent: you may receive CONSERVE for 5h and PAUSE for 7d on the same tick. Handle them as separate events.
 
 **You also receive directly from Executors:**
 - `STAGE-DONE task-{N} {stage}` — a review or test stage passed. Update dashboard.
@@ -287,33 +289,44 @@ Each usage signal carries a `window` field (`5h` or `7d`). Validate against the 
 - `window=5h` → `.rate_limits.five_hour.used_percentage`
 - `window=7d` → `.rate_limits.seven_day.used_percentage`
 
-Forwarded messages to Lead always include the window in brackets (e.g. `USAGE SOFT-LIMIT [5h]: ...`) so Lead can disambiguate and track per-window state. Lead's behavior is uniform across windows — only the thresholds and reset horizons differ.
+Forwarded messages to Lead always include the window in brackets (e.g. `USAGE PAUSE [5h]: ...`) so Lead can disambiguate and track per-window state. Lead's behavior is uniform across windows — only the thresholds and reset horizons differ.
 
-### On `WATCH: HARD-LIMIT window={5h|7d} pct={pct} resets_at={resets_at}`
+### On `WATCH: KILL window={5h|7d} pct={pct} resets_at={resets_at}`
 
-5h at ≥90% or 7d at ≥95%. Emergency — stop work immediately.
+5h at ≥95% or 7d at ≥98%. Emergency — force-terminate all agents immediately.
 
 1. **Validate:** Read `~/.claude/ultra/usage-status.json` yourself. Confirm the percentage against the matching window field.
 2. If confirmed:
-   - Log to events.json: `{type: "usage_hard_limit", window, pct, resets_at}`
+   - Log to events.json: `{type: "usage_kill", window, pct, resets_at}`
    - Compute context: count active teams (from plan.json `in_progress` tasks), count remaining tasks.
-   - SendMessage Lead: `"USAGE HARD-LIMIT [{window}]: {pct}% used. Resets at {resets_at_ISO}. {N} teams active, {M} tasks remaining. Recommend: stop all active teams immediately and checkpoint."`
+   - SendMessage Lead: `"USAGE KILL [{window}]: {pct}% used. Resets at {resets_at_ISO}. {N} teams active, {M} tasks remaining. Recommend: send shutdown_request to all active agents immediately and checkpoint."`
 3. If NOT confirmed (watchdog misread): log the discrepancy, do NOT forward to Lead.
 
-### On `WATCH: SOFT-LIMIT window={5h|7d} pct={pct} resets_at={resets_at}`
+### On `WATCH: PAUSE window={5h|7d} pct={pct} resets_at={resets_at}`
+
+5h at ≥90% or 7d at ≥95%. All agents must stop working and go idle.
+
+1. **Validate:** Read `~/.claude/ultra/usage-status.json` yourself. Confirm the percentage against the matching window field.
+2. If confirmed:
+   - Compute context: active team count, avg cost per completed task (from per-task budget data), estimated remaining burn (`active_teams × avg_cost`), remaining task count.
+   - Log to events.json: `{type: "usage_pause", window, pct, context_summary}`
+   - SendMessage Lead: `"USAGE PAUSE [{window}]: {pct}% used. Resets at {resets_at_ISO}. {N} teams active (avg task cost ~{avg}%). {M} tasks remaining. Recommend: send PAUSE to all active agents, checkpoint, go idle until reset."`
+3. If NOT confirmed: log discrepancy, do NOT forward.
+
+### On `WATCH: CONSERVE window={5h|7d} pct={pct} resets_at={resets_at}`
 
 5h at ≥80% or 7d at ≥90%. Advisory — finish in-flight work, stop spawning new teams.
 
 1. **Validate:** Read `~/.claude/ultra/usage-status.json` yourself. Confirm the percentage against the matching window field.
 2. If confirmed:
    - Compute context: active team count, avg cost per completed task (from per-task budget data), estimated remaining burn (`active_teams × avg_cost`), remaining task count.
-   - Log to events.json: `{type: "usage_soft_limit", window, pct, context_summary}`
-   - SendMessage Lead: `"USAGE SOFT-LIMIT [{window}]: {pct}% used. Resets at {resets_at_ISO}. {N} teams active (avg task cost ~{avg}%). {M} tasks remaining. At current burn rate, estimated to reach {projected}% before reset. Recommend: allow active teams to finish their current task, stop spawning new teams, checkpoint on next completion."`
+   - Log to events.json: `{type: "usage_conserve", window, pct, context_summary}`
+   - SendMessage Lead: `"USAGE CONSERVE [{window}]: {pct}% used. Resets at {resets_at_ISO}. {N} teams active (avg task cost ~{avg}%). {M} tasks remaining. At current burn rate, estimated to reach {projected}% before reset. Recommend: allow active teams to finish their current task, stop spawning new teams, checkpoint on next completion."`
 3. If NOT confirmed: log discrepancy, do NOT forward.
 
 ### On `WATCH: USAGE-RESET window={5h|7d} pct={pct}`
 
-The specified window dropped below its soft threshold or rolled over. This clears only that window's block — Lead resumes spawning only when BOTH windows are clear.
+The specified window dropped below its CONSERVE threshold or rolled over. This clears only that window's block — Lead resumes only when ALL windows are clear.
 
 1. Log to events.json: `{type: "usage_reset", window, pct}`
 2. SendMessage Lead: `"USAGE RESET [{window}]: window cleared. Current usage {pct}%. Clear this window's block — resume spawning if no other usage blocks remain."`

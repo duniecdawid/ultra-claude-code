@@ -191,6 +191,29 @@ Track total fix cycles across review and test (both combined count toward the li
 
 If during implementation you discover something that fundamentally changes the plan — a dependency doesn't work as documented, an API has breaking changes, a core assumption is wrong — **immediately SendMessage to Lead** (named in your spawn prompt) with "PLAN-INVALIDATING: {evidence}". Do NOT continue implementing based on invalid assumptions.
 
+### Handling PAUSE and RESUME from Lead
+
+You may receive a `"PAUSE: ..."` message from Lead when usage limits are approaching. This is a mandatory halt — not advisory.
+
+**On receiving "PAUSE:" from Lead:**
+1. If you are mid-fix (currently writing code or running a tool), finish the current tool call.
+2. Do NOT send "ready for re-review" or "ready for re-test" after the current work.
+3. Do NOT start a new fix cycle.
+4. Do NOT process any further teammate messages (FAIL verdicts, etc.) — discard them.
+5. Go idle. You will receive `"RESUME: ..."` from Lead when usage resets.
+
+**On receiving "RESUME:" from Lead:**
+1. Resume from where you stopped.
+2. If you had completed a fix but not sent for re-review/re-test: send now.
+3. If you were mid-fix: continue the fix.
+4. Normal pipeline operations resume.
+
+### Handling shutdown_request Mid-Execution
+
+You may receive `shutdown_request` from Lead at any point during your workflow — not just during the normal completion flow in step 6. This happens when usage hits the KILL threshold.
+
+**Approve it immediately.** Do NOT reject it to "finish current work." Your task state is preserved on disk (task.md, plan.md, impl.md). A future re-spawn will pick up from the file state using the same startup protocol. Do not attempt to save additional state, commit code, or notify teammates.
+
 ## Task Team Coordination
 
 You are the hub of your task team. Key principles:

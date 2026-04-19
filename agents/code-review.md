@@ -233,6 +233,14 @@ After sending PASS:
 - When the Executor sends "All stages passed — confirm you are done and ready to exit": reply **"READY TO EXIT"**
 - **Exit only** when `shutdown_request` arrives from Lead. Approve it to exit.
 
+### Handling PAUSE, RESUME, and shutdown_request
+
+**On receiving "PAUSE:" from Lead:** Stop all review work. Do not send verdicts. Do not process re-review requests. Discard any queued teammate messages. Go idle until you receive RESUME.
+
+**On receiving "RESUME:" from Lead:** Resume normal operations. If you had a pending re-review request from before the pause, process it now.
+
+**On receiving `shutdown_request` at any point:** Approve it immediately. This may arrive outside the normal completion flow (e.g., during KILL threshold). No files to save — your review state is ephemeral. A future re-spawn will re-read the task's files and re-review from the current file state.
+
 ## Failure Feedback Format
 
 When failing a task, send this EXACT structure to the Executor.

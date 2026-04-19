@@ -43,6 +43,15 @@ Write to `documentation/plans/$ARGUMENTS/checkpoint-{YYYY-MM-DD-HHmm}.md`:
 ## Blockers
 
 - {description}: {status}
+
+## Usage State
+
+- 5h block: {none/conserve/pause/kill}
+- 7d block: {none/conserve/pause/kill}
+- highest_tier: {conserve/pause/kill}
+- paused_agents: [executor-2, reviewer-2, tester-2]
+- killed_agents: []
+- tasks_in_progress: [task-2 (stage: review, retry: 1), task-3 (stage: impl, retry: 0)]
 ```
 
-Note: `shared/lead.md` and `tasks/*/` files are already on disk — no need to duplicate in checkpoint.
+Note: `shared/lead.md` and `tasks/*/` files are already on disk — no need to duplicate in checkpoint. The Usage State section is populated only when a checkpoint is triggered by a PAUSE or KILL event — omit it for routine checkpoints.

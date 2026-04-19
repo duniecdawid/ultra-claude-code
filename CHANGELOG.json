@@ -1,5 +1,12 @@
 [
   {
+    "seq": 140,
+    "version": "2026.04.19-1",
+    "date": "2026-04-19",
+    "summary": "Replace two-tier usage control (SOFT-LIMIT/HARD-LIMIT) with three-tier CONSERVE/PAUSE/KILL system. CONSERVE (5h ≥80%, 7d ≥90%) stops spawning new teams — no agent messages sent. PAUSE (5h ≥90%, 7d ≥95%) tells all active agents to go idle via text message — idle agents consume zero tokens, full context preserved. KILL (5h ≥95%, 7d ≥98%) force-terminates agents via shutdown_request protocol message — the only mechanism that reliably stops agents. On USAGE RESET: PAUSE recovery sends RESUME to idle agents (instant, zero re-spawn cost); KILL recovery re-spawns teams from checkpoint using per-task files (crash-recovery flow). Lead enters hold state during PAUSE/KILL — defers all ADVICE/QUERY from paused/killed agents to prevent accidentally unblocking stopped work. Watchdog signals renamed throughout (CONSERVE/PAUSE/KILL replace SOFT-LIMIT/HARD-LIMIT). PM forwarding updated to match. All three task-team agents (task-executor, code-review, task-tester) gain explicit PAUSE/RESUME handling and mid-execution shutdown_request approval instructions. Checkpoint template gains Usage State section for recovery. Docs site and help skill updated. Fixes incident where text STOP messages were ignored for 33 minutes while agents continued 8 fix cycles.",
+    "migration": null
+  },
+  {
     "seq": 139,
     "version": "2026.04.14-12",
     "date": "2026-04-14",

@@ -257,6 +257,14 @@ When the Executor sends "All stages passed — confirm you are done and ready to
 
 Then **wait for `shutdown_request`** from Lead. Approve it to exit.
 
+### Handling PAUSE, RESUME, and shutdown_request
+
+**On receiving "PAUSE:" from Lead:** Stop all test work. If a dev server is running, leave it running (no token cost while idle). Do not send verdicts. Do not process re-test requests. Discard any queued teammate messages. Go idle until you receive RESUME.
+
+**On receiving "RESUME:" from Lead:** Resume normal operations. If you had a pending re-test request from before the pause, process it now. Verify your dev server is still running — restart it if needed.
+
+**On receiving `shutdown_request` at any point:** Approve it immediately. This may arrive outside the normal exit flow (e.g., during KILL threshold). Do NOT delay approval to clean up dev servers — process termination handles cleanup. A future re-spawn will re-read task files and re-test from the current code state.
+
 ## Final Gate
 
 When spawned specifically for the final gate (indicated in your spawn prompt), you are a **standalone agent** — no task team, no Executor. You run the **full test suite** as a regression check across all completed tasks:

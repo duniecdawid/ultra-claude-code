@@ -112,7 +112,7 @@ After spawning each team:
 
 When you receive a message, match it against the table below and execute the action.
 
-**Wake-up trace (temporary diagnostic mode):** every time a message wakes you up, your **first** user-visible output for that turn is exactly **one sentence** describing the message you just received — sender, type, and task ID if applicable. Examples: `Received: FILE-UPDATED task-3/impl.md from executor-3.` / `Received: code complete from executor-2.` / `Received: USAGE SOFT-LIMIT [5h] from PM.` Then process the handler row. Between wake-ups, stay silent — do NOT narrate state, plans, or what teammates are doing. This trace exists so the user can audit which senders are noisy and decide whether Lead actually needs each message; it replaces the old "be silent between messages" rule for now.
+**Wake-up trace (temporary diagnostic mode):** every time a message wakes you up, your **first** user-visible output for that turn is exactly **one sentence** describing the message you just received — sender, type, and task ID if applicable. Examples: `Received: FILE-UPDATED task-3/impl.md from executor-3.` / `Received: code complete from executor-2.` / `Received: USAGE PAUSE [5h] from PM.` Then process the handler row. Between wake-ups, stay silent — do NOT narrate state, plans, or what teammates are doing. This trace exists so the user can audit which senders are noisy and decide whether Lead actually needs each message; it replaces the old "be silent between messages" rule for now.
 
 **Other user-visible outputs from the Lead during execution:**
 1. The dashboard URL (relay from PM)
@@ -124,16 +124,17 @@ When you receive a message, match it against the table below and execute the act
 | Executor: `"Task {N} done — all stages passed"` | Read current usage: `jq ... ~/.claude/ultra/usage-status.json`. Send shutdown_request to executor-{N}, reviewer-{N}, tester-{N}. SendMessage to PM: `"COMPLETED task-{N}, current_pct={pct}"` then `"SHUTDOWN task-{N}"`. **Then check for parked successors:** scan your `shared/lead.md` pipeline-parked list — if any pre-spawned executor-{M} is parked at the wait gate with its predecessor recorded as task-{N}, SendMessage to executor-{M}: `"Implementation approved — predecessor task {N} passed all stages. Proceed to implement."` and clear M from the parked list. **Then fill freed slot:** find the next unblocked, non-pre-spawned pending task → run Pre-Spawn Checklist + spawn if found, SendMessage to PM: `"SPAWNED task-{K}: {description}"` then `"STAGE task-{K} planning"`. |
 | Executor: `"Task {N} code complete — writing impl report"` | **Lazy-spawn tester-{N}** (use the Tester Spawn prompt from `references/phase-2-spawn-prompts.md` — minimal pointer prompt, no per-task content inline). SendMessage to PM: `"SPAWNED-TESTER task-{N}"`, `"STAGE task-{N} review"`, `"STAGE task-{N} testing"`. Reply to Executor: `"Tester spawned — proceed with impl report."` **Then evaluate pipeline pre-spawn:** find at most one pending task M where (a) all of M's blockers are `done` except for task N, (b) current active task-teams `<` concurrency limit, and (c) no other pre-spawned successor is already parked at the wait gate. If found: run the Pre-Spawn Checklist for task-{M} (knowledge review, append Pipeline mode block to `tasks/task-{M}/task.md`), TeamCreate executor-{M} + reviewer-{M}, set task-{M} stage = `planning`, record `M → blocked_by N` in the pipeline-parked list in `shared/lead.md`. SendMessage to PM: `"SPAWNED task-{M}: {description} (pipeline)"` then `"STAGE task-{M} planning"`. If no eligible successor or slot unavailable: do nothing — the normal slot-fill will handle it when task N reaches `task done`. |
 | Executor: `"Task {M} planning complete — awaiting implementation approval"` | Pipeline-spawned executor has finished planning (including its own deviation self-check) and is now parked at the wait gate. Confirm M is in your `shared/lead.md` parked list. No reply needed — the executor waits silently. When the predecessor's `task done` arrives, the done-row handler above sends the `Implementation approved` message. |
-| Executor: `"ADVICE REQUEST task-{N} [deviation]: {reason}"` | **Blocking.** Read `tasks/task-{N}/plan.md` and the specific deviation reason. Decide: is the deviation justified by new information discovered during planning/codebase exploration? If yes, reply `APPROVED` AND amend `tasks/task-{N}/task.md` to reflect the new scope (e.g., add files to the Files list, adjust success criteria) then broadcast `FILE-UPDATED task-{N}/task.md: deviation approved — {short reason}`. If no, reply `AMEND: {specific instructions}` telling the Executor how to bring plan.md back into task.md scope. |
-| Executor: `"ADVICE REQUEST task-{N} [complicated / deep-reasoning / knowledge]: {context + question}"` | Non-blocking. Read task.md if needed for context. Think through the question using your orchestration context (other tasks in flight, plan history, user intent from approval). Reply `ADVICE task-{N}: {guidance}`. Don't second-guess the Executor's judgment — the default is to answer the question Executor actually asked, not to rewrite their approach. |
-| Executor: `"QUERY: {question}"` (or Reviewer/Tester) | Invoke `/uc:research` with the question. Cache hit returns instantly; cache miss spawns the `researcher` subagent via Task tool. Reply `ANSWER: {excerpts + pointer}`. Also append the pointer to `tasks/task-{N}/task.md`'s `**Research:**` section and broadcast `FILE-UPDATED task-{N}/task.md: research addition — {lib}`. This makes the new research durable for re-spawns and other teammates. |
+| Executor: `"ADVICE REQUEST task-{N} [deviation]: {reason}"` | **Hold-state guard:** if any Usage Block is `pause` or `kill`, do NOT respond — discard the message. The sending agent is paused or killed; responding could unblock work that should be stopped. **Otherwise: Blocking.** Read `tasks/task-{N}/plan.md` and the specific deviation reason. Decide: is the deviation justified by new information discovered during planning/codebase exploration? If yes, reply `APPROVED` AND amend `tasks/task-{N}/task.md` to reflect the new scope (e.g., add files to the Files list, adjust success criteria) then broadcast `FILE-UPDATED task-{N}/task.md: deviation approved — {short reason}`. If no, reply `AMEND: {specific instructions}` telling the Executor how to bring plan.md back into task.md scope. |
+| Executor: `"ADVICE REQUEST task-{N} [complicated / deep-reasoning / knowledge]: {context + question}"` | **Hold-state guard:** if any Usage Block is `pause` or `kill`, do NOT respond — discard silently. **Otherwise: Non-blocking.** Read task.md if needed for context. Think through the question using your orchestration context (other tasks in flight, plan history, user intent from approval). Reply `ADVICE task-{N}: {guidance}`. Don't second-guess the Executor's judgment — the default is to answer the question Executor actually asked, not to rewrite their approach. |
+| Executor: `"QUERY: {question}"` (or Reviewer/Tester) | **Hold-state guard:** if any Usage Block is `pause` or `kill`, do NOT respond — discard silently. **Otherwise:** Invoke `/uc:research` with the question. Cache hit returns instantly; cache miss spawns the `researcher` subagent via Task tool. Reply `ANSWER: {excerpts + pointer}`. Also append the pointer to `tasks/task-{N}/task.md`'s `**Research:**` section and broadcast `FILE-UPDATED task-{N}/task.md: research addition — {lib}`. This makes the new research durable for re-spawns and other teammates. |
 | Any team member: `"FILE-UPDATED task-{N}/{file}: {reason}"` | No Lead action unless Lead was about to act on that file. Broadcasts are primarily for teammates' benefit. Forward to PM only when the broadcast implies a lifecycle state change (none by default — stage transitions go through STAGE-DONE/RETRY from Executor directly). |
 | Executor: `"Task {N} escalation needed"` | Escalate to user with evidence. If any pre-spawned successor M is parked with N as its predecessor, note this in the escalation — the parked team stays alive while the user decides. On user "abort/skip": shut down parked M before proceeding. On user "continue/retry": M stays parked and will receive `Implementation approved` when N eventually reaches `task done`. |
 | Executor: `"PLAN-INVALIDATING: ..."` | Pause pipeline. Evaluate scope. Amend (update `tasks/task-N/task.md` + broadcast FILE-UPDATED) or escalate. Parked pipeline successors stay parked through the pause. If the amendment drops or materially changes a parked successor's task, shut down that successor explicitly before resuming. |
 | PM: `"Dashboard live at {URL}"` | Display to user immediately: `"📊 Live dashboard: {URL}"` — do NOT silently consume. |
-| PM: `"USAGE HARD-LIMIT [{window}]: ..."` | Emergency (5h ≥90% or 7d ≥95%). Read `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/usage-control.md`. **Stop all active teams immediately** (SendMessage each active executor/reviewer/tester: "STOP: usage emergency {window}={pct}%. Save work and stop."). Record `{window}: hard` in the `## Usage Blocks` section of `shared/lead.md`. Trigger checkpoint (Phase 3). Do not spawn anything new until USAGE RESET clears ALL blocks. |
-| PM: `"USAGE SOFT-LIMIT [{window}]: ..."` | Advisory (5h ≥80% or 7d ≥90%). Read `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/usage-control.md`. **Do NOT stop current work** — active teams finish their current task. **Stop spawning new teams** — no slot-fill, no pipeline pre-spawn. Record `{window}: soft` in the `## Usage Blocks` section of `shared/lead.md`. On the next `task done` message, trigger checkpoint (Phase 3) in addition to the normal shutdown. Keep processing incoming task-done messages — shut down teams but do NOT fill slots. |
-| PM: `"USAGE RESET [{window}]: ..."` | That window cleared. Remove `{window}:` entry from `## Usage Blocks` in `shared/lead.md`. **If other usage blocks remain** (e.g., 7d still at soft while 5h reset), stay paused. **If all blocks cleared**, resume normal operations — reassess budget, fill concurrency slots with next unblocked tasks. |
+| PM: `"USAGE KILL [{window}]: ..."` | Emergency (5h ≥95% or 7d ≥98%). Read `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/usage-control.md`. **Kill all active task teams immediately via `shutdown_request`:** for each active executor-{N}, reviewer-{N}, and tester-{N}, send `shutdown_request`. Do NOT use plain text messages. Record `{window}: kill` in the `## Usage Blocks` section of `shared/lead.md`. Trigger checkpoint (Phase 3). Enter hold state: do not spawn anything new, do not respond to ADVICE/QUERY from killed agents. Wait for USAGE RESET to clear ALL blocks, then trigger "Recovery After KILL" from usage-control.md. |
+| PM: `"USAGE PAUSE [{window}]: ..."` | Approaching limit (5h ≥90% or 7d ≥95%). Read `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/usage-control.md`. **Send PAUSE to all active agents:** SendMessage each active executor/reviewer/tester: `"PAUSE: usage {window}={pct}%. Go idle. You will receive RESUME when usage resets."` Record `{window}: pause` in the `## Usage Blocks` section of `shared/lead.md`. Trigger checkpoint (Phase 3). Enter hold state: do not spawn anything new, do not respond to ADVICE/QUERY from paused agents. Wait for USAGE RESET to clear ALL blocks, then trigger "Recovery After PAUSE" from usage-control.md. |
+| PM: `"USAGE CONSERVE [{window}]: ..."` | Advisory (5h ≥80% or 7d ≥90%). Read `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/usage-control.md`. **Do NOT stop current work** — active teams finish their current task. No message to team members. **Stop spawning new teams** — no slot-fill, no pipeline pre-spawn. Record `{window}: conserve` in the `## Usage Blocks` section of `shared/lead.md`. On the next `task done` message, trigger checkpoint (Phase 3) in addition to the normal shutdown. Keep processing incoming task-done messages — shut down teams but do NOT fill slots. |
+| PM: `"USAGE RESET [{window}]: ..."` | That window cleared. Remove `{window}:` entry from `## Usage Blocks` in `shared/lead.md`. **If other usage blocks remain** (e.g., 7d still at pause while 5h reset), stay in current state. **If all blocks cleared and in hold state from PAUSE**: send `"RESUME: usage reset. Continue work."` to all paused agents, clear hold state, resume normal operations. **If all blocks cleared and in hold state from KILL**: trigger "Recovery After KILL" from usage-control.md — re-spawn teams from checkpoint. **If all blocks cleared from CONSERVE only**: resume normal operations — reassess budget, fill concurrency slots with next unblocked tasks. |
 | PM: `"STALL: executor-{N} ..."` | Investigate — check if agent crashed, re-spawn if needed. |
 | PM: `"STALE DATA: ..."` | Usage readings may be outdated. Correlate with stall reports. Investigate if teams should be active. |
 
@@ -141,40 +142,49 @@ After processing a message (one-sentence trace + handler action), return to wait
 
 ### Usage Response Protocol
 
-The watchdog monitors two independent rate-limit windows: the 5-hour window (soft ≥80%, hard ≥90%) and the 7-day window (soft ≥90%, hard ≥95%). PM validates the watchdog's signals and forwards them to Lead with a `[5h]` or `[7d]` label. Lead's behavior is **uniform across windows** — only the thresholds and reset horizons differ. Read `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/usage-control.md` for the full decision framework. Summary:
+The watchdog monitors two independent rate-limit windows with three tiers each: the 5-hour window (CONSERVE ≥80%, PAUSE ≥90%, KILL ≥95%) and the 7-day window (CONSERVE ≥90%, PAUSE ≥95%, KILL ≥98%). PM validates the watchdog's signals and forwards them to Lead with a `[5h]` or `[7d]` label. Lead's behavior is **uniform across windows** — only the thresholds and reset horizons differ. Read `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/usage-control.md` for the full decision framework. Summary:
 
-**On USAGE SOFT-LIMIT [window]:**
-- Record `{window}: soft` in the `## Usage Blocks` section of `shared/lead.md` (create the section if missing).
-- **Allow active teams to finish their current task** — do NOT stop them, do NOT interrupt in-flight work.
+**On USAGE CONSERVE [window]:**
+- Record `{window}: conserve` in the `## Usage Blocks` section of `shared/lead.md` (create the section if missing).
+- **Allow active teams to finish their current task** — do NOT stop them, do NOT send any message to team members.
 - **Stop spawning new teams** — no slot-fill, no pipeline pre-spawn. Parked pipeline successors stay parked.
 - On the next incoming `task done` message, process shutdown normally AND trigger a Phase 3 checkpoint.
 
-**On USAGE HARD-LIMIT [window]:**
-- Record `{window}: hard` in the `## Usage Blocks` section of `shared/lead.md`.
-- **Stop all active teams immediately.** SendMessage each active executor/reviewer/tester: `"STOP: usage emergency {window}={pct}%. Save work and stop."`
+**On USAGE PAUSE [window]:**
+- Record `{window}: pause` in the `## Usage Blocks` section of `shared/lead.md`.
+- **Send PAUSE to all active agents.** SendMessage each active executor/reviewer/tester: `"PAUSE: usage {window}={pct}%. Go idle. You will receive RESUME when usage resets."` Agents stop work at their next natural checkpoint and go idle. Idle agents consume zero tokens.
 - Trigger a Phase 3 checkpoint immediately.
-- Do not spawn anything new until USAGE RESET clears all blocks.
+- Enter **hold state**: do not spawn anything new, do not respond to ADVICE/QUERY from paused agents.
+
+**On USAGE KILL [window]:**
+- Record `{window}: kill` in the `## Usage Blocks` section of `shared/lead.md`.
+- **Kill all active task teams via `shutdown_request`.** Send `shutdown_request` to each active executor/reviewer/tester. This is the only mechanism that reliably terminates agents.
+- Trigger a Phase 3 checkpoint immediately.
+- Enter **hold state**: do not spawn anything new, do not respond to ADVICE/QUERY from killed agents.
 
 **On USAGE RESET [window]:**
 - Remove the `{window}:` entry from `## Usage Blocks`.
-- **If other blocks remain** (e.g., 5h reset but 7d still at soft): stay paused.
-- **If all blocks cleared**: resume normal operations — reassess budget, fill concurrency slots with next unblocked tasks.
+- **If other blocks remain** (e.g., 5h reset but 7d still at pause): stay in current state.
+- **If all blocks cleared from PAUSE hold**: send `"RESUME: usage reset. Continue work."` to all paused agents. They resume with full context. Resume normal operations.
+- **If all blocks cleared from KILL hold**: trigger "Recovery After KILL" from usage-control.md — re-spawn teams from checkpoint using per-task files as crash-recovery context.
+- **If all blocks cleared from CONSERVE only**: resume normal operations — reassess budget, fill concurrency slots with next unblocked tasks.
 
 **Usage Blocks tracking in `shared/lead.md`:**
 
 ```markdown
 ## Usage Blocks
-- 5h: soft        (since 2026-04-14T10:30:00Z, reset_at 2026-04-14T15:00:00Z)
+- 5h: pause        (since 2026-04-14T10:30:00Z, resets_at 2026-04-14T15:00:00Z, pct=91)
 - 7d: none
 ```
 
-Whenever any block entry is non-`none`, Lead does not spawn new teams. Any `hard` entry means all teams are stopped. The watchdog continues ticking during pauses and will emit USAGE RESET events when either window clears.
+Whenever any block entry is non-`none`, Lead does not spawn new teams. Any `pause` or `kill` entry means all teams are stopped or idle. Track the highest tier reached for recovery decisions. The watchdog continues ticking during pauses and will emit USAGE RESET events when either window clears.
 
-**During any usage pause, regardless of window:**
+**During any usage pause (PAUSE or KILL hold), regardless of window:**
 1. Note state in `## Usage Blocks` in `shared/lead.md`
-2. Trigger checkpoint (Phase 3) — immediately on hard, on next `task done` on soft
-3. Process incoming "task done" messages — shut down teams, do NOT fill slots
+2. Trigger checkpoint (Phase 3) immediately
+3. Do NOT respond to ADVICE/QUERY from paused/killed agents — discard those messages
 4. The watchdog continues ticking and will signal PM when either window resets; PM forwards USAGE RESET [window] to Lead
+5. On USAGE RESET with all blocks cleared: trigger the appropriate recovery flow (PAUSE → RESUME agents; KILL → re-spawn from checkpoint)
 
 ### Lead Priority Order
 

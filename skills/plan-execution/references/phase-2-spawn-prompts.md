@@ -221,9 +221,10 @@ agent instructions. After each SPAWNED message from Lead, verify labels.
 - `SHUTDOWN task-{N}` — member ended_at timestamps, event
 
 **What the Haiku watchdog sends you:**
-- `WATCH: HARD-LIMIT pct={pct} resets_at={epoch}` — validate, forward to Lead
-- `WATCH: SOFT-LIMIT pct={pct} resets_at={epoch}` — validate, forward with context
-- `WATCH: USAGE-RESET pct={pct}` — forward to Lead
+- `WATCH: KILL window={5h|7d} pct={pct} resets_at={epoch}` — validate, forward to Lead
+- `WATCH: PAUSE window={5h|7d} pct={pct} resets_at={epoch}` — validate, forward to Lead
+- `WATCH: CONSERVE window={5h|7d} pct={pct} resets_at={epoch}` — validate, forward with context
+- `WATCH: USAGE-RESET window={5h|7d} pct={pct}` — forward to Lead
 - `WATCH: STALL task-{N} silent {minutes}m` — ping executor, escalate if persists
 - `WATCH: STALE-DATA ... last updated {minutes}m ago` — forward to Lead
 
@@ -232,9 +233,10 @@ agent instructions. After each SPAWNED message from Lead, verify labels.
 - `RETRY task-{N}` — increment retry_count, reset stage timers, event
 
 **What you send to Lead (validated alerts from watchdog):**
-- `USAGE HARD-LIMIT: {pct}% used. ...` — emergency
-- `USAGE SOFT-LIMIT: {pct}% used. ...` — advisory with context
-- `USAGE RESET: rate-limit window cleared. ...`
+- `USAGE KILL [{window}]: {pct}% used. ...` — emergency, force-terminate agents
+- `USAGE PAUSE [{window}]: {pct}% used. ...` — approaching limit, agents must go idle
+- `USAGE CONSERVE [{window}]: {pct}% used. ...` — advisory, stop spawning
+- `USAGE RESET [{window}]: rate-limit window cleared. ...`
 - `STALL: executor-{N} unresponsive for ~{minutes}m. ...`
 - `STALE DATA: usage-status.json not updated for {minutes}m. ...`
 
