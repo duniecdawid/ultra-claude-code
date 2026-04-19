@@ -46,7 +46,7 @@ Triggers: "deploy", "redeploy", "up", "take down", "restart"
 → Read `references/deployment.md` for deploy workflows.
 
 ### Logs & Debugging
-Triggers: "logs", "build logs", "errors", "debug", "status", "why is it failing"
+Triggers: "logs", "build logs", "errors", "debug", "status", "why is it failing", "deployment list", "failed deployment", "crashed", "latest deployment"
 
 → Read `references/debugging.md` for log streaming and troubleshooting.
 
@@ -92,8 +92,8 @@ If no mapping exists for the current directory, tell the user and offer to set o
 # Example: deploy with account-level token (most common)
 RAILWAY_API_TOKEN=<resolved-token> railway up
 
-# Example: check logs
-RAILWAY_API_TOKEN=<resolved-token> railway logs
+# Example: check logs (--latest surfaces failed/crashed deployments)
+RAILWAY_API_TOKEN=<resolved-token> railway logs --latest
 
 # Example: list variables
 RAILWAY_API_TOKEN=<resolved-token> railway variable list

@@ -19,7 +19,7 @@
       "id": 3,
       "name": "debug-502",
       "prompt": "My railway deployment is crashing. The API was working yesterday but now returns 502. Help me figure out what's wrong.",
-      "expected_output": "Should follow a systematic debugging flow: check status, check runtime logs, check build logs, check variables, suggest common causes. Should use the right token for the current directory.",
+      "expected_output": "Should follow a systematic debugging flow: confirm context, list recent deployments to identify the newest/failed one, check runtime logs with --latest flag, check build logs, check variables, suggest common causes. Should use the right token for the current directory.",
       "files": []
     }
   ]

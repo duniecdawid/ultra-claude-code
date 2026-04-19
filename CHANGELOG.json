@@ -1,5 +1,12 @@
 [
   {
+    "seq": 141,
+    "version": "2026.04.19-2",
+    "date": "2026-04-19",
+    "summary": "Fix railway skill debugging workflow to surface newest deployment instead of old active one. Adds `railway deployment list` as step 2 to identify failed/crashed deployments by status and timestamp, switches all debugging log commands to use `--latest` flag (shows newest deployment regardless of status instead of defaulting to last successful), documents `--filter` and `--since`/`--until` for narrowing log output, and adds deployment-ID targeting via `railway logs <DEPLOYMENT_ID>`. New trigger words added for debugging routing. Common issues table updated with deployment visibility gotchas.",
+    "migration": null
+  },
+  {
     "seq": 140,
     "version": "2026.04.19-1",
     "date": "2026-04-19",
