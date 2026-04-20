@@ -76,7 +76,7 @@
     <h3>Extra usage disabled</h3>
     <p>A three-agent chain handles usage management with ~6x less token cost than the old PM polling approach:</p>
     <ol>
-      <li><strong>Haiku watchdog</strong> ticks every minute (~$0.03/5h) checking two independent rate-limit windows with three tiers each (5h: 80% CONSERVE / 90% PAUSE / 95% KILL, 7d: 90% / 95% / 98%) and executor staleness. Silent when healthy.</li>
+      <li><strong>Haiku watchdog</strong> runs a bash monitoring script checking every 60 seconds &mdash; two independent rate-limit windows with three tiers (5h: 80% CONSERVE / 90% PAUSE / 95% KILL, 7d: 90% / 95% / 98%) and executor staleness. Uses Monitor instead of CronCreate: the model only wakes on alerts, costing zero tokens on clean ticks.</li>
       <li><strong>PM</strong> validates watchdog alerts, adds operational context (team count, avg task cost), forwards to Lead with window-qualified recommendations. Event-driven, no cron.</li>
       <li><strong>Lead</strong> acts uniformly across windows: on CONSERVE, in-flight work finishes and spawning stops; on PAUSE, all agents are told to go idle (zero tokens while waiting); on KILL, agents are force-terminated via shutdown_request. Multiple blocks (5h + 7d) track independently; Lead resumes only when all windows clear. After PAUSE, agents resume with full context. After KILL, teams are re-spawned from checkpoint.</li>
     </ol>

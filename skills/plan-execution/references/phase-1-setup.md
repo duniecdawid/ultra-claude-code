@@ -77,7 +77,7 @@ Tasks normally spawn when their slot is available AND all dependencies are compl
 | Reviewer | sonnet | Pattern recognition, architecture conformance |
 | Tester | sonnet | Test execution, failure diagnosis |
 | Project Manager | sonnet | Event-driven coordination — dashboard, watchdog validation, budget tracking |
-| Watchdog | haiku | 1-min cron sensor — usage thresholds, stall detection. Cheapest possible model. |
+| Watchdog | haiku | Monitor-based sensor — bash script checks every 60s, model wakes only on alerts. Zero tokens on clean ticks. |
 | Researcher (subagent) | sonnet | One-shot external documentation retrieval — spawned by Lead via `/uc:research` on cache miss |
 
 ### Permission Modes
@@ -106,7 +106,7 @@ Cost per task pipeline: ~100K tokens (Executor ~70K + Reviewer ~20K + Tester ~10
 Pre-spawn knowledge review (per task, at spawn time): ~2K per task for cache hits, up to ~15K if /uc:research fires on a gap — Lead only researches if the planner's Research pointers don't cover the task
 Mid-execution ADVICE + QUERY: ~1K per message (cache hit) or ~15K (cache miss with researcher subagent)
 Project Manager (plan-wide): ~20K tokens (event-driven, no cron — wakes only on messages)
-Watchdog (plan-wide, Haiku): ~60K Haiku tokens ≈ ~2.5K Opus-equivalent (1-min ticks, silent when healthy)
+Watchdog (plan-wide, Haiku): near-zero (bash does all checking, model wakes only on alerts via Monitor)
 ```
 
 Then ask the usage mode question:
@@ -141,7 +141,7 @@ After the user answers, store in `shared/lead.md` under a config header:
 ```
 
 Usage management is a three-agent system: **Haiku watchdog → PM → Lead.**
-- **If extra_usage = false:** A Haiku watchdog agent ticks every minute, checking two independent rate-limit windows (5h: 80% soft / 90% hard, 7d: 90% soft / 95% hard) and executor staleness. On alert, it signals PM with a window-qualified message. PM validates, adds operational context, and forwards to Lead with a `[5h]` or `[7d]` label. Lead's response is uniform across windows: on SOFT, let active teams finish their current task and stop spawning new ones (checkpoint on next `task done`); on HARD, stop all active teams immediately and checkpoint. Lead tracks blocks per window in `shared/lead.md` → `## Usage Blocks` and resumes spawning only when all blocks clear — guided by `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/usage-control.md`. Lead also performs a pre-task-1 budget assessment (of both windows) before starting any work.
+- **If extra_usage = false:** A Haiku watchdog runs a bash monitoring script every 60 seconds via Monitor (zero AI tokens on clean ticks — model wakes only on alerts). The script checks two independent rate-limit windows (5h: 80% CONSERVE / 90% PAUSE / 95% KILL, 7d: 90% / 95% / 98%) and executor staleness. On alert, it signals PM with a window-qualified message. PM validates, adds operational context, and forwards to Lead with a `[5h]` or `[7d]` label. Lead's response is uniform across windows: on CONSERVE, let active teams finish their current task and stop spawning new ones (checkpoint on next `task done`); on PAUSE, tell all agents to go idle (zero tokens while waiting); on KILL, force-terminate agents via shutdown_request and checkpoint. Lead tracks blocks per window in `shared/lead.md` → `## Usage Blocks` and resumes when all blocks clear — guided by `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/usage-control.md`. Lead also performs a pre-task-1 budget assessment (of both windows) before starting any work.
 - **If extra_usage = true:** The watchdog still runs (it also handles stall detection), but Lead does not load the usage-control reference and does not perform budget assessments. Usage alerts from PM are noted but Lead trusts the account has extra usage capacity.
 
 Proceed directly to 1.6.
@@ -191,7 +191,7 @@ Before spawning any task-teams, spawn the plan-wide utility agents: **PM and Hai
 
 1. Spawn `pm-{PLAN_NAME}` via TeamCreate using the PM spawn prompt in `references/phase-2-spawn-prompts.md`. PM has Bash access and self-labels its pane on startup.
 
-2. Spawn `watchdog-{PLAN_NAME}` via TeamCreate using the watchdog spawn prompt in `references/phase-2-spawn-prompts.md`. The watchdog runs on Haiku (cheap), ticks every 1 minute, and signals PM on usage thresholds and stalls. It always runs regardless of `extra_usage` setting — stall detection is useful in all cases.
+2. Spawn `watchdog-{PLAN_NAME}` via TeamCreate using the watchdog spawn prompt in `references/phase-2-spawn-prompts.md`. The watchdog runs on Haiku (cheap), uses a bash monitoring script via Monitor (zero AI tokens on clean ticks), and signals PM on usage thresholds and stalls. It always runs regardless of `extra_usage` setting — stall detection is useful in all cases.
 
 Both agents self-label their tmux panes. No tmux commands needed from you.
 

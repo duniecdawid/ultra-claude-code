@@ -1,5 +1,12 @@
 [
   {
+    "seq": 147,
+    "version": "2026.04.20-5",
+    "date": "2026-04-20",
+    "summary": "Replace CronCreate with Monitor in the Watchdog agent. A self-contained bash monitoring script now does all threshold checking (CONSERVE/PAUSE/KILL for both 5h and 7d windows), stall detection, and data freshness — running every 60 seconds in a persistent Monitor process. The script outputs alert lines ONLY on state transitions; clean ticks produce zero stdout. Monitor delivers each line as a notification to the Haiku model, which simply forwards it to PM via SendMessage. On clean ticks: no stdout → no Monitor notification → model never prompted → zero tokens wasted → zero Lead noise. Previously, CronCreate fired a prompt every minute forcing the model to respond (framework constraint: models can't produce zero tokens), and TeamCreate delivered the response to Lead, burning ~30-60K Opus tokens per 5-hour execution for nothing. The bash script handles: per-window threshold evaluation with escalation (CONSERVE→PAUSE→KILL), USAGE-RESET detection, state file management (.watchdog-state.json), data freshness checks with 10-minute cooldown, stall detection against events.json/plan.json, and stall-ping cleanup for completed tasks.",
+    "migration": null
+  },
+  {
     "seq": 146,
     "version": "2026.04.20-4",
     "date": "2026-04-20",

@@ -259,10 +259,11 @@ PLAN_DIR=documentation/plans/$ARGUMENTS
 
 **PM name:** pm-{PLAN_NAME}
 
-You tick every 1 minute. Check two rate-limit windows independently
-(5h: 80% soft / 90% hard, 7d: 90% soft / 95% hard) and executor staleness
-(>10 min silence). Emit window-qualified signals to PM only when something
-needs attention. Stay silent when everything is fine.
+You run a background bash script that checks every 60 seconds:
+two rate-limit windows (5h: 80% CONSERVE / 90% PAUSE / 95% KILL,
+7d: 90% / 95% / 98%) and executor staleness (>10 min silence).
+The script outputs alert lines only on state transitions — you
+forward each alert to PM via SendMessage. Zero tokens on clean ticks.
 
 Follow the workflow in your agent instructions.
 ```
