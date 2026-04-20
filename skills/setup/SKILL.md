@@ -91,7 +91,7 @@ jq -r '.statusLine.command // empty' ~/.claude/settings.json 2>/dev/null
 
 PASS if:
 - `jq` is installed
-- The statusLine has `"type": "command"` and `"command": "bash ~/.claude/ultra/statusline.sh"`
+- The statusLine has `"type": "command"`, `"command": "bash ~/.claude/ultra/statusline.sh"`, and `"refreshInterval": 1`
 
 ### 3.7 Session Hooks
 
@@ -336,19 +336,22 @@ ln -sf "${CLAUDE_PLUGIN_ROOT}/scripts/lib.sh" ~/.claude/ultra/lib.sh
 {
   "statusLine": {
     "type": "command",
-    "command": "bash ~/.claude/ultra/statusline.sh"
+    "command": "bash ~/.claude/ultra/statusline.sh",
+    "refreshInterval": 1
   }
 }
 ```
+
+The `refreshInterval: 1` re-runs the script every second, enabling the live cache countdown timer.
 
 Use `jq` to merge into existing settings without overwriting other keys:
 
 ```bash
 settings_file="$HOME/.claude/settings.json"
 if [ -f "$settings_file" ]; then
-  jq '.statusLine = {"type": "command", "command": "bash ~/.claude/ultra/statusline.sh"}' "$settings_file" > "${settings_file}.tmp" && mv "${settings_file}.tmp" "$settings_file"
+  jq '.statusLine = {"type": "command", "command": "bash ~/.claude/ultra/statusline.sh", "refreshInterval": 1}' "$settings_file" > "${settings_file}.tmp" && mv "${settings_file}.tmp" "$settings_file"
 else
-  echo '{"statusLine":{"type":"command","command":"bash ~/.claude/ultra/statusline.sh"}}' > "$settings_file"
+  echo '{"statusLine":{"type":"command","command":"bash ~/.claude/ultra/statusline.sh","refreshInterval":1}}' > "$settings_file"
 fi
 ```
 

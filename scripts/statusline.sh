@@ -191,14 +191,19 @@ if [ -n "$used" ]; then
   right="${right}  ${dim}ctx:${reset}${c}$(printf '%.0f' "$used")%%${reset}"
 fi
 
-# Cache indicator
+# Cache indicator — pie chart depletes over 5 min: ● → ◕ → ◑ → ◔ → ○
 if [ -n "$cache_display" ]; then
   if [ "$cache_warm" = true ]; then
-    gap_color="$green"
-    [ "${gap:-0}" -ge 180 ] && gap_color="$yellow"
-    right="${right}  ${green}●${reset}${gap_color}${cache_display}${reset}"
+    if   [ "${gap:-0}" -lt 75  ]; then pie="●"
+    elif [ "$gap" -lt 150 ]; then pie="◕"
+    elif [ "$gap" -lt 225 ]; then pie="◑"
+    else                              pie="◔"
+    fi
+    pie_color="$green"
+    [ "$gap" -ge 180 ] && pie_color="$yellow"
+    right="${right}  ${pie_color}${pie}${reset}"
   else
-    right="${right}  ${red}○${cache_display}${reset}"
+    right="${right}  ${red}○${reset}"
   fi
 fi
 

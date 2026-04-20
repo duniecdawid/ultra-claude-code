@@ -1,5 +1,12 @@
 [
   {
+    "seq": 145,
+    "version": "2026.04.20-3",
+    "date": "2026-04-20",
+    "summary": "Statusline cache indicator: replace text timer with pie chart (● → ◕ → ◑ → ◔ → ○) that depletes over 5 minutes, refreshing every second via refreshInterval:1. Add refreshInterval to setup skill configuration. The pie transitions green→yellow→red as cache drains, with the $-weight bar jumping simultaneously when cache expires.",
+    "migration": null
+  },
+  {
     "seq": 144,
     "version": "2026.04.20-2",
     "date": "2026-04-20",
