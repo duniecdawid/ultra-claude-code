@@ -185,24 +185,34 @@ documentation/plans/$ARGUMENTS/
 
 `plan.md` and `impl.md` are written later by the Executor during its workflow — do not pre-create them here.
 
-### 1.8 Project Manager & Watchdog Spawn
+### 1.8 Resolve Account Identity
+
+Resolve the active account key so the watchdog and budget checks monitor the correct account:
+
+```bash
+ACCOUNT_KEY=$(source "$HOME/.claude/ultra/lib.sh" && slugifyEmail "$(claude auth status --json 2>/dev/null | jq -r '.email // empty')")
+```
+
+Persist this in `shared/lead.md` under execution config so it's available if the session is recovered from a checkpoint.
+
+### 1.9 Project Manager & Watchdog Spawn
 
 Before spawning any task-teams, spawn the plan-wide utility agents: **PM and Haiku watchdog.**
 
 1. Spawn `pm-{PLAN_NAME}` via TeamCreate using the PM spawn prompt in `references/phase-2-spawn-prompts.md`. PM has Bash access and self-labels its pane on startup.
 
-2. Spawn `watchdog-{PLAN_NAME}` via TeamCreate using the watchdog spawn prompt in `references/phase-2-spawn-prompts.md`. The watchdog runs on Haiku (cheap), uses a bash monitoring script via Monitor (zero AI tokens on clean ticks), and signals PM on usage thresholds and stalls. It always runs regardless of `extra_usage` setting — stall detection is useful in all cases.
+2. Spawn `watchdog-{PLAN_NAME}` via TeamCreate using the watchdog spawn prompt in `references/phase-2-spawn-prompts.md`. Pass the resolved `ACCOUNT_KEY` into the spawn prompt. The watchdog runs on Haiku (cheap), uses a bash monitoring script via Monitor (zero AI tokens on clean ticks), and signals PM on usage thresholds and stalls. It always runs regardless of `extra_usage` setting — stall detection is useful in all cases.
 
 Both agents self-label their tmux panes. No tmux commands needed from you.
 
 There is no Knowledge Brief synthesis step. Research lives per-task in each `tasks/task-N/task.md`'s `**Research:**` section (populated by planning Stage 4), and Lead reviews it per-task at spawn time in Phase 2.
 
-### 1.9 Pre-Task-1 Budget Assessment
+### 1.10 Pre-Task-1 Budget Assessment
 
-Before spawning the first task-team, read the current usage percentage:
+Before spawning the first task-team, read the current usage percentage using the resolved `ACCOUNT_KEY`:
 
 ```bash
-pct=$(jq -r '.accounts | [.[]] | sort_by(.updated_at) | last | .rate_limits.five_hour.used_percentage // 0' ~/.claude/ultra/usage-status.json 2>/dev/null || echo 0)
+pct=$(jq -r --arg key "$ACCOUNT_KEY" '.accounts[$key].rate_limits.five_hour.used_percentage // 0' ~/.claude/ultra/usage-status.json 2>/dev/null || echo 0)
 ```
 
 `pct` is the **used** percentage (how much of the 5-hour window has been consumed). Low pct (e.g., 5%) = plenty of budget. High pct (e.g., 80%) = little remaining.
@@ -211,6 +221,6 @@ If `extra_usage = false` and pct is already elevated (e.g., >50%), read `${CLAUD
 
 If `extra_usage = true`, skip this assessment.
 
-### 1.10 Proceed to Phase 2
+### 1.11 Proceed to Phase 2
 
 Shared setup is done. Project Manager and watchdog are live. Task teams can now be spawned per Phase 2.

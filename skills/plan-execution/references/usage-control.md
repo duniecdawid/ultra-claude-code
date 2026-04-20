@@ -121,8 +121,8 @@ Optionally annotate each non-`none` entry with the timestamp and the `resets_at`
 Before spawning the first task-team, Lead reads the current usage percentages:
 
 ```bash
-pct_5h=$(jq -r '.accounts | [.[]] | sort_by(.updated_at) | last | .rate_limits.five_hour.used_percentage // 0' ~/.claude/ultra/usage-status.json 2>/dev/null || echo 0)
-pct_7d=$(jq -r '.accounts | [.[]] | sort_by(.updated_at) | last | .rate_limits.seven_day.used_percentage // 0' ~/.claude/ultra/usage-status.json 2>/dev/null || echo 0)
+pct_5h=$(jq -r --arg key "$ACCOUNT_KEY" '.accounts[$key].rate_limits.five_hour.used_percentage // 0' ~/.claude/ultra/usage-status.json 2>/dev/null || echo 0)
+pct_7d=$(jq -r --arg key "$ACCOUNT_KEY" '.accounts[$key].rate_limits.seven_day.used_percentage // 0' ~/.claude/ultra/usage-status.json 2>/dev/null || echo 0)
 ```
 
 `pct_5h` and `pct_7d` are **used** percentages — how much of each rate-limit window has been consumed. `remaining = 100 - pct`.

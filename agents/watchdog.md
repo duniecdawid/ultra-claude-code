@@ -44,6 +44,7 @@ You are NOT a decision-maker. You do not:
 # Each stdout line becomes a Monitor notification that wakes the Watchdog agent.
 
 PLAN_DIR="$1"
+ACCOUNT_KEY="$2"
 STATE_FILE="$PLAN_DIR/.watchdog-state.json"
 USAGE_FILE="$HOME/.claude/ultra/usage-status.json"
 
@@ -96,11 +97,11 @@ check_window() {
 while true; do
   # --- Usage threshold checks ---
   if [ -f "$USAGE_FILE" ]; then
-    pct_5h=$(jq -r '.accounts | [.[]] | sort_by(.updated_at) | last | .rate_limits.five_hour.used_percentage // 0' "$USAGE_FILE" 2>/dev/null || echo 0)
-    resets_5h=$(jq -r '.accounts | [.[]] | sort_by(.updated_at) | last | .rate_limits.five_hour.resets_at // 0' "$USAGE_FILE" 2>/dev/null || echo 0)
-    pct_7d=$(jq -r '.accounts | [.[]] | sort_by(.updated_at) | last | .rate_limits.seven_day.used_percentage // 0' "$USAGE_FILE" 2>/dev/null || echo 0)
-    resets_7d=$(jq -r '.accounts | [.[]] | sort_by(.updated_at) | last | .rate_limits.seven_day.resets_at // 0' "$USAGE_FILE" 2>/dev/null || echo 0)
-    updated_at=$(jq -r '.accounts | [.[]] | sort_by(.updated_at) | last | .updated_at // ""' "$USAGE_FILE" 2>/dev/null || echo "")
+    pct_5h=$(jq -r --arg key "$ACCOUNT_KEY" '.accounts[$key].rate_limits.five_hour.used_percentage // 0' "$USAGE_FILE" 2>/dev/null || echo 0)
+    resets_5h=$(jq -r --arg key "$ACCOUNT_KEY" '.accounts[$key].rate_limits.five_hour.resets_at // 0' "$USAGE_FILE" 2>/dev/null || echo 0)
+    pct_7d=$(jq -r --arg key "$ACCOUNT_KEY" '.accounts[$key].rate_limits.seven_day.used_percentage // 0' "$USAGE_FILE" 2>/dev/null || echo 0)
+    resets_7d=$(jq -r --arg key "$ACCOUNT_KEY" '.accounts[$key].rate_limits.seven_day.resets_at // 0' "$USAGE_FILE" 2>/dev/null || echo 0)
+    updated_at=$(jq -r --arg key "$ACCOUNT_KEY" '.accounts[$key].updated_at // ""' "$USAGE_FILE" 2>/dev/null || echo "")
 
     # Round percentages to integers for bash comparison
     pct_5h=$(printf "%.0f" "$pct_5h" 2>/dev/null || echo 0)
@@ -176,7 +177,7 @@ WATCHDOG_SCRIPT
 4. **Start the monitor:**
    ```
    Monitor({
-     command: "bash \"$PLAN_DIR/.watchdog-check.sh\" \"$PLAN_DIR\"",
+     command: "bash \"$PLAN_DIR/.watchdog-check.sh\" \"$PLAN_DIR\" \"$ACCOUNT_KEY\"",
      description: "Watchdog usage/stall monitor for $PLAN_NAME",
      persistent: true
    })

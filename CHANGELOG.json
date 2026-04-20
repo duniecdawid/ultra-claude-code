@@ -1,5 +1,12 @@
 [
   {
+    "seq": 148,
+    "version": "2026.04.20-6",
+    "date": "2026-04-20",
+    "summary": "Fix Watchdog monitoring wrong account in multi-account setups. The bash script used '.accounts | sort_by(.updated_at) | last' which picked whichever account was most recently written to, not the one running the plan. Now Lead resolves the active account key via 'claude auth status' + slugifyEmail at plan start (new step 1.8), passes ACCOUNT_KEY through the watchdog spawn prompt, and the script uses '.accounts[$key]' for direct lookup. Same fix applied to the pre-task budget assessment and usage-control reference.",
+    "migration": null
+  },
+  {
     "seq": 147,
     "version": "2026.04.20-5",
     "date": "2026-04-20",

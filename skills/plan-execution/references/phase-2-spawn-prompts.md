@@ -256,6 +256,7 @@ You are the health watchdog for the "$ARGUMENTS" plan execution.
 PLAN_NAME={PLAN_NAME}
 ROLE=watchdog
 PLAN_DIR=documentation/plans/$ARGUMENTS
+ACCOUNT_KEY={ACCOUNT_KEY}
 
 **PM name:** pm-{PLAN_NAME}
 
