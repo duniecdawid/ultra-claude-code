@@ -11,7 +11,13 @@
     "version": "2026.04.20-3",
     "date": "2026-04-20",
     "summary": "Statusline cache indicator: replace text timer with pie chart (● → ◕ → ◑ → ◔ → ○) that depletes over 5 minutes, refreshing every second via refreshInterval:1. Add refreshInterval to setup skill configuration. The pie transitions green→yellow→red as cache drains, with the $-weight bar jumping simultaneously when cache expires.",
-    "migration": null
+    "migration": {
+      "precondition": "jq -r '.statusLine.refreshInterval // empty' ~/.claude/settings.json 2>/dev/null returns empty",
+      "actions": [
+        "Re-run /uc:setup — it will add refreshInterval:1 to the statusLine config in ~/.claude/settings.json. Alternatively, manually add \"refreshInterval\": 1 to the statusLine object in ~/.claude/settings.json."
+      ],
+      "conflicts": "None — additive change to settings.json. Existing statusLine config is preserved, only refreshInterval is added."
+    }
   },
   {
     "seq": 144,
