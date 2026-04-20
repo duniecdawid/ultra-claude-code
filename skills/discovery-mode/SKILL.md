@@ -132,7 +132,7 @@ Present a concise summary to the user:
 - Open questions that need user input
 - Recommended next steps (e.g., "Run `/uc:feature-mode` to plan implementation of the recommended approach")
 
-**Open questions:** Present dependencies and open questions in the summary. Do NOT add them to the backlog automatically — the user decides what to track. Saving to backlog NEVER happens without explicit user consent.
+**Open questions:** Present dependencies and open questions in the summary, then triage each with the user per `${CLAUDE_PLUGIN_ROOT}/references/backlog-triage.md` (3-option variant — discovery does not produce plans).
 
 ## Edge Cases
 

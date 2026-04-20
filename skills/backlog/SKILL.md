@@ -319,7 +319,9 @@ After any mutation, write the updated JSON back to the relevant category file. K
 
 ## Notes for Agent Callers
 
-Other skills and agents invoke this skill to track follow-up work:
+Skills and agents MUST NOT add items to the backlog without user consent. When a skill surfaces something potentially backlog-worthy, it follows the triage protocol in `${CLAUDE_PLUGIN_ROOT}/references/backlog-triage.md` — presenting the user with options (do immediately / include in plan / add to backlog / ignore) before taking action.
+
+When the user chooses "Add to backlog" during triage, invoke:
 
 ```
 Skill(skill: 'uc:backlog', args: 'add bug: users can bypass rate limit by switching accounts')
@@ -328,4 +330,4 @@ Skill(skill: 'uc:backlog', args: 'add question: waiting on payment provider webh
 Skill(skill: 'uc:backlog', args: 'add debt: auth middleware needs refactoring')
 ```
 
-The `source` field automatically captures the calling agent's identity.
+Category is inferred from the item's nature — `bug` for defects, `question` for blockers/unknowns, `idea` for enhancements, `debt` for refactoring needs. The `source` field automatically captures the calling agent's identity.

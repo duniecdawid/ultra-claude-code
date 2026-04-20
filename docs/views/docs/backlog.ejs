@@ -6,7 +6,7 @@
   <main class="doc-content">
 
     <h1>Backlog</h1>
-    <p>Track bugs, questions, ideas, and tech debt across your project. The backlog is lightweight, user-initiated only, and split into four categories &mdash; nothing gets added automatically.</p>
+    <p>Track bugs, questions, ideas, and tech debt across your project. The backlog is lightweight and split into four categories &mdash; when skills find follow-up work, they ask you what to do before adding anything.</p>
 
     <h2>Four categories</h2>
     <table>
@@ -44,7 +44,7 @@
 
     <h2>Key principles</h2>
     <ul>
-      <li><strong>User-initiated only</strong> &mdash; no skill or agent adds items to the backlog automatically. You decide what gets tracked.</li>
+      <li><strong>Triage before tracking</strong> &mdash; when skills discover follow-up work, they ask you first: do it now, include in the plan, add to backlog, or ignore.</li>
       <li><strong>Priorities</strong> &mdash; items have priority levels that affect sort order when listing</li>
       <li><strong>Labels</strong> &mdash; tag items with freeform labels using <code>#tag</code> syntax for lightweight categorization beyond the four category files. Labels are normalized to lowercase-hyphenated strings.</li>
       <li><strong>Blocking relationships</strong> &mdash; items can block other items, creating a dependency graph</li>
@@ -53,7 +53,7 @@
     </ul>
 
     <div class="callout">
-      <p><strong>During plan execution</strong>, if agents discover follow-up work, bugs, or ideas, they're listed in the completion summary &mdash; not auto-added to the backlog. You decide what to track.</p>
+      <p><strong>During plan execution</strong>, follow-up work discovered by agents is collected in the completion summary. After execution finishes, you're walked through each item and asked whether to handle it immediately, add it to the backlog, or ignore it.</p>
     </div>
 
     <details>
@@ -61,9 +61,9 @@
       <div class="details-content">
         <p>The backlog is a lightweight project management layer that complements the planning skills:</p>
         <ul>
-          <li><strong>Feature mode</strong> &mdash; when scope is cut during planning, the AI mentions cut items. You can add them to the backlog with <code>/uc:backlog add idea: ...</code></li>
-          <li><strong>Debug mode</strong> &mdash; investigation may reveal related issues beyond the immediate bug. Note them for later.</li>
-          <li><strong>Verification mode</strong> &mdash; features described in docs but not implemented are listed separately. You decide whether to track them.</li>
+          <li><strong>Feature mode</strong> &mdash; when scope is cut during planning, you're asked what to do with each cut item: handle now, keep in the plan, add to backlog, or ignore.</li>
+          <li><strong>Debug mode</strong> &mdash; related issues found during investigation are triaged the same way &mdash; you choose the disposition for each one.</li>
+          <li><strong>Verification mode</strong> &mdash; features described in docs but not implemented are listed and triaged &mdash; add to backlog, handle now, or ignore.</li>
           <li><strong>"What should we work on?"</strong> &mdash; run <code>/uc:backlog list</code> to see everything in one place, sorted by priority and blocking status</li>
         </ul>
       </div>

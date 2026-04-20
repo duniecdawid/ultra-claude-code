@@ -255,7 +255,7 @@ Retry flow, escalation, crash recovery, session death.
 Final gate, operational report, summary, shutdown.
 → Read `references/phase-5-completion.md`
 
-**Follow-up work:** If execution revealed follow-up work, bugs, ideas, or tech debt not covered by the plan, list them in the completion summary under "Follow-up Items". Do NOT add them to the backlog automatically — saving to backlog NEVER happens without explicit user consent.
+**Follow-up work:** If execution revealed follow-up work, bugs, ideas, or tech debt not covered by the plan, collect them in the completion summary under "Follow-up Items". After shutdown (step 5.5), triage each item with the user per `${CLAUDE_PLUGIN_ROOT}/references/backlog-triage.md` (3-option variant — execution is complete, so omit "Include in plan").
 
 ---
 

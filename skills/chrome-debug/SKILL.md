@@ -16,24 +16,16 @@ description: >
 
 ## Operating Mode: Autonomous Auto-Recovery
 
-This skill is designed to run autonomously as part of automated testing cycles. When invoked:
+This skill is designed to run autonomously. When invoked:
 
-1. **Fix first, ask later.** Run the diagnostic procedure and apply fixes (kill stale processes, retry connections) without waiting for user confirmation. These are safe, reversible actions.
-2. **Retry `tabs_context_mcp` aggressively** (up to 3 times) — the bridge can be slow. But **never blindly retry `switch_browser`** — it triggers a naming prompt that blocks until the user responds. Always warn the user first and wait for them to be ready before calling `switch_browser`.
-3. **Only escalate to the user** when the full procedure including Step 6 (full restart) has been attempted and failed, OR when you need the user to physically interact with the browser (reload extension, click Connect).
-4. **Log unresolved failures** (Step 8) before escalating — capture the diagnostic state into `$HOME/.claude/skills/chrome-debug/logs/` so patterns can be analyzed across incidents.
-5. **After fixing, return control** to the caller so the original browser action can be retried. State clearly which browser is now active and its tab group ID.
+1. **Fix first.** Run the diagnostic procedure and apply fixes (kill stale processes, retry connections) without waiting for user confirmation. These are safe, reversible actions.
+2. **Retry `tabs_context_mcp` aggressively** (up to 3 times) — the bridge can be slow. But **never blindly retry `switch_browser`** — it triggers a naming prompt that blocks until the user responds.
+3. **If diagnostics fail, accept failure gracefully.** State that Chrome is unavailable and continue without browser automation. Do not escalate to the user or block on manual intervention. The caller should proceed with their task using non-browser approaches.
+4. **After fixing, return control** to the caller so the original browser action can be retried. State clearly which browser is now active and its tab group ID.
 
-Connection issues are almost always one of: stale native host (auto-fixable), service worker idle (needs user to reload extension), or bridge race (retry fixes it). **Never give up on the first failure.**
+Connection issues are almost always one of: stale native host (auto-fixable), service worker idle, or bridge race (retry fixes it). **Never give up on the first failure**, but accept failure after the full procedure.
 
 **Critical rule: Never call `switch_browser` autonomously in automated flows.** Each call triggers a blocking naming prompt. The only time `switch_browser` is acceptable is when the user explicitly requests it during manual diagnostics or when Step 5 (test alternate browser in a dual-browser setup) is warranted and the user has been warned.
-
-## Communication: PM Agent vs Main Context
-
-When you need the user to take action (e.g., reload extension, click Connect):
-
-- **If a PM agent is running** (Ultra Claude plan-execution pipeline with a Project Manager): send the message to the PM agent via `SendMessage` so it can relay to the user and track the blocker. The PM agent coordinates between agents and the user — use it as the communication channel.
-- **If running in main context** (no PM agent, direct conversation): communicate directly with the user as normal.
 
 ---
 
@@ -173,89 +165,15 @@ Interpreting the result:
    ```bash
    pkill -f "chrome-native-host"
    ```
-2. Ask user to reload the extension at `chrome://extensions` in the primary browser.
-3. In a dual-browser setup, also ask user to reload the extension in the alternate browser.
-4. Wait a few seconds for the native host to respawn.
-5. Retry from Step 4.
+2. Wait a few seconds for the native host to respawn.
+3. Retry Step 4 once.
+4. If it still fails, accept that Chrome is unavailable. State "Chrome unavailable — continuing without browser automation" and return control to the caller.
 
 ### Step 7: Report status
 
-After diagnostics succeed, report a clear status table:
+On success: briefly state which browser is connected and its tab group ID so the caller can proceed.
 
-```
-| Browser        | Status      | Tab Group | Notes |
-|----------------|-------------|-----------|-------|
-| Primary        | Connected   | 12345     |       |
-| Alternate (if) | Connected   | 67890     |       |
-```
-
-### Step 8: Log incident if unresolved
-
-If the full diagnostic procedure (Steps 1–6) fails to restore the connection, **log the incident** before escalating to the user. This creates a persistent record for pattern analysis.
-
-**Log directory:** `$HOME/.claude/skills/chrome-debug/logs/`
-**File naming:** `YYYY-MM-DD_HH-MM-SS.md` (timestamp of the incident)
-
-Write one file per incident with this structure:
-
-```markdown
-# Chrome Connection Failure — {YYYY-MM-DD HH:MM:SS}
-
-## Summary
-{One-line description: what failed and at which step}
-
-## Environment Snapshot
-- Claude Code version: {output of `claude --version`}
-- Native host wrapper version: {version from chrome-native-host script}
-- Native host process: {running PID + version, or "not running"}
-- Native host process count: {count of chrome-native-host processes}
-- Chrome/Chromium process count: {count of chrome/chromium processes}
-- Extension config valid: {yes/no + any issues}
-- Machine context present: {yes/no}
-
-## Diagnostic Steps Attempted
-{For each step attempted, record: what was done, what was observed, pass/fail}
-
-### Step 2: Native host health
-- Running process: {details or "none"}
-- Wrapper script version: {version}
-- Version match: {yes/no/N/A}
-- Action taken: {e.g., "killed stale PID 12345" or "no action needed"}
-
-### Step 3: Extension config
-- Config valid: {yes/no}
-- Issues: {any problems found}
-
-### Step 4: tabs_context_mcp
-- Attempt 1: {result or error message}
-- Attempt 2: {result or error message}
-- Attempt 3: {result or error message}
-
-### Step 6: Full restart
-- Processes killed: {PIDs}
-- User actions requested: {what was asked}
-- Result after restart: {still failing — details}
-
-## Error Messages
-{Exact error messages from failed tool calls, copy-pasted verbatim}
-
-## Context
-- Invoked from: {main context / agent name if known}
-- Trigger: {what original action failed that led to /uc:chrome-debug}
-- Time of day: {useful for correlating with system load}
-- Recent Claude Code update: {yes/no — if wrapper version differs from running process}
-
-## Hypothesis
-{Best guess at root cause based on the evidence — e.g., "Bridge appears down, both browsers unreachable despite valid local config" or "Extension service worker likely suspended, user reload may not have fully restarted it"}
-```
-
-Create this log by running:
-```bash
-mkdir -p "$HOME/.claude/skills/chrome-debug/logs"
-LOG_FILE="$HOME/.claude/skills/chrome-debug/logs/$(date +%Y-%m-%d_%H-%M-%S).md"
-```
-
-Then write the file using the Write tool. **Always log before escalating** — the log captures ephemeral state (process lists, error messages) that will be lost once the session ends.
+On failure: state that Chrome is unavailable. Do not ask the user to intervene — the caller should continue without browser automation.
 
 ## Known Failure Modes
 

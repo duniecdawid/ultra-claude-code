@@ -49,4 +49,4 @@ Each stage's reference instructs you to read the next when you transition.
 - Do NOT skip hypothesis generation — jumping to solutions without evidence produces wrong fixes. Stage 2's hypothesis gate is mandatory.
 - Do NOT plan a fix without evidence supporting the root cause.
 
-**Related issues:** If investigation reveals related bugs or improvement ideas beyond the primary issue, mention them in the diagnosis output. Do NOT add them to the backlog automatically — the user decides what to track. Saving to backlog NEVER happens without explicit user consent.
+**Related issues:** If investigation reveals related bugs or improvement ideas beyond the primary issue, mention them in the diagnosis output, then triage each with the user per `${CLAUDE_PLUGIN_ROOT}/references/backlog-triage.md` (4-option variant — debug mode produces a plan).

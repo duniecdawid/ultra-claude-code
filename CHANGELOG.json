@@ -1,5 +1,19 @@
 [
   {
+    "seq": 143,
+    "version": "2026.04.20-1",
+    "date": "2026-04-20",
+    "summary": "Replace scattered 'never auto-add to backlog' instructions across 6 skills with a shared backlog triage protocol (references/backlog-triage.md). Skills now use AskUserQuestion to present triage options (do immediately / include in plan / add to backlog / ignore) when they surface follow-up work. Plan-execution uses deferred triage: items collected during execution, triaged in batch after shutdown. Docs site updated to match.",
+    "migration": null
+  },
+  {
+    "seq": 142,
+    "version": "2026.04.19-3",
+    "date": "2026-04-19",
+    "summary": "Remove error logging, incident reports, and user escalation from chrome-debug skill. Step 8 (log incident if unresolved) removed entirely. PM communication section removed. Operating mode changed: on unresolved failure, accept that Chrome is unavailable and return control to the caller — no user escalation, no blocking on manual intervention. Step 6 no longer asks user to reload extensions; it kills processes, waits for respawn, retries once, then accepts failure. Step 7 updated with explicit success/failure outcomes.",
+    "migration": null
+  },
+  {
     "seq": 141,
     "version": "2026.04.19-2",
     "date": "2026-04-19",
