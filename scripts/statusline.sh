@@ -5,17 +5,16 @@
 # Source shared library
 source "$HOME/.claude/ultra/lib.sh"
 
-# Read JSON input from stdin
+# Read JSON input from stdin (may be empty on refresh calls)
 input=$(cat)
 
 # --- Location (needed early for session file lookup) ---
-host=$(hostname -s)
-cwd=$(echo "$input" | jq -r '.workspace.current_dir // .cwd // empty')
+cwd=$(echo "$input" | jq -r '.workspace.current_dir // .cwd // empty' 2>/dev/null)
 [ -z "$cwd" ] && cwd=$(pwd)
 project=$(basename "$cwd")
 
 # --- Resolve identity from session file ---
-session_id=$(echo "$input" | jq -r '.session_id // empty')
+session_id=$(echo "$input" | jq -r '.session_id // empty' 2>/dev/null)
 email=""
 org_name=""
 sub_type=""
@@ -61,30 +60,31 @@ if [ -n "$session_id" ] && [ -n "$account_id" ]; then
         seven_day: { used_percentage: .seven_day.used_percentage, resets_at: (.seven_day.resets_at | epoch_int) }
       }),
       updated_at: (now | todate)
-    }')
-  # Atomic write: update accounts map keyed by account_id (flock to prevent concurrent corruption)
-  (
-    flock -w 2 9 || exit 0
-    if [ -f "$usage_file" ]; then
-      jq -c --arg key "$account_id" \
-        --argjson new "$snippet" \
-        '
-        .accounts //= {} |
-        .accounts[$key] = $new |
-        .updated_at = (now | todate)
-        ' \
-        "$usage_file" \
-        > "${usage_file}.tmp" 2>/dev/null && mv "${usage_file}.tmp" "$usage_file"
-    else
-      echo "$snippet" | jq -c --arg key "$account_id" \
-        '{accounts: {($key): .}, updated_at: (now | todate)}' \
-        > "$usage_file" 2>/dev/null
-    fi
-  ) 9>"${usage_file}.lock"
+    }' 2>/dev/null)
+  if [ -n "$snippet" ] && [ "$snippet" != "null" ]; then
+    (
+      flock -w 2 9 || exit 0
+      if [ -f "$usage_file" ]; then
+        jq -c --arg key "$account_id" \
+          --argjson new "$snippet" \
+          '
+          .accounts //= {} |
+          .accounts[$key] = $new |
+          .updated_at = (now | todate)
+          ' \
+          "$usage_file" \
+          > "${usage_file}.tmp" 2>/dev/null && mv "${usage_file}.tmp" "$usage_file"
+      else
+        echo "$snippet" | jq -c --arg key "$account_id" \
+          '{accounts: {($key): .}, updated_at: (now | todate)}' \
+          > "$usage_file" 2>/dev/null
+      fi
+    ) 9>"${usage_file}.lock"
+  fi
 fi
 
 # --- Model (short name) ---
-model_raw=$(echo "$input" | jq -r '.model.display_name // empty')
+model_raw=$(echo "$input" | jq -r '.model.display_name // empty' 2>/dev/null)
 model=""
 case "${model_raw,,}" in
   *opus*)   model="opus" ;;
@@ -94,13 +94,73 @@ case "${model_raw,,}" in
 esac
 
 # --- Context window ---
-used=$(echo "$input" | jq -r '.context_window.used_percentage // empty')
+used=$(echo "$input" | jq -r '.context_window.used_percentage // empty' 2>/dev/null)
 
 # --- Rate limits (compact) ---
-rl_5h=$(echo "$input" | jq -r '.rate_limits.five_hour.used_percentage // empty')
-rl_7d=$(echo "$input" | jq -r '.rate_limits.seven_day.used_percentage // empty')
+rl_5h=$(echo "$input" | jq -r '.rate_limits.five_hour.used_percentage // empty' 2>/dev/null)
+rl_7d=$(echo "$input" | jq -r '.rate_limits.seven_day.used_percentage // empty' 2>/dev/null)
 
-# Colors
+# --- Cache state tracking ---
+# State file stores last response timestamp + context data for idle refresh calculations
+cache_warm=false
+cache_display=""
+state_file=""
+
+if [ -n "$session_id" ]; then
+  state_file="/tmp/uc-sl-${session_id}"
+  now=$(date +%s)
+
+  if [ -f "$state_file" ]; then
+    IFS=' ' read -r prev_ts prev_used prev_model prev_model_raw < "$state_file"
+    gap=$((now - prev_ts))
+    mins=$((gap / 60))
+    secs=$((gap % 60))
+    cache_display=$(printf "%d:%02d" "$mins" "$secs")
+    [ "$gap" -lt 300 ] && cache_warm=true
+
+    # On refresh calls (no new JSON), use cached values from state file
+    if [ -z "$used" ] && [ -n "$prev_used" ]; then
+      used="$prev_used"
+      model="$prev_model"
+      model_raw="$prev_model_raw"
+    fi
+  else
+    cache_display="new"
+  fi
+
+  # Write state: timestamp + context data for future refresh calls
+  echo "${now} ${used} ${model} ${model_raw}" > "$state_file"
+fi
+
+# --- Weight bar ---
+weight_bar=""
+w_int=0
+if [ -n "$used" ] && [ -n "$model" ]; then
+  max_ctx=200000
+  case "${model_raw}" in *1[Mm]*|*1,000*) max_ctx=1000000 ;; esac
+
+  case "$model" in
+    opus)   mf=5.00 ;;
+    sonnet) mf=1.00 ;;
+    haiku)  mf=0.27 ;;
+    *)      mf=1.00 ;;
+  esac
+
+  cf=10; [ "$cache_warm" = true ] && cf=1
+
+  weight=$(awk -v u="$used" -v m="$max_ctx" -v mf="$mf" -v cf="$cf" \
+    'BEGIN { printf "%.2f", (u/100) * (m/1000000) * mf * cf }')
+
+  w_int=$(awk -v w="$weight" 'BEGIN { printf "%.0f", w * 100 }')
+  if   [ "$w_int" -ge 500 ]; then weight_bar="▇"
+  elif [ "$w_int" -ge 200 ]; then weight_bar="▅"
+  elif [ "$w_int" -ge 50  ]; then weight_bar="▃"
+  elif [ "$w_int" -ge 10  ]; then weight_bar="▂"
+  else                             weight_bar="▁"
+  fi
+fi
+
+# --- Colors ---
 reset="\033[0m"
 bold="\033[1m"
 cyan="\033[36m"
@@ -116,12 +176,12 @@ pct_color() {
   else echo "$green"; fi
 }
 
-# --- Left side: email host:project ---
+# --- Left side: email project ---
 left=""
 [ -n "$email" ] && left="${dim}${email}${reset}  "
-left="${left}${bold}${green}${host}${reset}:${cyan}${project}${reset}"
+left="${left}${cyan}${project}${reset}"
 
-# --- Right side: model + context + rate limits ---
+# --- Right side: model + context + cache + weight + rate limits ---
 right=""
 if [ -n "$model" ]; then
   right="${dim}[${model}]${reset}"
@@ -130,6 +190,27 @@ if [ -n "$used" ]; then
   c=$(pct_color "$used")
   right="${right}  ${dim}ctx:${reset}${c}$(printf '%.0f' "$used")%%${reset}"
 fi
+
+# Cache indicator
+if [ -n "$cache_display" ]; then
+  if [ "$cache_warm" = true ]; then
+    gap_color="$green"
+    [ "${gap:-0}" -ge 180 ] && gap_color="$yellow"
+    right="${right}  ${green}●${reset}${gap_color}${cache_display}${reset}"
+  else
+    right="${right}  ${red}○${cache_display}${reset}"
+  fi
+fi
+
+# Weight bar
+if [ -n "$weight_bar" ]; then
+  if   [ "$w_int" -ge 500 ]; then wc="$red"
+  elif [ "$w_int" -ge 50  ]; then wc="$yellow"
+  else                             wc="$green"
+  fi
+  right="${right} ${wc}\$${weight_bar}${reset}"
+fi
+
 if [ -n "$rl_5h" ]; then
   c=$(pct_color "$rl_5h")
   right="${right}  ${dim}5h:${reset}${c}$(printf '%.0f' "$rl_5h")%%${reset}"
@@ -139,5 +220,5 @@ if [ -n "$rl_7d" ]; then
   right="${right}  ${dim}7d:${reset}${c}$(printf '%.0f' "$rl_7d")%%${reset}"
 fi
 
-# --- Output: left | right ---
-printf "%b  ${dim}│${reset}  %b" "$left" "$right"
+# --- Output ---
+printf "%b  %b" "$left" "$right"

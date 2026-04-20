@@ -64,6 +64,9 @@
       </tbody>
     </table>
 
+    <h3>Statusline cost awareness</h3>
+    <p>The statusline shows a live cache indicator and response weight bar. The cache indicator (<code>&bullet;</code> green = warm, <code>&cir;</code> red = cold) tracks the 5-minute Anthropic prompt cache TTL with a live countdown. The weight bar (<code>$▁▂▃▅▇</code>) combines context fill percentage, model type, and cache state into a single visual &mdash; it jumps in real time when the cache expires, showing the cost difference between cached and uncached responses.</p>
+
     <h2>Usage management</h2>
     <p>Before execution, you're asked whether to enable extra usage:</p>
 

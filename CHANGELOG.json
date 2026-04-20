@@ -1,5 +1,12 @@
 [
   {
+    "seq": 144,
+    "version": "2026.04.20-2",
+    "date": "2026-04-20",
+    "summary": "Statusline: add live cache timer (●/○ with 5-min TTL countdown) and response weight bar ($▁▂▃▅▇ from context fill × model × cache state). Remove hostname and separator to reclaim space. Weight bar jumps dynamically when cache expires, making the cost impact of cold caches immediately visible. State persisted per-session in /tmp for idle refresh support.",
+    "migration": null
+  },
+  {
     "seq": 143,
     "version": "2026.04.20-1",
     "date": "2026-04-20",
