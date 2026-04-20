@@ -5,7 +5,7 @@
 # Source shared library
 source "$HOME/.claude/ultra/lib.sh"
 
-# Read JSON input from stdin (may be empty on refresh calls)
+# Read JSON input from stdin
 input=$(cat)
 
 # --- Location (needed early for session file lookup) ---
@@ -83,7 +83,7 @@ if [ -n "$session_id" ] && [ -n "$account_id" ]; then
   fi
 fi
 
-# --- Model (short name) ---
+# --- Extract display values from input ---
 model_raw=$(echo "$input" | jq -r '.model.display_name // empty' 2>/dev/null)
 model=""
 case "${model_raw,,}" in
@@ -93,17 +93,17 @@ case "${model_raw,,}" in
   *)        model="$model_raw" ;;
 esac
 
-# --- Context window ---
 used=$(echo "$input" | jq -r '.context_window.used_percentage // empty' 2>/dev/null)
-
-# --- Rate limits (compact) ---
 rl_5h=$(echo "$input" | jq -r '.rate_limits.five_hour.used_percentage // empty' 2>/dev/null)
 rl_7d=$(echo "$input" | jq -r '.rate_limits.seven_day.used_percentage // empty' 2>/dev/null)
+cost_usd=$(echo "$input" | jq -r '.cost.total_cost_usd // empty' 2>/dev/null)
 
 # --- Cache state tracking ---
-# State file stores last response timestamp + context data for idle refresh calculations
+# State file: pipe-delimited to handle spaces in model_raw.
+# Format: response_ts|cost_usd|used|model|model_raw|rl_5h|rl_7d|email
+# response_ts only updates when cost changes (= new response), NOT on refresh ticks.
 cache_warm=false
-cache_display=""
+gap=0
 state_file=""
 
 if [ -n "$session_id" ]; then
@@ -111,25 +111,26 @@ if [ -n "$session_id" ]; then
   now=$(date +%s)
 
   if [ -f "$state_file" ]; then
-    IFS=' ' read -r prev_ts prev_used prev_model prev_model_raw < "$state_file"
-    gap=$((now - prev_ts))
-    mins=$((gap / 60))
-    secs=$((gap % 60))
-    cache_display=$(printf "%d:%02d" "$mins" "$secs")
-    [ "$gap" -lt 300 ] && cache_warm=true
+    IFS='|' read -r prev_response_ts prev_cost prev_used prev_model prev_model_raw prev_5h prev_7d prev_email < "$state_file"
 
-    # On refresh calls (no new JSON), use cached values from state file
-    if [ -z "$used" ] && [ -n "$prev_used" ]; then
-      used="$prev_used"
-      model="$prev_model"
-      model_raw="$prev_model_raw"
+    if [ -n "$cost_usd" ] && [ "$cost_usd" != "$prev_cost" ]; then
+      printf '%s' "${now}|${cost_usd}|${used}|${model}|${model_raw}|${rl_5h}|${rl_7d}|${email}" > "$state_file"
+      gap=0
+    else
+      gap=$((now - prev_response_ts))
+      [ -z "$used" ] && used="$prev_used"
+      [ -z "$model" ] && model="$prev_model"
+      [ -z "$model_raw" ] && model_raw="$prev_model_raw"
+      [ -z "$rl_5h" ] && rl_5h="$prev_5h"
+      [ -z "$rl_7d" ] && rl_7d="$prev_7d"
+      [ -z "$email" ] && email="$prev_email"
     fi
   else
-    cache_display="new"
+    printf '%s' "${now}|${cost_usd}|${used}|${model}|${model_raw}|${rl_5h}|${rl_7d}|${email}" > "$state_file"
+    gap=0
   fi
 
-  # Write state: timestamp + context data for future refresh calls
-  echo "${now} ${used} ${model} ${model_raw}" > "$state_file"
+  [ "$gap" -lt 300 ] && cache_warm=true
 fi
 
 # --- Weight bar ---
@@ -192,12 +193,12 @@ if [ -n "$used" ]; then
 fi
 
 # Cache indicator — pie chart depletes over 5 min: ● → ◕ → ◑ → ◔ → ○
-if [ -n "$cache_display" ]; then
+if [ -n "$state_file" ]; then
   if [ "$cache_warm" = true ]; then
-    if   [ "${gap:-0}" -lt 75  ]; then pie="●"
+    if   [ "$gap" -lt 75  ]; then pie="●"
     elif [ "$gap" -lt 150 ]; then pie="◕"
     elif [ "$gap" -lt 225 ]; then pie="◑"
-    else                              pie="◔"
+    else                          pie="◔"
     fi
     pie_color="$green"
     [ "$gap" -ge 180 ] && pie_color="$yellow"

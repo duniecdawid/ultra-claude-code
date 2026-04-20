@@ -1,5 +1,12 @@
 [
   {
+    "seq": 146,
+    "version": "2026.04.20-4",
+    "date": "2026-04-20",
+    "summary": "Fix statusline cache timer: only update response timestamp when cost changes (new response), not on refresh ticks — fixes timer stuck at 0s. Switch state file to pipe-delimited format to handle spaces in model display names. Timer now correctly progresses between responses and resets on new response.",
+    "migration": null
+  },
+  {
     "seq": 145,
     "version": "2026.04.20-3",
     "date": "2026-04-20",
