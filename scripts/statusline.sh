@@ -35,9 +35,24 @@ if [ -n "$session_id" ]; then
   fi
 fi
 
+# --- Detect new response vs stale refresh tick ---
+# cost changes = new API response with fresh rate limit data. No cost change = refresh tick with stale data.
+is_new_response=false
+cost_usd_early=$(echo "$input" | jq -r '.cost.total_cost_usd // empty' 2>/dev/null)
+if [ -n "$session_id" ] && [ -n "$cost_usd_early" ]; then
+  sl_state="/tmp/uc-sl-${session_id}"
+  if [ -f "$sl_state" ]; then
+    prev_cost_early=$(cut -d'|' -f2 "$sl_state")
+    [ "$cost_usd_early" != "$prev_cost_early" ] && is_new_response=true
+  else
+    is_new_response=true
+  fi
+fi
+
 # --- Persist usage data keyed by account_id ---
+# Only write on new API responses — stale refresh ticks would overwrite fresh data from other sessions.
 usage_file="$HOME/.claude/ultra/usage-status.json"
-if [ -n "$session_id" ] && [ -n "$account_id" ]; then
+if [ -n "$session_id" ] && [ -n "$account_id" ] && [ "$is_new_response" = true ]; then
   snippet=$(echo "$input" | jq -c \
     --arg account_id "$account_id" \
     --arg email "$email" \
@@ -62,6 +77,14 @@ if [ -n "$session_id" ] && [ -n "$account_id" ]; then
       updated_at: (now | todate)
     }' 2>/dev/null)
   if [ -n "$snippet" ] && [ "$snippet" != "null" ]; then
+    usage_log="$HOME/.claude/ultra/usage-status.log"
+    printf '[%s] WRITE session=%s account=%s 5h=%s 7d=%s\n' \
+      "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+      "$session_id" \
+      "$account_id" \
+      "$(echo "$snippet" | jq -r '.rate_limits.five_hour.used_percentage // "null"')" \
+      "$(echo "$snippet" | jq -r '.rate_limits.seven_day.used_percentage // "null"')" \
+      >> "$usage_log" 2>/dev/null
     (
       flock -w 2 9 || exit 0
       if [ -f "$usage_file" ]; then
@@ -81,6 +104,17 @@ if [ -n "$session_id" ] && [ -n "$account_id" ]; then
       fi
     ) 9>"${usage_file}.lock"
   fi
+elif [ -n "$session_id" ] && [ -n "$account_id" ] && [ "$is_new_response" = false ]; then
+  usage_log="$HOME/.claude/ultra/usage-status.log"
+  rl_5h_skip=$(echo "$input" | jq -r '.rate_limits.five_hour.used_percentage // "null"' 2>/dev/null)
+  rl_7d_skip=$(echo "$input" | jq -r '.rate_limits.seven_day.used_percentage // "null"' 2>/dev/null)
+  printf '[%s] SKIP  session=%s account=%s 5h=%s 7d=%s\n' \
+    "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    "$session_id" \
+    "$account_id" \
+    "$rl_5h_skip" \
+    "$rl_7d_skip" \
+    >> "$usage_log" 2>/dev/null
 fi
 
 # --- Extract display values from input ---
