@@ -268,13 +268,14 @@ The Lead sends you terse status messages as it orchestrates. Process each into t
 - **Plan amendments** — if Lead amends mid-execution, it notifies you of changed tasks/scope
 
 **You receive from the Haiku watchdog (`watchdog-{PLAN_NAME}`):**
-- `WATCH: KILL window={5h|7d} pct={pct} resets_at={resets_at}` — 5h window ≥ 95% or 7d window ≥ 98%
-- `WATCH: PAUSE window={5h|7d} pct={pct} resets_at={resets_at}` — 5h window ≥ 90% or 7d window ≥ 95%
-- `WATCH: CONSERVE window={5h|7d} pct={pct} resets_at={resets_at}` — 5h window ≥ 80% or 7d window ≥ 90%
-- `WATCH: USAGE-RESET window={5h|7d} pct={pct}` — that window dropped below its CONSERVE threshold or rolled over
-- `WATCH: STALL task-{N} silent {minutes}m` — executor silent >10 min
-- `WATCH: STALE-DATA usage-status.json last updated {minutes}m ago` — data freshness warning
-Process these via the Watchdog Signal Handling section below. Each window is independent: you may receive CONSERVE for 5h and PAUSE for 7d on the same tick. Handle them as separate events.
+Messages are prefixed with `WATCH: ` followed by a JSON object with an `"alert"` field. Examples:
+- `WATCH: {"alert":"KILL","window":"5h","pct":96,"resets_at":1776722400}` — 5h ≥ 95% or 7d ≥ 98%
+- `WATCH: {"alert":"PAUSE","window":"5h","pct":91,"resets_at":1776722400}` — 5h ≥ 90% or 7d ≥ 95%
+- `WATCH: {"alert":"CONSERVE","window":"7d","pct":92,"resets_at":1777136400}` — 5h ≥ 80% or 7d ≥ 90%
+- `WATCH: {"alert":"USAGE-RESET","window":"5h","pct":15}` — window dropped below CONSERVE or rolled over
+- `WATCH: {"alert":"STALL","task_id":"task-3","silent_minutes":15}` — executor silent >10 min
+- `WATCH: {"alert":"STALE-DATA","minutes":12}` — data freshness warning
+Parse the JSON to extract fields. Process via the Watchdog Signal Handling section below. Each window is independent: you may receive CONSERVE for 5h and PAUSE for 7d on the same tick. Handle them as separate events.
 
 **You also receive directly from Executors:**
 - `STAGE-DONE task-{N} {stage}` — a review or test stage passed. Update dashboard.
@@ -285,13 +286,13 @@ Process these identically to Lead messages — same dashboard updates, same even
 
 The Haiku watchdog (`watchdog-{PLAN_NAME}`) sends you raw alerts. Your job: **validate, add context, forward to Lead.** You are the filter between the cheap-but-dumb sensor and the expensive-but-smart Lead.
 
-Each usage signal carries a `window` field (`5h` or `7d`). Validate against the corresponding field in `~/.claude/ultra/usage-status.json`:
-- `window=5h` → `.rate_limits.five_hour.used_percentage`
-- `window=7d` → `.rate_limits.seven_day.used_percentage`
+Each usage alert JSON has a `"window"` field (`"5h"` or `"7d"`). Validate the `"pct"` value against the corresponding field in `~/.claude/ultra/usage-status.json`:
+- `"window":"5h"` → `.rate_limits.five_hour.used_percentage`
+- `"window":"7d"` → `.rate_limits.seven_day.used_percentage`
 
 Forwarded messages to Lead always include the window in brackets (e.g. `USAGE PAUSE [5h]: ...`) so Lead can disambiguate and track per-window state. Lead's behavior is uniform across windows — only the thresholds and reset horizons differ.
 
-### On `WATCH: KILL window={5h|7d} pct={pct} resets_at={resets_at}`
+### On alert `"KILL"` — `{"alert":"KILL","window":"...","pct":...,"resets_at":...}`
 
 5h at ≥95% or 7d at ≥98%. Emergency — force-terminate all agents immediately.
 
@@ -302,7 +303,7 @@ Forwarded messages to Lead always include the window in brackets (e.g. `USAGE PA
    - SendMessage Lead: `"USAGE KILL [{window}]: {pct}% used. Resets at {resets_at_ISO}. {N} teams active, {M} tasks remaining. Recommend: send shutdown_request to all active agents immediately and checkpoint."`
 3. If NOT confirmed (watchdog misread): log the discrepancy, do NOT forward to Lead.
 
-### On `WATCH: PAUSE window={5h|7d} pct={pct} resets_at={resets_at}`
+### On alert `"PAUSE"` — `{"alert":"PAUSE","window":"...","pct":...,"resets_at":...}`
 
 5h at ≥90% or 7d at ≥95%. All agents must stop working and go idle.
 
@@ -313,7 +314,7 @@ Forwarded messages to Lead always include the window in brackets (e.g. `USAGE PA
    - SendMessage Lead: `"USAGE PAUSE [{window}]: {pct}% used. Resets at {resets_at_ISO}. {N} teams active (avg task cost ~{avg}%). {M} tasks remaining. Recommend: send PAUSE to all active agents, checkpoint, go idle until reset."`
 3. If NOT confirmed: log discrepancy, do NOT forward.
 
-### On `WATCH: CONSERVE window={5h|7d} pct={pct} resets_at={resets_at}`
+### On alert `"CONSERVE"` — `{"alert":"CONSERVE","window":"...","pct":...,"resets_at":...}`
 
 5h at ≥80% or 7d at ≥90%. Advisory — finish in-flight work, stop spawning new teams.
 
@@ -324,25 +325,25 @@ Forwarded messages to Lead always include the window in brackets (e.g. `USAGE PA
    - SendMessage Lead: `"USAGE CONSERVE [{window}]: {pct}% used. Resets at {resets_at_ISO}. {N} teams active (avg task cost ~{avg}%). {M} tasks remaining. At current burn rate, estimated to reach {projected}% before reset. Recommend: allow active teams to finish their current task, stop spawning new teams, checkpoint on next completion."`
 3. If NOT confirmed: log discrepancy, do NOT forward.
 
-### On `WATCH: USAGE-RESET window={5h|7d} pct={pct}`
+### On alert `"USAGE-RESET"` — `{"alert":"USAGE-RESET","window":"...","pct":...}`
 
 The specified window dropped below its CONSERVE threshold or rolled over. This clears only that window's block — Lead resumes only when ALL windows are clear.
 
 1. Log to events.json: `{type: "usage_reset", window, pct}`
 2. SendMessage Lead: `"USAGE RESET [{window}]: window cleared. Current usage {pct}%. Clear this window's block — resume spawning if no other usage blocks remain."`
 
-### On `WATCH: STALL task-{N} silent {minutes}m`
+### On alert `"STALL"` — `{"alert":"STALL","task_id":"...","silent_minutes":...}`
 
 Executor silent for >10 minutes.
 
 1. If this is the **first stall report** for this task: ping the executor directly.
    SendMessage executor-{N}: `"Status check — what stage are you in?"`
 2. If this is the **second stall report** for the same task (~2+ minutes later, still stalled):
-   - Log to events.json: `{type: "stall_detected", task_id: "task-{N}", minutes}`
+   - Log to events.json: `{type: "stall_detected", task_id, silent_minutes}`
    - SendMessage Lead: `"STALL: executor-{N} unresponsive for ~{minutes} minutes. Recommend: investigate or respawn."`
 3. Track which tasks you've already pinged (mental note or brief state in your context) to avoid duplicate pings.
 
-### On `WATCH: STALE-DATA usage-status.json last updated {minutes}m ago`
+### On alert `"STALE-DATA"` — `{"alert":"STALE-DATA","minutes":...}`
 
 No agent has prompted recently — usage data may be outdated.
 

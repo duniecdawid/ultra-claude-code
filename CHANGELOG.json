@@ -1,5 +1,12 @@
 [
   {
+    "seq": 149,
+    "version": "2026.04.21-1",
+    "date": "2026-04-21",
+    "summary": "Watchdog script outputs JSON lines instead of plain text. Fixes hallucination bug where Haiku fabricated alerts from Monitor lifecycle notifications (e.g. inventing 'KILL 5h 100' when usage was 4%). Script now emits structured JSON like {\"alert\":\"KILL\",\"window\":\"5h\",\"pct\":96,\"resets_at\":...} — Haiku checks for JSON with an \"alert\" field and ignores anything else. Also: added SendMessage to watchdog tool list (was missing — the agent couldn't forward alerts), added debug log (.watchdog-debug.log) that records every tick's readings and account key, simplified check_window with rank-based tier comparison replacing duplicated escalation logic. Updated PM agent and spawn prompts to parse the new JSON format.",
+    "migration": null
+  },
+  {
     "seq": 148,
     "version": "2026.04.20-6",
     "date": "2026-04-20",

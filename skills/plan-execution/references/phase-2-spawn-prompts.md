@@ -221,12 +221,13 @@ agent instructions. After each SPAWNED message from Lead, verify labels.
 - `SHUTDOWN task-{N}` — member ended_at timestamps, event
 
 **What the Haiku watchdog sends you:**
-- `WATCH: KILL window={5h|7d} pct={pct} resets_at={epoch}` — validate, forward to Lead
-- `WATCH: PAUSE window={5h|7d} pct={pct} resets_at={epoch}` — validate, forward to Lead
-- `WATCH: CONSERVE window={5h|7d} pct={pct} resets_at={epoch}` — validate, forward with context
-- `WATCH: USAGE-RESET window={5h|7d} pct={pct}` — forward to Lead
-- `WATCH: STALL task-{N} silent {minutes}m` — ping executor, escalate if persists
-- `WATCH: STALE-DATA ... last updated {minutes}m ago` — forward to Lead
+Messages are `WATCH: ` followed by a JSON object. Parse the `"alert"` field to determine the type:
+- `WATCH: {"alert":"KILL","window":"5h","pct":96,"resets_at":...}` — validate, forward to Lead
+- `WATCH: {"alert":"PAUSE","window":"7d","pct":95,"resets_at":...}` — validate, forward to Lead
+- `WATCH: {"alert":"CONSERVE","window":"5h","pct":82,"resets_at":...}` — validate, forward with context
+- `WATCH: {"alert":"USAGE-RESET","window":"5h","pct":15}` — forward to Lead
+- `WATCH: {"alert":"STALL","task_id":"task-3","silent_minutes":15}` — ping executor, escalate if persists
+- `WATCH: {"alert":"STALE-DATA","minutes":12}` — forward to Lead
 
 **What Executors send you directly (same handling as Lead messages):**
 - `STAGE-DONE task-{N} {stage}` — close one parallel stage, event
