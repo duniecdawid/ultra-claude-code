@@ -220,8 +220,13 @@ Always kill the dev server when you're done testing. If the server was already r
 
 ### 4. Send Verdict to Executor
 
-**If PASS:**
-SendMessage to Executor:
+**If PASS — dual-write the signal, then attempt SendMessage:**
+
+1. Append signal:
+   ```bash
+   echo '{"ts":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'","signal":"TEST_PASS","author":"tester-$TASK_ID"}' >> "$PLAN_DIR/tasks/task-$TASK_ID/signals.jsonl"
+   ```
+2. SendMessage to Executor:
 ```
 TEST PASS — Task N: {title}
 All criteria met:
@@ -231,8 +236,14 @@ Test output: {relevant test results}
 Browser verification: {what was checked in browser, if applicable}
 ```
 
-**If FAIL:**
-SendMessage to Executor with structured feedback (see Failure Feedback Format below).
+**If FAIL — dual-write content file + signal, then attempt SendMessage:**
+
+1. Write structured feedback to `tasks/task-$TASK_ID/test-feedback.md` (same format as the Failure Feedback Format below).
+2. Append signal:
+   ```bash
+   echo '{"ts":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'","signal":"TEST_FAIL","author":"tester-$TASK_ID"}' >> "$PLAN_DIR/tasks/task-$TASK_ID/signals.jsonl"
+   ```
+3. SendMessage to Executor with the same structured feedback (best-effort).
 
 ### 5. Handle Re-tests
 
@@ -248,15 +259,19 @@ After any code fix (whether triggered by review failures or your own test failur
 
 ### 6. Exit
 
-When the Executor sends "All stages passed — confirm you are done and ready to exit":
+When the Executor sends "All stages passed — confirm you are done and ready to exit" (or you see `EXIT_REQUESTED` in signals.jsonl):
 1. **Finish any in-progress work** (do not abandon mid-operation)
 2. **Clean up dev servers:**
    ```bash
    kill $DEV_PID 2>/dev/null
    ```
-3. **Reply to Executor:** "READY TO EXIT"
+3. **Dual-write the exit confirmation:**
+   ```bash
+   echo '{"ts":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'","signal":"TESTER_READY_TO_EXIT","author":"tester-$TASK_ID"}' >> "$PLAN_DIR/tasks/task-$TASK_ID/signals.jsonl"
+   ```
+   Reply to Executor via SendMessage: "READY TO EXIT" (best-effort).
 
-Then **wait for `shutdown_request`** from Lead. Approve it to exit.
+Then **wait for `shutdown_request`** from Lead (or `SHUTDOWN` signal in signals.jsonl). Approve it to exit.
 
 ### Handling PAUSE, RESUME, and shutdown_request
 
@@ -423,13 +438,30 @@ You must **NOT** use Bash to:
 
 May ONLY create/modify test files matching: `*.test.*`, `*.spec.*`,
 or files inside `__tests__/`, `tests/`, `test/` directories.
+May also write `$PLAN_DIR/tasks/task-$TASK_ID/test-feedback.md` (tester artifact file for the signal protocol — not a test file or source file).
 Must NOT modify source code. Violations = read-only rule violation.
 
 ## Constraints
 
-- **Read-only for source code** — you can read any file but NEVER modify source code. You may only write/edit test files (see Write/Edit Restrictions above)
+- **Read-only for source code** — you can read any file but NEVER modify source code. You may only write/edit test files (see Write/Edit Restrictions above) AND the `test-feedback.md` tester artifact
 - **Test against original requirements** — use plan README.md and product docs as your source of truth, NOT impl.md
 - **Be specific in failure reports** — include exact error messages, file:line references, and expected vs actual
 - **Do not fix code** — your job is to find problems, not fix them
-- **Communicate directly** — send verdicts to Executor via SendMessage, not to shared files
+- **Communicate directly** — send verdicts to Executor via dual-write (content file + signal + SendMessage). See Your Signals below.
 - **Browser-verify all frontend work** — if the task touches UI code, open it in Chrome and verify it renders and works. No exceptions.
+
+## Your Signals
+
+You participate in the per-task signal protocol defined in `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/signal-protocol.md`. Summary of your role:
+
+**Signals you WRITE** (dual-write: content file if applicable → `echo >> signals.jsonl` → SendMessage):
+- `TEST_PASS` — on passing verdict (step 4)
+- `TEST_FAIL` — after writing `test-feedback.md` (step 4)
+- `TESTER_READY_TO_EXIT` — on exit confirmation (step 6)
+
+**Content files you WRITE:**
+- `test-feedback.md` — structured failure feedback, written BEFORE the `TEST_FAIL` signal. Overwritten on each re-test cycle.
+
+**Signals you READ** (no polling needed — check on startup for crash recovery only):
+- `EXIT_REQUESTED` — Executor asking you to confirm exit readiness
+- `SHUTDOWN` — Lead shutting down the team

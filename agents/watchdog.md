@@ -156,7 +156,7 @@ while true; do
     fi
   fi
 
-  # Stall detection
+  # Stall detection — checks both events.json and signals.jsonl, uses most recent
   if [ -f "$PLAN_DIR/events.json" ] && [ -f "$PLAN_DIR/plan.json" ]; then
     now_epoch=$(date +%s)
     in_progress=$(jq -r '.tasks[]? | select(.status == "in_progress") | .task_id' "$PLAN_DIR/plan.json" 2>/dev/null)
@@ -164,6 +164,21 @@ while true; do
     for task_id in $in_progress; do
       [ -z "$task_id" ] && continue
       last_event=$(jq -r --arg tid "$task_id" '[.events[]? | select(.task_id == $tid) | .timestamp] | sort | last // ""' "$PLAN_DIR/events.json" 2>/dev/null || echo "")
+
+      # Also check signals.jsonl for more recent activity
+      task_num=$(echo "$task_id" | sed 's/task-//')
+      signal_file="$PLAN_DIR/tasks/task-${task_num}/signals.jsonl"
+      if [ -f "$signal_file" ] && [ -s "$signal_file" ]; then
+        last_signal_ts=$(tail -1 "$signal_file" | jq -r '.ts // ""' 2>/dev/null || echo "")
+        if [ -n "$last_signal_ts" ] && [ "$last_signal_ts" != "null" ]; then
+          signal_epoch=$(date -d "$last_signal_ts" +%s 2>/dev/null || echo 0)
+          event_epoch_tmp=$(date -d "$last_event" +%s 2>/dev/null || echo 0)
+          # Use whichever is more recent
+          if [ "$signal_epoch" -gt "$event_epoch_tmp" ] 2>/dev/null; then
+            last_event="$last_signal_ts"
+          fi
+        fi
+      fi
 
       if [ -n "$last_event" ] && [ "$last_event" != "null" ]; then
         event_epoch=$(date -d "$last_event" +%s 2>/dev/null || echo 0)

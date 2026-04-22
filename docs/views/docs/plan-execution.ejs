@@ -58,8 +58,8 @@
       <li>Executor runs a <strong>deviation self-check</strong> against task.md. If clean (all files in scope, all criteria mapped, no reviewer-take contradictions) it proceeds directly to implementation &mdash; no Lead gate. If the plan deviates, Executor sends <code>ADVICE REQUEST task-N [deviation]</code> and waits for APPROVED (Lead amends task.md and broadcasts) or AMEND.</li>
       <li>Executor implements. Reviewer reads files as they're written via progress updates.</li>
       <li>The moment code is done &mdash; <em>before</em> writing impl.md &mdash; Executor signals "code complete" to Lead. Lead lazy-spawns the Tester (which runs its own startup read in parallel) and may pre-spawn the next dependent task's team into a pipeline-wait gate.</li>
-      <li>Executor writes <code>tasks/task-N/impl.md</code> (delta only &mdash; created/modified files, exports, INTEGRATION, GOTCHA), broadcasts <code>FILE-UPDATED</code>, then signals "ready for review" and "ready for test" simultaneously.</li>
-      <li>Reviewer and Tester run in parallel. Both must PASS. If either fails, Executor fixes, updates impl.md with fix notes, re-broadcasts, and re-submits.</li>
+      <li>Executor writes <code>tasks/task-N/impl.md</code> (delta only &mdash; created/modified files, exports, INTEGRATION, GOTCHA), broadcasts <code>FILE-UPDATED</code>, then dual-writes "ready for review" and "ready for test" signals to <code>signals.jsonl</code> and attempts SendMessage simultaneously.</li>
+      <li>Reviewer and Tester run in parallel. Both must PASS. Verdicts are dual-written to <code>signals.jsonl</code> (with content files for FAIL details) and sent via SendMessage. Executor polls <code>signals.jsonl</code> as a fallback if messages don't arrive. If either fails, Executor fixes, updates impl.md with fix notes, re-broadcasts, and re-submits.</li>
       <li>Both pass &rarr; task done. Lead sends <code>Implementation approved</code> to any parked pipeline successor, shuts the team down, and fills the slot with the next unblocked task.</li>
     </ol>
 
@@ -103,11 +103,15 @@
     <details>
       <summary>Task directory as the team's single source of truth</summary>
       <div class="details-content">
-        <p>Every task gets its own directory at <code>documentation/plans/{plan}/tasks/task-N/</code> containing three files, each written by a different role:</p>
+        <p>Every task gets its own directory at <code>documentation/plans/{plan}/tasks/task-N/</code> containing these files:</p>
         <ul>
           <li><strong><code>task.md</code></strong> &mdash; written by the planning mode at Stage 4 (Lead may amend mid-execution). Authoritative task brief: description, files, patterns, <code>**Research:**</code> pointers, success criteria, dependencies. Every team member reads this on startup.</li>
+          <li><strong><code>signals.jsonl</code></strong> &mdash; append-only JSONL file for durable pipeline state. All stage transitions are dual-written here (atomic <code>echo &gt;&gt;</code> appends) alongside best-effort SendMessage attempts. Executor polls this during wait states (~60s) as a fallback for unreliable message delivery. PM reads it for dashboard state derivation. Critical for crash recovery &mdash; re-spawned agents infer precise pipeline state from the signal log.</li>
           <li><strong><code>plan.md</code></strong> &mdash; written by the Executor during its Phase 3. A thin execution delta that extends task.md &mdash; concrete function/class/signature choices per file, criterion-to-approach mapping by ID, reviewer-take incorporation, risks. Does not restate task.md content.</li>
           <li><strong><code>impl.md</code></strong> &mdash; written by the Executor during Phase 4.5 after code complete. An implementation delta &mdash; created/modified files with line ranges, exports, INTEGRATION notes for other tasks, GOTCHA notes for library quirks. Does not restate task.md or plan.md content.</li>
+          <li><strong><code>take.md</code></strong> &mdash; written by the Reviewer before sending the REVIEWER TAKE. Persistent copy of the standards-aware perspective that shapes the Executor's plan.</li>
+          <li><strong><code>review-feedback.md</code></strong> &mdash; written by the Reviewer on FAIL verdict. Structured failure details (overwritten on each re-review cycle).</li>
+          <li><strong><code>test-feedback.md</code></strong> &mdash; written by the Tester on FAIL verdict. Structured failure details (overwritten on each re-test cycle).</li>
         </ul>
         <p>Spawn prompts carry no inline task content &mdash; they're minimal pointers. All team members (including lazy-spawned Tester, pipeline successors, and crash re-spawns) follow the shared task-team-startup protocol to read the task directory on their first action. File writes broadcast <code>FILE-UPDATED task-N/{file}: reason</code> to active teammates so state stays in sync without verbose messages.</p>
       </div>
@@ -139,6 +143,20 @@
         </ul>
         <p>If all three pass, Executor proceeds to implementation with zero Lead round-trips. If any fails, Executor sends <code>ADVICE REQUEST task-N [deviation]: {reason}</code> and waits for <code>APPROVED</code> (Lead amends task.md and broadcasts) or <code>AMEND: {instructions}</code>.</p>
         <p>Executor can also pull Lead's judgment at any time (planning or implementation) via <code>ADVICE REQUEST task-N [complicated|deep-reasoning|knowledge]: {context + question}</code>. Those cases are non-blocking &mdash; Executor decides whether to wait. ADVICE is distinct from <code>QUERY:</code> (external library docs via <code>/uc:research</code>): ADVICE is for Lead's judgment and orchestration context, QUERY is for external knowledge.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Signal protocol and executor polling</summary>
+      <div class="details-content">
+        <p>SendMessage to executor agents is unreliable (50&ndash;100% failure rate due to known Claude Code platform bugs). The signal protocol provides a durable fallback:</p>
+        <ul>
+          <li><strong>Dual-write:</strong> every stage transition is written to <code>signals.jsonl</code> (atomic <code>echo &gt;&gt;</code> append) AND sent via SendMessage (best-effort). If SendMessage fails, the signal is still discoverable.</li>
+          <li><strong>Executor polling:</strong> during wait states (waiting for reviewer take, verdicts, exit confirmations), the executor reads <code>signals.jsonl</code> every ~60 seconds to check for signals that SendMessage failed to deliver.</li>
+          <li><strong>Content files:</strong> signals with associated data (reviewer take, failure feedback) write the content to a dedicated file (<code>take.md</code>, <code>review-feedback.md</code>, <code>test-feedback.md</code>) before appending the signal. The signal acts as a &ldquo;content ready&rdquo; flag.</li>
+          <li><strong>PM stage tracking:</strong> the PM reads <code>signals.jsonl</code> per task to derive review/test stage state, replacing the previous STAGE-DONE/RETRY messages from executors.</li>
+        </ul>
+        <p>Token overhead is minimal: ~100&ndash;200 tokens per poll (reading a small file), ~1K&ndash;5K tokens total per task across all signal reads and writes.</p>
       </div>
     </details>
 

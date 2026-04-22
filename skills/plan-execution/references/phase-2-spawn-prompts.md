@@ -43,6 +43,16 @@ Most of the time the planner already met the bar and Lead does nothing. When a g
 
 No `FILE-UPDATED` broadcast is needed at this stage because no task-team member for task-{N} is alive yet. Lead writes, then spawns. Agents will read the current state of `task.md` as part of their startup read.
 
+### 2.5. Initialize signals.jsonl
+
+Create the empty signal file for the task:
+
+```bash
+touch "$PLAN_DIR/tasks/task-{N}/signals.jsonl"
+```
+
+This must happen before TeamCreate so agents can read and append to it from their first action. The file starts empty — signals are appended as pipeline events occur.
+
 ### 3. Pipeline-mode block (pipeline pre-spawn only)
 
 If this is a pipeline pre-spawn (Executor's `code complete` on predecessor task {P} freed a slot and task-{N} is the next unblocked dependent), append the Pipeline mode block to `tasks/task-{N}/task.md` after the knowledge review — there's a commented-out template inside the task.md template showing the exact format. Fill in `{P}` and uncomment it.
@@ -68,11 +78,12 @@ You are the team coordinator for task {N} of the "$ARGUMENTS" plan.
 TASK_ID={N}
 ROLE=task
 PLAN_DIR=documentation/plans/$ARGUMENTS
+SIGNAL_FILE=documentation/plans/$ARGUMENTS/tasks/task-{N}/signals.jsonl
 
 **Teammates (SendMessage):**
 - Reviewer: reviewer-{N} (spawned with you — will send you a REVIEWER TAKE shortly)
 - Lead: {lead name} (ADVICE channel — send `ADVICE REQUEST task-{N} [{case}]: ...` for complicated / deep-reasoning / knowledge / deviation cases. QUERY channel — send `QUERY: {question}` for external library docs.)
-- Project Manager: pm-{PLAN_NAME} (stage progress — STAGE-DONE, RETRY)
+- Project Manager: pm-{PLAN_NAME} (reads signals.jsonl for stage tracking — no direct messages needed)
 - Tester: tester-{N} (lazy-spawned by Lead when you signal "code complete")
 
 Your first action is the startup read — follow
@@ -93,6 +104,7 @@ You are reviewing task {N} of the "$ARGUMENTS" plan.
 TASK_ID={N}
 ROLE=task
 PLAN_DIR=documentation/plans/$ARGUMENTS
+SIGNAL_FILE=documentation/plans/$ARGUMENTS/tasks/task-{N}/signals.jsonl
 
 **Teammates (SendMessage):**
 - Executor: executor-{N} (you will send a REVIEWER TAKE to them immediately after your startup read — see your agent workflow step 2)
@@ -117,6 +129,7 @@ You are testing task {N} of the "$ARGUMENTS" plan.
 TASK_ID={N}
 ROLE=task
 PLAN_DIR=documentation/plans/$ARGUMENTS
+SIGNAL_FILE=documentation/plans/$ARGUMENTS/tasks/task-{N}/signals.jsonl
 
 **Teammates (SendMessage):**
 - Executor: executor-{N}
@@ -230,9 +243,12 @@ Messages are `WATCH: ` followed by a JSON object. Parse the `"alert"` field to d
 - `WATCH: {"alert":"STALE-DATA","minutes":12}` — forward to Lead
 - `WATCH: {"alert":"STATUS","pct_5h":25,"pct_7d":81,...}` — first-tick snapshot, forward to Lead
 
-**What Executors send you directly (same handling as Lead messages):**
-- `STAGE-DONE task-{N} {stage}` — close one parallel stage, event
-- `RETRY task-{N}` — increment retry_count, reset stage timers, event
+**signals.jsonl reading (replaces direct Executor messages):**
+Executors no longer send STAGE-DONE or RETRY. Read `$PLAN_DIR/tasks/task-{N}/signals.jsonl`
+for each active task on every incoming Lead message to derive stage state:
+- `REVIEW_PASS` / `TEST_PASS` → close stage, append event
+- `REVIEW_FAIL` / `TEST_FAIL` + `REREVIEW_REQUESTED` / `RETEST_REQUESTED` → retry_count++, reset timers, event
+See `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/signal-protocol.md` §6.
 
 **What you send to Lead (validated alerts from watchdog):**
 - `USAGE KILL [{window}]: {pct}% used. ...` — emergency, force-terminate agents

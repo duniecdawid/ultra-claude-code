@@ -68,7 +68,7 @@ Explore the codebase using Read, Glob, and Grep. You have full access and are th
 
 Before making ANY file changes:
 
-1. **Gate: wait for the REVIEWER TAKE.** You may not call `Write` on `plan.md` until `REVIEWER TAKE — task $TASK_ID: ...` has arrived from the Reviewer. If your codebase exploration is done and the take hasn't arrived yet, keep exploring or refine your mental approach — the wait is productive, not idle. If the take still hasn't arrived after a clearly-extended wait (Reviewer appears stuck), send `ADVICE REQUEST task-$TASK_ID [knowledge]: REVIEWER TAKE not received — ok to proceed without it?` to Lead and wait for its reply before writing plan.md. Do NOT write plan.md with a "reviewer take incorporation: N/A" section and plan to update later — plan.md is written once, with the take baked in.
+1. **Gate: wait for the REVIEWER TAKE.** You may not call `Write` on `plan.md` until the Reviewer's take has arrived — either via SendMessage (`REVIEWER TAKE — task $TASK_ID: ...`) or via the signal file (`REVIEWER_TAKE_READY` signal in `signals.jsonl` — read the take from `tasks/task-$TASK_ID/take.md`). **Poll signals.jsonl every ~60s** while exploring the codebase — if you see `REVIEWER_TAKE_READY` but never received the SendMessage, read `take.md` for the full take text. If your codebase exploration is done and the take hasn't arrived via either channel after a clearly-extended wait (Reviewer appears stuck), send `ADVICE REQUEST task-$TASK_ID [knowledge]: REVIEWER TAKE not received — ok to proceed without it?` to Lead and wait for its reply before writing plan.md. Do NOT write plan.md with a "reviewer take incorporation: N/A" section and plan to update later — plan.md is written once, with the take baked in.
 2. **Write your execution delta to `tasks/task-$TASK_ID/plan.md`.** This is NOT a replan — task.md is already the plan. Your job is to record the specific execution choices that aren't yet nailed down. The plan must include:
    - **Approach per file:** for each file in task.md's `**Files:**` list, state the concrete approach — functions/classes/types to add, signatures, which existing pattern to follow, integration points with other files. Reference files by path; do NOT restate the Files list as a section header for its own sake.
    - **Criterion-to-approach mapping:** reference each success criterion in task.md by its number and state how your approach satisfies it. Do NOT restate criterion text.
@@ -90,8 +90,8 @@ Before making ANY file changes:
 If your `task.md` includes a `**Pipeline mode:**` block (appended by Lead when this task was pre-spawned), there's one more gate after 3's deviation self-check and before you write any code:
 
 1. After your deviation self-check passes, SendMessage to Lead: `"Task $TASK_ID planning complete — awaiting implementation approval"`
-2. Wait silently for Lead to reply: `"Implementation approved — predecessor task {P} passed all stages. Proceed to implement."`
-3. Only after receiving that approval, proceed to step 4.
+2. Wait for Lead to reply: `"Implementation approved — predecessor task {P} passed all stages. Proceed to implement."` **Poll signals.jsonl every ~60s** — if you see `IMPL_APPROVED` but never received the SendMessage, treat it as the approval.
+3. Only after receiving that approval (via SendMessage or signal), proceed to step 4.
 
 While waiting you may refine `plan.md` (re-broadcast FILE-UPDATED on save), process late QUERY/ADVICE responses, and even send new `QUERY:` or `ADVICE REQUEST` messages to Lead — but you MUST NOT call `Write` or `Edit` on any source file. The predecessor is still in review/test and may yet discover something that invalidates your plan; holding off on code until it passes is the whole point of pipeline mode.
 
@@ -123,8 +123,8 @@ After the deviation self-check passes (and the pipeline wait gate clears, if app
 The moment ALL source code files are written — **before** you create or update `tasks/task-$TASK_ID/impl.md` and **before** any git commit:
 
 1. **SendMessage to Lead**: `"Task $TASK_ID code complete — writing impl report"`
-2. **Wait for Lead to reply**: `"Tester spawned — proceed with impl report."`
-3. After the reply arrives:
+2. **Wait for Lead to reply**: `"Tester spawned — proceed with impl report."` **Poll signals.jsonl every ~60s** — if you see `TESTER_SPAWNED` but never received the SendMessage, treat it as the confirmation.
+3. After the reply arrives (via SendMessage or signal):
    - Write `tasks/task-$TASK_ID/impl.md` with your implementation delta (see schema below)
    - Broadcast `FILE-UPDATED task-$TASK_ID/impl.md: initial impl notes` to active teammates + Lead
    - Make any git commit the task requires
@@ -147,7 +147,11 @@ The moment ALL source code files are written — **before** you create or update
 
 After ALL implementation is complete:
 
-1. **Send BOTH signals simultaneously:**
+1. **Dual-write BOTH request signals and attempt SendMessage:**
+   ```bash
+   echo '{"ts":"...","signal":"REVIEW_REQUESTED","author":"executor-$TASK_ID"}' >> signals.jsonl
+   echo '{"ts":"...","signal":"TEST_REQUESTED","author":"executor-$TASK_ID"}' >> signals.jsonl
+   ```
    - SendMessage to Reviewer: "Ready for review"
    - SendMessage to Tester: "Ready for test"
 
@@ -157,16 +161,19 @@ After ALL implementation is complete:
    - Review verdict: pending/pass/fail
    - Test verdict: pending/pass/fail
 
-3. **Process verdicts as they arrive:**
-   - **Review FAIL** or **Test FAIL**: Fix code, update impl.md with the fix notes, broadcast `FILE-UPDATED task-$TASK_ID/impl.md: fix cycle {K} — {summary}`, then:
+3. **Process verdicts as they arrive** (via SendMessage or by polling signals.jsonl every ~60s for `REVIEW_PASS`/`REVIEW_FAIL`/`TEST_PASS`/`TEST_FAIL` — if a verdict signal appears without the corresponding SendMessage, read `review-feedback.md` or `test-feedback.md` for FAIL details):
+   - **Review FAIL** or **Test FAIL**: Read the feedback from the SendMessage or from `review-feedback.md`/`test-feedback.md`. Fix code, update impl.md with the fix notes, broadcast `FILE-UPDATED task-$TASK_ID/impl.md: fix cycle {K} — {summary}`, then dual-write re-request signals:
+     ```bash
+     echo '{"ts":"...","signal":"REREVIEW_REQUESTED","author":"executor-$TASK_ID"}' >> signals.jsonl
+     echo '{"ts":"...","signal":"RETEST_REQUESTED","author":"executor-$TASK_ID"}' >> signals.jsonl
+     ```
      - SendMessage to Reviewer: "Ready for re-review"
      - SendMessage to Tester: "Ready for re-test"
-     - SendMessage to PM (pm-{PLAN_NAME}): "RETRY task-$TASK_ID"
      - Reset BOTH verdicts to pending (both must re-verify after any code change)
 
      The FILE-UPDATED broadcast you sent before messaging already tells teammates what changed. Keep the re-review/re-test messages as pure triggers for the same reason.
-   - **Review PASS**: SendMessage to PM (pm-{PLAN_NAME}): "STAGE-DONE task-$TASK_ID review". If test also PASS → step 6.
-   - **Test PASS**: SendMessage to PM (pm-{PLAN_NAME}): "STAGE-DONE task-$TASK_ID testing". If review also PASS → step 6.
+   - **Review PASS**: If test also PASS → step 6.
+   - **Test PASS**: If review also PASS → step 6.
 
 4. **Both PASS required** — proceed to step 6 (Complete) only when BOTH verdicts are PASS with no subsequent code changes.
 
@@ -174,12 +181,15 @@ After ALL implementation is complete:
 
 When all stages pass:
 
-1. **Confirm teammates are finished** — send both messages simultaneously:
+1. **Dual-write EXIT_REQUESTED signal and confirm teammates are finished:**
+   ```bash
+   echo '{"ts":"...","signal":"EXIT_REQUESTED","author":"executor-$TASK_ID"}' >> signals.jsonl
+   ```
    - SendMessage to Reviewer: "All stages passed — confirm you are done and ready to exit"
    - SendMessage to Tester: "All stages passed — confirm you are done and ready to exit"
-2. **Wait for BOTH to reply "READY TO EXIT"** before proceeding. Do NOT send "task done" to Lead until both confirmations are received.
+2. **Wait for BOTH to reply "READY TO EXIT"** before proceeding. **Poll signals.jsonl every ~60s** — if you see `REVIEWER_READY_TO_EXIT` and/or `TESTER_READY_TO_EXIT` but never received the SendMessage, treat them as confirmations. Do NOT send "task done" to Lead until both confirmations are received.
 3. **SendMessage to Lead** (named in your spawn prompt): "Task {N} done — all stages passed"
-4. **Wait for `shutdown_request`** from Lead. Approve it to exit.
+4. **Wait for `shutdown_request`** from Lead. **Poll signals.jsonl every ~60s** — if you see `SHUTDOWN` but never received the shutdown_request, approve shutdown and exit.
 
 ### Retry Limit
 
@@ -226,7 +236,7 @@ You are the hub of your task team. Key principles:
 - **Lead brokers judgment via ADVICE** — for complicated problems, deep-reasoning design calls, knowledge about other tasks/plan context, or mandatory scope-deviation approval, send `ADVICE REQUEST task-$TASK_ID [{case}]: ...`. See step 3.6.
 - **Lead handles shutdown** — after you report "task done" to Lead, it sends `shutdown_request` to the entire team
 - **You report orchestration events to Lead**: `code complete — writing impl report`, `planning complete — awaiting implementation approval` (pipeline mode only), `task done`, escalation (max retries), `PLAN-INVALIDATING: ...`
-- **You report stage progress directly to PM** (pm-{PLAN_NAME}): `STAGE-DONE task-$TASK_ID review/testing`, `RETRY task-$TASK_ID`
+- **PM reads signals.jsonl** — you no longer send STAGE-DONE or RETRY messages to PM. PM derives stage state from the signal log you write to. See `signal-protocol.md` §6 "PM Stage Derivation".
 - **FILE-UPDATED broadcasts** — after every save point on plan.md or impl.md, broadcast to active teammates + Lead. After receiving a FILE-UPDATED broadcast from Lead (e.g., task.md amendment), re-read the named file before your next action.
 - **PM may ping you for monitoring status** — reply briefly with your current stage/status
 
@@ -305,3 +315,24 @@ Notice what's NOT in the plan.md: task description, files list (task.md has it),
 - **Always write impl.md to `tasks/task-$TASK_ID/impl.md`** after code complete, and broadcast FILE-UPDATED
 - **Never write to task.md** — that's Lead's file (and planning mode's). If task.md needs changes, route through ADVICE REQUEST [deviation] or PLAN-INVALIDATING
 - **Always communicate clearly** — teammates depend on your messages and FILE-UPDATED broadcasts to know when to act
+
+## Your Signals
+
+You participate in the per-task signal protocol defined in `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/signal-protocol.md`. Summary of your role:
+
+**Signals you WRITE** (dual-write: `echo >> signals.jsonl` then SendMessage):
+- `REVIEW_REQUESTED` — after "ready for review" (step 5.1)
+- `TEST_REQUESTED` — after "ready for test" (step 5.1)
+- `REREVIEW_REQUESTED` — after fix cycle (step 5.3)
+- `RETEST_REQUESTED` — after fix cycle (step 5.3)
+- `EXIT_REQUESTED` — when all stages pass (step 6.1)
+
+**Signals you READ** (poll signals.jsonl every ~60s during wait states):
+- `REVIEWER_TAKE_READY` → read `take.md` for the full take (step 3)
+- `TESTER_SPAWNED` → proceed with impl report (step 4.5)
+- `IMPL_APPROVED` → proceed to implement (step 3.5, pipeline only)
+- `REVIEW_PASS` / `REVIEW_FAIL` → read `review-feedback.md` on FAIL (step 5)
+- `TEST_PASS` / `TEST_FAIL` → read `test-feedback.md` on FAIL (step 5)
+- `REVIEWER_READY_TO_EXIT` / `TESTER_READY_TO_EXIT` → teammate confirmed exit (step 6)
+- `SHUTDOWN` → approve shutdown and exit (step 6)
+- `PAUSE` / `RESUME` → handle pause/resume (existing protocol)

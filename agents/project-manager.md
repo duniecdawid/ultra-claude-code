@@ -239,10 +239,8 @@ The Lead sends you terse status messages as it orchestrates. Process each into t
 | `SPAWNED task-{N}: {description} (pipeline)` | Lead | Same as the regular SPAWNED handler above, but this task was pre-spawned while its predecessor is still in review/test (pipeline mode). The executor will research, plan, get Lead plan approval, and then park at a wait gate until its predecessor reaches `task done`. For the dashboard, treat it identically for now — the `(pipeline)` suffix is informational and can be used later for a visual badge. Append `team_spawned` event with `message: "Pipeline pre-spawn: {description}"`. |
 | `SPAWNED-TESTER task-{N}` | Lead | In `plan.json`: find task-{N} → add tester member to `members` array. Append `member_spawned` event to `events.json` |
 | `STAGE task-{N} {stage}` | Lead | In `plan.json`: find task-{N} → close previous stage timestamps, open new stage in `stages` object. Append `stage_entered` event. For `review` and `testing`: both can be open simultaneously (parallel stages). |
-| `STAGE-DONE task-{N} {stage}` | Executor | In `plan.json`: find task-{N} → close one parallel stage independently: set `ended_at` for that stage. Do NOT close the other parallel stage. Append `stage_done` event to `events.json` |
-| `COMPLETED task-{N}` | Lead | In `plan.json`: find task-{N} → status=`completed`, set `ended_at`, all members=`completed`. Update `completed_tasks++`, `active_tasks--`. Append `task_completed` event to `events.json`. **Update plan README:** find `### Task {N}:` heading, change `<!-- status:pending -->` to `<!-- status:completed -->` and `- [ ] **Complete**` to `- [x] **Complete**` |
+| `COMPLETED task-{N}` | Lead | **Before updating dashboard, read signals.jsonl** for task-{N} to derive final stage state (see signals.jsonl reading below). In `plan.json`: find task-{N} → status=`completed`, set `ended_at`, all members=`completed`. Update `completed_tasks++`, `active_tasks--`. Append `task_completed` event to `events.json`. **Update plan README:** find `### Task {N}:` heading, change `<!-- status:pending -->` to `<!-- status:completed -->` and `- [ ] **Complete**` to `- [x] **Complete**` |
 | `SHUTDOWN task-{N}` | Lead | In `plan.json`: find task-{N} → set all member `ended_at` timestamps. Append `team_shutdown` event to `events.json` |
-| `RETRY task-{N}` | Executor | In `plan.json`: find task-{N} → `retry_count++`, reset both review and testing stage timers (re-open them). Append retry event to `events.json` |
 
 **Important:** If the Lead sends a message format you don't recognize, log it and continue. Never block on an unrecognized message.
 
@@ -279,10 +277,17 @@ Messages are prefixed with `WATCH: ` followed by a JSON object with an `"alert"`
 - `WATCH: {"alert":"STATUS","pct_5h":25,"pct_7d":81,"resets_5h":...,"resets_7d":...}` — first-tick usage snapshot (always sent once at startup)
 Parse the JSON to extract fields. Process via the Watchdog Signal Handling section below. Each window is independent: you may receive CONSERVE for 5h and PAUSE for 7d on the same tick. Handle them as separate events.
 
-**You also receive directly from Executors:**
-- `STAGE-DONE task-{N} {stage}` — a review or test stage passed. Update dashboard.
-- `RETRY task-{N}` — a fix cycle started. Update dashboard.
-Process these identically to Lead messages — same dashboard updates, same events.json appends. These come directly from Executors to reduce Lead message volume.
+**signals.jsonl reading (replaces STAGE-DONE/RETRY messages from Executors):**
+
+Executors no longer send STAGE-DONE or RETRY messages. Instead, PM reads `$PLAN_DIR/tasks/task-{N}/signals.jsonl` for each active task to derive stage state. Read signals.jsonl **on each incoming message from Lead** (SPAWNED, COMPLETED, STAGE, SHUTDOWN, etc.) — this keeps you event-driven without adding a polling loop.
+
+Derivation rules:
+- `REVIEW_PASS` signal present → close review stage (set `ended_at`), append `stage_done` event
+- `TEST_PASS` signal present → close testing stage (set `ended_at`), append `stage_done` event
+- `REVIEW_FAIL` or `TEST_FAIL` followed by `REREVIEW_REQUESTED` or `RETEST_REQUESTED` → increment `retry_count`, reset both stage timers, append retry event
+- Track which signals you've already processed (by line count or last-seen timestamp) to avoid duplicate dashboard updates
+
+See `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/signal-protocol.md` §6 for the full protocol.
 
 ## Watchdog Signal Handling
 

@@ -1,5 +1,12 @@
 [
   {
+    "seq": 154,
+    "version": "2026.04.22-5",
+    "date": "2026-04-22",
+    "summary": "Signal protocol: per-task signals.jsonl for durable pipeline state, crash recovery, and reliable SendMessage fallback. Adds centralized signal-protocol.md reference, dual-write protocol (signal file + SendMessage) across all agents, content files (take.md, review-feedback.md, test-feedback.md), executor polling during wait states, PM reads signals.jsonl for stage tracking (replaces STAGE-DONE/RETRY messages), watchdog stall detection via signal timestamps, and documentation site updates.",
+    "migration": null
+  },
+  {
     "seq": 153,
     "version": "2026.04.22-4",
     "date": "2026-04-22",
