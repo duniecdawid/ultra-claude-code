@@ -21,6 +21,7 @@ tools:
   - mcp__claude-in-chrome__read_console_messages
   - mcp__claude-in-chrome__read_network_requests
   - mcp__claude-in-chrome__gif_creator
+  - SendMessage
 ---
 
 # Task Tester Agent

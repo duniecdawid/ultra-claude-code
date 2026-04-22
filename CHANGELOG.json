@@ -1,5 +1,19 @@
 [
   {
+    "seq": 152,
+    "version": "2026.04.22-3",
+    "date": "2026-04-22",
+    "summary": "Fix Ref.tools MCP tool name casing: mcp__ref__* → mcp__Ref__* in researcher agent tools list, library-mode reference, patterns-mode reference, and context-management skill. The MCP server registers as 'Ref' (capital R), so lowercase tool names silently failed to resolve — the researcher agent could never actually call Ref.tools and would always fall back to WebSearch/WebFetch.",
+    "migration": null
+  },
+  {
+    "seq": 151,
+    "version": "2026.04.22-2",
+    "date": "2026-04-22",
+    "summary": "Add SendMessage to tool lists of all pipeline agents that coordinate via messages: task-executor (19 body refs), project-manager (10), code-review (4), task-tester (4). Only watchdog had it (added in seq 149). Claude Code now strictly enforces the tools: frontmatter allowlist, so agents without SendMessage declared could not send coordination signals (code complete, ready for review/test, alert forwarding, review/test verdicts), causing team stalls.",
+    "migration": null
+  },
+  {
     "seq": 150,
     "version": "2026.04.22-1",
     "date": "2026-04-22",

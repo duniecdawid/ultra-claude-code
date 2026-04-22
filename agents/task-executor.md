@@ -9,6 +9,7 @@ tools:
   - Glob
   - Grep
   - Bash
+  - SendMessage
 ---
 
 # Task Executor Agent
