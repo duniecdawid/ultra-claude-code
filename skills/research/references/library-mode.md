@@ -4,13 +4,11 @@ You are researching an external library, framework, SDK, runtime, database, API,
 
 ## Research Process
 
-1. **Query Ref.tools first.** Use `mcp__Ref__ref_search_documentation` with a query that includes the library name, the topic, and the language context. Example: `"zod object schema validation typescript"`.
+1. **Fetch `ref_urls` first** (if provided in the spawn prompt). These are pre-vetted documentation URLs from Ref.tools, searched by the skill in the main context. Use WebFetch on each URL — focus on API reference pages and official examples. Skip marketing/overview pages and third-party tutorials.
 
-2. **Read the top 1-3 results** via `mcp__Ref__ref_read_url`. Focus on API reference pages and official examples. Skip marketing/overview pages and third-party tutorials.
+2. **Supplement with WebSearch** for `"official documentation {library} {topic}"`, then WebFetch the top result. Prefer the library's own docs site, then GitHub README, then release notes. Avoid random blog posts. If no `ref_urls` were provided, this becomes your primary research path.
 
-3. **If Ref.tools returns nothing useful**, fall back to WebSearch for `"official documentation {library} {topic}"`, then WebFetch the top result. Prefer the library's own docs site, then GitHub README, then release notes. Avoid random blog posts.
-
-4. **Cross-reference across sources** if the API signature or parameters differ between results — surface the discrepancy in your output.
+3. **Cross-reference across sources** if the API signature or parameters differ between results — surface the discrepancy in your output.
 
 ## Claude / Anthropic Topics
 
@@ -21,9 +19,9 @@ When the topic is about **Claude Code (CLI)**, **Claude Agent SDK**, **Anthropic
 
 You'll receive these paths in your spawn prompt. Do not write Claude/Anthropic research under `documentation/technology/research/libraries/` — that directory is reserved for libraries the *product* depends on (zod, prisma, nats…), not for the tooling we build with.
 
-For research itself, use **both** sources in parallel and merge:
+For research itself, use **both** sources and merge:
 
-1. **Ref.tools** — `mcp__Ref__ref_search_documentation` with the exact feature name. Anthropic docs are well indexed; queries like `"claude code hooks configuration"`, `"anthropic messages api streaming"`, `"agent sdk subagent definition"` return canonical pages.
+1. **`ref_urls`** (if provided) — these come from the skill's Ref.tools search in the main context. Anthropic docs are well indexed; queries like `"claude code hooks configuration"`, `"anthropic messages api streaming"`, `"agent sdk subagent definition"` return canonical pages. WebFetch each URL for verbatim content.
 
 2. **WebSearch + WebFetch on the curated URL roots** — go directly to:
    - `https://docs.claude.com/en/docs/claude-code/` — Claude Code CLI (overview, hooks, slash commands, MCP, settings, sub-agents, plugins, IDE integrations, keyboard shortcuts, output styles)
@@ -33,7 +31,7 @@ For research itself, use **both** sources in parallel and merge:
 
    Use WebSearch with `site:docs.claude.com {topic}` or `site:docs.anthropic.com {topic}` to find the exact page, then WebFetch it for verbatim content.
 
-3. **Merge both sources** in your output. Ref.tools gives you fast indexed snippets; the curated URLs give you the full page context and any recent additions Ref.tools may not have re-indexed yet. If the two disagree on a flag, parameter, or default, surface the discrepancy explicitly and prefer the live URL fetch (it's authoritative as of today).
+3. **Merge both sources** in your output. Ref.tools URLs give you fast indexed snippets; the curated URLs give you the full page context and any recent additions Ref.tools may not have re-indexed yet. If the two disagree on a flag, parameter, or default, surface the discrepancy explicitly and prefer the live URL fetch (it's authoritative as of today).
 
 Avoid third-party Claude Code tutorials, Medium posts, and GitHub READMEs unless the official docs are silent on the topic. The Anthropic docs ship updates frequently — verbatim excerpts with the page URL beat any synthesis.
 

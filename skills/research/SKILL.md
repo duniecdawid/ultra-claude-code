@@ -7,6 +7,9 @@ allowed-tools:
   - Write
   - Bash
   - Task
+  - ToolSearch
+  - mcp__Ref__ref_search_documentation
+  - mcp__Ref__ref_read_url
 ---
 
 # Research
@@ -201,7 +204,13 @@ Evaluate the jq result. **A cache hit requires ALL of these to be true:**
 
 1. **Check bootstrap:** if neither the target directory tree nor the index file exists, that's fine — the researcher agent handles bootstrap on its own (creates `documentation/technology/research/` for product topics, or `.claude/ultra/research/` for Claude topics).
 2. **Read existing file content** (if the target file already exists but is stale): `cat "$TARGET_PATH"` into a string so you can pass it to the agent. If the file doesn't exist, pass an empty string.
-3. **Spawn the researcher agent** via the Task tool, passing the chosen `target_path` and `index_path` (per Step 3):
+3. **Pre-fetch Ref.tools URLs** (library and patterns modes only; skip for market mode). MCP tools are only available in the main conversation context, not in subagent contexts, so the skill must do the Ref.tools search here and pass the results to the agent:
+
+   a. Load Ref.tools via ToolSearch: `select:mcp__Ref__ref_search_documentation,mcp__Ref__ref_read_url`
+   b. Call `mcp__Ref__ref_search_documentation` with the topic (e.g., `"zod object schema validation typescript"`)
+   c. Extract the result URLs into a list. If Ref.tools is unavailable or returns no results, pass an empty list — the agent falls back to WebSearch/WebFetch.
+
+4. **Spawn the researcher agent** via the Task tool, passing the chosen `target_path`, `index_path` (per Step 3), and the pre-fetched Ref.tools URLs:
 
    ```
    Task(
@@ -214,15 +223,18 @@ Evaluate the jq result. **A cache hit requires ALL of these to be true:**
      target_path: {target_path}
      index_path: {index_path}
      staleness_reason: {reason}
+     ref_urls:
+       - {url1 from Ref.tools search}
+       - {url2 from Ref.tools search}
      existing_file_content: |
        {existing content or empty}
      """
    )
    ```
 
-   The agent reads its own root file + one mode-specific reference from `skills/research/references/{mode}-mode.md`, does the research, writes the target file, updates the index, and returns a one-paragraph summary.
+   The agent reads its own root file + one mode-specific reference from `skills/research/references/{mode}-mode.md`, fetches the `ref_urls` via WebFetch as its primary source, supplements with WebSearch, writes the target file, updates the index, and returns a one-paragraph summary.
 
-4. **Relay the agent's return** to the caller. In default mode, this includes the summary paragraph plus the target file path. In `--fill-only` mode, return the compact envelope `{target_path, mode, subject, status, expires}` where `status` is `"spawned"` (new file written) or `"refreshed"` (stale entry updated) or `"failed"` (agent reported failure; `error` field carries the reason). Do NOT include the agent's summary paragraph in fill-only mode — the caller will read `target_path` directly if it needs content.
+5. **Relay the agent's return** to the caller. In default mode, this includes the summary paragraph plus the target file path. In `--fill-only` mode, return the compact envelope `{target_path, mode, subject, status, expires}` where `status` is `"spawned"` (new file written) or `"refreshed"` (stale entry updated) or `"failed"` (agent reported failure; `error` field carries the reason). Do NOT include the agent's summary paragraph in fill-only mode — the caller will read `target_path` directly if it needs content.
 
 ## Output Format
 

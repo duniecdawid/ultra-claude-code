@@ -1,5 +1,12 @@
 [
   {
+    "seq": 153,
+    "version": "2026.04.22-4",
+    "date": "2026-04-22",
+    "summary": "Move Ref.tools calls from researcher agent to the research skill (main context). MCP tools are unavailable in subagent contexts, so the skill now pre-fetches Ref.tools search URLs via ToolSearch + mcp__Ref__ref_search_documentation and passes them as ref_urls in the agent spawn prompt. The agent fetches those URLs via WebFetch. Updated researcher agent (removed MCP tools from tools list, added ref_urls to spawn contract), library-mode and patterns-mode references, and SKILL.md (added pre-fetch step + ToolSearch/MCP to allowed-tools).",
+    "migration": null
+  },
+  {
     "seq": 152,
     "version": "2026.04.22-3",
     "date": "2026-04-22",

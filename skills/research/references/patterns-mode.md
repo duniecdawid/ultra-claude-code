@@ -4,11 +4,11 @@ You are researching an architectural pattern, design strategy, or best-practice 
 
 ## Research Process
 
-1. **Query Ref.tools** first with a pattern-focused query: `"rate limiting strategies api"`, `"idempotent webhook handlers retry"`, `"dependency injection testing typescript"`. Ref.tools has good coverage of established patterns across multiple sources.
+1. **Fetch `ref_urls` first** (if provided in the spawn prompt). These are pre-vetted documentation URLs from Ref.tools, searched by the skill. Ref.tools has good coverage of established patterns across multiple sources. Use WebFetch on each URL.
 
-2. **WebSearch** for community discussion and real-world experience: post-mortems, engineering blog posts from companies that hit scale, benchmark comparisons. Patterns are cultural as well as technical — the dominant approach in 2026 may not be the dominant approach from 2022.
+2. **WebSearch** for community discussion and real-world experience: post-mortems, engineering blog posts from companies that hit scale, benchmark comparisons. Patterns are cultural as well as technical — the dominant approach in 2026 may not be the dominant approach from 2022. If no `ref_urls` were provided, this becomes your primary research path.
 
-3. **Read 3-5 sources** via `mcp__Ref__ref_read_url` or `WebFetch`. Prefer:
+3. **Read 3-5 sources** via WebFetch. Prefer:
    - Official docs or specs (RFC, W3C, language standard)
    - Engineering blogs from known practitioners (Cloudflare, Stripe, GitHub, Meta, Google)
    - Books or academic papers if cited by multiple sources
