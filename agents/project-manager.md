@@ -8,6 +8,7 @@ tools:
   - Glob
   - Grep
   - Bash
+  - SendMessage
 ---
 
 # Project Manager Agent
