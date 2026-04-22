@@ -207,20 +207,18 @@ Both agents self-label their tmux panes. No tmux commands needed from you.
 
 There is no Knowledge Brief synthesis step. Research lives per-task in each `tasks/task-N/task.md`'s `**Research:**` section (populated by planning Stage 4), and Lead reviews it per-task at spawn time in Phase 2.
 
-### 1.10 Pre-Task-1 Budget Assessment
+### 1.10 Wait for Watchdog Usage Report
 
-Before spawning the first task-team, read the current usage percentage using the resolved `ACCOUNT_KEY`:
+Before spawning the first task-team, wait for PM to forward the watchdog's first-tick STATUS message. This arrives within ~60 seconds of watchdog startup and contains both rate-limit windows:
 
-```bash
-pct=$(jq -r --arg key "$ACCOUNT_KEY" '.accounts[$key].rate_limits.five_hour.used_percentage // 0' ~/.claude/ultra/usage-status.json 2>/dev/null || echo 0)
-```
+`"USAGE STATUS: 5h={pct_5h}% 7d={pct_7d}%. Watchdog monitoring active."`
 
-`pct` is the **used** percentage (how much of the 5-hour window has been consumed). Low pct (e.g., 5%) = plenty of budget. High pct (e.g., 80%) = little remaining.
+Do NOT read `usage-status.json` yourself — the watchdog is the single source of truth for usage data.
 
-If `extra_usage = false` and pct is already elevated (e.g., >50%), read `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/usage-control.md` and assess whether the plan can complete within the remaining budget (100 - pct). You may decide to proceed normally, reduce concurrency, or wait for the rate-limit window to reset. This is your judgment call based on the total plan scope. If pct is low (e.g., <30%), proceed normally — no need to read the reference.
+If `extra_usage = false` and either window is elevated (e.g., 5h >50% or 7d >70%), read `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/usage-control.md` and assess whether the plan can complete within the remaining budget. You may decide to proceed normally, reduce concurrency, or wait for the rate-limit window to reset. This is your judgment call based on the total plan scope. If both windows are low, proceed normally.
 
-If `extra_usage = true`, skip this assessment.
+If `extra_usage = true`, proceed immediately after receiving the STATUS — no assessment needed, but still wait for the message to confirm the watchdog is operational.
 
 ### 1.11 Proceed to Phase 2
 
-Shared setup is done. Project Manager and watchdog are live. Task teams can now be spawned per Phase 2.
+Shared setup is done. Project Manager and watchdog are live and confirmed. Task teams can now be spawned per Phase 2.

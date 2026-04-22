@@ -1,5 +1,12 @@
 [
   {
+    "seq": 150,
+    "version": "2026.04.22-1",
+    "date": "2026-04-22",
+    "summary": "Watchdog first-tick STATUS report replaces Lead's direct usage file read. The script now emits {\"alert\":\"STATUS\",\"pct_5h\":...,\"pct_7d\":...} on its first tick, PM forwards to Lead, and Lead waits for this before spawning task teams. Eliminates Lead reading usage-status.json directly (which could hit stale data from idle sessions). Watchdog is now the single source of truth for all usage data. Updated PM, phase-1-setup, spawn prompts, and usage-control reference.",
+    "migration": null
+  },
+  {
     "seq": 149,
     "version": "2026.04.21-1",
     "date": "2026-04-21",

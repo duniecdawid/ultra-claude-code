@@ -118,12 +118,11 @@ Optionally annotate each non-`none` entry with the timestamp and the `resets_at`
 
 ## Pre-Task-1 Budget Assessment
 
-Before spawning the first task-team, Lead reads the current usage percentages:
+Before spawning the first task-team, Lead waits for the watchdog's first-tick STATUS report, forwarded by PM:
 
-```bash
-pct_5h=$(jq -r --arg key "$ACCOUNT_KEY" '.accounts[$key].rate_limits.five_hour.used_percentage // 0' ~/.claude/ultra/usage-status.json 2>/dev/null || echo 0)
-pct_7d=$(jq -r --arg key "$ACCOUNT_KEY" '.accounts[$key].rate_limits.seven_day.used_percentage // 0' ~/.claude/ultra/usage-status.json 2>/dev/null || echo 0)
-```
+`"USAGE STATUS: 5h={pct_5h}% 7d={pct_7d}%. Watchdog monitoring active."`
+
+Do NOT read `usage-status.json` directly — the watchdog is the single source of truth for usage data. The STATUS message provides both windows' current percentages.
 
 `pct_5h` and `pct_7d` are **used** percentages — how much of each rate-limit window has been consumed. `remaining = 100 - pct`.
 

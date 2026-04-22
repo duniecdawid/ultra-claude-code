@@ -115,6 +115,8 @@ check_window() {
   fi
 }
 
+FIRST_TICK=true
+
 while true; do
   if [ -f "$USAGE_FILE" ]; then
     log "tick: account=$ACCOUNT_KEY"
@@ -129,6 +131,12 @@ while true; do
     pct_7d=$(printf "%.0f" "$pct_7d" 2>/dev/null || echo 0)
 
     log "readings: 5h=${pct_5h}% 7d=${pct_7d}%"
+
+    # First tick: always emit a STATUS report so Lead knows usage before spawning tasks
+    if [ "$FIRST_TICK" = true ]; then
+      emit "{\"alert\":\"STATUS\",\"pct_5h\":$pct_5h,\"pct_7d\":$pct_7d,\"resets_5h\":$resets_5h,\"resets_7d\":$resets_7d}"
+      FIRST_TICK=false
+    fi
 
     check_window "five_hour" "5h" "$pct_5h" "$resets_5h" 80 90 95
     check_window "seven_day" "7d" "$pct_7d" "$resets_7d" 90 95 98
@@ -215,6 +223,7 @@ If YES → SendMessage to `pm-{PLAN_NAME}` with the exact JSON line, prefixed wi
 | `{"alert":"STALL","task_id":"task-3","silent_minutes":15}` | `WATCH: {"alert":"STALL","task_id":"task-3","silent_minutes":15}` |
 | `{"alert":"STALE-DATA","minutes":12}` | `WATCH: {"alert":"STALE-DATA","minutes":12}` |
 | `{"alert":"USAGE-RESET","window":"5h","pct":15}` | `WATCH: {"alert":"USAGE-RESET","window":"5h","pct":15}` |
+| `{"alert":"STATUS","pct_5h":25,"pct_7d":81,...}` | `WATCH: {"alert":"STATUS","pct_5h":25,"pct_7d":81,...}` |
 
 Forward the JSON exactly as received. Do not modify, reformat, or rewrite it.
 

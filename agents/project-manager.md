@@ -275,6 +275,7 @@ Messages are prefixed with `WATCH: ` followed by a JSON object with an `"alert"`
 - `WATCH: {"alert":"USAGE-RESET","window":"5h","pct":15}` — window dropped below CONSERVE or rolled over
 - `WATCH: {"alert":"STALL","task_id":"task-3","silent_minutes":15}` — executor silent >10 min
 - `WATCH: {"alert":"STALE-DATA","minutes":12}` — data freshness warning
+- `WATCH: {"alert":"STATUS","pct_5h":25,"pct_7d":81,"resets_5h":...,"resets_7d":...}` — first-tick usage snapshot (always sent once at startup)
 Parse the JSON to extract fields. Process via the Watchdog Signal Handling section below. Each window is independent: you may receive CONSERVE for 5h and PAUSE for 7d on the same tick. Handle them as separate events.
 
 **You also receive directly from Executors:**
@@ -350,6 +351,15 @@ No agent has prompted recently — usage data may be outdated.
 1. Log to events.json: `{type: "stale_usage_data", minutes}`
 2. If teams are supposed to be active but data is stale, this may indicate all agents are stuck. Correlate with any stall signals.
 3. SendMessage Lead: `"STALE DATA: usage-status.json not updated for {minutes}m. Agents may be idle or stuck. Usage readings may be outdated."`
+
+### On alert `"STATUS"` — `{"alert":"STATUS","pct_5h":...,"pct_7d":...,"resets_5h":...,"resets_7d":...}`
+
+First-tick startup snapshot. Sent once when the watchdog starts monitoring. Lead waits for this before spawning task teams.
+
+1. Log to events.json: `{type: "usage_status", pct_5h, pct_7d}`
+2. SendMessage Lead: `"USAGE STATUS: 5h={pct_5h}% 7d={pct_7d}%. Watchdog monitoring active."`
+
+No validation needed — this is informational, not an alert. Lead uses this to decide whether to proceed, reduce concurrency, or wait.
 
 ### Per-Task Budget Tracking
 

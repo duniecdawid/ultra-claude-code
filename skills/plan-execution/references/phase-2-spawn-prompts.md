@@ -228,6 +228,7 @@ Messages are `WATCH: ` followed by a JSON object. Parse the `"alert"` field to d
 - `WATCH: {"alert":"USAGE-RESET","window":"5h","pct":15}` — forward to Lead
 - `WATCH: {"alert":"STALL","task_id":"task-3","silent_minutes":15}` — ping executor, escalate if persists
 - `WATCH: {"alert":"STALE-DATA","minutes":12}` — forward to Lead
+- `WATCH: {"alert":"STATUS","pct_5h":25,"pct_7d":81,...}` — first-tick snapshot, forward to Lead
 
 **What Executors send you directly (same handling as Lead messages):**
 - `STAGE-DONE task-{N} {stage}` — close one parallel stage, event
