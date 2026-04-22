@@ -4,9 +4,9 @@ You are researching an external library, framework, SDK, runtime, database, API,
 
 ## Research Process
 
-1. **Query Ref.tools first.** Use `mcp__ref__ref_search_documentation` with a query that includes the library name, the topic, and the language context. Example: `"zod object schema validation typescript"`.
+1. **Query Ref.tools first.** Use `mcp__Ref__ref_search_documentation` with a query that includes the library name, the topic, and the language context. Example: `"zod object schema validation typescript"`.
 
-2. **Read the top 1-3 results** via `mcp__ref__ref_read_url`. Focus on API reference pages and official examples. Skip marketing/overview pages and third-party tutorials.
+2. **Read the top 1-3 results** via `mcp__Ref__ref_read_url`. Focus on API reference pages and official examples. Skip marketing/overview pages and third-party tutorials.
 
 3. **If Ref.tools returns nothing useful**, fall back to WebSearch for `"official documentation {library} {topic}"`, then WebFetch the top result. Prefer the library's own docs site, then GitHub README, then release notes. Avoid random blog posts.
 
@@ -23,7 +23,7 @@ You'll receive these paths in your spawn prompt. Do not write Claude/Anthropic r
 
 For research itself, use **both** sources in parallel and merge:
 
-1. **Ref.tools** — `mcp__ref__ref_search_documentation` with the exact feature name. Anthropic docs are well indexed; queries like `"claude code hooks configuration"`, `"anthropic messages api streaming"`, `"agent sdk subagent definition"` return canonical pages.
+1. **Ref.tools** — `mcp__Ref__ref_search_documentation` with the exact feature name. Anthropic docs are well indexed; queries like `"claude code hooks configuration"`, `"anthropic messages api streaming"`, `"agent sdk subagent definition"` return canonical pages.
 
 2. **WebSearch + WebFetch on the curated URL roots** — go directly to:
    - `https://docs.claude.com/en/docs/claude-code/` — Claude Code CLI (overview, hooks, slash commands, MCP, settings, sub-agents, plugins, IDE integrations, keyboard shortcuts, output styles)

@@ -9,8 +9,8 @@ tools:
   - Glob
   - WebSearch
   - WebFetch
-  - mcp__ref__ref_search_documentation
-  - mcp__ref__ref_read_url
+  - mcp__Ref__ref_search_documentation
+  - mcp__Ref__ref_read_url
 ---
 
 # Researcher Agent

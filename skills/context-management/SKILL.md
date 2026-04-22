@@ -119,8 +119,8 @@ Knowledge base for external systems this project integrates with.
 
 When the user provides a URL:
 
-1. Use `mcp__ref__ref_search_documentation` to find relevant docs
-2. Use `mcp__ref__ref_read_url` to get focused content
+1. Use `mcp__Ref__ref_search_documentation` to find relevant docs
+2. Use `mcp__Ref__ref_read_url` to get focused content
 3. Save key information as structured markdown in `{system}/docs/`
 4. Do NOT dump raw HTML — extract and organize key facts
 5. Include source URL as reference at the top of each file

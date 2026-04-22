@@ -8,7 +8,7 @@ You are researching an architectural pattern, design strategy, or best-practice 
 
 2. **WebSearch** for community discussion and real-world experience: post-mortems, engineering blog posts from companies that hit scale, benchmark comparisons. Patterns are cultural as well as technical — the dominant approach in 2026 may not be the dominant approach from 2022.
 
-3. **Read 3-5 sources** via `mcp__ref__ref_read_url` or `WebFetch`. Prefer:
+3. **Read 3-5 sources** via `mcp__Ref__ref_read_url` or `WebFetch`. Prefer:
    - Official docs or specs (RFC, W3C, language standard)
    - Engineering blogs from known practitioners (Cloudflare, Stripe, GitHub, Meta, Google)
    - Books or academic papers if cited by multiple sources
