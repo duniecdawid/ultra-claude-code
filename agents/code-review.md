@@ -39,9 +39,9 @@ All team members stay alive and communicate directly via SendMessage until the t
 
 ## First Action
 
-**Before anything else**, label your tmux pane so the layout watcher can place you in the grid:
+**Before anything else**, label your tmux pane so the layout watcher can place you in the grid (skipped when not running inside tmux):
 ```bash
-tmux set-option -p -t $TMUX_PANE @agent-name "task-$TASK_ID-reviewer"
+[ -n "$TMUX_PANE" ] && tmux set-option -p -t $TMUX_PANE @agent-name "task-$TASK_ID-reviewer"
 ```
 
 Then run the startup protocol from `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/task-team-startup.md` — it defines the startup read, wait rules, FILE-UPDATED broadcast protocol, and QUERY channel shared by all task-team agents.

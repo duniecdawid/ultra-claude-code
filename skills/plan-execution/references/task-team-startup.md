@@ -5,10 +5,10 @@ All task-team agents (Executor, Reviewer, Tester) follow this protocol as their 
 ## 1. Pane labeling
 
 ```bash
-tmux set-option -p -t $TMUX_PANE @agent-name "task-$TASK_ID-$ROLE_SUFFIX"
+[ -n "$TMUX_PANE" ] && tmux set-option -p -t $TMUX_PANE @agent-name "task-$TASK_ID-$ROLE_SUFFIX"
 ```
 
-Where `$TASK_ID` is from your spawn prompt and `$ROLE_SUFFIX` is `executor`, `reviewer`, or `tester`. See your individual agent file for the exact command.
+Where `$TASK_ID` is from your spawn prompt and `$ROLE_SUFFIX` is `executor`, `reviewer`, or `tester`. See your individual agent file for the exact command. Skipped when not running inside tmux.
 
 ## 2. Startup read
 

@@ -37,13 +37,13 @@ Skills read the codebase and documentation, spawn agents for parallel work, and 
 ### Setup & Onboarding
 
 **Setup** (`/uc:setup`)
-One-time machine configuration that installs prerequisites (tmux, Node.js), configures shell environment (1M context, agent teams), optimizes tmux for Claude Code, offers to update the `ultraclaude-agent` npm package when already installed and outdated (never auto-installs), (optionally) scaffolds a user-level `machine-context` skill at `~/.claude/skills/machine-context/` via an interactive interview capturing the user's Chrome setup, VM/host topology, dev runtimes, and network conventions, and (optionally, Linux/systemd only, strictly opt-in) installs a user-level tmux disconnected-session reaper that hourly kills tmux sessions detached from any client for more than 24 hours — for VSCode Remote SSH users whose tmux sessions pile up after window close. Use after plugin installation, on a new machine, to add machine-context after the fact, to opt in to tmux session cleanup, or to pick up a newly-published `ultraclaude-agent` version. Idempotent — writes a version marker, never clobbers user-written machine-context files without explicit confirmation, and always asks before installing the reaper because it will disrupt any detached tmux session older than 24 hours.
+One-time machine configuration that installs prerequisites (Node.js, optionally tmux), guides tmux mode selection (per-project, per-terminal, none, or custom), configures shell environment (1M context, agent teams), offers to update the `ultraclaude-agent` npm package when already installed and outdated (never auto-installs), (optionally) scaffolds a user-level `machine-context` skill at `~/.claude/skills/machine-context/` via an interactive interview capturing the user's Chrome setup, VM/host topology, dev runtimes, and network conventions, and (for per-terminal mode only, Linux/systemd, strictly opt-in) installs a user-level tmux disconnected-session reaper that hourly kills tmux sessions detached from any client for more than 24 hours. Use after plugin installation, on a new machine, to add machine-context after the fact, to change tmux mode, or to pick up a newly-published `ultraclaude-agent` version. Idempotent — writes a version marker, never clobbers user-written machine-context files without explicit confirmation.
 
 **Migrate** (`/uc:migrate`)
 Brings projects into Ultra Claude and keeps them current — handles fresh initialization, legacy project detection, and version-aware incremental upgrades via structured migrations in CHANGELOG.json. Use when onboarding a new project, after running `/uc:update`, or when upgrading an existing project to the latest Ultra structure. Produces scaffolded documentation, `.claude/ultra/` configuration, coding standards, and a version marker for future upgrades.
 
 **VS Code Setup** (`/uc:vscode-setup`)
-Configures VS Code for optimal Claude Code development by managing remote-side settings and printing client-side JSON for the user to apply. Use when setting up VS Code or tweaking editor behavior for Claude Code workflows. Handles tmux integration, terminal profiles, window restoration, and Claude Code extension positioning.
+Configures VS Code for optimal Claude Code development by managing remote-side settings and printing client-side JSON for the user to apply. Use when setting up VS Code or tweaking editor behavior for Claude Code workflows. Handles mode-aware terminal profiles (based on tmux mode from `/uc:setup`), window restoration, and Claude Code extension positioning.
 
 ### Planning & Research
 
@@ -104,7 +104,7 @@ Manages Railway.com deployments via CLI with environment variable-based multi-ac
 Configures Tailscale to expose local services securely within the tailnet via `tailscale serve` or publicly via `tailscale funnel`. Use when exposing dashboards, dev servers, or preparing services for remote access. Validates the full prerequisite chain and enables HTTPS-wrapped local services.
 
 **Update** (`/uc:update`)
-Updates Ultra Claude to the latest version via the Claude Code plugin marketplace using `claude plugin update`. Use after hearing about new features or when wanting the latest version. Shows changelog since last update, runs post-update housekeeping (file migration, tmux daemon restart, setup verification), and recommends `/uc:migrate` in each project if structural changes occurred.
+Updates Ultra Claude to the latest version via the Claude Code plugin marketplace using `claude plugin update`. Use after hearing about new features or when wanting the latest version. Shows changelog since last update, runs post-update housekeeping (file migration, tmux daemon restart when tmux mode is active, setup verification), and recommends `/uc:migrate` in each project if structural changes occurred.
 
 ## Reference Libraries
 

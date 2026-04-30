@@ -90,22 +90,49 @@ For each setting added or modified, briefly explain what it does and why.
 
 ### Remote Machine (vscode-server)
 
+Terminal profiles depend on the user's tmux mode (stored in `~/.claude/ultra/uc-setup.json` → `tmuxMode`). Read the marker file to determine which profile to configure. See `${CLAUDE_PLUGIN_ROOT}/skills/setup/references/tmux-modes.md` for the full mode reference.
+
+**Per-project mode** (`per-project`):
+```json
+{
+    "terminal.integrated.defaultProfile.linux": "project-tmux",
+    "terminal.integrated.profiles.linux": {
+        "project-tmux": {
+            "path": "bash",
+            "args": ["-c", "${workspaceFolder}/.vscode/tmux-session.sh"],
+            "icon": "terminal-tmux"
+        },
+        "bash": {
+            "path": "bash",
+            "icon": "terminal-bash"
+        }
+    }
+}
+```
+
+**Per-terminal mode** (`per-terminal`):
 ```json
 {
     "terminal.integrated.profiles.linux": {
         "tmux-session": {
             "path": "bash",
             "args": ["-c", "tmux new-session -s \"vscode:${workspaceFolderBasename}:$$\""]
+        },
+        "bash": {
+            "path": "bash",
+            "icon": "terminal-bash"
         }
     },
     "terminal.integrated.defaultProfile.linux": "tmux-session"
 }
 ```
 
+**No tmux or custom mode** (`none` / `custom`): No tmux terminal profile. Use the system default or leave existing profiles unchanged.
+
 | Setting | Purpose |
 |---------|---------|
-| `terminal.integrated.profiles.linux` | Define tmux-wrapped terminal profile |
-| `terminal.integrated.defaultProfile.linux` | Use tmux session as default terminal |
+| `terminal.integrated.profiles.linux` | Define terminal profile (tmux-wrapped or plain, depending on mode) |
+| `terminal.integrated.defaultProfile.linux` | Set default terminal profile |
 
 ## Guidelines
 

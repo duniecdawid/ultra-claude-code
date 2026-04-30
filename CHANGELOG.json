@@ -1,5 +1,12 @@
 [
   {
+    "seq": 155,
+    "version": "2026.04.30-1",
+    "date": "2026-04-30",
+    "summary": "Make tmux optional with four configuration modes. Setup skill now guides users through tmux mode selection: per-project session (recommended), no tmux, per-terminal session (legacy), or custom (user-managed). New reference file skills/setup/references/tmux-modes.md centralizes all tmux knowledge. All agent pane labeling is conditional on $TMUX_PANE. PM pane verification is gated on tmux availability. Layout daemon only starts for UC-managed tmux modes (not none/custom). Plan execution no longer requires tmux as a hard prerequisite. VS Code terminal profiles are mode-aware. Session reaper only offered for per-terminal mode. Documentation and help updated throughout.",
+    "migration": null
+  },
+  {
     "seq": 154,
     "version": "2026.04.22-5",
     "date": "2026-04-22",

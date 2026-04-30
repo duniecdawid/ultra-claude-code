@@ -28,7 +28,7 @@
     <h2>Set Up Your Machine</h2>
     <p>Run this once to configure your environment:</p>
     <pre><code>/uc:setup</code></pre>
-    <p>This installs prerequisites (tmux, Node.js), configures your shell for 1M context and agent teams, and sets up the tmux layout manager. Idempotent &mdash; safe to run again if anything changes.</p>
+    <p>This installs prerequisites (Node.js, optionally tmux), guides you through tmux mode selection, configures your shell for 1M context and agent teams, and sets up the layout manager when tmux is enabled. Idempotent &mdash; safe to run again if anything changes.</p>
   </div>
 
   <!-- Phase 3: Initialize -->
@@ -77,7 +77,7 @@
     <h2>Execute</h2>
     <pre><code>/uc:plan-execution {plan-name}</code></pre>
     <div class="callout callout-purple">
-      <p><strong>Open a new window for execution.</strong> Plan execution spawns multiple agent teams that need their own tmux panes. Run the command in a fresh Claude Code session.</p>
+      <p><strong>Open a new window for execution.</strong> Plan execution spawns multiple agent teams that use tmux panes for visual layout when available. Run the command in a fresh Claude Code session.</p>
     </div>
     <p>The execution engine spawns a dedicated team for each task: an <strong>Executor</strong> that writes code, a <strong>Reviewer</strong> that enforces your standards, and a <strong>Tester</strong> that validates against product docs. The <strong>Lead</strong> brokers external library knowledge via the <code>/uc:research</code> skill (cache-first, writes committed research files under <code>documentation/technology/research/</code>), and a <strong>Project Manager</strong> monitors progress.</p>
     <p>Sessions can die and resume &mdash; checkpoints save progress automatically. <a href="/docs/plan-execution">Read more about plan execution &rarr;</a></p>

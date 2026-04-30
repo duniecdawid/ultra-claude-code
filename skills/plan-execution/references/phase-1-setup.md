@@ -14,20 +14,25 @@ Read ALL files in `documentation/plans/$ARGUMENTS/`:
 
 You now have the full picture.
 
-### 1.1b Tmux Layout Daemon
+### 1.1b Tmux Layout Daemon (when tmux mode is per-project or per-terminal)
 
-Start the standalone tmux layout daemon so panes are automatically arranged as agents spawn:
+**Skip this step when `$TMUX_PANE` is unset OR when tmux mode is `none` or `custom`.** The layout daemon and pane organizer are only for users who chose a UC-managed tmux mode. Agent teams communicate via the signal protocol and SendMessage, which are tmux-independent. The layout grid is a visual enhancement only.
+
+Check the tmux mode from the marker file:
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/tmux-layout-daemon.js" --ensure
+TMUX_MODE=$(jq -r '.tmuxMode // empty' ~/.claude/ultra/uc-setup.json 2>/dev/null)
 ```
 
-Then label this pane as the main context so the layout daemon discovers and manages this window:
+Start the layout daemon only if tmux is available AND the user chose a UC-managed tmux mode:
 
 ```bash
-tmux set-option -p -t $TMUX_PANE @agent-name "main-context"
-tmux set-option -w pane-border-status top
-tmux set-option -w pane-border-format " #{@agent-name} "
+if [ -n "$TMUX_PANE" ] && [ "$TMUX_MODE" != "none" ] && [ "$TMUX_MODE" != "custom" ]; then
+  node "${CLAUDE_PLUGIN_ROOT}/scripts/tmux-layout-daemon.js" --ensure
+  tmux set-option -p -t $TMUX_PANE @agent-name "main-context"
+  tmux set-option -w pane-border-status top
+  tmux set-option -w pane-border-format " #{@agent-name} "
+fi
 ```
 
 The layout daemon arranges panes as agents spawn and self-label their panes. **You do NOT run any tmux commands yourself** — agents self-label; PM verifies.
@@ -203,7 +208,7 @@ Before spawning any task-teams, spawn the plan-wide utility agents: **PM and Hai
 
 2. Spawn `watchdog-{PLAN_NAME}` via TeamCreate using the watchdog spawn prompt in `references/phase-2-spawn-prompts.md`. Pass the resolved `ACCOUNT_KEY` into the spawn prompt. The watchdog runs on Haiku (cheap), uses a bash monitoring script via Monitor (zero AI tokens on clean ticks), and signals PM on usage thresholds and stalls. It always runs regardless of `extra_usage` setting — stall detection is useful in all cases.
 
-Both agents self-label their tmux panes. No tmux commands needed from you.
+Both agents self-label their tmux panes when tmux is available (skipped otherwise). No tmux commands needed from you.
 
 There is no Knowledge Brief synthesis step. Research lives per-task in each `tasks/task-N/task.md`'s `**Research:**` section (populated by planning Stage 4), and Lead reviews it per-task at spawn time in Phase 2.
 

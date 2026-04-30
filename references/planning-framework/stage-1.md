@@ -4,15 +4,18 @@ Base Stage 1 rules. Modes layer their own questioning style and domain-specific 
 
 **Purpose:** Gather enough context from the user to prepare for research. The active mode drives questions, challenges assumptions, and surfaces edge cases until it has a clear picture of the problem space.
 
-## Tmux Layout
+## Tmux Layout (when UC-managed tmux mode is active)
 
-Start the layout daemon and label this pane as the main context:
+Start the layout daemon and label this pane as the main context. Skipped when `$TMUX_PANE` is unset or tmux mode is `none`/`custom` — agents communicate via signals and SendMessage, not tmux.
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/tmux-layout-daemon.js" --ensure
-tmux set-option -p -t $TMUX_PANE @agent-name "main-context"
-tmux set-option -w pane-border-status top
-tmux set-option -w pane-border-format " #{@agent-name} "
+TMUX_MODE=$(jq -r '.tmuxMode // empty' ~/.claude/ultra/uc-setup.json 2>/dev/null)
+if [ -n "$TMUX_PANE" ] && [ "$TMUX_MODE" != "none" ] && [ "$TMUX_MODE" != "custom" ]; then
+  node "${CLAUDE_PLUGIN_ROOT}/scripts/tmux-layout-daemon.js" --ensure
+  tmux set-option -p -t $TMUX_PANE @agent-name "main-context"
+  tmux set-option -w pane-border-status top
+  tmux set-option -w pane-border-format " #{@agent-name} "
+fi
 ```
 
 ## Rules

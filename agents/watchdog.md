@@ -29,9 +29,9 @@ Spawned at plan start alongside PM. Cheapest agent (Haiku). Runs for the entire 
 
 ## First Action
 
-1. **Label your tmux pane:**
+1. **Label your tmux pane** (skipped when not running inside tmux):
    ```bash
-   tmux set-option -p -t $TMUX_PANE @agent-name "watchdog-$PLAN_NAME"
+   [ -n "$TMUX_PANE" ] && tmux set-option -p -t $TMUX_PANE @agent-name "watchdog-$PLAN_NAME"
    ```
 
 2. **Initialize state file:**

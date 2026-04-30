@@ -48,15 +48,17 @@ You **never** make technical decisions — you don't review code, judge implemen
 
 **Before anything else**, do these two things:
 
-1. **Label your tmux pane** so the layout watcher can place you in the grid:
+1. **Label your tmux pane** so the layout watcher can place you in the grid (skipped when not running inside tmux):
    ```bash
-   tmux set-option -p -t $TMUX_PANE @agent-name "pm-$PLAN_NAME"
+   [ -n "$TMUX_PANE" ] && tmux set-option -p -t $TMUX_PANE @agent-name "pm-$PLAN_NAME"
    ```
    `PLAN_NAME` is defined in your spawn prompt.
 
 2. **No cron needed.** You are fully event-driven — you receive messages from Lead (status updates), from the Haiku watchdog (alerts), and from executors (stage completions). You do not need a monitoring cron. The watchdog handles periodic health checks on your behalf and signals you only when something needs attention.
 
 ## Pane Verification
+
+**Skip this entire section when `$TMUX_PANE` is unset.** Pane verification is a visual enhancement that requires tmux. Agent communication uses the signal protocol and SendMessage, which are tmux-independent.
 
 Agents self-label their tmux panes on startup via `$TASK_ID` or `$PLAN_NAME`. A background layout daemon (tmux-layout-daemon.js) polls every second, reads `@agent-name` labels, and arranges panes into a grid via an atomic `select-layout` call. Your job is to verify labels are correct and fix any missing ones (agent crashed before self-labeling).
 

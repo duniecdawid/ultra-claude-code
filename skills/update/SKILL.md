@@ -121,20 +121,24 @@ fi
 
 If nothing was moved, skip silently — the user is already on the new layout.
 
-## Step 4: Restart Tmux Layout Daemon
+## Step 4: Restart Tmux Layout Daemon (when UC-managed tmux mode is active)
 
-Kill the existing daemon and start fresh so it picks up any changes:
+Kill the existing daemon and start fresh so it picks up any changes. Skipped when not running inside tmux or when tmux mode is `none`/`custom`.
 
 ```bash
-PID_FILE="$HOME/.claude/ultra/tmux-layout.pid"
-if [ -f "$PID_FILE" ]; then
-  kill "$(cat "$PID_FILE")" 2>/dev/null
-  rm -f "$PID_FILE"
-  sleep 1
-  echo "Old layout daemon stopped"
+TMUX_MODE=$(jq -r '.tmuxMode // empty' ~/.claude/ultra/uc-setup.json 2>/dev/null)
+if [ -n "$TMUX_PANE" ] && [ "$TMUX_MODE" != "none" ] && [ "$TMUX_MODE" != "custom" ]; then
+  PID_FILE="$HOME/.claude/ultra/tmux-layout.pid"
+  if [ -f "$PID_FILE" ]; then
+    kill "$(cat "$PID_FILE")" 2>/dev/null
+    rm -f "$PID_FILE"
+    sleep 1
+    echo "Old layout daemon stopped"
+  fi
+  node "${CLAUDE_PLUGIN_ROOT}/scripts/tmux-layout-daemon.js" --ensure
+else
+  echo "Not in UC-managed tmux — skipping layout daemon restart"
 fi
-
-node "${CLAUDE_PLUGIN_ROOT}/scripts/tmux-layout-daemon.js" --ensure
 ```
 
 ## Step 5: Run Setup

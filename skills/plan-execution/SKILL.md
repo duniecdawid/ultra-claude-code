@@ -41,10 +41,10 @@ Then verify:
 
 1. Plan exists at `documentation/plans/$ARGUMENTS/README.md`
 2. Agent teams enabled (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS: "1"` in settings)
-3. tmux installed (required for agent teams)
+3. tmux (recommended for visual pane layout; agents work without it). If tmux is not available, note: "tmux is not installed — agent pane layout will be disabled, but execution will proceed normally."
 4. Testing config: Verify `documentation/technology/testing/` exists. If missing, warn: "No testing configuration found. Run `/uc:migrate` to set up documentation/technology/testing/." Continue execution — agents will have limited testing guidance.
 
-If prerequisites 1-3 are missing, suggest running `/uc:setup` and stop.
+If prerequisites 1-2 are missing, suggest running `/uc:setup` and stop. Prerequisite 3 (tmux) is informational — continue regardless.
 
 ---
 
@@ -304,7 +304,7 @@ Parked pipeline successors stay parked through the pause. If an amendment drops 
 | **Lead spawns executor + reviewer** | Lead → TeamCreate | Lead spawns executor and reviewer when slot opens (after running the Pre-Spawn Checklist). |
 | **Lead lazy-spawns tester** | Lead → TeamCreate | Lead spawns tester when executor signals "code complete — writing impl report" — before the executor writes `impl.md`, so the tester cold-reads context in parallel with the impl-report write. |
 | **Lead shuts down teams** | Lead → team members | Lead sends shutdown_request after executor reports "task done" (executor first confirms all teammates replied "READY TO EXIT"). |
-| **Pane self-labeling** | Agent local | Spawn prompt defines `TASK_ID`/`ROLE`; agent runs tmux label per agent instructions. PM verifies after SPAWNED. |
+| **Pane self-labeling** | Agent local | Spawn prompt defines `TASK_ID`/`ROLE`; agent runs tmux label per agent instructions (skipped when not in tmux). PM verifies after SPAWNED (skipped when not in tmux). |
 | **Lead → PM** | Lead → PM | Terse status updates (`SPAWNED`, `SPAWNED-TESTER`, `STAGE`, `COMPLETED`, `SHUTDOWN`, etc.) for dashboard. |
 | **PM → Lead** | PM → Lead | Dashboard URL (startup), usage ALERTs. |
 | **PM → team members** | PM → any team member | Status checks for monitoring purposes only. |

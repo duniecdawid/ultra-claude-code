@@ -1,5 +1,5 @@
 ---
-description: One-time machine setup for Ultra Claude. Checks and configures shell environment (1M context, agent teams), installs prerequisites (tmux, node), configures tmux for Claude Code (fixes screen tearing via DEC 2026 synchronized output passthrough), configures the statusline for per-account usage tracking, optionally sets up Tailscale for remote access, optionally installs a tmux disconnected-session reaper for VSCode Remote SSH users whose tmux sessions pile up, and — if the `ultraclaude-agent` npm package is already installed — checks for and offers to update it to the latest published version. Idempotent — safe to re-run. Writes version marker to ~/.claude/ultra/uc-setup.json so other skills can quickly check if setup is current. Use when onboarding a new machine, after Ultra Claude install, when plan-execution reports missing prerequisites, when experiencing screen tearing/flickering in tmux, or when stale tmux sessions are accumulating on a remote machine. Triggers on "setup", "machine setup", "environment setup", "configure machine", "setup 1m context", "enable agent teams", "screen tearing", "tmux tearing", "flickering", "session cleanup", "tmux reaper", "reap tmux", "orphaned tmux", "stale tmux sessions".
+description: One-time machine setup for Ultra Claude. Checks and configures shell environment (1M context, agent teams), installs prerequisites (node, optionally tmux), guides tmux mode selection (per-project, per-terminal, none, or custom — see references/tmux-modes.md), configures the statusline for per-account usage tracking, optionally sets up Tailscale for remote access, optionally installs a tmux disconnected-session reaper for per-terminal mode users whose tmux sessions pile up, and — if the `ultraclaude-agent` npm package is already installed — checks for and offers to update it to the latest published version. Idempotent — safe to re-run. Writes version marker to ~/.claude/ultra/uc-setup.json so other skills can quickly check if setup is current. Use when onboarding a new machine, after Ultra Claude install, when plan-execution reports missing prerequisites, when experiencing screen tearing/flickering in tmux, or when stale tmux sessions are accumulating on a remote machine. Triggers on "setup", "machine setup", "environment setup", "configure machine", "setup 1m context", "enable agent teams", "screen tearing", "tmux tearing", "flickering", "session cleanup", "tmux reaper", "reap tmux", "orphaned tmux", "stale tmux sessions".
 user-invocable: true
 ---
 
@@ -31,13 +31,19 @@ Read the detected shell config file.
 
 Run all checks in parallel:
 
-### 3.1 tmux
+### 3.1 tmux mode
+
+Check tmux installation and current mode preference:
 
 ```bash
 which tmux 2>/dev/null && tmux -V
+jq -r '.tmuxMode // empty' ~/.claude/ultra/uc-setup.json 2>/dev/null
 ```
 
-PASS if `tmux` is found.
+Report:
+- If `tmuxMode` is set in marker: show the stored mode (`per-project`, `none`, `per-terminal`, or `custom`)
+- If no stored mode: show "not configured" — will be prompted in Step 5
+- tmux installed: yes/no (informational — not a hard requirement)
 
 ### 3.2 Agent Teams env var
 
@@ -73,7 +79,7 @@ grep -c 'allow-passthrough' ~/.tmux.conf 2>/dev/null
 
 PASS if `allow-passthrough on` is found. This setting is essential because Claude Code's terminal UI relies on DEC 2026 synchronized output (BSU/ESU escape sequences) to batch screen draws. Without passthrough, tmux swallows these sequences, causing severe screen tearing — especially during streaming output which generates 4,000–6,700 scroll events per second.
 
-SKIP if tmux is not installed.
+SKIP if tmux is not installed, or if tmux mode is `none` or `custom`.
 
 ### 3.6 Statusline (usage data for dashboard)
 
@@ -152,6 +158,8 @@ Record status but don't mark as MISSING — this is optional. The `machine-conte
 
 Optional opt-in tmux disconnected-session reaper for users whose tmux sessions accumulate on a remote machine (typically VSCode Remote SSH workflows). Full procedure — including the tradeoff prompt, file templates, and systemd unit definitions — lives in `references/session-cleanup.md`.
 
+SKIP if tmux mode is `none`, `per-project`, or `custom`. The reaper is only relevant for `per-terminal` mode where sessions accumulate.
+
 Platform gate first:
 
 ```bash
@@ -186,8 +194,8 @@ Display a status table:
 ```
 Ultra Claude Environment Check (plugin v{version})
 
-  tmux                      ✓ installed (v3.4)
-  tmux.conf                 ✗ missing passthrough
+  tmux mode                 ✓ per-project (recommended)   # or "— none (no tmux)" / "— custom (user-managed)" / "✓ per-terminal (legacy)" / "✗ not configured"
+  tmux.conf                 ✓ passthrough enabled          # or "— skipped" if mode is none/custom
   Agent teams env var       ✗ missing
   1M context env vars       ✗ missing
   Node.js                   ✓ v22.0.0
@@ -196,10 +204,10 @@ Ultra Claude Environment Check (plugin v{version})
   Tailscale (optional)      — not installed
   Agent (optional)          — not installed   # or "✓ 0.0.26 (latest)" / "✗ 0.0.25 → 0.0.26"
   Machine Context (optional) — not configured
-  Session Cleanup (optional) — not installed  # or "✓ reaper active (24h)" / "— skipped (not linux)"
+  Session Cleanup (optional) — not installed  # or "✓ reaper active (24h)" / "— skipped (not linux)" / "— skipped (not per-terminal)"
 ```
 
-If ALL required checks pass (3.1–3.7):
+If ALL required checks pass (3.2–3.7 — tmux mode is always valid since all four choices are acceptable):
 - Write the marker file (Step 6)
 - Print "Environment ready! All prerequisites configured."
 - If Tailscale is not set up, mention: "Optional: Run `/uc:tailscale-setup` to enable remote access."
@@ -207,9 +215,15 @@ If ALL required checks pass (3.1–3.7):
 
 ## Step 5: Fix Missing Prerequisites
 
-Use AskUserQuestion with a multi-select to let the user choose which items to fix. List only MISSING items. Always include Tailscale if not installed (marked as optional in the description). On Linux, always include Session Cleanup if not yet installed (marked as optional, with a short one-liner about the tradeoff — the full warning lives in the fix step's own prompt).
+If tmux mode is not yet configured (no `tmuxMode` in marker file), present the tmux mode selection prompt from `references/tmux-modes.md` Section "Selection Prompt" FIRST, before the multi-select fix list. The mode choice determines which tmux-related fixes appear.
+
+Then use AskUserQuestion with a multi-select to let the user choose which items to fix. List only MISSING items. Always include Tailscale if not installed (marked as optional in the description). On Linux, include Session Cleanup only if tmux mode is `per-terminal` (marked as optional, with a short one-liner about the tradeoff — the full warning lives in the fix step's own prompt).
+
+After mode selection (or after presenting fixes), print the tip from `references/tmux-modes.md` Section "Tips".
 
 ### 5.1 Fix: tmux
+
+Skip if tmux mode is `none` or `custom`.
 
 Detect OS and install:
 
@@ -253,7 +267,7 @@ export ANTHROPIC_DEFAULT_SONNET_MODEL='claude-sonnet-4-6[1m]'
 Do NOT auto-install Node.js — too many ways to manage it. Instead, print guidance:
 
 ```
-Node.js is required for the tmux layout daemon and other Ultra Claude scripts.
+Node.js is required for Ultra Claude scripts (including the tmux layout daemon when tmux is available).
 
 Recommended install methods:
   - nvm (recommended): https://github.com/nvm-sh/nvm
@@ -269,36 +283,9 @@ Recommended install methods:
 
 ### 5.5 Fix: tmux.conf (Claude Code optimized)
 
-Write or merge the following into `~/.tmux.conf`. If the file already exists, read it first and only add settings that are missing — don't duplicate lines. If conflicting values exist (e.g., `allow-passthrough off`), warn the user and ask before changing.
+Skip if tmux mode is `none` or `custom`.
 
-Claude Code's terminal UI uses DEC 2026 synchronized output to batch screen draws and prevent tearing. Without these settings, tmux intercepts the escape sequences and the result is severe flickering during streaming output.
-
-```bash
-# ~/.tmux.conf — Claude Code optimized
-
-set -g mouse on
-
-# Fix Claude Code screen tearing (DEC 2026 synchronized output)
-# tmux defaults to blocking passthrough, which swallows the BSU/ESU
-# sequences Claude Code uses to batch screen draws
-set -g allow-passthrough on
-
-# Remove 500ms escape delay (causes input lag in Claude Code)
-set -sg escape-time 0
-
-# Handle Claude's massive scroll output (4k-6.7k events/sec)
-set -g history-limit 250000
-
-# Extended keys and clipboard
-set -g extended-keys on
-set -as terminal-features 'xterm*:extkeys'
-set -g set-clipboard on
-
-# Color and focus
-set -g default-terminal "tmux-256color"
-set -ag terminal-overrides ",xterm-256color:RGB"
-set -g focus-events on
-```
+Write the tmux.conf template from `references/tmux-modes.md` Section "tmux.conf Template". If the file already exists, read it first and only add settings that are missing — don't duplicate lines. If conflicting values exist (e.g., `allow-passthrough off`), warn the user and ask before changing.
 
 After writing, reload the config if tmux is currently running:
 
@@ -307,6 +294,32 @@ tmux source-file ~/.tmux.conf 2>/dev/null
 ```
 
 Tell the user: "If tearing persists, detach and reattach your tmux session — some terminal overrides only take effect on new attachments."
+
+### 5.5b Fix: VS Code terminal profile (tmux mode dependent)
+
+Skip if tmux mode is `none` or `custom`.
+
+Detect VS Code installation:
+
+```bash
+[ -d "$HOME/.vscode-server" ] && echo "vscode-remote" || [ -d "$HOME/.vscode" ] && echo "vscode-local" || echo "no-vscode"
+```
+
+If no VS Code installation detected, skip and note: "No VS Code installation detected — skipping terminal profile setup."
+
+If VS Code is detected, apply mode-appropriate terminal profile from `references/tmux-modes.md`:
+
+- `per-project`: Symlink the shared tmux session script, then configure VS Code:
+
+  ```bash
+  ln -sf "${CLAUDE_PLUGIN_ROOT}/scripts/tmux-session.sh" ~/.claude/ultra/tmux-session.sh
+  ```
+
+  Then merge the `project-tmux` profile into VS Code settings (the profile calls `bash ~/.claude/ultra/tmux-session.sh ${workspaceFolder}`). No per-project files needed. Only touch `terminal.integrated.profiles.*` and `terminal.integrated.defaultProfile.*` — never modify other VS Code settings.
+
+- `per-terminal`: Write the per-terminal profile from reference Section "Per-Terminal Mode".
+
+Always add a `bash` fallback profile alongside the tmux profile.
 
 ### 5.6 Fix: Statusline
 
@@ -476,6 +489,7 @@ After all fixes are applied, write `~/.claude/ultra/uc-setup.json`:
   "timestamp": "{ISO 8601 timestamp}",
   "shell": "{bash or zsh}",
   "shellConfig": "{path to shell config file}",
+  "tmuxMode": "per-project" | "none" | "per-terminal" | "custom",
   "checks": {
     "tmux": true/false,
     "tmuxConf": true/false,
