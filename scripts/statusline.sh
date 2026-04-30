@@ -223,7 +223,7 @@ if [ -n "$model" ]; then
 fi
 if [ -n "$used" ]; then
   c=$(pct_color "$used")
-  right="${right}  ${dim}ctx:${reset}${c}$(printf '%.0f' "$used")%%${reset}"
+  right="${right}  ${dim}ctx:${reset}${c}$(printf '%.0f' "$used")%${reset}"
 fi
 
 # Cache indicator — pie chart depletes over 5 min: ● → ◕ → ◑ → ◔ → ○
@@ -253,11 +253,11 @@ fi
 
 if [ -n "$rl_5h" ]; then
   c=$(pct_color "$rl_5h")
-  right="${right}  ${dim}5h:${reset}${c}$(printf '%.0f' "$rl_5h")%%${reset}"
+  right="${right}  ${dim}5h:${reset}${c}$(printf '%.0f' "$rl_5h")%${reset}"
 fi
 if [ -n "$rl_7d" ]; then
   c=$(pct_color "$rl_7d")
-  right="${right}  ${dim}7d:${reset}${c}$(printf '%.0f' "$rl_7d")%%${reset}"
+  right="${right}  ${dim}7d:${reset}${c}$(printf '%.0f' "$rl_7d")%${reset}"
 fi
 
 # --- Output ---
