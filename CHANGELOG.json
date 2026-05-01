@@ -1,5 +1,12 @@
 [
   {
+    "seq": 159,
+    "version": "2026.05.01-3",
+    "date": "2026-05-01",
+    "summary": "WaitForTeamMember: specify Monitor/until-loop for pure wait states. Long sleep commands are blocked by the Claude Code runtime — agents must use 'until grep; do sleep 5; done' via Monitor for zero-token waits, or interleave signal checks with productive work.",
+    "migration": null
+  },
+  {
     "seq": 158,
     "version": "2026.05.01-2",
     "date": "2026-05-01",

@@ -36,15 +36,21 @@ Wait to receive a specific signal. Two delivery paths, whichever fires first:
 
 1. **SendMessage arrives** — if you receive a SendMessage whose content matches the expected signal, process it immediately. Done.
 
-2. **Poll signals.jsonl** — every ~60 seconds, read the signal file:
+2. **Poll signals.jsonl** — if no SendMessage arrives, poll the signal file. Two mechanisms depending on context:
+
+   **During productive wait states** (you have useful work to do while waiting — e.g., exploring codebase while waiting for REVIEWER_TAKE_READY): read `signals.jsonl` periodically between other actions. No sleep needed — just check the file every few tool calls.
+
+   **During pure wait states** (you are blocked with nothing to do — e.g., waiting for review verdict, exit confirmation): use a Monitor with an until-loop so you get notified the moment the signal appears without burning tokens on manual polling:
    ```bash
-   cat "$PLAN_DIR/tasks/task-$TASK_ID/signals.jsonl"
+   until grep -q '"signal":"YOUR_EXPECTED_SIGNAL"' "$PLAN_DIR/tasks/task-$TASK_ID/signals.jsonl"; do sleep 5; done
    ```
-   Scan for a line where `"signal"` matches the expected value (and optionally `"author"` matches `from`). If found and the signal has an associated `content_file`, read that file from the same directory.
+   The Monitor delivers a notification when the loop exits (signal found). Then read the signal file to get details, and read the content file if the signal has one.
 
-**When NOT to poll** — during active work (writing code, running tests, reviewing files). Only poll during explicit wait states where you are blocked on another agent's output.
+   **Do NOT use bare `sleep` commands** — long sleeps are blocked by the Claude Code runtime. Always wrap in an until-loop or interleave with work.
 
-**Token cost** — ~100-200 tokens per poll (read a small file, check for a signal). Negligible compared to a stalled pipeline.
+3. **If signal has `content_file`** — read it from `$PLAN_DIR/tasks/task-$TASK_ID/` after discovering the signal.
+
+**Token cost** — Monitor-based waits cost zero tokens until the signal arrives. Periodic manual checks cost ~100-200 tokens per read. Both are negligible compared to a stalled pipeline.
 
 ## 4. Signal File Format
 
