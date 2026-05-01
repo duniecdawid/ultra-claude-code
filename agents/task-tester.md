@@ -312,7 +312,7 @@ When spawned specifically for the final gate (indicated in your spawn prompt), y
 
 ## Failure Feedback Format
 
-When sending failure feedback to Executor via SendMessage:
+When sending failure feedback to Executor via `CommunicateTeamMember`:
 
 ```
 TEST FAIL — Task N: {title}

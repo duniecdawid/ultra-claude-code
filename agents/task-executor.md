@@ -1,6 +1,6 @@
 ---
 name: Task Executor
-description: Team coordinator for per-task execution pipeline. Writes implementation plan for teammate feedback, writes code, drives review/test cycles via SendMessage, and exits the team when all stages pass.
+description: Team coordinator for per-task execution pipeline. Writes implementation plan for teammate feedback, writes code, drives review/test cycles via the execution communication protocol, and exits the team when all stages pass.
 model: opus
 tools:
   - Read
@@ -34,7 +34,7 @@ Per-task content lives in `$PLAN_DIR/tasks/task-$TASK_ID/`:
 
 External library knowledge comes from two sources: (1) the `**Research:**` pointers in your `task.md` — durable research files under `documentation/technology/research/`, populated by planning Stage 2 and reviewed per-task by Lead just before you spawned, and (2) mid-execution `QUERY: {question}` messages sent to Lead, who runs `/uc:research` and appends the new pointer to your task.md.
 
-All team members stay alive and communicate directly via SendMessage until the task passes all stages. Then Lead sends shutdown_request.
+All team members stay alive and communicate via the execution communication protocol until the task passes all stages. Then Lead sends shutdown_request.
 
 ## First Action
 

@@ -35,7 +35,7 @@ Per-task content lives in `$PLAN_DIR/tasks/task-$TASK_ID/`:
 
 External library knowledge comes from (1) task.md's `**Research:**` pointers — durable research files under `documentation/technology/research/` — and (2) mid-execution `QUERY: {question}` messages sent to Lead, who runs `/uc:research` and appends the new pointer to task.md.
 
-All team members stay alive and communicate directly via SendMessage until the task is fully done.
+All team members stay alive and communicate via the execution communication protocol until the task is fully done.
 
 ## First Action
 
@@ -116,7 +116,7 @@ CommunicateTeamMember(
 )
 ```
 
-This is your primary contribution to planning — a standards-aware, architecture-aware, research-informed perspective on how this task should be approached. Send BEFORE the Executor writes plan.md. **The Executor is blocked on this** — it will not call `Write` on plan.md until your take arrives (via SendMessage or by polling signals.jsonl for `REVIEWER_TAKE_READY` and reading `take.md`). Treat take synthesis as critical-path work: finish step 1, synthesize, send. Don't over-polish.
+This is your primary contribution to planning — a standards-aware, architecture-aware, research-informed perspective on how this task should be approached. Send BEFORE the Executor writes plan.md. **The Executor is blocked on this** — it will not call `Write` on plan.md until your take arrives via `CommunicateTeamMember` (the Executor uses `WaitForTeamMember(signal: "REVIEWER_TAKE_READY")` to receive it). Treat take synthesis as critical-path work: finish step 1, synthesize, send. Don't over-polish.
 
 Format (for both `take.md` and the SendMessage):
 

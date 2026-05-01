@@ -1,5 +1,12 @@
 [
   {
+    "seq": 158,
+    "version": "2026.05.01-2",
+    "date": "2026-05-01",
+    "summary": "Fix stale 'via SendMessage' and 'dual-write' references in agent descriptions and instructions left over from the communication protocol refactor.",
+    "migration": null
+  },
+  {
     "seq": 157,
     "version": "2026.05.01-1",
     "date": "2026-05-01",
