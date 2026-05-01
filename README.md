@@ -100,6 +100,7 @@ ultra-claude/
 │   └── context.md
 ├── scripts/                           # Runtime scripts
 │   ├── tmux-layout-daemon.js
+│   ├── tmux-session.sh
 │   ├── statusline.sh
 │   └── lib.sh
 ├── docs/                              # Documentation website (Express + EJS)

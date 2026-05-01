@@ -1,0 +1,194 @@
+<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+
+<div class="page-docs">
+  <%- include('../partials/sidebar') %>
+  <main class="doc-content">
+
+    <h1>Development Environment</h1>
+    <p>The recommended Ultra Claude development environment uses tmux for terminal session persistence, SSH for remote access, and VS Code (or any editor) as a thin client. This setup lets you work from any device, survive connection drops, and keep long-running processes alive across sessions.</p>
+
+    <h2>Recommended setup</h2>
+
+    <div class="callout callout-purple">
+      <p><strong>TL;DR:</strong> Run Claude Code inside a tmux session on your development machine (VM, server, or local). Connect remotely via SSH. Use one tmux session per project. Manage your terminal windows inside tmux, not in VS Code.</p>
+    </div>
+
+    <h3>Why tmux?</h3>
+    <p>tmux is a terminal multiplexer &mdash; it lets you run multiple terminal sessions inside a single connection and keeps them alive independently of your client. This solves several real problems:</p>
+    <ul>
+      <li><strong>Session persistence</strong> &mdash; closing your laptop, losing WiFi, or reloading VS Code doesn't kill your processes. Dev servers, builds, and Claude Code sessions keep running.</li>
+      <li><strong>Multi-device access</strong> &mdash; start work on your desktop, pick it up on your laptop. The tmux session is on the server, not your client.</li>
+      <li><strong>Window management</strong> &mdash; split your terminal into panes and windows without relying on your editor's terminal tabs. tmux windows persist; VS Code terminal tabs don't.</li>
+      <li><strong>Agent pane layout</strong> &mdash; during plan execution, Ultra Claude arranges agent panes in a visual grid so you can see what each agent is doing.</li>
+    </ul>
+
+    <h3>Why SSH?</h3>
+    <p>Running Claude Code directly on the development machine (rather than through VS Code's integrated terminal over SSH) eliminates SSH latency from every tool call. This adds up quickly during plan execution where agents make hundreds of tool calls.</p>
+    <p>The recommended workflow:</p>
+    <ol>
+      <li>SSH into your development machine</li>
+      <li>Attach to your project's tmux session</li>
+      <li>Run Claude Code with bypass permissions for maximum speed</li>
+      <li>Use VS Code for editing files and browsing code &mdash; it connects to the same machine via Remote SSH</li>
+    </ol>
+
+    <h2>tmux modes in Ultra Claude</h2>
+    <p>The <code>/uc:setup</code> skill lets you choose how tmux is configured. There are four options:</p>
+
+    <table>
+      <thead><tr><th>Mode</th><th>Description</th><th>Best for</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Per-project session</strong></td>
+          <td>One tmux session per project directory. Auto-created on first terminal, reattached on subsequent ones. No orphan sessions.</td>
+          <td>Most users (recommended)</td>
+        </tr>
+        <tr>
+          <td><strong>No tmux</strong></td>
+          <td>Plain shell. No persistence. Agent teams still work &mdash; you just don't get the visual pane layout.</td>
+          <td>Simple setups, quick tasks</td>
+        </tr>
+        <tr>
+          <td><strong>Per-terminal session</strong></td>
+          <td>Each terminal gets its own tmux session. Sessions accumulate over time. Optional cleanup reaper available.</td>
+          <td>Legacy setups</td>
+        </tr>
+        <tr>
+          <td><strong>Custom</strong></td>
+          <td>You manage tmux yourself. Ultra Claude won't touch your config. Agent pane labeling still works if you're inside tmux.</td>
+          <td>Advanced users with existing tmux setups</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>Run <code>/uc:setup</code> to choose your mode. You can change it later by re-running setup.</p>
+
+    <h2>tmux cheat sheet</h2>
+    <p>All tmux commands start with the prefix key <code>Ctrl+b</code>, followed by a second key. For example, <code>Ctrl+b c</code> means: press <code>Ctrl+b</code>, release, then press <code>c</code>.</p>
+
+    <h3>Sessions</h3>
+    <table>
+      <thead><tr><th>Key / Command</th><th>Action</th></tr></thead>
+      <tbody>
+        <tr><td><code>tmux ls</code></td><td>List all sessions</td></tr>
+        <tr><td><code>tmux attach -t name</code></td><td>Attach to a session by name</td></tr>
+        <tr><td><code>tmux new -s name</code></td><td>Create a new named session</td></tr>
+        <tr><td><code>Ctrl+b d</code></td><td>Detach from current session (it keeps running)</td></tr>
+        <tr><td><code>Ctrl+b $</code></td><td>Rename current session</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Windows (tabs)</h3>
+    <table>
+      <thead><tr><th>Key</th><th>Action</th></tr></thead>
+      <tbody>
+        <tr><td><code>Ctrl+b c</code></td><td>Create new window</td></tr>
+        <tr><td><code>Ctrl+b ,</code></td><td>Rename current window</td></tr>
+        <tr><td><code>Ctrl+b n</code></td><td>Next window</td></tr>
+        <tr><td><code>Ctrl+b p</code></td><td>Previous window</td></tr>
+        <tr><td><code>Ctrl+b 0-9</code></td><td>Jump to window by number</td></tr>
+        <tr><td><code>Ctrl+b w</code></td><td>List windows interactively</td></tr>
+        <tr><td><code>Ctrl+b &amp;</code></td><td>Close current window (confirms)</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Panes (splits)</h3>
+    <table>
+      <thead><tr><th>Key</th><th>Action</th></tr></thead>
+      <tbody>
+        <tr><td><code>Ctrl+b %</code></td><td>Split vertically (left/right)</td></tr>
+        <tr><td><code>Ctrl+b "</code></td><td>Split horizontally (top/bottom)</td></tr>
+        <tr><td><code>Ctrl+b arrow</code></td><td>Move between panes</td></tr>
+        <tr><td><code>Ctrl+b z</code></td><td>Zoom pane to fullscreen (toggle)</td></tr>
+        <tr><td><code>Ctrl+b x</code></td><td>Close current pane (confirms)</td></tr>
+        <tr><td><code>Ctrl+b {</code> / <code>}</code></td><td>Swap pane with previous/next</td></tr>
+        <tr><td><code>Ctrl+b Space</code></td><td>Cycle through pane layouts</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Copy mode (scrolling and selecting)</h3>
+    <p>tmux uses vi-style navigation in copy mode by default when configured with Ultra Claude's tmux.conf.</p>
+    <table>
+      <thead><tr><th>Key</th><th>Action</th></tr></thead>
+      <tbody>
+        <tr><td><code>Ctrl+b [</code></td><td>Enter copy mode (scrollback)</td></tr>
+        <tr><td><code>q</code></td><td>Exit copy mode</td></tr>
+        <tr><td><code>h j k l</code></td><td>Move left/down/up/right</td></tr>
+        <tr><td><code>Ctrl+u</code> / <code>Ctrl+d</code></td><td>Page up / page down</td></tr>
+        <tr><td><code>/</code></td><td>Search forward</td></tr>
+        <tr><td><code>?</code></td><td>Search backward</td></tr>
+        <tr><td><code>n</code> / <code>N</code></td><td>Next / previous search result</td></tr>
+        <tr><td><code>Space</code></td><td>Start selection</td></tr>
+        <tr><td><code>Enter</code></td><td>Copy selection to clipboard</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Typical workflow</h2>
+    <p>A day with tmux + SSH looks like this:</p>
+
+    <h3>Morning &mdash; start working</h3>
+    <pre><code><span style="color: var(--muted-foreground)"># SSH into your dev machine</span>
+ssh dev-vm
+
+<span style="color: var(--muted-foreground)"># List existing sessions</span>
+tmux ls
+
+<span style="color: var(--muted-foreground)"># Attach to your project session (or it auto-creates via VS Code)</span>
+tmux attach -t user_myproject</code></pre>
+
+    <h3>Working &mdash; manage windows in tmux</h3>
+    <pre><code><span style="color: var(--muted-foreground)"># Create windows for different tasks</span>
+Ctrl+b c          <span style="color: var(--muted-foreground)"># new window</span>
+Ctrl+b ,          <span style="color: var(--muted-foreground)"># rename it "server"</span>
+npm run dev       <span style="color: var(--muted-foreground)"># start your dev server</span>
+
+Ctrl+b c          <span style="color: var(--muted-foreground)"># another window</span>
+Ctrl+b ,          <span style="color: var(--muted-foreground)"># rename it "claude"</span>
+claude            <span style="color: var(--muted-foreground)"># run Claude Code here</span>
+
+Ctrl+b n          <span style="color: var(--muted-foreground)"># switch between windows</span>
+Ctrl+b 0          <span style="color: var(--muted-foreground)"># jump to window 0</span></code></pre>
+
+    <h3>Switching devices</h3>
+    <pre><code><span style="color: var(--muted-foreground)"># On your desktop, detach</span>
+Ctrl+b d
+
+<span style="color: var(--muted-foreground)"># On your laptop, reconnect</span>
+ssh dev-vm
+tmux attach -t user_myproject
+<span style="color: var(--muted-foreground)"># Everything is exactly where you left it</span></code></pre>
+
+    <h3>End of day &mdash; just close your terminal</h3>
+    <p>Don't kill the session. Just close your SSH connection or laptop. The tmux session stays running. Tomorrow you'll reattach and everything is there: your dev server, your Claude Code session, your terminal history.</p>
+
+    <h2>Customizing tmux</h2>
+    <p>tmux is highly customizable via <code>~/.tmux.conf</code>. Ultra Claude's setup writes a baseline config optimized for Claude Code (synchronized output to prevent screen tearing, extended scrollback, etc.), but you can add your own customizations on top.</p>
+    <p>Popular additions:</p>
+    <ul>
+      <li><strong>Status bar themes</strong> &mdash; <a href="https://github.com/gpakosz/.tmux" target="_blank" rel="noopener">Oh my tmux!</a> is a popular theme pack with a batteries-included config</li>
+      <li><strong>Plugin manager</strong> &mdash; <a href="https://github.com/tmux-plugins/tpm" target="_blank" rel="noopener">TPM (Tmux Plugin Manager)</a> lets you install plugins like <a href="https://github.com/tmux-plugins/tmux-resurrect" target="_blank" rel="noopener">tmux-resurrect</a> (save/restore sessions across reboots)</li>
+      <li><strong>Custom keybindings</strong> &mdash; remap the prefix key, add shortcuts for common operations</li>
+      <li><strong>Color schemes</strong> &mdash; match your terminal theme with tmux status bar colors</li>
+    </ul>
+    <p>If you customize your own tmux setup extensively, choose the "Don't touch it" mode in <code>/uc:setup</code> so Ultra Claude doesn't overwrite your config.</p>
+
+    <h2>VS Code integration</h2>
+    <p>VS Code works well alongside tmux via Remote SSH. The setup creates a terminal profile that auto-attaches to your project's tmux session. But the key insight is: <strong>manage your terminal windows in tmux, not in VS Code</strong>.</p>
+    <ul>
+      <li>Use VS Code for editing files, browsing code, and git operations</li>
+      <li>Use tmux windows for running processes: dev servers, builds, Claude Code, tests</li>
+      <li>Opening multiple VS Code terminal panels attaches to the same tmux session &mdash; they mirror each other. Use tmux windows (<code>Ctrl+b c</code>) instead of VS Code terminal tabs</li>
+    </ul>
+
+    <div class="callout callout-purple">
+      <p><strong>Performance tip:</strong> For plan execution, run Claude Code directly in a tmux window via SSH rather than through VS Code's integrated terminal. Enable bypass permissions (<code>claude --dangerously-skip-permissions</code>) for maximum throughput. This eliminates SSH round-trip latency on every tool call and removes permission prompts.</p>
+    </div>
+
+    <h2>tmux is optional</h2>
+    <p>tmux is recommended but not required. Ultra Claude's agent teams communicate via SendMessage and file-based signals, not tmux. If you choose "No tmux" in <code>/uc:setup</code>, everything works &mdash; you just don't get the visual agent pane layout during plan execution or terminal session persistence.</p>
+
+  </main>
+</div>
+
+<%- include('../partials/footer') %>

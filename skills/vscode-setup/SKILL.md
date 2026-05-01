@@ -99,7 +99,7 @@ Terminal profiles depend on the user's tmux mode (stored in `~/.claude/ultra/uc-
     "terminal.integrated.profiles.linux": {
         "project-tmux": {
             "path": "bash",
-            "args": ["-c", "${workspaceFolder}/.vscode/tmux-session.sh"],
+            "args": ["-c", "bash ~/.claude/ultra/tmux-session.sh ${workspaceFolder}"],
             "icon": "terminal-tmux"
         },
         "bash": {
