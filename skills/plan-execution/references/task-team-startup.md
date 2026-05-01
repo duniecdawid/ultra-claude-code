@@ -15,7 +15,7 @@ Where `$TASK_ID` is from your spawn prompt and `$ROLE_SUFFIX` is `executor`, `re
 Read in this order. Paths below assume `$PLAN_DIR` (from your spawn prompt) is the plan's root directory.
 
 1. **`$PLAN_DIR/tasks/task-$TASK_ID/task.md`** — **must exist, hard error if missing.** This is your authoritative source of truth for task description, files, patterns, success criteria, research pointers, and dependencies. Everything else is supporting context.
-2. **`$PLAN_DIR/tasks/task-$TASK_ID/signals.jsonl`** — read if present. Append-only signal log for durable pipeline state. See Section 5b and `signal-protocol.md` for the full protocol. Especially important for crash recovery — re-spawned agents infer precise pipeline state from the signal log.
+2. **`$PLAN_DIR/tasks/task-$TASK_ID/signals.jsonl`** — read if present. Append-only signal log for durable pipeline state. See Section 5 and `execution-communication-protocol.md` for the full protocol. Especially important for crash recovery — re-spawned agents infer precise pipeline state from the signal log.
 3. **`$PLAN_DIR/tasks/task-$TASK_ID/plan.md`** — read if present (see wait rules below). Executor writes this during its Phase 3; Reviewer does not read it during the advisory phase (it does not exist when you send the REVIEWER TAKE).
 4. **`$PLAN_DIR/tasks/task-$TASK_ID/impl.md`** — read if present (see wait rules). Executor writes this during its Phase 4.5.
 5. **`$PLAN_DIR/shared/lead.md`** — plan-wide Lead notes and amendments log.
@@ -32,41 +32,27 @@ Role-specific reads (standards/architecture/product docs/testing docs) are NOT p
 | File | Executor | Reviewer | Tester |
 |---|---|---|---|
 | `task.md` | Must exist at startup (hard error if missing) | Must exist at startup | Must exist at startup |
-| `signals.jsonl` | Read on startup for crash recovery state inference. During wait states, poll every ~60s for expected signals (see `signal-protocol.md` §5). | Read on startup for crash recovery. No polling needed — Reviewer writes signals, doesn't read them for flow control. | Read on startup for crash recovery. No polling needed — Tester writes signals, doesn't read them for flow control. |
+| `signals.jsonl` | Read on startup for crash recovery state inference. During wait states, use `WaitForTeamMember` to poll (see `execution-communication-protocol.md` §3). | Read on startup for crash recovery. Use `WaitForTeamMember` when waiting for `EXIT_REQUESTED` and `SHUTDOWN`. | Read on startup for crash recovery. Use `WaitForTeamMember` when waiting for `EXIT_REQUESTED` and `SHUTDOWN`. |
 | `plan.md` | Blocks on REVIEWER TAKE (via SendMessage or `REVIEWER_TAKE_READY` signal in signals.jsonl + `take.md`) before calling `Write` on plan.md. Explores codebase + mentally drafts the approach while waiting. Creates it in step 3 of its workflow once the take has arrived. | Does NOT read plan.md — Reviewer's upfront input is sent BEFORE plan.md exists; later formal review reads source files, not plan.md | Absent at lazy-spawn (Executor already wrote it before code-complete); read during startup pass if present, otherwise on first `FILE-UPDATED` broadcast |
 | `impl.md` | Creates it in step 4.5 of its workflow | Absent until "ready for review"; read on that signal | Absent at lazy-spawn (Executor is writing it in parallel with your startup); read when "ready for test" arrives — ONLY for the file list |
 
-## 5. FILE-UPDATED broadcast protocol
+## 5. Execution Communication Protocol
 
-When you write or edit any file in `tasks/task-$TASK_ID/`, broadcast:
+All inter-agent communication uses the unified execution communication protocol. Read `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/execution-communication-protocol.md` during startup — it defines three functions:
 
+- **`CommunicateTeamMember(to, message, signal?, content_file?)`** — send to one agent
+- **`CommunicateTeam(message, signal?, content_file?)`** — broadcast to all active teammates + Lead
+- **`WaitForTeamMember(signal, from?)`** — wait to receive a signal (accepts SendMessage or polls signals.jsonl)
+
+**FILE-UPDATED broadcasts** use `CommunicateTeam`:
 ```
-FILE-UPDATED task-$TASK_ID/{filename}: {one-line reason}
+CommunicateTeam(message: "FILE-UPDATED task-$TASK_ID/{filename}: {one-line reason}")
 ```
-
-to every currently-alive teammate AND Lead. Fire-and-forget — no acknowledgement. Save points only (initial write, deliberate revisions) — NOT during draft-in-progress edits. Examples of valid save points:
-
-- `task.md` — Lead initial write, Lead amendment, Lead research addition
-- `plan.md` — Executor initial write, Executor revision after ADVICE round
-- `impl.md` — Executor initial write, Executor update after fix cycle
+For critical save points (plan.md, impl.md initial writes), add a `signal` parameter for durable delivery. For low-stakes updates (fix cycle notes), omit the signal — SendMessage-only is fine.
 
 When you receive a `FILE-UPDATED` broadcast, re-read the named file before your next action. No acknowledgement required.
 
-Broadcasts only go to currently-alive teammates. A lazy-spawned Tester does not need earlier broadcasts — it reads current state on its own startup. Same for pipeline successors.
-
-## 5b. Signal Protocol
-
-All task-team agents participate in the per-task signal protocol. Each task has a `signals.jsonl` file (JSONL format, append-only) that provides durable pipeline state as a fallback for unreliable SendMessage delivery to executors.
-
-**Key rules:**
-- **Dual-write ordering:** content file (if any) → `echo >> signals.jsonl` → SendMessage (best-effort)
-- **Atomic appends:** always use `echo '{"ts":"...","signal":"...","author":"..."}' >> signals.jsonl` via Bash — never Edit/Write
-- **Executor polling:** ~60s timer during wait states only (not during active implementation)
-- **Content files:** `take.md`, `review-feedback.md`, `test-feedback.md` — always written BEFORE the signal that flags them
-
-For the full protocol — JSONL schema, 16-signal vocabulary, dual-write examples, content file conventions, polling discipline, and crash recovery state inference — read `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/signal-protocol.md`.
-
-Each agent's "Your Signals" section lists the specific signals it writes and reads.
+Broadcasts only go to currently-alive teammates. A lazy-spawned Tester does not need earlier broadcasts — it reads current state on its own startup.
 
 ## 6. ADVICE channel (Executor only)
 

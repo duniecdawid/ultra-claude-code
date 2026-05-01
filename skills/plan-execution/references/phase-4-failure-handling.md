@@ -43,7 +43,7 @@ Recovery:
 
 **The per-task files are the re-spawn context.** There is no separate "resume prompt" — `task.md` tells the agent what to do, `signals.jsonl` provides precise pipeline state, `plan.md` (if present) shows what was planned, `impl.md` (if present) shows what was implemented so far. Re-spawned agents infer pipeline stage from the signal log + file presence + any message that triggered their re-spawn.
 
-**Signal-based state inference for crash recovery** (see `signal-protocol.md` §6 for the full table):
+**Signal-based state inference for crash recovery** (see `execution-communication-protocol.md` §6 for the full table):
 - `REVIEWER_TAKE_READY` present, no `plan.md` → take sent, planning not started
 - `REVIEW_FAIL` present, no subsequent `REREVIEW_REQUESTED` → fix cycle interrupted
 - `REVIEW_PASS` + `TEST_PASS` both present → task was complete, may need shutdown only

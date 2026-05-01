@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-13T00:00:00Z",
+  "updated_at": "2026-05-01T00:00:00Z",
   "entries": {
     "claude-code.md": {
       "type": "library",
@@ -25,6 +25,37 @@
         "https://code.claude.com/docs/en/hooks-guide",
         "https://docs.claude.com/en/docs/claude-code/hooks",
         "https://docs.claude.com/en/docs/claude-code/hooks-guide"
+      ]
+    },
+    "claude-code-sendmessage.md": {
+      "type": "library",
+      "subject": "claude-code-sendmessage",
+      "fetched_at": "2026-05-01",
+      "expires": "2026-05-11",
+      "topics": [
+        "official documentation status",
+        "feature gate claude_code_experimental_agent_teams",
+        "known failure modes",
+        "anthropic response and timeline",
+        "subagent resume via agent id",
+        "community workarounds",
+        "agent teams official limitations",
+        "best practices for reliable multi-agent communication"
+      ],
+      "summary": "Verbatim documentation and GitHub issue analysis of the Claude Code SendMessage tool: feature flag gating, all known failure modes (tool unavailability, name-vs-ID mismatch, orphaned inboxes, asymmetric subagent access), community workarounds (ID resolution hook, file-based protocols, dual-write pattern), and the SDK-native session-resume path that bypasses SendMessage entirely.",
+      "sources": [
+        "https://code.claude.com/docs/en/agent-teams",
+        "https://code.claude.com/docs/en/agent-sdk/overview",
+        "https://code.claude.com/docs/en/agent-sdk/subagents",
+        "https://github.com/anthropics/claude-code/issues/42999",
+        "https://github.com/anthropics/claude-code/issues/42737",
+        "https://github.com/anthropics/claude-code/issues/47021",
+        "https://github.com/anthropics/claude-code/issues/48160",
+        "https://github.com/anthropics/claude-code/issues/25135",
+        "https://github.com/anthropics/claude-code/issues/36196",
+        "https://github.com/anthropics/claude-code/issues/4993",
+        "https://github.com/anthropics/claude-code/issues/30140",
+        "https://code.claude.com/docs/en/changelog"
       ]
     }
   }

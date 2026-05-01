@@ -279,17 +279,17 @@ Messages are prefixed with `WATCH: ` followed by a JSON object with an `"alert"`
 - `WATCH: {"alert":"STATUS","pct_5h":25,"pct_7d":81,"resets_5h":...,"resets_7d":...}` — first-tick usage snapshot (always sent once at startup)
 Parse the JSON to extract fields. Process via the Watchdog Signal Handling section below. Each window is independent: you may receive CONSERVE for 5h and PAUSE for 7d on the same tick. Handle them as separate events.
 
-**signals.jsonl reading (replaces STAGE-DONE/RETRY messages from Executors):**
+**signals.jsonl reading for stage derivation:**
 
-Executors no longer send STAGE-DONE or RETRY messages. Instead, PM reads `$PLAN_DIR/tasks/task-{N}/signals.jsonl` for each active task to derive stage state. Read signals.jsonl **on each incoming message from Lead** (SPAWNED, COMPLETED, STAGE, SHUTDOWN, etc.) — this keeps you event-driven without adding a polling loop.
+PM uses the execution communication protocol (`${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/execution-communication-protocol.md`) to monitor pipeline state. Read `$PLAN_DIR/tasks/task-{N}/signals.jsonl` for each active task using `WaitForTeamMember` — poll every ~60s during active execution, same as other agents.
 
-Derivation rules:
-- `REVIEW_PASS` signal present → close review stage (set `ended_at`), append `stage_done` event
-- `TEST_PASS` signal present → close testing stage (set `ended_at`), append `stage_done` event
+Derivation rules when new signals are found:
+- `PLAN_READY` → enter implementation stage, append `stage_entered` event
+- `CODE_COMPLETE` → note code complete timestamp
+- `REVIEW_PASS` → close review stage (set `ended_at`), append `stage_done` event
+- `TEST_PASS` → close testing stage (set `ended_at`), append `stage_done` event
 - `REVIEW_FAIL` or `TEST_FAIL` followed by `REREVIEW_REQUESTED` or `RETEST_REQUESTED` → increment `retry_count`, reset both stage timers, append retry event
 - Track which signals you've already processed (by line count or last-seen timestamp) to avoid duplicate dashboard updates
-
-See `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/signal-protocol.md` §6 for the full protocol.
 
 ## Watchdog Signal Handling
 

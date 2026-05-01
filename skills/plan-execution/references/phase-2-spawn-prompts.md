@@ -248,7 +248,7 @@ Executors no longer send STAGE-DONE or RETRY. Read `$PLAN_DIR/tasks/task-{N}/sig
 for each active task on every incoming Lead message to derive stage state:
 - `REVIEW_PASS` / `TEST_PASS` → close stage, append event
 - `REVIEW_FAIL` / `TEST_FAIL` + `REREVIEW_REQUESTED` / `RETEST_REQUESTED` → retry_count++, reset timers, event
-See `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/signal-protocol.md` §6.
+See `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/execution-communication-protocol.md` §6.
 
 **What you send to Lead (validated alerts from watchdog):**
 - `USAGE KILL [{window}]: {pct}% used. ...` — emergency, force-terminate agents

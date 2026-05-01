@@ -1,5 +1,12 @@
 [
   {
+    "seq": 157,
+    "version": "2026.05.01-1",
+    "date": "2026-05-01",
+    "summary": "Unified execution communication protocol — replaces the bolted-on signal-protocol.md with a single reference defining three functions: CommunicateTeamMember (direct), CommunicateTeam (broadcast), WaitForTeamMember (receive/poll). Agents no longer have inline echo commands or 'Your Signals' sections — they reference the protocol and use function calls at each workflow step. Adds 3 new signals (PLAN_READY, CODE_COMPLETE, ADVICE_RESPONSE) that close visibility gaps confirmed in real executions: 47-minute PM blind spot during implementation, stalled ADVICE deviation approvals, unreliable tester spawn triggers. All agents now poll uniformly via WaitForTeamMember instead of role-specific reading strategies. Removes signal-protocol.md and signal-protocol-proposal.md.",
+    "migration": null
+  },
+  {
     "seq": 156,
     "version": "2026.04.30-2",
     "date": "2026-04-30",

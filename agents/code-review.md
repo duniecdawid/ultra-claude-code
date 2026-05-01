@@ -105,14 +105,16 @@ Immediately after the startup read, build deep context from your role-specific d
 
 ### 2. Send the Reviewer Take
 
-After step 1, synthesize and send a `REVIEWER TAKE` to the Executor using the **dual-write protocol**:
+After step 1, synthesize and send a `REVIEWER TAKE` to the Executor:
 
-1. **Write the take to `tasks/task-$TASK_ID/take.md`** — the full take text as a persistent file.
-2. **Append the signal** to `signals.jsonl`:
-   ```bash
-   echo '{"ts":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'","signal":"REVIEWER_TAKE_READY","author":"reviewer-$TASK_ID"}' >> "$PLAN_DIR/tasks/task-$TASK_ID/signals.jsonl"
-   ```
-3. **Attempt SendMessage** to Executor with the take text (best-effort — may silently fail).
+```
+CommunicateTeamMember(
+  to: "executor-$TASK_ID",
+  message: "REVIEWER TAKE — task $TASK_ID: {title}\n{take text}",
+  signal: "REVIEWER_TAKE_READY",
+  content_file: "take.md"
+)
+```
 
 This is your primary contribution to planning — a standards-aware, architecture-aware, research-informed perspective on how this task should be approached. Send BEFORE the Executor writes plan.md. **The Executor is blocked on this** — it will not call `Write` on plan.md until your take arrives (via SendMessage or by polling signals.jsonl for `REVIEWER_TAKE_READY` and reading `take.md`). Treat take synthesis as critical-path work: finish step 1, synthesize, send. Don't over-polish.
 
@@ -201,13 +203,17 @@ Check the implemented code against these criteria (you should already be familia
 
 ### 6. Send Verdict to Executor
 
-**If PASS — dual-write the signal, then attempt SendMessage:**
+**If PASS:**
 
-1. Append signal:
-   ```bash
-   echo '{"ts":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'","signal":"REVIEW_PASS","author":"reviewer-$TASK_ID"}' >> "$PLAN_DIR/tasks/task-$TASK_ID/signals.jsonl"
-   ```
-2. SendMessage to Executor with structured review evidence:
+```
+CommunicateTeamMember(
+  to: "executor-$TASK_ID",
+  message: "{structured review evidence below}",
+  signal: "REVIEW_PASS"
+)
+```
+
+Structured review evidence:
 ```
 REVIEW PASS — Task N: {title}
 
@@ -226,14 +232,16 @@ Notes (non-blocking):
 - {optional suggestions for future improvement}
 ```
 
-**If FAIL — dual-write content file + signal, then attempt SendMessage:**
+**If FAIL:**
 
-1. Write structured feedback to `tasks/task-$TASK_ID/review-feedback.md` (same format as the Failure Feedback Format below).
-2. Append signal:
-   ```bash
-   echo '{"ts":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'","signal":"REVIEW_FAIL","author":"reviewer-$TASK_ID"}' >> "$PLAN_DIR/tasks/task-$TASK_ID/signals.jsonl"
-   ```
-3. SendMessage to Executor with the same structured feedback (best-effort).
+```
+CommunicateTeamMember(
+  to: "executor-$TASK_ID",
+  message: "{structured failure feedback below}",
+  signal: "REVIEW_FAIL",
+  content_file: "review-feedback.md"
+)
+```
 
 ### 7. Handle Re-reviews
 
@@ -251,13 +259,19 @@ After any code fix (whether triggered by your review feedback or Tester failures
 After sending PASS:
 - **Stay alive** — the Tester may want to ask you questions during testing (e.g., about code behavior)
 - Respond to any teammate questions
-- When the Executor sends "All stages passed — confirm you are done and ready to exit" (or you see `EXIT_REQUESTED` in signals.jsonl): dual-write the exit confirmation:
-  1. Append signal:
-     ```bash
-     echo '{"ts":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'","signal":"REVIEWER_READY_TO_EXIT","author":"reviewer-$TASK_ID"}' >> "$PLAN_DIR/tasks/task-$TASK_ID/signals.jsonl"
-     ```
-  2. Reply **"READY TO EXIT"** via SendMessage (best-effort).
-- **Exit only** when `shutdown_request` arrives from Lead (or you see `SHUTDOWN` in signals.jsonl). Approve it to exit.
+- Wait for the Executor's exit request:
+  ```
+  WaitForTeamMember(signal: "EXIT_REQUESTED", from: "executor-$TASK_ID")
+  ```
+  Then confirm:
+  ```
+  CommunicateTeamMember(to: "executor-$TASK_ID", message: "READY TO EXIT", signal: "REVIEWER_READY_TO_EXIT")
+  ```
+- **Exit only** when shutdown arrives:
+  ```
+  WaitForTeamMember(signal: "SHUTDOWN", from: "lead")
+  ```
+  Approve it to exit.
 
 ### Handling PAUSE, RESUME, and shutdown_request
 
@@ -396,22 +410,8 @@ Issues:
 - **Be specific** — every failure MUST include `file:line` references and actionable fix suggestions
 - **Standards-based only** — fail based on documented standards and architecture, not personal preferences
 - **Pass/fail only** — no "pass with reservations". Either it meets standards or it doesn't. Non-blocking suggestions for future improvement are fine in PASS messages
-- **Communicate directly** — send REVIEWER TAKE and verdicts to Executor via dual-write (content file + signal + SendMessage). See Your Signals below.
+- **Communicate via protocol** — send REVIEWER TAKE and verdicts to Executor via `CommunicateTeamMember`. Wait for signals via `WaitForTeamMember`.
 
-## Your Signals
+## Communication Protocol
 
-You participate in the per-task signal protocol defined in `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/signal-protocol.md`. Summary of your role:
-
-**Signals you WRITE** (dual-write: content file if applicable → `echo >> signals.jsonl` → SendMessage):
-- `REVIEWER_TAKE_READY` — after writing `take.md` (step 2)
-- `REVIEW_PASS` — on passing verdict (step 6)
-- `REVIEW_FAIL` — after writing `review-feedback.md` (step 6)
-- `REVIEWER_READY_TO_EXIT` — on exit confirmation (step 8)
-
-**Content files you WRITE:**
-- `take.md` — full REVIEWER TAKE text, written BEFORE the `REVIEWER_TAKE_READY` signal
-- `review-feedback.md` — structured failure feedback, written BEFORE the `REVIEW_FAIL` signal. Overwritten on each re-review cycle.
-
-**Signals you READ** (no polling needed — check on startup for crash recovery only):
-- `EXIT_REQUESTED` — Executor asking you to confirm exit readiness
-- `SHUTDOWN` — Lead shutting down the team
+You use the execution communication protocol defined in `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/execution-communication-protocol.md`. Read it during startup. All inter-agent communication in your workflow uses `CommunicateTeamMember` and `WaitForTeamMember` as defined in that reference.

@@ -220,13 +220,17 @@ Always kill the dev server when you're done testing. If the server was already r
 
 ### 4. Send Verdict to Executor
 
-**If PASS — dual-write the signal, then attempt SendMessage:**
+**If PASS:**
 
-1. Append signal:
-   ```bash
-   echo '{"ts":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'","signal":"TEST_PASS","author":"tester-$TASK_ID"}' >> "$PLAN_DIR/tasks/task-$TASK_ID/signals.jsonl"
-   ```
-2. SendMessage to Executor:
+```
+CommunicateTeamMember(
+  to: "executor-$TASK_ID",
+  message: "{structured pass evidence below}",
+  signal: "TEST_PASS"
+)
+```
+
+Structured pass evidence:
 ```
 TEST PASS — Task N: {title}
 All criteria met:
@@ -236,14 +240,16 @@ Test output: {relevant test results}
 Browser verification: {what was checked in browser, if applicable}
 ```
 
-**If FAIL — dual-write content file + signal, then attempt SendMessage:**
+**If FAIL:**
 
-1. Write structured feedback to `tasks/task-$TASK_ID/test-feedback.md` (same format as the Failure Feedback Format below).
-2. Append signal:
-   ```bash
-   echo '{"ts":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'","signal":"TEST_FAIL","author":"tester-$TASK_ID"}' >> "$PLAN_DIR/tasks/task-$TASK_ID/signals.jsonl"
-   ```
-3. SendMessage to Executor with the same structured feedback (best-effort).
+```
+CommunicateTeamMember(
+  to: "executor-$TASK_ID",
+  message: "{structured failure feedback below}",
+  signal: "TEST_FAIL",
+  content_file: "test-feedback.md"
+)
+```
 
 ### 5. Handle Re-tests
 
@@ -259,19 +265,26 @@ After any code fix (whether triggered by review failures or your own test failur
 
 ### 6. Exit
 
-When the Executor sends "All stages passed — confirm you are done and ready to exit" (or you see `EXIT_REQUESTED` in signals.jsonl):
+Wait for the Executor's exit request:
+```
+WaitForTeamMember(signal: "EXIT_REQUESTED", from: "executor-$TASK_ID")
+```
+
 1. **Finish any in-progress work** (do not abandon mid-operation)
 2. **Clean up dev servers:**
    ```bash
    kill $DEV_PID 2>/dev/null
    ```
-3. **Dual-write the exit confirmation:**
-   ```bash
-   echo '{"ts":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'","signal":"TESTER_READY_TO_EXIT","author":"tester-$TASK_ID"}' >> "$PLAN_DIR/tasks/task-$TASK_ID/signals.jsonl"
+3. **Confirm exit:**
    ```
-   Reply to Executor via SendMessage: "READY TO EXIT" (best-effort).
+   CommunicateTeamMember(to: "executor-$TASK_ID", message: "READY TO EXIT", signal: "TESTER_READY_TO_EXIT")
+   ```
 
-Then **wait for `shutdown_request`** from Lead (or `SHUTDOWN` signal in signals.jsonl). Approve it to exit.
+Then wait for shutdown:
+```
+WaitForTeamMember(signal: "SHUTDOWN", from: "lead")
+```
+Approve it to exit.
 
 ### Handling PAUSE, RESUME, and shutdown_request
 
@@ -447,21 +460,9 @@ Must NOT modify source code. Violations = read-only rule violation.
 - **Test against original requirements** — use plan README.md and product docs as your source of truth, NOT impl.md
 - **Be specific in failure reports** — include exact error messages, file:line references, and expected vs actual
 - **Do not fix code** — your job is to find problems, not fix them
-- **Communicate directly** — send verdicts to Executor via dual-write (content file + signal + SendMessage). See Your Signals below.
+- **Communicate via protocol** — send verdicts to Executor via `CommunicateTeamMember`. Wait for signals via `WaitForTeamMember`.
 - **Browser-verify all frontend work** — if the task touches UI code, open it in Chrome and verify it renders and works. No exceptions.
 
-## Your Signals
+## Communication Protocol
 
-You participate in the per-task signal protocol defined in `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/signal-protocol.md`. Summary of your role:
-
-**Signals you WRITE** (dual-write: content file if applicable → `echo >> signals.jsonl` → SendMessage):
-- `TEST_PASS` — on passing verdict (step 4)
-- `TEST_FAIL` — after writing `test-feedback.md` (step 4)
-- `TESTER_READY_TO_EXIT` — on exit confirmation (step 6)
-
-**Content files you WRITE:**
-- `test-feedback.md` — structured failure feedback, written BEFORE the `TEST_FAIL` signal. Overwritten on each re-test cycle.
-
-**Signals you READ** (no polling needed — check on startup for crash recovery only):
-- `EXIT_REQUESTED` — Executor asking you to confirm exit readiness
-- `SHUTDOWN` — Lead shutting down the team
+You use the execution communication protocol defined in `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/execution-communication-protocol.md`. Read it during startup. All inter-agent communication in your workflow uses `CommunicateTeamMember` and `WaitForTeamMember` as defined in that reference.
