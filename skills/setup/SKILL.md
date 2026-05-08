@@ -81,7 +81,7 @@ PASS if `allow-passthrough on` is found. This setting is essential because Claud
 
 SKIP if tmux is not installed, or if tmux mode is `none` or `custom`.
 
-### 3.6 Statusline (usage data for dashboard)
+### 3.6 Statusline (usage data for execution tracking)
 
 Check if `~/.claude/settings.json` has a `statusLine` command pointing to the Ultra Claude statusline script and that `jq` is available. All Ultra Claude runtime files live under `~/.claude/ultra/`:
 
@@ -125,7 +125,7 @@ Record status but don't mark as MISSING — this is optional.
 
 ### 3.9 Agent (optional — only if installed)
 
-If the `ultraclaude-agent` npm package is installed, check whether a newer version is published. The agent is an independent package (not part of this plugin) that some users install to sync project plans to an external dashboard — do **not** offer to install it from this skill. Only flag it as OUTDATED when it is already present.
+If the `ultraclaude-agent` npm package is installed, check whether a newer version is published. The agent is an independent package (not part of this plugin) that some users install to sync project state to external consumers — do **not** offer to install it from this skill. Only flag it as OUTDATED when it is already present.
 
 ```bash
 if command -v ultraclaude-agent >/dev/null 2>&1; then
@@ -187,6 +187,22 @@ Record status but don't mark as MISSING — this is **strictly opt-in**. Treat a
 - **OPT-IN AVAILABLE** — platform gate passed but files are absent or partial. Surface in Step 4 with the optional label; the fix in Step 5.11 must explicitly ask the user to opt in before touching anything.
 - **SKIP** — non-Linux or systemctl unavailable.
 
+### 3.12 Dashboard (optional)
+
+Check whether the sync agent is connected to the Ultra Claude Dashboard. This check only runs if Step 3.9 detected the agent as installed — skip entirely if the agent is not on `PATH`.
+
+```bash
+if command -v ultraclaude-agent >/dev/null 2>&1; then
+  ultraclaude-agent status 2>/dev/null | head -5
+fi
+```
+
+Record status but don't mark as MISSING — this is optional. Treat as:
+
+- **SKIP** — agent is not installed (3.9 already handles installation status)
+- **PASS** — agent is installed and `ultraclaude-agent status` reports a running daemon with connected projects
+- **OPT-IN AVAILABLE** — agent is installed but status shows not connected, no projects, or daemon not running
+
 ## Step 4: Present Status
 
 Display a status table:
@@ -205,6 +221,7 @@ Ultra Claude Environment Check (plugin v{version})
   Agent (optional)          — not installed   # or "✓ 0.0.26 (latest)" / "✗ 0.0.25 → 0.0.26"
   Machine Context (optional) — not configured
   Session Cleanup (optional) — not installed  # or "✓ reaper active (24h)" / "— skipped (not linux)" / "— skipped (not per-terminal)"
+  Dashboard (optional)       — skipped       # or "✓ connected" / "✗ not connected" / "— skipped (agent not installed)"
 ```
 
 If ALL required checks pass (3.2–3.7 — tmux mode is always valid since all four choices are acceptable):
@@ -479,6 +496,16 @@ After any install/reinstall/repair, run the "Verify" block from the reference an
 
 All writes land under `$HOME`. Nothing touches project directories.
 
+### 5.12 Fix: Dashboard
+
+Skip if the agent is not installed (Step 3.9 must report the agent on `PATH`). Skip if Step 3.12 already reported PASS.
+
+If the agent is installed but not connected to the dashboard:
+
+Tell the user: "Run `/uc:dashboard` to connect to the Ultra Claude Dashboard and verify agent connectivity."
+
+This fix delegates to the dashboard skill which handles the full setup and debug flow. `/uc:setup` does not duplicate the dashboard connection logic.
+
 ## Step 6: Write Marker File
 
 After all fixes are applied, write `~/.claude/ultra/uc-setup.json`:
@@ -501,7 +528,8 @@ After all fixes are applied, write `~/.claude/ultra/uc-setup.json`:
     "tailscale": true/false,
     "agent": "{installed version or null if not installed}",
     "machineContext": true/false,
-    "sessionCleanup": "installed" | "skipped" | "not-linux" | "opted-out"
+    "sessionCleanup": "installed" | "skipped" | "not-linux" | "opted-out",
+    "dashboard": "connected" | "not-connected" | "skipped"
   }
 }
 ```

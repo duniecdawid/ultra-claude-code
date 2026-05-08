@@ -44,7 +44,7 @@
 
     <p>One plan-wide teammate supports all tasks:</p>
     <ul>
-      <li><strong>Project Manager</strong> (Sonnet) &mdash; monitors progress, detects stalls, tracks usage, maintains a live dashboard</li>
+      <li><strong>Project Manager</strong> (Sonnet) &mdash; monitors progress, detects stalls, tracks usage, maintains live execution state files</li>
     </ul>
 
     <p>Knowledge lives <strong>per-task</strong> in each <code>tasks/task-N/task.md</code>'s <code>**Research:**</code> section &mdash; a list of pointers to durable files under <code>documentation/technology/research/</code>, populated by planning Stage 2 via <code>/uc:research</code>. Lead reviews research coverage per-task just before spawning each team and fills any gaps. Mid-execution, teammates send <code>QUERY: {question}</code> to Lead for external docs; Lead runs <code>/uc:research</code>, replies with an <code>ANSWER:</code>, and appends the new pointer to the task's task.md so it's durable for re-spawns and future teammates. The typed distinction between <em>Teammates</em> (TeamCreate, stateful, tracked) and <em>Subagents</em> (Task tool, stateless, invisible to the team graph) keeps the team focused on pipeline work while allowing cheap isolated research lookups.</p>
@@ -81,7 +81,7 @@
 
     <h2>What you see during execution</h2>
     <ul>
-      <li><strong>Dashboard</strong> &mdash; the PM maintains a live JSON dashboard showing task status, active stages, and timing</li>
+      <li><strong>Execution state</strong> &mdash; the PM maintains JSON state files showing task status, active stages, and timing</li>
       <li><strong>Escalation questions</strong> &mdash; if a task exceeds 10 fix cycles or discovers something plan-invalidating, you'll be asked to decide</li>
       <li><strong>Completion summary</strong> &mdash; tasks completed, files modified, decisions made, test results, and follow-up items</li>
     </ul>

@@ -1,5 +1,12 @@
 [
   {
+    "seq": 160,
+    "version": "2026.05.08-1",
+    "date": "2026-05-08",
+    "summary": "Dashboard skill and plugin decoupling — create skills/dashboard/SKILL.md as the single sanctioned place for dashboard product awareness (URL, agent install, setup flow, debug checks). Reframe PM agent from 'dashboard state maintainer' to 'execution state maintainer', keeping all technical content (polling contracts, atomicity, signal derivation). Update plan-execution, plan-status-sync, plan-status-format, setup (optional Step 3.12 dashboard check), help, and doc site to use 'execution state' language. Add guardrails exception for skills/dashboard/.",
+    "migration": null
+  },
+  {
     "seq": 159,
     "version": "2026.05.01-3",
     "date": "2026-05-01",

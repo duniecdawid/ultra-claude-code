@@ -14,6 +14,7 @@
     <table>
       <thead><tr><th>Skill</th><th>Command</th><th>Description</th></tr></thead>
       <tbody>
+        <tr><td><strong>Dashboard</strong></td><td><code>/uc:dashboard</code></td><td>Connects to the Ultra Claude Dashboard for real-time project visibility. Guides agent installation, setup, and verifies connectivity with debug checks.</td></tr>
         <tr><td><strong>Setup</strong></td><td><code>/uc:setup</code></td><td>One-time machine config: installs Node.js, guides tmux mode selection (per-project, per-terminal, none, or custom), configures shell for 1M context and agent teams. tmux is optional &mdash; agent teams work without it. Idempotent.</td></tr>
         <tr><td><strong>Migrate</strong></td><td><code>/uc:migrate</code></td><td>Brings projects into Ultra Claude &mdash; fresh initialization, legacy detection, version-aware upgrades. Scaffolds docs, config, and standards.</td></tr>
         <tr><td><strong>VS Code Setup</strong></td><td><code>/uc:vscode-setup</code></td><td>Configures VS Code remote and client settings for Claude Code workflows. Terminal profiles are mode-aware (based on tmux mode from setup).</td></tr>
@@ -38,7 +39,7 @@
     <table>
       <thead><tr><th>Skill</th><th>Command</th><th>Description</th></tr></thead>
       <tbody>
-        <tr><td><strong>Plan Execution</strong></td><td><code>/uc:plan-execution</code></td><td>Orchestrates per-task mini-teams (Executor/Reviewer/Tester) with live dashboard and checkpoint recovery.</td></tr>
+        <tr><td><strong>Plan Execution</strong></td><td><code>/uc:plan-execution</code></td><td>Orchestrates per-task mini-teams (Executor/Reviewer/Tester) with live execution state tracking and checkpoint recovery.</td></tr>
         <tr><td><strong>Checkpoint</strong></td><td><code>/uc:checkpoint</code></td><td>Saves execution state for session recovery. Triggered automatically every 3 tasks or on usage pause.</td></tr>
       </tbody>
     </table>
@@ -95,7 +96,7 @@
         <tr><td><strong>Task Executor</strong></td><td>Opus</td><td>Per-task team hub: explores codebase, writes plan, implements code, drives review/test cycles</td></tr>
         <tr><td><strong>Code Reviewer</strong></td><td>Sonnet</td><td>Read-only quality gate: reads standards early, gives plan feedback, formal pass/fail review</td></tr>
         <tr><td><strong>Task Tester</strong></td><td>Sonnet</td><td>Tests against product docs, writes missing coverage, verifies UI in browser</td></tr>
-        <tr><td><strong>Project Manager</strong></td><td>Sonnet</td><td>Event-driven coordinator: live dashboard, reads <code>signals.jsonl</code> per task for stage tracking, validates watchdog alerts, per-task budget tracking, operational reports. No cron &mdash; wakes only on messages.</td></tr>
+        <tr><td><strong>Project Manager</strong></td><td>Sonnet</td><td>Event-driven coordinator: maintains execution state files, reads <code>signals.jsonl</code> per task for stage tracking, validates watchdog alerts, per-task budget tracking, operational reports. No cron &mdash; wakes only on messages.</td></tr>
         <tr><td><strong>Watchdog</strong></td><td>Haiku</td><td>Monitor-based sensor: bash script checks every 60s (CONSERVE/PAUSE/KILL across 5h and 7d windows) and stall detection. Zero AI tokens on clean ticks &mdash; model wakes only on alerts. Signals PM only.</td></tr>
         <tr><td><strong>Researcher</strong></td><td>Sonnet</td><td>Stateless one-shot researcher spawned by the <code>/uc:research</code> skill on cache miss. Fetches library/pattern/market docs via Ref.tools or web search, writes to <code>documentation/technology/research/</code> or <code>documentation/product/research/</code>, atomically updates the index. Never reads project source code.</td></tr>
         <tr><td><strong>Checker</strong></td><td>Sonnet</td><td>Single-topic doc-vs-code comparison with severity levels and file:line references</td></tr>

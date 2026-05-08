@@ -1,11 +1,11 @@
 ---
-description: Sync plan and task statuses across README files and dashboard JSON. Scans documentation/plans/ for stale statuses, infers correct state from execution artifacts, updates READMEs and creates/fixes plan.json for the Ultra Dashboard. Use when plan statuses are out of date, dashboard shows wrong columns, after recovering from crashed executions, or to audit plan state. Triggers on "sync plan status", "fix plan status", "plan status cleanup", "update plan statuses", "fix dashboard statuses".
+description: Sync plan and task statuses across README files and execution state JSON. Scans documentation/plans/ for stale statuses, infers correct state from execution artifacts, updates READMEs and creates/fixes plan.json for external consumers. Use when plan statuses are out of date, execution state shows wrong data, after recovering from crashed executions, or to audit plan state. Triggers on "sync plan status", "fix plan status", "plan status cleanup", "update plan statuses", "fix execution state".
 user-invocable: true
 ---
 
 # Plan Status Sync
 
-Scan all plans and reconcile statuses in both README files and dashboard JSON (`plan.json` at plan root) with actual execution artifacts.
+Scan all plans and reconcile statuses in both README files and execution state JSON (`plan.json` at plan root) with actual execution artifacts.
 
 **For the canonical plan.json format, read `${CLAUDE_PLUGIN_ROOT}/references/plan-status-format.md`.**
 
@@ -65,7 +65,7 @@ For plans inferred as **In Progress**, check completed tasks the same way — so
 Show a summary table:
 
 ```
-Plan                    | README Status | Dashboard Status | Correct Status | Tasks
+Plan                    | README Status | State JSON Status | Correct Status | Tasks
 ------------------------|--------------|-----------------|----------------|------
 001-user-auth           | Approved     | (no JSON)       | Completed      | 3/3 done
 002-api-refactor        | Approved     | in_progress     | In Progress    | 1/4 done
@@ -92,9 +92,9 @@ For plans that **lack the checkbox format** (created before this feature), add i
 - Append `<!-- status:completed -->` or `<!-- status:pending -->` based on inference
 - Add `- [x] **Complete**` or `- [ ] **Complete**` as the first bullet after the heading
 
-### 4b. Create or Update Dashboard JSON
+### 4b. Create or Update Execution State JSON
 
-For plans that need dashboard status fixes, create or update `plan.json` at plan root. Follow `${CLAUDE_PLUGIN_ROOT}/references/plan-status-format.md` for the canonical format.
+For plans that need execution state fixes, create or update `plan.json` at plan root. Follow `${CLAUDE_PLUGIN_ROOT}/references/plan-status-format.md` for the canonical format.
 
 **If `plan.json` doesn't exist**, create it: populate plan-level fields and the `tasks` array from README task headings, with per-task statuses inferred from artifacts (Step 2).
 

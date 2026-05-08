@@ -137,4 +137,4 @@ documentation/plans/{slug}/
 └── ...
 ```
 
-**README is not a source of per-task content.** Everything per-task lives in `tasks/task-N/task.md`. The README holds plan-level content (Objective, Context, Tech Stack narrative, Scope, Success Criteria, Documentation Changes, Risk Assessment) plus a flat task heading index with status markers (`### Task N: {Title} <!-- status:pending -->` followed by `- [ ] **Complete**`) for the plan-status-sync skill and Project Manager dashboard state tracking.
+**README is not a source of per-task content.** Everything per-task lives in `tasks/task-N/task.md`. The README holds plan-level content (Objective, Context, Tech Stack narrative, Scope, Success Criteria, Documentation Changes, Risk Assessment) plus a flat task heading index with status markers (`### Task N: {Title} <!-- status:pending -->` followed by `- [ ] **Complete**`) for the plan-status-sync skill and Project Manager execution state tracking.
