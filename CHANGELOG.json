@@ -1,5 +1,12 @@
 [
   {
+    "seq": 161,
+    "version": "2026.05.29-1",
+    "date": "2026-05-29",
+    "summary": "Update default Opus model to claude-opus-4-8 in setup skill. Statusline now shows model version alongside tier (e.g. [opus 4.8] instead of [opus]).",
+    "migration": null
+  },
+  {
     "seq": 160,
     "version": "2026.05.08-1",
     "date": "2026-05-08",

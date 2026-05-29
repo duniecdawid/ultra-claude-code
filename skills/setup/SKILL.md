@@ -273,7 +273,7 @@ Append to shell config file:
 
 ```bash
 # Ultra Claude: enable 1M context window for all opus/sonnet usage (including subagents)
-export ANTHROPIC_DEFAULT_OPUS_MODEL='claude-opus-4-6[1m]'
+export ANTHROPIC_DEFAULT_OPUS_MODEL='claude-opus-4-8[1m]'
 export ANTHROPIC_DEFAULT_SONNET_MODEL='claude-sonnet-4-6[1m]'
 ```
 

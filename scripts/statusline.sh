@@ -126,7 +126,6 @@ case "${model_raw,,}" in
   *haiku*)  model="haiku" ;;
   *)        model="$model_raw" ;;
 esac
-
 used=$(echo "$input" | jq -r '.context_window.used_percentage // empty' 2>/dev/null)
 rl_5h=$(echo "$input" | jq -r '.rate_limits.five_hour.used_percentage // empty' 2>/dev/null)
 rl_7d=$(echo "$input" | jq -r '.rate_limits.seven_day.used_percentage // empty' 2>/dev/null)
@@ -166,6 +165,11 @@ if [ -n "$session_id" ]; then
 
   [ "$gap" -lt 300 ] && cache_warm=true
 fi
+
+# --- Model display (after state restore so model_raw is populated on stale ticks) ---
+model_version=$(echo "$model_raw" | grep -oP '\d+\.\d+' | head -1)
+model_display="$model"
+[ -n "$model_version" ] && model_display="${model} ${model_version}"
 
 # --- Weight bar ---
 weight_bar=""
@@ -219,7 +223,7 @@ left="${left}${cyan}${project}${reset}"
 # --- Right side: model + context + cache + weight + rate limits ---
 right=""
 if [ -n "$model" ]; then
-  right="${dim}[${model}]${reset}"
+  right="${dim}[${model_display}]${reset}"
 fi
 if [ -n "$used" ]; then
   c=$(pct_color "$used")
