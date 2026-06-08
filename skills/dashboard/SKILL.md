@@ -1,5 +1,5 @@
 ---
-description: Connect to Ultra Claude Dashboard for real-time project visibility. Guides agent installation and setup, verifies connectivity, and runs self-contained debug checks for common sync issues. Use when setting up the dashboard, troubleshooting agent connectivity, checking sync status, or after "dashboard not updating", "agent not syncing", "connect to dashboard", "dashboard setup", "agent status".
+description: Connect to Ultra Claude Dashboard for real-time project visibility. Guides agent installation and setup, verifies connectivity, manages multiple dashboard accounts and per-project account routing, and runs self-contained debug checks for common sync issues. Use when setting up the dashboard, troubleshooting agent connectivity, checking sync status, managing accounts, or after "dashboard not updating", "agent not syncing", "connect to dashboard", "dashboard setup", "agent status", "which account", "wrong account", "sync to a different account", "switch account", "multiple accounts".
 user-invocable: true
 ---
 
@@ -44,6 +44,68 @@ ultraclaude-agent status
 ```
 
 You should see the daemon status, connected projects, and last sync timestamp. Once syncing, your project appears at `dashboard.ultra-claude.dev`.
+
+## Accounts & project mapping
+
+The agent supports **multiple dashboard accounts** and routes each project's sync to a chosen account. Per-project mapping is **optional** — projects with no explicit mapping sync to the **default account**. Requires `ultraclaude-agent` **≥ 0.0.28** (every command below works non-interactively from the CLI as well as in the interactive REPL).
+
+### The model
+
+- **Multiple accounts** — log into more than one dashboard account; each is stored under the server's `accounts/` directory, keyed by user id.
+- **Default account** — new/unmapped projects sync here.
+- **Per-project mapping** *(optional)* — bind a specific project to a specific account, overriding the default.
+- **Auto-assign** — when on, newly discovered projects are auto-mapped to the default account; when off, they show as `unassigned` until you `assign` them.
+
+### Commands (CLI form shown — same verbs work in the REPL)
+
+```bash
+# Add another account (opens browser, log in as that account).
+# Installs auto-start + starts the daemon if needed.
+ultraclaude-agent login
+
+# Read current state
+ultraclaude-agent accounts                     # accounts + per-account project counts; [default] marked
+ultraclaude-agent projects                     # projects with their mapped account + sync status
+ultraclaude-agent status                       # full status incl. account per project
+
+# Set routing
+ultraclaude-agent default <account>            # set the default account (email prefix or full email)
+ultraclaude-agent assign <project> <account>   # bind a project to an account (optional override)
+ultraclaude-agent auto-assign on|off           # toggle auto-mapping of newly discovered projects
+ultraclaude-agent remove <account>             # remove an account (warns about orphaned projects)
+```
+
+`<project>` matches by directory name (partial, case-insensitive); `<account>` matches by email prefix or full email. The same commands are available inside the interactive REPL (run `ultraclaude-agent` with no subcommand, then e.g. `assign my-app alice`).
+
+### Routing a project to a specific account (via Bash)
+
+```bash
+ultraclaude-agent login                              # ensure the target account exists (opens browser; log in as that account)
+ultraclaude-agent assign my-app work@example.com     # route this project to it
+ultraclaude-agent projects                           # confirm the mapping
+```
+
+### config.json
+
+Mappings live in a per-server config file:
+
+```
+~/.claude/ultra/agent/{server-host}/config.json
+```
+
+`{server-host}` is the dashboard host (e.g. `dashboard.ultra-claude.dev`). Shape:
+
+```json
+{
+  "defaultAccount": "user_abc123",
+  "projectAccounts": {
+    "/home/you/Projects/my-app": "user_abc123"
+  },
+  "autoAssignNewProjects": true
+}
+```
+
+`projectAccounts` is keyed by local project path → account user id and is **optional** — omit a project and it follows `defaultAccount`. Prefer the commands above over hand-editing this file (they validate accounts and handle orphan cleanup).
 
 ## Step 2: Verify & Debug
 
@@ -118,3 +180,5 @@ ls ~/.claude/ultra/agent/*/logs/daemon.log 2>/dev/null && echo "Log file found �
 | "Project not found" in agent | No project-id mapping | Run `ultraclaude-agent setup` from the project directory |
 | State files missing | No plan has been executed yet | Run `/uc:plan-execution` to create execution state |
 | Agent installed but old version | Outdated agent package | Run `npm update -g ultraclaude-agent` |
+| Project synced to the wrong account | No / stale per-project mapping | `ultraclaude-agent assign <project> <account>` |
+| New projects not syncing automatically | Auto-assign is off | `ultraclaude-agent auto-assign on` (or `assign` each) |

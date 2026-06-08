@@ -1,5 +1,12 @@
 [
   {
+    "seq": 163,
+    "version": "2026.06.08-1",
+    "date": "2026-06-08",
+    "summary": "dashboard skill: document multi-account routing + non-interactive CLI account commands (CLI⇄REPL parity, agent ≥0.0.28); add account-question triggers. Adds an \"Accounts & project mapping\" section (multiple accounts, default account, optional per-project assign, auto-assign, remove, config.json shape) and extends the skill's description triggers; help knowledge base and docs reference synced.",
+    "migration": null
+  },
+  {
     "seq": 162,
     "version": "2026.06.02-1",
     "date": "2026-06-02",
