@@ -40,7 +40,7 @@
           <li><strong>tmux mode not configured</strong> &mdash; setup guides you through choosing a tmux mode. tmux is optional &mdash; agent teams work without it.</li>
           <li><strong>Node.js not found</strong> &mdash; setup installs it. Required version: 18+ LTS</li>
           <li><strong>Shell config issues</strong> &mdash; setup adds the required environment variables to your shell config (~/.bashrc or ~/.zshrc)</li>
-          <li><strong>Screen tearing</strong> &mdash; if tmux is enabled, setup configures synchronized output passthrough to fix flickering in Claude Code</li>
+          <li><strong>Screen tearing / flicker</strong> &mdash; setup offers the Claude Code fullscreen renderer (opt-out, requires Claude Code v2.1.89+), which draws on the alternate screen and is the primary fix for tearing. If tmux is enabled, setup also configures synchronized-output passthrough as a fallback for the classic renderer.</li>
         </ul>
         <p>If setup completes but other skills still report missing prerequisites, run <code>/uc:setup</code> again &mdash; it will re-verify everything.</p>
       </div>

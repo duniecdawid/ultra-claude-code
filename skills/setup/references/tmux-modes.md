@@ -187,26 +187,30 @@ Applied for `per-project` and `per-terminal` modes. Skipped for `none` and `cust
 
 Write or merge into `~/.tmux.conf`. If the file already exists, read it first and only add settings that are missing — don't duplicate lines. If conflicting values exist (e.g., `allow-passthrough off`), warn the user and ask before changing.
 
-Claude Code's terminal UI uses DEC 2026 synchronized output to batch screen draws and prevent tearing. Without these settings, tmux intercepts the escape sequences and the result is severe flickering during streaming output.
+**Primary fix is the fullscreen renderer.** Claude Code's fullscreen renderer (`/uc:setup` §3.13/§5.13, enabled via `"tui": "fullscreen"` in `~/.claude/settings.json`, or `/tui fullscreen`) is the real fix for screen tearing — it draws on the alternate screen and only repaints visible content, so it sidesteps tmux's lack of synchronized-output support entirely. These tmux.conf settings remain valuable because: (a) they support the fullscreen renderer itself (`mouse on` for wheel scrolling, `set-clipboard on` / OSC 52 for mouse-copy over SSH, extended keys for Shift+Enter newlines), and (b) they keep the **classic** renderer bearable for anyone who runs `/tui default`. Without them the classic renderer flickers badly during streaming output, and even with them tmux can't fully synchronize draws — which is exactly why fullscreen is recommended.
 
 ```bash
 # ~/.tmux.conf — Claude Code optimized
 
+# Wheel scrolling inside Claude Code (required by the fullscreen renderer)
 set -g mouse on
 
-# Fix Claude Code screen tearing (DEC 2026 synchronized output)
-# tmux defaults to blocking passthrough, which swallows the BSU/ESU
-# sequences Claude Code uses to batch screen draws
+# Let extended-key + synchronized-output (BSU/ESU) escape sequences through.
+# Needed for Shift+Enter newlines, and lets the CLASSIC renderer batch screen
+# draws to reduce tearing. The fullscreen renderer doesn't depend on this, but
+# it's free insurance for anyone who runs /tui default.
 set -g allow-passthrough on
 
 # Remove 500ms escape delay (causes input lag in Claude Code)
 set -sg escape-time 0
 
-# Handle Claude's massive scroll output (4k-6.7k events/sec)
+# Generous scrollback for shell output and Ctrl+o -> [ transcript dumps.
+# (The classic renderer also floods scrollback at 4k-6.7k events/sec; the
+# fullscreen renderer keeps the conversation in the alt-screen buffer instead.)
 set -g history-limit 250000
 
-# Extended keys and clipboard
-set -g extended-keys on
+# Extended keys (Shift+Enter newlines) and clipboard (OSC 52 mouse-copy over SSH)
+set -s extended-keys on
 set -as terminal-features 'xterm*:extkeys'
 set -g set-clipboard on
 

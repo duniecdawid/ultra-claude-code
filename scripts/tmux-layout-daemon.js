@@ -34,6 +34,28 @@ function isRunning(pid) {
   }
 }
 
+// True only if `pid` is alive AND is actually an instance of THIS daemon.
+// A bare liveness check (process.kill(pid, 0)) is not enough: PIDs get recycled,
+// so a stale pidfile can point at an unrelated live process and fool --ensure
+// into believing the daemon is up when it never started. We additionally confirm
+// the process's command line references this script before trusting the pidfile.
+function isOurDaemon(pid) {
+  if (!pid || !isRunning(pid)) return false;
+  const marker = path.basename(__filename); // tmux-layout-daemon.js
+  // Linux: read the process command line straight from /proc (no fork).
+  try {
+    if (fs.readFileSync(`/proc/${pid}/cmdline`, 'utf8').includes(marker)) return true;
+    return false;
+  } catch {}
+  // Portable fallback (e.g. macOS, no /proc): ask ps for the process args.
+  try {
+    return execFileSync('ps', ['-p', String(pid), '-o', 'args='], { encoding: 'utf8' }).includes(marker);
+  } catch {}
+  // Can't verify identity → treat as not-ours and (re)start. A duplicate daemon
+  // is self-correcting (the layout pass is idempotent); a missing one is not.
+  return false;
+}
+
 function readPid() {
   try {
     return parseInt(fs.readFileSync(PID_FILE, 'utf8').trim());
@@ -44,7 +66,7 @@ function readPid() {
 
 if (process.argv.includes('--ensure')) {
   const existingPid = readPid();
-  if (existingPid && isRunning(existingPid)) {
+  if (isOurDaemon(existingPid)) {
     console.log(`Tmux layout daemon already running (PID ${existingPid})`);
     process.exit(0);
   }
@@ -60,7 +82,7 @@ if (process.argv.includes('--ensure')) {
   // Wait briefly for startup
   setTimeout(() => {
     const newPid = readPid();
-    if (newPid && isRunning(newPid)) {
+    if (isOurDaemon(newPid)) {
       console.log(`Tmux layout daemon started (PID ${newPid})`);
     } else {
       console.log('Tmux layout daemon starting...');

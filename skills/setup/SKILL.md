@@ -1,5 +1,5 @@
 ---
-description: One-time machine setup for Ultra Claude. Checks and configures shell environment (1M context, agent teams), installs prerequisites (node, optionally tmux), guides tmux mode selection (per-project, per-terminal, none, or custom — see references/tmux-modes.md), configures the statusline for per-account usage tracking, optionally sets up Tailscale for remote access, optionally installs a tmux disconnected-session reaper for per-terminal mode users whose tmux sessions pile up, and — if the `ultraclaude-agent` npm package is already installed — checks for and offers to update it to the latest published version. Idempotent — safe to re-run. Writes version marker to ~/.claude/ultra/uc-setup.json so other skills can quickly check if setup is current. Use when onboarding a new machine, after Ultra Claude install, when plan-execution reports missing prerequisites, when experiencing screen tearing/flickering in tmux, or when stale tmux sessions are accumulating on a remote machine. Triggers on "setup", "machine setup", "environment setup", "configure machine", "setup 1m context", "enable agent teams", "screen tearing", "tmux tearing", "flickering", "session cleanup", "tmux reaper", "reap tmux", "orphaned tmux", "stale tmux sessions".
+description: One-time machine setup for Ultra Claude. Checks and configures shell environment (1M context, agent teams), installs prerequisites (node, optionally tmux), guides tmux mode selection (per-project, per-terminal, none, or custom — see references/tmux-modes.md), configures the statusline for per-account usage tracking, offers the Claude Code fullscreen renderer for flicker-free flat-memory output (opt-out, version-gated), optionally sets up Tailscale for remote access, optionally installs a tmux disconnected-session reaper for per-terminal mode users whose tmux sessions pile up, and — if the `ultraclaude-agent` npm package is already installed — checks for and offers to update it to the latest published version. Idempotent — safe to re-run. Writes version marker to ~/.claude/ultra/uc-setup.json so other skills can quickly check if setup is current. Use when onboarding a new machine, after Ultra Claude install, when plan-execution reports missing prerequisites, when experiencing screen tearing/flickering in tmux, or when stale tmux sessions are accumulating on a remote machine. Triggers on "setup", "machine setup", "environment setup", "configure machine", "setup 1m context", "enable agent teams", "screen tearing", "tmux tearing", "flickering", "fullscreen", "fullscreen renderer", "fullscreen mode", "tui", "flicker-free", "session cleanup", "tmux reaper", "reap tmux", "orphaned tmux", "stale tmux sessions".
 user-invocable: true
 ---
 
@@ -77,7 +77,7 @@ If tmux is installed, check `~/.tmux.conf` for the critical `allow-passthrough` 
 grep -c 'allow-passthrough' ~/.tmux.conf 2>/dev/null
 ```
 
-PASS if `allow-passthrough on` is found. This setting is essential because Claude Code's terminal UI relies on DEC 2026 synchronized output (BSU/ESU escape sequences) to batch screen draws. Without passthrough, tmux swallows these sequences, causing severe screen tearing — especially during streaming output which generates 4,000–6,700 scroll events per second.
+PASS if `allow-passthrough on` is found. This lets the classic renderer's DEC 2026 synchronized-output (BSU/ESU) sequences through to batch screen draws, and enables Shift+Enter newlines. Without it, the classic renderer tears badly during streaming output (4,000–6,700 scroll events/sec). Note: the **fullscreen renderer** (§3.13) is the primary tearing fix and doesn't depend on this — these tmux.conf settings remain as classic-renderer fallback and to support fullscreen's mouse/clipboard/extended-key features.
 
 SKIP if tmux is not installed, or if tmux mode is `none` or `custom`.
 
@@ -203,6 +203,33 @@ Record status but don't mark as MISSING — this is optional. Treat as:
 - **PASS** — agent is installed and `ultraclaude-agent status` reports a running daemon with connected projects
 - **OPT-IN AVAILABLE** — agent is installed but status shows not connected, no projects, or daemon not running
 
+### 3.13 Fullscreen Renderer (recommended, version-gated)
+
+Claude Code's fullscreen renderer draws the UI on the terminal's alternate screen buffer (like `vim`/`htop`), rendering only visible content instead of repainting the whole conversation into scrollback on every update. This eliminates screen tearing/flicker, keeps memory flat on long sessions, stops scroll-position jumping, and adds mouse support. It is the **primary** fix for the tearing this skill otherwise mitigates via tmux.conf — the docs recommend it specifically for tmux / VS Code / SSH setups, where tmux's lack of synchronized-output support makes the classic renderer flicker.
+
+It is configured persistently via the `tui` key in `~/.claude/settings.json` (`"fullscreen"` or `"default"`). Requires Claude Code **v2.1.89+**.
+
+Detect the installed version and the current setting:
+
+```bash
+CLAUDE_VERSION=$(claude --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+TUI_SETTING=$(jq -r '.tui // empty' ~/.claude/settings.json 2>/dev/null)
+# Version gate: PASS the gate if installed >= 2.1.89
+REQUIRED="2.1.89"
+if [ -n "$CLAUDE_VERSION" ] && [ "$(printf '%s\n' "$REQUIRED" "$CLAUDE_VERSION" | sort -V | head -1)" = "$REQUIRED" ]; then
+  echo "version: ok ($CLAUDE_VERSION)"
+else
+  echo "version: too-old (${CLAUDE_VERSION:-unknown})"
+fi
+echo "tui: ${TUI_SETTING:-default}"
+```
+
+Treat as:
+
+- **PASS** — `tui` is `"fullscreen"`.
+- **OPT-OUT AVAILABLE** — version gate passes and `tui` is unset or `"default"`. This is **recommended-on**: surface it in Step 4 and present the enable/keep-classic prompt in Step 5.13 (enable is the recommended choice).
+- **SKIP** — `claude --version` is below 2.1.89 or unavailable. Note "needs Claude Code v2.1.89+" and move on; never mark MISSING.
+
 ## Step 4: Present Status
 
 Display a status table:
@@ -222,9 +249,11 @@ Ultra Claude Environment Check (plugin v{version})
   Machine Context (optional) — not configured
   Session Cleanup (optional) — not installed  # or "✓ reaper active (24h)" / "— skipped (not linux)" / "— skipped (not per-terminal)"
   Dashboard (optional)       — skipped       # or "✓ connected" / "✗ not connected" / "— skipped (agent not installed)"
+  Fullscreen renderer        ✗ classic (recommended: fullscreen)  # or "✓ fullscreen" / "— skipped (needs Claude Code v2.1.89+)"
 ```
 
 If ALL required checks pass (3.2–3.7 — tmux mode is always valid since all four choices are acceptable):
+- **First**, if the fullscreen renderer is OPT-OUT AVAILABLE (3.13) and the marker has no recorded `fullscreen` choice yet, run the Step 5.13 prompt — it's recommended and shouldn't be skipped just because everything else is green.
 - Write the marker file (Step 6)
 - Print "Environment ready! All prerequisites configured."
 - If Tailscale is not set up, mention: "Optional: Run `/uc:tailscale-setup` to enable remote access."
@@ -235,6 +264,8 @@ If ALL required checks pass (3.2–3.7 — tmux mode is always valid since all f
 If tmux mode is not yet configured (no `tmuxMode` in marker file), present the tmux mode selection prompt from `references/tmux-modes.md` Section "Selection Prompt" FIRST, before the multi-select fix list. The mode choice determines which tmux-related fixes appear.
 
 Then use AskUserQuestion with a multi-select to let the user choose which items to fix. List only MISSING items. Always include Tailscale if not installed (marked as optional in the description). On Linux, include Session Cleanup only if tmux mode is `per-terminal` (marked as optional, with a short one-liner about the tradeoff — the full warning lives in the fix step's own prompt).
+
+The fullscreen renderer (5.13) is **not** part of this multi-select — because it's recommended-on (opt-out), present it as its own dedicated question per 5.13 whenever check 3.13 reported OPT-OUT AVAILABLE.
 
 After mode selection (or after presenting fixes), print the tip from `references/tmux-modes.md` Section "Tips".
 
@@ -506,6 +537,49 @@ Tell the user: "Run `/uc:dashboard` to connect to the Ultra Claude Dashboard and
 
 This fix delegates to the dashboard skill which handles the full setup and debug flow. `/uc:setup` does not duplicate the dashboard connection logic.
 
+### 5.13 Fix: Fullscreen Renderer (recommended, opt-out)
+
+Skip entirely if check 3.13 reported SKIP (Claude Code below v2.1.89). Skip if 3.13 reported PASS (already `"fullscreen"`) unless the user explicitly asks to turn it off.
+
+This is **opt-out**: fullscreen is recommended, but the user must make a deliberate choice because it changes terminal behavior. Present the choice with `AskUserQuestion`, enable listed first:
+
+```
+AskUserQuestion({
+  questions: [{
+    question: "Claude Code's fullscreen renderer draws on the alternate screen (like vim/htop) — it eliminates screen tearing, keeps memory flat on long sessions, and adds mouse support. The tradeoff: the conversation no longer lives in native terminal scrollback, so your terminal's own search (Cmd/Ctrl+F) and tmux copy-mode won't see it. Enable it?",
+    header: "Fullscreen renderer",
+    multiSelect: false,
+    options: [
+      {
+        label: "Enable fullscreen (Recommended)",
+        description: "Flicker-free, flat memory, mouse support. Best for tmux / VS Code / SSH. Search the conversation with Ctrl+o then / (or [ to dump it to native scrollback). Turn off anytime with /tui default."
+      },
+      {
+        label: "Keep classic renderer",
+        description: "Conversation stays in native scrollback so Cmd/Ctrl+F and tmux copy-mode work directly. tmux.conf tearing mitigations still apply. You can enable fullscreen later with /tui fullscreen."
+      }
+    ]
+  }]
+})
+```
+
+If the user chose **Enable fullscreen**, merge `tui: "fullscreen"` into `~/.claude/settings.json` (preserving all other keys):
+
+```bash
+settings_file="$HOME/.claude/settings.json"
+if [ -f "$settings_file" ]; then
+  jq '.tui = "fullscreen"' "$settings_file" > "${settings_file}.tmp" && mv "${settings_file}.tmp" "$settings_file"
+else
+  echo '{"tui":"fullscreen"}' > "$settings_file"
+fi
+```
+
+Tell the user: "Fullscreen renderer enabled — it takes effect on your next Claude Code launch (or run `/tui fullscreen` now to switch this session). Disable anytime with `/tui default`. Search the conversation with `Ctrl+o` then `/`."
+
+If the user chose **Keep classic renderer**, do not write the `tui` key. Record the opt-out in the marker so re-runs don't nag.
+
+Record the user's choice in the Step 6 marker `fullscreen` field (`"fullscreen"`, `"classic"`, or `"unsupported"`).
+
 ## Step 6: Write Marker File
 
 After all fixes are applied, write `~/.claude/ultra/uc-setup.json`:
@@ -529,7 +603,8 @@ After all fixes are applied, write `~/.claude/ultra/uc-setup.json`:
     "agent": "{installed version or null if not installed}",
     "machineContext": true/false,
     "sessionCleanup": "installed" | "skipped" | "not-linux" | "opted-out",
-    "dashboard": "connected" | "not-connected" | "skipped"
+    "dashboard": "connected" | "not-connected" | "skipped",
+    "fullscreen": "fullscreen" | "classic" | "unsupported"
   }
 }
 ```

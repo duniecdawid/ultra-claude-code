@@ -163,7 +163,8 @@ tmux attach -t user_myproject
     <p>Don't kill the session. Just close your SSH connection or laptop. The tmux session stays running. Tomorrow you'll reattach and everything is there: your dev server, your Claude Code session, your terminal history.</p>
 
     <h2>Customizing tmux</h2>
-    <p>tmux is highly customizable via <code>~/.tmux.conf</code>. Ultra Claude's setup writes a baseline config optimized for Claude Code (synchronized output to prevent screen tearing, extended scrollback, etc.), but you can add your own customizations on top.</p>
+    <p>tmux is highly customizable via <code>~/.tmux.conf</code>. Ultra Claude's setup writes a baseline config optimized for Claude Code (mouse and clipboard support for the fullscreen renderer, synchronized-output passthrough as a classic-renderer fallback, extended scrollback, etc.), but you can add your own customizations on top.</p>
+    <p>The primary fix for screen tearing is Claude Code's <strong>fullscreen renderer</strong> &mdash; <code>/uc:setup</code> offers to enable it (<code>"tui": "fullscreen"</code> in <code>~/.claude/settings.json</code>, requires Claude Code v2.1.89+). It draws on the alternate screen like <code>vim</code>/<code>htop</code>, eliminating flicker and keeping memory flat on long sessions. Toggle it anytime with <code>/tui fullscreen</code> or <code>/tui default</code>.</p>
     <p>Popular additions:</p>
     <ul>
       <li><strong>Status bar themes</strong> &mdash; <a href="https://github.com/gpakosz/.tmux" target="_blank" rel="noopener">Oh my tmux!</a> is a popular theme pack with a batteries-included config</li>

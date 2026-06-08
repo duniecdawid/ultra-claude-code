@@ -1,5 +1,12 @@
 [
   {
+    "seq": 162,
+    "version": "2026.06.02-1",
+    "date": "2026-06-02",
+    "summary": "Setup skill now offers Claude Code's fullscreen renderer (opt-out, gated on Claude Code v2.1.89+) — written as \"tui\": \"fullscreen\" in ~/.claude/settings.json. It's the primary fix for screen tearing/flicker, especially under tmux/VS Code/SSH where tmux can't synchronize draws. tmux.conf settings reframed as fullscreen-supporting (mouse, clipboard, extended keys) plus classic-renderer fallback; all settings kept (history-limit stays 250000), extended-keys switched to server scope. Status table, marker file (checks.fullscreen), help knowledge base, and docs site (setup, dev-environment, reference) updated.",
+    "migration": null
+  },
+  {
     "seq": 161,
     "version": "2026.05.29-1",
     "date": "2026-05-29",
