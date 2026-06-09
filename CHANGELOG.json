@@ -1,5 +1,12 @@
 [
   {
+    "seq": 164,
+    "version": "2026.06.09-1",
+    "date": "2026-06-09",
+    "summary": "tmux layout daemon: --ensure now verifies the pidfile PID actually belongs to a running daemon (reads /proc/<pid>/cmdline, with a ps fallback) instead of trusting bare process existence. Previously a recycled PID in a stale pidfile could make --ensure report \"already running\" and skip startup, leaving plan-execution windows un-arranged; it now re-starts a fresh daemon in that case. Post-spawn confirmation uses the same verified check. (Code shipped in commit 8d3f945 without its own changelog entry.)",
+    "migration": null
+  },
+  {
     "seq": 163,
     "version": "2026.06.08-1",
     "date": "2026-06-08",
