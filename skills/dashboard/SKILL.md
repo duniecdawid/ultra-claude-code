@@ -73,16 +73,36 @@ ultraclaude-agent default <account>            # set the default account (email 
 ultraclaude-agent assign <project> <account>   # bind a project to an account (optional override)
 ultraclaude-agent auto-assign on|off           # toggle auto-mapping of newly discovered projects
 ultraclaude-agent remove <account>             # remove an account (warns about orphaned projects)
+
+# Force a full re-sync after switching an account (see rule below — always run this)
+ultraclaude-agent push <project> --account <account>   # one-shot full sync into the target account
 ```
+
+### Always force a push after switching an account
+
+Switching a project's account with `assign` (or changing the `default`) only **rewrites
+routing config** — it moves no data. The background daemon re-syncs only on the *next* file
+change, so until then the newly-targeted account's dashboard stays empty. **Immediately
+follow any account switch with a one-shot push** so the new account is back-filled with the
+project's current state:
+
+```bash
+ultraclaude-agent push <project> --account <account>
+```
+
+Pass `--account` explicitly: a bare `ultraclaude-agent push <project>` resolves to the
+**default** account, not the project's newly-assigned one, so it would push to the wrong
+place. `push` runs standalone — it needs login and a project ID, not a running daemon.
 
 `<project>` matches by directory name (partial, case-insensitive); `<account>` matches by email prefix or full email. The same commands are available inside the interactive REPL (run `ultraclaude-agent` with no subcommand, then e.g. `assign my-app alice`).
 
 ### Routing a project to a specific account (via Bash)
 
 ```bash
-ultraclaude-agent login                              # ensure the target account exists (opens browser; log in as that account)
-ultraclaude-agent assign my-app work@example.com     # route this project to it
-ultraclaude-agent projects                           # confirm the mapping
+ultraclaude-agent login                                      # ensure the target account exists (opens browser; log in as that account)
+ultraclaude-agent assign my-app work@example.com             # route this project to it (config only — moves no data)
+ultraclaude-agent push   my-app --account work@example.com   # force a full re-sync into the new account
+ultraclaude-agent projects                                   # confirm the mapping + sync status
 ```
 
 ### config.json
@@ -180,5 +200,6 @@ ls ~/.claude/ultra/agent/*/logs/daemon.log 2>/dev/null && echo "Log file found �
 | "Project not found" in agent | No project-id mapping | Run `ultraclaude-agent setup` from the project directory |
 | State files missing | No plan has been executed yet | Run `/uc:plan-execution` to create execution state |
 | Agent installed but old version | Outdated agent package | Run `npm update -g ultraclaude-agent` |
-| Project synced to the wrong account | No / stale per-project mapping | `ultraclaude-agent assign <project> <account>` |
+| Project synced to the wrong account | No / stale per-project mapping | `ultraclaude-agent assign <project> <account>`, then `ultraclaude-agent push <project> --account <account>` to back-fill the new account |
+| New account's dashboard empty after a switch | `assign`/`default` only rewrite routing — they move no data | `ultraclaude-agent push <project> --account <account>` (force a one-shot full sync) |
 | New projects not syncing automatically | Auto-assign is off | `ultraclaude-agent auto-assign on` (or `assign` each) |

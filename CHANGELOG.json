@@ -1,5 +1,12 @@
 [
   {
+    "seq": 165,
+    "version": "2026.06.09-2",
+    "date": "2026-06-09",
+    "summary": "dashboard skill: require a force-push after switching a project's account. `assign`/`default` only rewrite routing config and move no data — the daemon back-fills the new account only on the next file change — so the skill now documents the one-shot `push` command and mandates `ultraclaude-agent push <project> --account <account>` immediately after any switch. Explains the footgun that a bare `push <project>` resolves to the default account, not the newly-assigned one. Updates the routing example, adds Common Issues rows, and syncs the help knowledge base.",
+    "migration": null
+  },
+  {
     "seq": 164,
     "version": "2026.06.09-1",
     "date": "2026-06-09",
