@@ -40,9 +40,11 @@ For each plan directory, read:
 | `plan.json` with `"status": "planning"` and no execution artifacts | **Planning** (preserve — plan is still being shaped) |
 | `plan.json` with `"status": "stub"` and no execution artifacts | **Stub** (preserve — roadmap stub awaiting feature-mode) |
 | `plan.json` with `"status": "approved"` and no execution artifacts | **Approved** (preserve — plan ready for execution) |
+| `plan.json` with `"status": "cancelled"` | **Cancelled** (preserve — abandoned planning session; number retained, directory intact; never re-infer as stub/planning) |
 | README `Status: Stub` and no plan.json | **Stub** |
 | README `Status: Draft` and no plan.json | **Planning** |
 | README `Status: Approved` and no plan.json | **Approved** |
+| README `Status: Cancelled` and no plan.json | **Cancelled** |
 | No artifacts and no recognizable README status | **Planning** (conservative default) |
 
 **Legacy compatibility:** Older plans may have `status/plan.json` instead of `plan.json` at root, or may use old status values. Treat these as equivalent: `executing` → `in_progress`, legacy plan-level `"pending"` → `"approved"` (mirrors the read-side alias that downstream consumers apply). README headers still use `Stub`, `Draft`, `Approved`, `In Progress`, `Completed`.
@@ -106,8 +108,11 @@ For plans that need execution state fixes, create or update `plan.json` at plan 
 - Inferred "Planning" (plan.json has `"planning"` status, no execution artifacts) → `"status": "planning"` (preserve as-is)
 - Inferred "Stub" (README `Status: Stub` or plan.json already `"stub"`) → `"status": "stub"`
 - Inferred "Approved" (README `Status: Approved`, plan.json already `"approved"`, or legacy plan.json `"pending"`) → `"status": "approved"`
+- Inferred "Cancelled" (plan.json already `"cancelled"`, or README `Status: Cancelled`) → `"status": "cancelled"` (preserve — never re-infer as stub/planning)
 - Inferred "Draft" (README `Status: Draft`) → `"status": "planning"`
 - Anything else (no README status, no artifacts) → `"status": "planning"` (conservative default)
+
+**Preserve the plan-level `stage` field.** If `plan.json` carries a top-level `stage` field (set by planning modes while `status` is `"planning"`), copy it through unchanged — this skill never invents, advances, or clears `stage`. It is owned by the planning framework, not by sync.
 
 **Legacy migration:** If `status/plan.json` exists but `plan.json` at root does not, read from `status/plan.json`, migrate status values, add tasks array, and write to `plan.json` at root. Optionally remove the old `status/` directory.
 

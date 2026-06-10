@@ -124,6 +124,7 @@ case "${model_raw,,}" in
   *opus*)   model="opus" ;;
   *sonnet*) model="sonnet" ;;
   *haiku*)  model="haiku" ;;
+  *fable*)  model="fable" ;;
   *)        model="$model_raw" ;;
 esac
 used=$(echo "$input" | jq -r '.context_window.used_percentage // empty' 2>/dev/null)
@@ -167,7 +168,7 @@ if [ -n "$session_id" ]; then
 fi
 
 # --- Model display (after state restore so model_raw is populated on stale ticks) ---
-model_version=$(echo "$model_raw" | grep -oP '\d+\.\d+' | head -1)
+model_version=$(echo "$model_raw" | grep -oP '\d+(\.\d+)?' | head -1)
 model_display="$model"
 [ -n "$model_version" ] && model_display="${model} ${model_version}"
 
@@ -176,12 +177,13 @@ weight_bar=""
 w_int=0
 if [ -n "$used" ] && [ -n "$model" ]; then
   max_ctx=200000
-  case "${model_raw}" in *1[Mm]*|*1,000*) max_ctx=1000000 ;; esac
+  case "${model_raw}" in *1[Mm]*|*1,000*|*[Ff]able*) max_ctx=1000000 ;; esac
 
   case "$model" in
     opus)   mf=5.00 ;;
     sonnet) mf=1.00 ;;
     haiku)  mf=0.27 ;;
+    fable)  mf=10.00 ;;
     *)      mf=1.00 ;;
   esac
 

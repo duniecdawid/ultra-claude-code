@@ -14,6 +14,12 @@ Before beginning any Stage 4 work, verify you actually completed the prior stage
 
 This check exists because the most common failure mode is jumping from a detailed user request straight to writing a plan. A detailed request makes Stages 1-3 faster, not unnecessary — fast research still catches things the user missed, and fast discussion still validates your approach.
 
+## On Entry — Update the Stage Field
+
+Once the Stage Entry Check passes, as the first action of this stage update the skeleton's plan-level `stage` to reflect that writing is now active:
+
+- Set `plan.json` `"stage"` → `"write"` (the skeleton was set to `discuss` on entering Stage 3). This is the Stage 3→4 transition update.
+
 ## Rules
 
 - This is the ONLY stage where files are created or modified.
@@ -34,7 +40,9 @@ Before writing the plan in Step 4, read both templates:
 
 ## Step 1: Scaffold Plan Directory
 
-**Derive the plan name and number:**
+**In the normal flow the skeleton already exists.** Stage 1 ended by scaffolding the plan directory, a stub README, and `plan.json` (`status: planning`). So this step usually **reuses** that skeleton rather than creating anything: the number is already allocated, the directory already exists. Detect this and upgrade in place (see "Check for an existing skeleton" below). The number-derivation rules below apply only on the rare path where no skeleton exists yet (e.g. a legacy mode that didn't scaffold).
+
+**Derive the plan name and number** (only when no skeleton exists yet):
 
 1. **Semantic name** — from the feature description or `$ARGUMENTS`:
    - Lowercase, hyphenated: "Add user authentication" → `user-auth`
@@ -51,12 +59,12 @@ Before writing the plan in Step 4, read both templates:
 
 4. **Check for existing plan** — if `documentation/plans/*-{name}/` exists (suffix match), read it for revision context.
 
-5. **Check for stub plan** — if the matched plan has `Status: Stub` and `Source: Roadmap`:
-   - Do NOT re-create the directory — it already exists with `shared/` and `tasks/`.
-   - You will edit the existing `README.md` in place (Step 5) rather than overwriting it.
+5. **Check for an existing skeleton — upgrade in place, do NOT re-number.** If the matched plan's `plan.json` has `"status": "planning"` (the self-scaffolded skeleton from Stage 1, of any `Source:`) **or** `"status": "stub"` (a `/uc:roadmap` stub with `Source: Roadmap`):
+   - Do NOT allocate a new number and do NOT re-create the directory — it already exists with `shared/` and `tasks/`, and the number is already reserved.
+   - You will edit the existing `README.md` in place (Step 5) rather than overwriting it: flip `Status:` (`Stub → Draft`) and replace the `<!-- STUB -->` sections with real content.
    - Skip to Step 2 (the plan number and directory are already determined).
 
-**Create the directory** (skip if editing an existing stub):
+**Create the directory** (skip when reusing an existing skeleton — the normal case):
 
 ```bash
 mkdir -p documentation/plans/{NNN}-{name}/{shared,tasks}
@@ -74,9 +82,9 @@ documentation/plans/001-user-auth/
         └── task.md
 ```
 
-**Create `plan.json`** at plan root with initial planning status (no tasks array yet — that's populated after writing the README in Step 5). Follow `${CLAUDE_PLUGIN_ROOT}/references/plan-status-format.md` for the format. Set `status` to `"planning"`, all counts to 0.
+**Create `plan.json`** at plan root (skip when reusing an existing skeleton — it already exists from Stage 1). On the rare no-skeleton path, follow `${CLAUDE_PLUGIN_ROOT}/references/plan-status-format.md`: set `status` to `"planning"`, `stage` to `"write"`, all counts to 0, no tasks array yet (populated after writing the README in Step 5).
 
-**When upgrading a stub:** After editing the README status from Stub→Draft, verify `plan.json` at plan root has `"status": "planning"`.
+**When reusing an existing skeleton:** verify `plan.json` at plan root reads `"status": "planning"` and `"stage": "write"` (set on entering this stage). After editing the README status from Stub→Draft, the tasks array is filled in Step 5 and `status` flips to `approved` (clearing `stage`) only at approval (Step 7).
 
 ## Step 2: Update Product Documentation — Mandatory
 
@@ -228,6 +236,7 @@ When the user explicitly approves the plan, you MUST complete ALL sub-steps befo
 2. **Flip plan.json status** — THIS IS MANDATORY, DO NOT SKIP:
    - Read the current `plan.json` at `documentation/plans/{NNN}-{name}/plan.json`
    - Change `"status"` from `"planning"` to `"approved"` (tasks array is already populated from Step 5)
+   - Clear the plan-level `"stage"` → `null` — the planning stages are complete once the plan is approved (the dashboard hides the "Stage N of 4" indicator when `stage` is null / `status` is no longer `planning`).
    - Follow the format in `${CLAUDE_PLUGIN_ROOT}/references/plan-status-format.md`
    - Write the updated `plan.json` back to disk
 3. **Commit plan files** — Stage all plan files (README.md, plan.json, directories) and commit:
@@ -259,3 +268,9 @@ If the user rejects or partially rejects the plan:
 4. Re-ask for approval via AskUserQuestion.
 
 Repeat until approved or the user abandons the plan.
+
+**If the user gives up at Stage 4** (abandons instead of approving), cancel the skeleton rather than leaving it stranded at `status: planning, stage: write` — mirror the Stage 3 Abandon cancel:
+
+1. Update `plan.json`: set `"status"` → `"cancelled"`, leave `"stage"` as-is.
+2. Update the README `Status:` line → `Cancelled`.
+3. Retain the directory and number — a later re-run resurrects the same number in place (see `framework.md` Existing Plan Handling). Then stop.

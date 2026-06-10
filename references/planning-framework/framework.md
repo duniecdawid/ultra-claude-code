@@ -7,7 +7,8 @@ This is a shared reference library, not a skill. Planning modes (feature-mode, d
 - Do NOT enter Claude Code's built-in PlanMode (EnterPlanMode/ExitPlanMode) — this framework IS the planning system. The built-in PlanMode is a separate mechanism that conflicts with this workflow.
 - Do NOT execute the plan — that is `/uc:plan-execution`'s job. After approval, commit and print the execution command, then STOP.
 - Do NOT create tasks without success criteria.
-- Do NOT write any files before Stage 4 — research results and discussion stay in conversation context only.
+- Do NOT write any files before Stage 4 — research results and discussion stay in conversation context only. **Narrow exception (the plan skeleton only):** Stage 1 ends by scaffolding a dashboard-visible skeleton — the plan directory, a stub README (Objective + Scope filled, everything else `<!-- STUB -->`), and `plan.json`. The plan-level `stage` field in that `plan.json` is then updated at the Stage 2→3 and 3→4 transitions, and the cancel path may flip `status`. Nothing else — no research output, no discussion transcript, no task content — is written before Stage 4.
+- The plan carries a plan-level `stage` field and a `cancelled` lifecycle state, both owned by this base framework (not by per-mode extensions). `stage` tracks which of the four planning stages is active while `status` is `planning`; `cancelled` marks an abandoned planning session whose directory and number are retained. See `references/plan-status-format.md` for the field semantics.
 - ALWAYS write the plan to `documentation/plans/{NNN}-{name}/README.md` BEFORE presenting it for approval.
 - ALWAYS include the `Execute: /uc:plan-execution {NNN}` header in the plan document.
 - ALWAYS follow ALL Post-Approval steps after the user approves — update README status, update plan.json, commit, print command, stop. No exceptions.
@@ -35,10 +36,19 @@ These rules apply across all stages — especially Stages 1 and 3. Planning is a
 
 If a plan directory matching `*-{name}` already exists (revision or re-planning):
 
-- Read the existing `README.md` to understand current state.
+- Read the existing `README.md` and `plan.json` to understand current state.
 - Check for checkpoint files — if they exist, this plan has been partially executed.
 - Warn the user if modifying a plan that has execution history.
 - Preserve `shared/` and `tasks/` contents — they contain teammate work.
+
+**Adopt an existing skeleton — never re-allocate its number.** Because Stage 1 now scaffolds a skeleton, a matched directory may already hold a self-scaffolded plan. When the matched `plan.json` has `"status": "planning"` (an interrupted or resumed planning session) or `"status": "stub"` (a `/uc:roadmap` stub), adopt the existing directory and number in place — do not allocate a new number and do not re-create the directory.
+
+**Resurrect a cancelled plan.** When the matched `plan.json` has `"status": "cancelled"`, the previous planning session for this name was abandoned but its number was retained. Resume it in place:
+
+1. Announce to the user: "Resuming cancelled plan {NNN}-{name}." Make the resurrection visible — never silently reuse the number.
+2. Reset `plan.json`: `"status"` → `"planning"`, `"stage"` → `"research"` (treat re-entry as a fresh Stage 1 exit).
+3. Update the README `Status:` line from `Cancelled` → `Stub`.
+4. Keep the same number and directory; preserve `shared/` and `tasks/`. Continue through Stages 1–4 normally.
 
 Modes may extend this behavior in their own `references/stage-1.md` (since detection happens during Stage 1). For example, feature-mode adds stub-plan handling for plans created by `/uc:roadmap`.
 

@@ -13,6 +13,7 @@ Re-write the entire file on each update. Keep `events.json` separate at the plan
   "description": "One-line plan description from README",
   "plan_file": "documentation/plans/{slug}/README.md",
   "status": "in_progress",
+  "stage": null,
   "started_at": "2026-04-04T12:47:09.000Z",
   "ended_at": null,
   "concurrency_limit": 2,
@@ -87,6 +88,23 @@ Re-write the entire file on each update. Keep `events.json` separate at the plan
 
 **`name`**: Always use the full plan directory name (`PLAN_NAME`) — the slug that includes the number prefix (e.g., `012-dedicated-plan-page-v2`). Do NOT extract the name from the plan README title or strip the number prefix. The directory name is the canonical identifier.
 
+## Plan-Level `stage` Field (distinct from per-task `stages`)
+
+The optional top-level **`stage`** field tracks which of the four planning-framework stages a plan is currently in **while it is being planned** (`status: "planning"`). It is a single string (or `null`), set by the planning modes:
+
+| Value | Meaning | When set |
+|-------|---------|----------|
+| `"research"` | Stage 2 (Research) | Written when the Stage 1 skeleton is scaffolded (end of Stage 1) — the first persisted value |
+| `"discuss"` | Stage 3 (Discuss) | On entering Stage 3 |
+| `"write"` | Stage 4 (Write) | On entering Stage 4 |
+| `null` | No active planning stage | Cleared on approval (`status` → `approved`); also `null` for any plan that isn't in `planning` |
+
+`"understand"` (Stage 1) is a valid conceptual value but is **never persisted** — the skeleton does not exist yet during Stage 1 Understand, so the earliest value ever written to disk is `"research"`. The set written to disk is therefore `{research, discuss, write, null}`.
+
+> **Do not confuse `stage` with the per-task `stages` object.** `stage` is a **plan-level** string tracking the *planning* phase (research/discuss/write). The per-task **`stages`** object (inside each task) tracks *execution pipeline* timing (`planning`/`implementation`/`review`/`testing` with `started_at`/`ended_at`). They are unrelated — one is about shaping the plan, the other about executing a task.
+
+The dashboard surfaces `stage` as a "Stage N of 4 — {Stage}" indicator, shown only while `status === "planning"`.
+
 ## Per-Task Budget
 
 The optional `budget` object tracks usage-limit percentage at task start and end. Written by PM:
@@ -108,9 +126,11 @@ The `dependencies` field is an array of task IDs (e.g., `["task-1", "task-3"]`) 
 
 | Field         | Allowed values                          |
 |---------------|-----------------------------------------|
-| Plan status   | `stub`, `planning`, `approved`, `in_progress`, `completed` |
+| Plan status   | `stub`, `planning`, `approved`, `in_progress`, `completed`, `cancelled` |
 | Task status   | `pending`, `in_progress`, `completed`, `failed` |
 | Member status | `active`, `completed`, `failed`         |
+
+`cancelled` marks a planning session that was abandoned after its skeleton was scaffolded (Stage 3 Abandon or Stage 4 give-up). The plan directory and its number are **retained** — the number stays reserved and the plan remains visible as a tombstone rather than disappearing. Re-running a planning mode against the same name resurrects the plan in place under the same number (`status` → `planning`).
 
 **Never** use `executing`, `implementing`, `reviewing`, `testing`, `escalated`, `idle`, `crashed`, `rate-limited`, or any other value in a task or member status field. Pipeline stage is tracked in the `stages` object, not the status. (`planning` is valid at the plan level only — not for tasks or members.)
 

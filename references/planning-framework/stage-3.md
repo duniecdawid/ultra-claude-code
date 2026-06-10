@@ -2,11 +2,19 @@
 
 Mandatory for ALL planning modes — no exceptions.
 
-**Purpose:** Synthesize all findings from Stages 1-2, present a summary with your own perspective, and brainstorm the approach with the user. This is a mandatory conversation gate before any files are written.
+**Purpose:** Synthesize all findings from Stages 1-2, present a summary with your own perspective, and brainstorm the approach with the user. This is a mandatory conversation gate before the plan is written.
+
+## On Entry — Update the Stage Field
+
+Before presenting any synthesis, as the first procedural action on entering this stage, update the skeleton's plan-level `stage` to reflect that discussion is now active:
+
+- Set `plan.json` `"stage"` → `"discuss"` (the skeleton was scaffolded at the end of Stage 1 with `stage: research`). This is the Stage 2→3 transition update.
+
+This and the Abandon cancel below are the only writes permitted in Stage 3 — discussion content stays in conversation context (see `framework.md` Constraints).
 
 ## Rules
 
-- No files written.
+- No files written, except the on-entry `stage` update above and the Exit Gate "Abandon" cancel below.
 - You MUST present your own perspective — not just ask questions.
 - Goal is convergence toward an approach.
 - Exit ONLY via the explicit AskUserQuestion exit gate (see below).
@@ -41,7 +49,16 @@ When the discussion reaches convergence, offer the user a choice via AskUserQues
 
 - **"Proceed to plan"** — moves to Stage 4: Write
 - **"Keep discussing"** — continues Stage 3
-- **"Abandon"** — exits the planning mode entirely
+- **"Abandon"** — cancels the planning session (see below), then exits the planning mode entirely
+
+### Abandon → Cancel
+
+When the user selects "Abandon", do NOT delete the skeleton. Cancel it so it stays visible as a tombstone and its number stays reserved:
+
+1. Update `plan.json`: set `"status"` → `"cancelled"`. Leave `"stage"` as-is (it records how far planning got).
+2. Update the README `Status:` line → `Cancelled`.
+3. Retain the directory and the plan number — never remove them. A later re-run of any planning mode against this name resurrects the same number in place (see `framework.md` Existing Plan Handling).
+4. Exit the planning mode.
 
 ## Stage Transition
 

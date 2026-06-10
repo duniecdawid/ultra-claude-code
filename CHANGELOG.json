@@ -1,5 +1,19 @@
 [
   {
+    "seq": 167,
+    "version": "2026.06.10-2",
+    "date": "2026-06-10",
+    "summary": "planning framework: make plans dashboard-visible from END of Stage 1 instead of only at Stage 4. Adds a shared 'Scaffold Skeleton' step (final action of base stage-1.md) that allocates the plan number, creates the dir + shared/ + tasks/, writes a stub README (Objective + Scope filled, other sections <!-- STUB -->), and writes plan.json with status:planning, stage:research, zero counts, empty tasks. Introduces a plan-level `stage` field (research→discuss→write, cleared to null on approval) updated at the Stage 2→3 (stage-3 entry) and 3→4 (stage-4 entry) transitions so the dashboard can show 'Stage N of 4' while planning; Stage 4 now upgrades the existing skeleton in place (no number re-allocation) and clears stage on approval. Adds a `cancelled` lifecycle: Stage 3 Abandon and Stage 4 give-up set status:cancelled (directory + number retained), and re-running a planning mode against a cancelled — or adopting a stub/planning — skeleton resurrects/adopts the same number in place (framework.md Existing Plan Handling). Narrowly relaxes the 'no writes before Stage 4' invariant (framework.md + stage-1 + stage-3) for the skeleton only. All shared behavior lives in the base references/planning-framework/ — no per-mode stage files edited. Global: plan-status-format.md documents `stage` (distinct from per-task `stages`) + lists `cancelled`; templates/plan.md adds Cancelled; plan-status-sync recognizes cancelled + preserves stage; help knowledge base and docs site (feature-planning) synced.",
+    "migration": null
+  },
+  {
+    "seq": 166,
+    "version": "2026.06.10-1",
+    "date": "2026-06-10",
+    "summary": "statusline: recognize Fable 5 in the cost/weight bar. Claude Code reports Fable as display_name \"Fable 5\" with no \"(1M context)\" marker, so it previously fell through to the default model factor (mf=1.00, same as Sonnet) and was mis-detected as a 200K-context model — doubly under-weighting the most expensive model in the lineup ($10/$50 per MTok, exactly 2× Opus). Adds fable to model normalization, sets mf=10.00 (double the Opus factor of 5.00 to match pricing), adds Fable to 1M-context detection, and widens the version-number regex so the chip shows \"fable 5\" instead of bare \"fable\".",
+    "migration": null
+  },
+  {
     "seq": 165,
     "version": "2026.06.09-2",
     "date": "2026-06-09",
