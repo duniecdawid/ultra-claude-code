@@ -15,10 +15,8 @@
       <thead><tr><th>Skill</th><th>Command</th><th>Description</th></tr></thead>
       <tbody>
         <tr><td><strong>Dashboard</strong></td><td><code>/uc:dashboard</code></td><td>Connects to the Ultra Claude Dashboard for real-time project visibility and manages multiple accounts with optional per-project account routing. Guides agent installation, setup, the non-interactive CLI account commands, and connectivity debug checks.</td></tr>
-        <tr><td><strong>Setup</strong></td><td><code>/uc:setup</code></td><td>One-time machine config: installs Node.js, guides tmux mode selection (per-project, per-terminal, none, or custom), configures shell for 1M context and agent teams, offers the fullscreen renderer for flicker-free output (opt-out, Claude Code v2.1.89+). tmux is optional &mdash; agent teams work without it. Idempotent.</td></tr>
+        <tr><td><strong>Setup</strong></td><td><code>/uc:setup</code></td><td>One-time machine config: installs Node.js, guides tmux mode selection (per-project, per-terminal, none, or custom), configures shell for 1M context and agent teams, offers the fullscreen renderer for flicker-free output (opt-out, Claude Code v2.1.89+), and &mdash; when VS Code is detected &mdash; offers recommended client-side VS Code settings (opt-in) alongside the mode-aware terminal profiles. tmux and VS Code are both optional &mdash; agent teams work without them. Idempotent.</td></tr>
         <tr><td><strong>Migrate</strong></td><td><code>/uc:migrate</code></td><td>Brings projects into Ultra Claude &mdash; fresh initialization, legacy detection, version-aware upgrades. Scaffolds docs, config, and standards.</td></tr>
-        <tr><td><strong>VS Code Setup</strong></td><td><code>/uc:vscode-setup</code></td><td>Configures VS Code remote and client settings for Claude Code workflows. Terminal profiles are mode-aware (based on tmux mode from setup).</td></tr>
-        <tr><td><strong>VS Code Launch</strong></td><td><code>/uc:vscode-launch</code></td><td>Generates <code>.vscode/launch.json</code> debug configurations for Node.js/TypeScript projects.</td></tr>
       </tbody>
     </table>
 

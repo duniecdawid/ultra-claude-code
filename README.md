@@ -86,9 +86,7 @@ ultra-claude/
 │   ├── roadmap/
 │   ├── setup/
 │   ├── tailscale-setup/
-│   ├── update/
-│   ├── vscode-launch/
-│   └── vscode-setup/
+│   └── update/
 ├── references/                        # Shared reference libraries (not skills)
 │   ├── plan-status-format.md          # plan.json schema
 │   └── planning-framework/            # 4-stage planning rules inherited by feature/debug/verification modes

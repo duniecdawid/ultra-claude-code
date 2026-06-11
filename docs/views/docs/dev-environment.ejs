@@ -175,7 +175,7 @@ tmux attach -t user_myproject
     <p>If you customize your own tmux setup extensively, choose the "Don't touch it" mode in <code>/uc:setup</code> so Ultra Claude doesn't overwrite your config.</p>
 
     <h2>VS Code integration</h2>
-    <p>VS Code works well alongside tmux via Remote SSH. The setup creates a terminal profile that auto-attaches to your project's tmux session. But the key insight is: <strong>manage your terminal windows in tmux, not in VS Code</strong>.</p>
+    <p>VS Code works well alongside tmux via Remote SSH. <code>/uc:setup</code> handles the VS Code side: it creates a terminal profile that auto-attaches to your project's tmux session, and (opt-in, when VS Code is detected) offers recommended client-side settings for the Claude Code extension. But the key insight is: <strong>manage your terminal windows in tmux, not in VS Code</strong>.</p>
     <ul>
       <li>Use VS Code for editing files, browsing code, and git operations</li>
       <li>Use tmux windows for running processes: dev servers, builds, Claude Code, tests</li>

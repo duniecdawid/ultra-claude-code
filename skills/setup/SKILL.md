@@ -1,5 +1,5 @@
 ---
-description: One-time machine setup for Ultra Claude. Checks and configures shell environment (1M context, agent teams), installs prerequisites (node, optionally tmux), guides tmux mode selection (per-project, per-terminal, none, or custom — see references/tmux-modes.md), configures the statusline for per-account usage tracking, offers the Claude Code fullscreen renderer for flicker-free flat-memory output (opt-out, version-gated), optionally sets up Tailscale for remote access, optionally installs a tmux disconnected-session reaper for per-terminal mode users whose tmux sessions pile up, and — if the `ultraclaude-agent` npm package is already installed — checks for and offers to update it to the latest published version. Idempotent — safe to re-run. Writes version marker to ~/.claude/ultra/uc-setup.json so other skills can quickly check if setup is current. Use when onboarding a new machine, after Ultra Claude install, when plan-execution reports missing prerequisites, when experiencing screen tearing/flickering in tmux, or when stale tmux sessions are accumulating on a remote machine. Triggers on "setup", "machine setup", "environment setup", "configure machine", "setup 1m context", "enable agent teams", "screen tearing", "tmux tearing", "flickering", "fullscreen", "fullscreen renderer", "fullscreen mode", "tui", "flicker-free", "session cleanup", "tmux reaper", "reap tmux", "orphaned tmux", "stale tmux sessions".
+description: One-time machine setup for Ultra Claude. Checks and configures shell environment (1M context, agent teams), installs prerequisites (node, optionally tmux), guides tmux mode selection (per-project, per-terminal, none, or custom — see references/tmux-modes.md), configures the statusline for per-account usage tracking, offers the Claude Code fullscreen renderer for flicker-free flat-memory output (opt-out, version-gated), offers recommended client-side VS Code settings for the Claude Code extension when VS Code is detected (opt-in — see references/vscode-settings.md), optionally sets up Tailscale for remote access, optionally installs a tmux disconnected-session reaper for per-terminal mode users whose tmux sessions pile up, and — if the `ultraclaude-agent` npm package is already installed — checks for and offers to update it to the latest published version. Idempotent — safe to re-run. Writes version marker to ~/.claude/ultra/uc-setup.json so other skills can quickly check if setup is current. Use when onboarding a new machine, after Ultra Claude install, when plan-execution reports missing prerequisites, when experiencing screen tearing/flickering in tmux, or when stale tmux sessions are accumulating on a remote machine. Triggers on "setup", "machine setup", "environment setup", "configure machine", "setup 1m context", "enable agent teams", "screen tearing", "tmux tearing", "flickering", "fullscreen", "fullscreen renderer", "fullscreen mode", "tui", "flicker-free", "session cleanup", "tmux reaper", "reap tmux", "orphaned tmux", "stale tmux sessions".
 user-invocable: true
 ---
 
@@ -230,6 +230,23 @@ Treat as:
 - **OPT-OUT AVAILABLE** — version gate passes and `tui` is unset or `"default"`. This is **recommended-on**: surface it in Step 4 and present the enable/keep-classic prompt in Step 5.13 (enable is the recommended choice).
 - **SKIP** — `claude --version` is below 2.1.89 or unavailable. Note "needs Claude Code v2.1.89+" and move on; never mark MISSING.
 
+### 3.14 VS Code Client Settings (optional)
+
+Recommended client-side VS Code settings (window behavior, Claude Code extension placement) for users who edit through VS Code. Full reference: `references/vscode-settings.md`. VS Code is never required — this check exists only to offer the settings when VS Code is present.
+
+Detect VS Code and any prior choice:
+
+```bash
+[ -d "$HOME/.vscode-server" ] && echo "vscode-remote" || { [ -d "$HOME/.vscode" ] && echo "vscode-local"; } || echo "no-vscode"
+jq -r '.checks.vscodeSettings // empty' ~/.claude/ultra/uc-setup.json 2>/dev/null
+```
+
+Treat as:
+
+- **SKIP** — no VS Code installation detected. Skip silently; never mark MISSING.
+- **PASS** — marker records `vscodeSettings: "applied"` or `"declined"` (the user already made a choice; don't nag on re-runs).
+- **OPT-IN AVAILABLE** — VS Code detected and no recorded choice.
+
 ## Step 4: Present Status
 
 Display a status table:
@@ -250,6 +267,7 @@ Ultra Claude Environment Check (plugin v{version})
   Session Cleanup (optional) — not installed  # or "✓ reaper active (24h)" / "— skipped (not linux)" / "— skipped (not per-terminal)"
   Dashboard (optional)       — skipped       # or "✓ connected" / "✗ not connected" / "— skipped (agent not installed)"
   Fullscreen renderer        ✗ classic (recommended: fullscreen)  # or "✓ fullscreen" / "— skipped (needs Claude Code v2.1.89+)"
+  VS Code settings (optional) — available     # or "✓ applied" / "— declined" / "— skipped (no VS Code)"
 ```
 
 If ALL required checks pass (3.2–3.7 — tmux mode is always valid since all four choices are acceptable):
@@ -263,7 +281,7 @@ If ALL required checks pass (3.2–3.7 — tmux mode is always valid since all f
 
 If tmux mode is not yet configured (no `tmuxMode` in marker file), present the tmux mode selection prompt from `references/tmux-modes.md` Section "Selection Prompt" FIRST, before the multi-select fix list. The mode choice determines which tmux-related fixes appear.
 
-Then use AskUserQuestion with a multi-select to let the user choose which items to fix. List only MISSING items. Always include Tailscale if not installed (marked as optional in the description). On Linux, include Session Cleanup only if tmux mode is `per-terminal` (marked as optional, with a short one-liner about the tradeoff — the full warning lives in the fix step's own prompt).
+Then use AskUserQuestion with a multi-select to let the user choose which items to fix. List only MISSING items. Always include Tailscale if not installed (marked as optional in the description). On Linux, include Session Cleanup only if tmux mode is `per-terminal` (marked as optional, with a short one-liner about the tradeoff — the full warning lives in the fix step's own prompt). Include VS Code client settings only if check 3.14 reported OPT-IN AVAILABLE (marked as optional: "recommended editor + Claude Code extension settings").
 
 The fullscreen renderer (5.13) is **not** part of this multi-select — because it's recommended-on (opt-out), present it as its own dedicated question per 5.13 whenever check 3.13 reported OPT-OUT AVAILABLE.
 
@@ -580,6 +598,17 @@ If the user chose **Keep classic renderer**, do not write the `tui` key. Record 
 
 Record the user's choice in the Step 6 marker `fullscreen` field (`"fullscreen"`, `"classic"`, or `"unsupported"`).
 
+### 5.14 Fix: VS Code Client Settings (opt-in)
+
+Only runs when the user selected it in the Step 5 multi-select (check 3.14 must have reported OPT-IN AVAILABLE). Follow `references/vscode-settings.md`:
+
+1. Present the recommended client-side settings from the reference (the main table; mention the optional extras without pushing them).
+2. Client settings can't be edited from the remote machine — ask the user to paste their current client User Settings JSON if they want a merge, then **print the merged JSON** for them to apply on the client (`Cmd+,` / `Ctrl+,` → Open Settings JSON). If they skip pasting, print the recommended block as-is and remind them to merge manually, not overwrite.
+3. Do **not** touch terminal profiles here — those are owned by §5.5b / `references/tmux-modes.md`.
+4. Briefly explain each setting as the reference table does, and note that with `claudeCode.useTerminal: true` the fullscreen renderer choice from §5.13 governs rendering.
+
+Record the outcome in the Step 6 marker `vscodeSettings` field: `"applied"` if the user took the settings, `"declined"` if they chose not to, `"skipped"` if VS Code wasn't detected.
+
 ## Step 6: Write Marker File
 
 After all fixes are applied, write `~/.claude/ultra/uc-setup.json`:
@@ -604,7 +633,8 @@ After all fixes are applied, write `~/.claude/ultra/uc-setup.json`:
     "machineContext": true/false,
     "sessionCleanup": "installed" | "skipped" | "not-linux" | "opted-out",
     "dashboard": "connected" | "not-connected" | "skipped",
-    "fullscreen": "fullscreen" | "classic" | "unsupported"
+    "fullscreen": "fullscreen" | "classic" | "unsupported",
+    "vscodeSettings": "applied" | "declined" | "skipped"
   }
 }
 ```

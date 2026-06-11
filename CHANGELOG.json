@@ -1,5 +1,12 @@
 [
   {
+    "seq": 168,
+    "version": "2026.06.11-1",
+    "date": "2026-06-11",
+    "summary": "Retire the vscode-launch and vscode-setup skills. vscode-setup's terminal-profile half had been superseded by setup/references/tmux-modes.md (the mode-aware version /uc:setup actually applies); its remaining client-side VS Code settings are folded into /uc:setup as a new optional, detection-gated step (check 3.14 + fix 5.14, opt-in via the Step 5 multi-select, marker field checks.vscodeSettings) backed by a refreshed setup/references/vscode-settings.md — claudeCode.* extension keys verified current, fullscreen-renderer interplay documented, terminal profiles explicitly owned by tmux-modes.md alone. vscode-launch (Node/TS launch.json generator) removed without replacement. Help knowledge base, README tree, and docs site (reference, setup, dev-environment) synced.",
+    "migration": null
+  },
+  {
     "seq": 167,
     "version": "2026.06.10-2",
     "date": "2026-06-10",

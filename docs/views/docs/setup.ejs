@@ -26,6 +26,7 @@
       <li><strong>Agent teams</strong> &mdash; enables the experimental agent teams feature for parallel execution</li>
       <li><strong>tmux mode</strong> (optional) &mdash; guides you through four tmux modes: per-project session (recommended), no tmux, per-terminal session (legacy), or custom (user-managed). Installs and configures tmux when needed.</li>
       <li><strong>Node.js</strong> &mdash; required for Ultra Claude scripts (including the tmux layout daemon when tmux is enabled)</li>
+      <li><strong>VS Code settings</strong> (optional) &mdash; when VS Code or vscode-server is detected, setup offers recommended client-side settings for the Claude Code extension (printed as merged JSON to paste) and configures mode-aware terminal profiles per the tmux mode. Skipped silently when VS Code isn't installed.</li>
       <li><strong>Statusline</strong> &mdash; per-account usage tracking displayed in the Claude Code status bar</li>
       <li><strong>Session hooks</strong> &mdash; start/end hooks for usage tracking</li>
       <li><strong>Agent updates</strong> &mdash; if the <code>ultraclaude-agent</code> npm package is already installed, setup checks for a newer published version and offers to update it (never installs from scratch)</li>

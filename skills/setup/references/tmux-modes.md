@@ -117,7 +117,7 @@ Write to `~/.vscode-server/data/Machine/settings.json` (merge, don't overwrite):
 }
 ```
 
-Only touch `terminal.integrated.profiles.*` and `terminal.integrated.defaultProfile.*`. Never modify other VS Code settings — those belong to `/uc:vscode-setup`.
+Only touch `terminal.integrated.profiles.*` and `terminal.integrated.defaultProfile.*`. Never modify other VS Code settings here — client-side editor settings are covered by `references/vscode-settings.md` (setup §5.14).
 
 ### Fallbacks
 
@@ -238,7 +238,7 @@ Before writing any terminal profiles, detect whether the user uses VS Code:
 
 - If neither directory exists, skip all VS Code terminal profile configuration and note: "No VS Code installation detected — skipping terminal profile setup."
 - If detected, proceed with mode-appropriate terminal profile changes
-- Only touch `terminal.integrated.profiles.*` and `terminal.integrated.defaultProfile.*`. Never modify other VS Code settings as part of tmux mode setup.
+- Only touch `terminal.integrated.profiles.*` and `terminal.integrated.defaultProfile.*`. Never modify other VS Code settings as part of tmux mode setup — client-side editor settings are covered by `references/vscode-settings.md` (setup §5.14).
 
 ## Tips
 
