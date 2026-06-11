@@ -1,5 +1,12 @@
 [
   {
+    "seq": 169,
+    "version": "2026.06.11-2",
+    "date": "2026-06-11",
+    "summary": "Tmux layout daemon: weighted left-column heights. The main/PM/watchdog column is reordered top-to-bottom as watchdog (20%), PM (30%), main-context (50%, bottom) via a new LEFT_COLUMN_SPEC and distributeWeighted() helper that honors the tmux layout-string contract (cells + 1-px separators sum to parent, every cell ≥ 1 px, graceful degradation on tiny windows). Weights renormalize when PM or watchdog is absent. Task/gate/unnamed columns keep even splits. Project Manager agent doc pane-position table synced.",
+    "migration": null
+  },
+  {
     "seq": 168,
     "version": "2026.06.11-1",
     "date": "2026-06-11",

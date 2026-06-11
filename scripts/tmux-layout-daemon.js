@@ -154,10 +154,39 @@ function distributeSize(total, count) {
   return sizes;
 }
 
+// Split `total` into sibling sizes proportional to `weights`, with 1-px
+// separators between them (same contract as distributeSize: sum(sizes) +
+// (count - 1) === total, every cell ≥ 1 px). Rounding remainder is handed
+// out one px at a time from the first cell. Returns null if there isn't
+// enough room for every cell to get at least 1 px.
+function distributeWeighted(total, weights) {
+  const count = weights.length;
+  if (count === 0) return null;
+  if (count === 1) return [total];
+  const available = total - (count - 1);
+  if (available < count) return null;
+  const weightSum = weights.reduce((a, b) => a + b, 0);
+  if (weightSum <= 0) return distributeSize(total, count);
+  const sizes = weights.map(w => Math.floor((available * w) / weightSum));
+  let used = sizes.reduce((a, b) => a + b, 0);
+  for (let i = 0; used < available; i = (i + 1) % count) { sizes[i] += 1; used += 1; }
+  // Lift any zero-size cell to 1 px by taking from the largest cell.
+  for (let i = 0; i < count; i++) {
+    while (sizes[i] < 1) {
+      const j = sizes.indexOf(Math.max(...sizes));
+      if (sizes[j] <= 1) return null;
+      sizes[j] -= 1; sizes[i] += 1;
+    }
+  }
+  return sizes;
+}
+
 // Build a layout body string for the given window size and column groups.
 // `columnGroups` is an ordered array of columns; each column is an array of
-// paneNums (top to bottom). Returns null if the window is too small.
-function buildLayoutBody(W, H, columnGroups) {
+// paneNums (top to bottom). `columnWeights` (optional) is a parallel array:
+// entry c is either null (rows split evenly) or an array of relative row
+// heights for that column. Returns null if the window is too small.
+function buildLayoutBody(W, H, columnGroups, columnWeights) {
   if (!columnGroups || columnGroups.length === 0) return null;
 
   // Single-pane special case: no splits at all.
@@ -178,7 +207,10 @@ function buildLayoutBody(W, H, columnGroups) {
     if (rowCount === 1) {
       colStrings.push(`${cw}x${H},${xoff},0,${panes[0]}`);
     } else {
-      const rowHeights = distributeSize(H, rowCount);
+      const weights = columnWeights && columnWeights[c];
+      const rowHeights = (weights && weights.length === rowCount)
+        ? distributeWeighted(H, weights)
+        : distributeSize(H, rowCount);
       if (!rowHeights) return null;
       const rowStrings = [];
       let yoff = 0;
@@ -292,10 +324,21 @@ function foldUnnamedIntoLastTask(tasks, taskNums, unnamed) {
   return leftover;
 }
 
+// Left column rows, top to bottom, with their relative heights. Missing
+// panes are dropped and the remaining weights are renormalized by
+// distributeWeighted, so main always ends up at the bottom.
+const LEFT_COLUMN_SPEC = [
+  { key: 'watchdogPane', weight: 20 },
+  { key: 'pmPane', weight: 30 },
+  { key: 'mainPane', weight: 50 },
+];
+
 // Compute the target layout as an ordered list of columns. Used both by
-// arrangeWindow and by the tick loop (for change detection).
+// arrangeWindow and by the tick loop (for change detection). `columnWeights`
+// is parallel to `columns`: relative row heights for the left column, null
+// (even split) for every other column.
 function computeTargetColumns(classified) {
-  const { mainPane, pmPane, watchdogPane, gatePane, tasks, unnamed } = classified;
+  const { gatePane, tasks, unnamed } = classified;
   const taskNums = Object.keys(tasks).sort((a, b) => parseInt(a) - parseInt(b));
 
   // Clone tasks so we can mutate for the fold without touching the classification.
@@ -303,13 +346,15 @@ function computeTargetColumns(classified) {
   for (const n of taskNums) taskCols[n] = [...tasks[n]];
   const leftoverUnnamed = foldUnnamedIntoLastTask(taskCols, taskNums, unnamed);
 
+  const leftSpec = LEFT_COLUMN_SPEC.filter(({ key }) => classified[key]);
   const columns = [];
-  const leftCol = [mainPane, pmPane, watchdogPane].filter(Boolean);
-  columns.push(leftCol);
-  for (const n of taskNums) columns.push(taskCols[n]);
-  if (leftoverUnnamed.length > 0) columns.push(leftoverUnnamed);
-  if (gatePane) columns.push([gatePane]);
-  return { columns, taskCols, taskNums, leftoverUnnamed };
+  const columnWeights = [];
+  columns.push(leftSpec.map(({ key }) => classified[key]));
+  columnWeights.push(leftSpec.map(({ weight }) => weight));
+  for (const n of taskNums) { columns.push(taskCols[n]); columnWeights.push(null); }
+  if (leftoverUnnamed.length > 0) { columns.push(leftoverUnnamed); columnWeights.push(null); }
+  if (gatePane) { columns.push([gatePane]); columnWeights.push(null); }
+  return { columns, columnWeights, taskCols, taskNums, leftoverUnnamed };
 }
 
 function targetSignature(columns) {
@@ -322,7 +367,7 @@ function arrangeWindow(windowId, panes) {
 
   // Target layout derived from pane labels. `columns` is a DFS-ordered
   // list of column groups: [left, taskCol*, leftover?, gate?].
-  const { columns } = computeTargetColumns(classified);
+  const { columns, columnWeights } = computeTargetColumns(classified);
   const targetTailq = columns.flat();
   if (targetTailq.length === 0) return;
 
@@ -358,7 +403,7 @@ function arrangeWindow(windowId, panes) {
   // Convert pane_ids (%N) to plain numbers for the layout string.
   const toNum = (pid) => parseInt(pid.slice(1), 10);
   const columnGroups = columns.map(col => col.map(toNum));
-  const body = buildLayoutBody(W, H, columnGroups);
+  const body = buildLayoutBody(W, H, columnGroups, columnWeights);
   if (!body) {
     log(`ERROR: ${windowId} layout body build failed (window ${W}x${H} too small?)`);
     return;

@@ -68,9 +68,9 @@ The watcher groups panes into a grid based on label patterns:
 
 | Label pattern | Grid position | Example |
 |---------------|--------------|---------|
-| `main-context` (exact match) | Left column, top — the Lead | `main-context` |
-| starts with `pm` | Left column, below Lead | `pm-background-sync` |
-| starts with `watchdog` | Left column, below PM | `watchdog-background-sync` |
+| `main-context` (exact match) | Left column, bottom (50% height) — the Lead | `main-context` |
+| starts with `pm` | Left column, middle (30% height) | `pm-background-sync` |
+| starts with `watchdog` | Left column, top (20% height) | `watchdog-background-sync` |
 | matches `task-(\d+)(-executor\|-reviewer\|-tester)?` | One column per task number, members sorted by role (executor, reviewer, tester) | `task-1-executor`, `task-1-reviewer`, `task-1-tester` |
 | starts with `final-gate` | Rightmost column | `final-gate` |
 
