@@ -31,6 +31,15 @@ Rule: each skill and agent gets exactly 3 sentences in the help knowledge base:
 2. When to use it (trigger/context)
 3. What it produces or enables (outcome)
 
+## Agent-Team Communication Protocol — MANDATORY
+
+Any skill or agent built on Claude Code agent teams MUST use the execution communication protocol at `skills/plan-execution/references/execution-communication-protocol.md` for inter-agent communication and waiting.
+
+1. **SendMessage is the primary channel; the `signals.jsonl` layer is the durable backup.** Any signal a receiver waits on must be sent via `CommunicateTeamMember`/`CommunicateTeam` (signal + SendMessage) — never raw SendMessage alone.
+2. **Never wait in a foreground Bash loop.** SendMessages are delivered only between turns, so a foreground wait makes the agent deaf to the primary channel. Pure waits use bounded Monitor rounds per protocol §3.
+3. **Reference, don't copy.** Skills and agents point to the protocol file by function and section (e.g. "wait per protocol §3") instead of restating mechanics. The protocol file is the single source of truth — when behavior needs to change, change it there.
+4. **Agents that perform pure waits need the `Monitor` tool** in their frontmatter (see `agents/task-executor.md` for the pattern).
+
 ## No Machine-Specific Code — MANDATORY
 
 This repo is the **portable** half of a two-layer system. It must not contain any hardcoded paths, usernames, hostnames, IPs, VM/host topology, Chrome install locations, extension IDs, account identities, or other values that are specific to one machine. Anything machine-local lives in the user's `~/.claude/skills/machine-context/` skill — a separate, user-scoped skill that other skills read at runtime.

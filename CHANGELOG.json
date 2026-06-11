@@ -1,5 +1,12 @@
 [
   {
+    "seq": 170,
+    "version": "2026.06.11-3",
+    "date": "2026-06-11",
+    "summary": "Execution communication protocol: pure waits become bounded Monitor rounds (~4 min) with a recovery ladder (resend ~12m, escalate to Lead ~24m, visible WAIT_TIMEOUT hard-fail ~40m; SHUTDOWN/RESUME waits exempt). Fixes the production failure where an unbounded foreground until-loop blocked the agent's turn and starved SendMessage delivery (the backup channel silenced the primary one, e.g. a ~10-min ADVICE_RESPONSE stall). SendMessage stays the primary channel; signals.jsonl stays the durable backup. Monitor tool added to Task Executor, Code Reviewer, and Task Tester frontmatter. Generic sender rule: any awaited signal must go through CommunicateTeamMember (signal + SendMessage), never raw SendMessage — Lead's ADVICE replies now dual-write ADVICE_RESPONSE. Optional one-line \"note\" payload on signals (e.g. verdicts). New WAIT_TIMEOUT signal (21 total); PAUSE/RESUME split into separate vocabulary rows; crash-recovery table gains test-side and WAIT_TIMEOUT rows. usage-control.md synced to the signal layer by reference. New CLAUDE.md section mandates the protocol (reference, don't copy) for future team-based skills/agents. Help skill and docs site synced.",
+    "migration": null
+  },
+  {
     "seq": 169,
     "version": "2026.06.11-2",
     "date": "2026-06-11",

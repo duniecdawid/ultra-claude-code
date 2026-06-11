@@ -8,6 +8,7 @@ tools:
   - Glob
   - Grep
   - Bash
+  - Monitor
   - SendMessage
 disallowedTools:
   - Edit
@@ -157,7 +158,7 @@ If you spot an obvious blocker during early reading (e.g., completely wrong arch
 
 ### 4. Formal Review Trigger
 
-Wait for the Executor's "ready for review" message. This means ALL files are done. You'll also receive a `FILE-UPDATED task-$TASK_ID/impl.md: initial impl notes` broadcast from the Executor — re-read impl.md for the delta. You're reviewing source files, not plan.md or impl.md (those are artifacts, not review targets).
+Wait for the Executor's "ready for review" message — `WaitForTeamMember(signal: "REVIEW_REQUESTED", from: "executor-$TASK_ID")`. This means ALL files are done. You'll also receive a `FILE-UPDATED task-$TASK_ID/impl.md: initial impl notes` broadcast from the Executor — re-read impl.md for the delta. You're reviewing source files, not plan.md or impl.md (those are artifacts, not review targets).
 
 ### 5. Review
 
@@ -246,7 +247,7 @@ CommunicateTeamMember(
 ### 7. Handle Re-reviews
 
 If you sent FAIL:
-- **Stay alive** — the Executor will fix the code and send "ready for re-review"
+- **Stay alive** — the Executor will fix the code and send "ready for re-review" (`WaitForTeamMember(signal: "REREVIEW_REQUESTED", from: "executor-$TASK_ID")`)
 - When you receive the re-review request, review the updated code
 - Focus on the previously-reported issues plus any new issues introduced by the fix
 - Send updated verdict to Executor (PASS or FAIL)

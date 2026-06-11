@@ -281,7 +281,7 @@ Parse the JSON to extract fields. Process via the Watchdog Signal Handling secti
 
 **signals.jsonl reading for stage derivation:**
 
-PM uses the execution communication protocol (`${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/execution-communication-protocol.md`) to monitor pipeline state. Read `$PLAN_DIR/tasks/task-{N}/signals.jsonl` for each active task using `WaitForTeamMember` — poll every ~60s during active execution, same as other agents.
+PM uses the execution communication protocol (`${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/execution-communication-protocol.md`) to monitor pipeline state. Read `$PLAN_DIR/tasks/task-{N}/signals.jsonl` for each active task on your ~60s watchdog-tick cadence (PM reads the files directly; the bounded-Monitor wait rounds in protocol §3 are for task-team agents parked on a specific signal).
 
 Derivation rules when new signals are found:
 - `PLAN_READY` → enter implementation stage, append `stage_entered` event
@@ -289,6 +289,8 @@ Derivation rules when new signals are found:
 - `REVIEW_PASS` → close review stage (set `ended_at`), append `stage_done` event
 - `TEST_PASS` → close testing stage (set `ended_at`), append `stage_done` event
 - `REVIEW_FAIL` or `TEST_FAIL` followed by `REREVIEW_REQUESTED` or `RETEST_REQUESTED` → increment `retry_count`, reset both stage timers, append retry event
+- `WAIT_TIMEOUT` → treat as a stall: alert Lead if Lead isn't already acting on it, and record an incident for the operational report (which signal was awaited is in the `note` field)
+- Unknown/future signal names → ignore for stage derivation (the vocabulary may grow)
 - Track which signals you've already processed (by line count or last-seen timestamp) to avoid duplicate state file updates
 
 ## Watchdog Signal Handling

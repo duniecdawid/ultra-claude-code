@@ -31,7 +31,7 @@ Meaning: budget is tightening. Finish in-flight work normally; don't start anyth
 
 Meaning: approaching the rate-limit wall. All agents must stop working and go idle.
 
-1. **Send PAUSE to all active team members.** SendMessage each active executor, reviewer, and tester:
+1. **Send PAUSE to all active team members via the communication protocol** (signal append to each active task's `signals.jsonl` + SendMessage — see the `USAGE PAUSE` handler row in SKILL.md for the exact commands):
    `"PAUSE: usage {window}={pct}%. Go idle. You will receive RESUME when usage resets."`
    Agents stop work at their next natural checkpoint (between fix cycles) and go idle. Idle agents consume zero tokens.
 2. **Trigger a Phase 3 checkpoint immediately.** Do not wait for a `task done`.
@@ -46,7 +46,7 @@ Meaning: approaching the rate-limit wall. All agents must stop working and go id
 
 Meaning: rate-limit wall hit. If agents didn't stop on PAUSE, force-terminate them.
 
-1. **Kill all active task teams immediately via `shutdown_request`.** For each active task-team, send `shutdown_request` to executor-{N}, reviewer-{N}, and tester-{N} (if spawned). Use the protocol message format — do NOT use a plain text message. `shutdown_request` is the only mechanism that reliably terminates agents.
+1. **Write the SHUTDOWN signal to each active task's `signals.jsonl`, then kill all active task teams immediately via `shutdown_request`** (see the `USAGE KILL` handler row in SKILL.md for the exact commands). For each active task-team, send `shutdown_request` to executor-{N}, reviewer-{N}, and tester-{N} (if spawned). Use the protocol message format — do NOT use a plain text message. `shutdown_request` is the only mechanism that reliably terminates agents.
 2. **Trigger a Phase 3 checkpoint immediately** (if not already triggered during PAUSE).
 3. **Record the block** in `shared/lead.md` → `## Usage Blocks` → `{window}: kill`.
 4. **Stay in hold state.** Same rules as PAUSE hold — no responses, no spawning. Wait for USAGE RESET.
@@ -68,7 +68,7 @@ Meaning: the specified window has dropped below its CONSERVE threshold or has ro
 
 When all usage blocks clear and agents were paused (not killed):
 
-1. **Send RESUME to all paused agents.** SendMessage each paused executor, reviewer, and tester:
+1. **Send RESUME to all paused agents via the communication protocol** (signal append to each active task's `signals.jsonl` + SendMessage — see the `USAGE RESET` handler row in SKILL.md for the exact commands):
    `"RESUME: usage reset. Continue work."`
 2. **Agents resume with full context.** They pick up exactly where they stopped — no re-spawn, no re-read, no lost understanding. If an agent had completed a fix but not sent for re-review/re-test, it sends now. If it was mid-fix, it continues.
 3. **Resume normal operations.** Reassess budget (same reasoning as pre-task-1 assessment — now with historical per-task cost data from PM). Fill available concurrency slots with the next unblocked pending tasks. Normal slot-fill resumes.

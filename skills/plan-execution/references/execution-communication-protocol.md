@@ -12,13 +12,15 @@ Send a message to one specific agent. Execute these steps in order:
 
 2. **If `signal` is provided** — append one JSONL line to `$PLAN_DIR/tasks/task-$TASK_ID/signals.jsonl`:
    ```bash
-   echo '{"ts":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'","signal":"YOUR_SIGNAL","author":"your-agent-name"}' >> "$PLAN_DIR/tasks/task-$TASK_ID/signals.jsonl"
+   echo '{"ts":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'","signal":"YOUR_SIGNAL","author":"your-agent-name","note":"optional one-line payload"}' >> "$PLAN_DIR/tasks/task-$TASK_ID/signals.jsonl"
    ```
-   Always use `echo >>` via Bash — never Edit or Write. This is atomic on local filesystems.
+   Always use `echo >>` via Bash — never Edit or Write. This is atomic on local filesystems. `note` is optional — use it for small payloads such as a verdict (`APPROVED`, `AMEND: <one line>`); anything longer goes in a content file.
 
-3. **Always** — call `SendMessage(to=..., message=...)`. This is best-effort. It may silently fail, and that is OK — the signal file is the durable record.
+3. **Always** — call `SendMessage(to=..., message=...)`. This is the primary delivery path, but it is best-effort. It may silently fail, and that is OK — the signal file is the durable backup record.
 
 The ordering is load-bearing: content before signal (reader never sees flag before data), signal before SendMessage (file record is authoritative even if SendMessage fails).
+
+**Sender rule:** any signal that a receiver waits on via `WaitForTeamMember` MUST be sent through `CommunicateTeamMember`/`CommunicateTeam` (signal append + SendMessage) — never a raw SendMessage alone. A raw SendMessage leaves no durable record; if it is lost, the waiter has nothing to find.
 
 ## 2. CommunicateTeam(message, signal?, content_file?)
 
@@ -32,25 +34,35 @@ Active teammates are those listed in your spawn prompt that haven't exited. Test
 
 ## 3. WaitForTeamMember(signal, from?)
 
-Wait to receive a specific signal. Two delivery paths, whichever fires first:
+Wait to receive a specific signal. **SendMessage is the primary delivery path** — if a message matching the expected signal arrives, process it immediately and you are done. The signal file is the durable backup. The wait posture must keep the primary channel open: SendMessages are only delivered **between turns**, so a wait that holds your turn open makes you deaf to the primary channel.
 
-1. **SendMessage arrives** — if you receive a SendMessage whose content matches the expected signal, process it immediately. Done.
+**During productive wait states** (you have useful work to do while waiting — e.g., exploring codebase while waiting for REVIEWER_TAKE_READY): read `signals.jsonl` periodically between other actions. No sleep needed — just check the file every few tool calls. A SendMessage can also reach you between tool batches.
 
-2. **Poll signals.jsonl** — if no SendMessage arrives, poll the signal file. Two mechanisms depending on context:
+**During pure wait states** (you are blocked with nothing to do — e.g., waiting for review verdict, advice, exit confirmation): run **bounded wait rounds** with the Monitor tool. NEVER run an unbounded loop, and NEVER run the wait loop as a foreground Bash call — a foreground loop blocks your turn, which blocks SendMessage delivery; the backup channel would silence the primary one (this caused a real ~10-minute production stall when a reply arrived as SendMessage-only). Each round:
 
-   **During productive wait states** (you have useful work to do while waiting — e.g., exploring codebase while waiting for REVIEWER_TAKE_READY): read `signals.jsonl` periodically between other actions. No sleep needed — just check the file every few tool calls.
+```
+Monitor:
+  SIG="$PLAN_DIR/tasks/task-$TASK_ID/signals.jsonl"
+  until grep -q '"signal":"YOUR_EXPECTED_SIGNAL"' "$SIG" || [ "$SECONDS" -ge 240 ]; do sleep 5; done
+  grep -q '"signal":"YOUR_EXPECTED_SIGNAL"' "$SIG"
+```
 
-   **During pure wait states** (you are blocked with nothing to do — e.g., waiting for review verdict, exit confirmation): use a Monitor with an until-loop so you get notified the moment the signal appears without burning tokens on manual polling:
-   ```bash
-   until grep -q '"signal":"YOUR_EXPECTED_SIGNAL"' "$PLAN_DIR/tasks/task-$TASK_ID/signals.jsonl"; do sleep 5; done
-   ```
-   The Monitor delivers a notification when the loop exits (signal found). Then read the signal file to get details, and read the content file if the signal has one.
+Starting the Monitor **ends your turn — that is the point.** While you idle, an incoming SendMessage wakes you directly (primary channel live); otherwise the Monitor wakes you within ~4 minutes: exit 0 = signal found, exit 1 = round timed out, nothing yet.
 
-   **Do NOT use bare `sleep` commands** — long sleeps are blocked by the Claude Code runtime. Always wrap in an until-loop or interleave with work.
+*Fallback:* if `Monitor` is not in your tool set, run the identical command via `Bash` with `run_in_background: true` and end your turn. Never foreground.
 
-3. **If signal has `content_file`** — read it from `$PLAN_DIR/tasks/task-$TASK_ID/` after discovering the signal.
+**Wake checklist (every wake):**
+1. **Signal found** → read the matching line from `signals.jsonl` (including its `note`), and the content file if the signal has one (from `$PLAN_DIR/tasks/task-$TASK_ID/`). Wait complete.
+2. **A SendMessage woke you** and it matches the wait → process it; wait complete. Unrelated message (FILE-UPDATED, PAUSE, …) → handle it per your workflow, then start the next round.
+3. **Round timed out** → increment this wait's round counter and apply the recovery ladder.
 
-**Token cost** — Monitor-based waits cost zero tokens until the signal arrives. Periodic manual checks cost ~100-200 tokens per read. Both are negligible compared to a stalled pipeline.
+**Recovery ladder** (per wait; rounds ≈ 4 min):
+- **After round 3 (~12 min):** re-send the originating request via `CommunicateTeamMember` (re-append its signal, re-send the message). A lost SendMessage is the common cause; a resend usually unblocks the counterparty.
+- **After round 6 (~24 min):** escalate: `CommunicateTeamMember(to: "lead", message: "STALLED-WAIT task-$TASK_ID: waiting for {SIGNAL} from {agent} for ~24m; resent at ~12m, no response")`. Keep running rounds.
+- **After round 10 (~40 min):** hard-fail **visibly**: append `{"signal":"WAIT_TIMEOUT","author":"...","note":"gave up waiting for {SIGNAL} from {agent}"}`, SendMessage Lead AND PM, stop the wait, and hold for instructions. Never hang silently.
+- **Exceptions:** waiting for `SHUTDOWN` — no hard-fail; after round 3 re-send your completion report, then continue rounds indefinitely (shutdown is Lead's job). Waiting for `RESUME` while paused — no resends, no escalation, indefinite rounds (Lead is deliberately in hold state).
+
+**Token cost** — each wake costs one small re-invocation (~a few hundred tokens); in the happy path the wait resolves in round 1. Periodic manual checks during productive waits cost ~100-200 tokens per read. Both are negligible compared to a stalled pipeline.
 
 ## 4. Signal File Format
 
@@ -65,6 +77,7 @@ Wait to receive a specific signal. Two delivery paths, whichever fires first:
 | `ts` | ISO 8601 UTC | Timestamp of the signal write |
 | `signal` | SCREAMING_SNAKE | Signal name (see vocabulary below) |
 | `author` | string | Agent name that wrote the signal |
+| `note` | string (optional) | One-line payload, e.g. a verdict (`APPROVED`, `AMEND: …`). Longer content belongs in a content file |
 
 **Initialization:** Lead creates the empty file before spawning the task team:
 ```bash
@@ -83,7 +96,7 @@ On re-review/re-test cycles, overwrite the feedback file with the new cycle's co
 
 ## 5. Signal Vocabulary
 
-19 signal types. Agents use these as the `signal` parameter in `CommunicateTeamMember` and `CommunicateTeam` calls, and as the `signal` parameter in `WaitForTeamMember`.
+21 signal types. Agents use these as the `signal` parameter in `CommunicateTeamMember` and `CommunicateTeam` calls, and as the `signal` parameter in `WaitForTeamMember`.
 
 | Signal | Writer | Purpose |
 |--------|--------|---------|
@@ -105,7 +118,9 @@ On re-review/re-test cycles, overwrite the feedback file with the new cycle's co
 | `IMPL_APPROVED` | Lead | Pipeline predecessor passed, proceed to implement |
 | `ADVICE_RESPONSE` | Lead | Response to an ADVICE REQUEST from Executor |
 | `SHUTDOWN` | Lead | Team must exit |
-| `PAUSE` / `RESUME` | Lead | Usage limit control |
+| `PAUSE` | Lead | Usage limit control — go idle |
+| `RESUME` | Lead | Usage limit control — continue work |
+| `WAIT_TIMEOUT` | any waiter | A bounded wait exhausted its recovery ladder (§3); `note` says what was awaited |
 
 ## 6. Crash Recovery
 
@@ -117,8 +132,11 @@ On re-spawn, agents read `signals.jsonl` during startup to infer pipeline state:
 | `PLAN_READY`, no `REVIEW_REQUESTED` | Implementation in progress (check impl.md) |
 | `CODE_COMPLETE`, no `REVIEW_REQUESTED` | Writing impl.md or waiting for tester |
 | `REVIEW_REQUESTED`, no `REVIEW_PASS`/`REVIEW_FAIL` | Review in progress |
-| `REVIEW_FAIL`, no `REREVIEW_REQUESTED` | Fix cycle interrupted |
+| `TEST_REQUESTED`, no `TEST_PASS`/`TEST_FAIL` | Test in progress |
+| `REVIEW_FAIL`/`TEST_FAIL`, no `REREVIEW_REQUESTED`/`RETEST_REQUESTED` | Fix cycle interrupted |
+| `REREVIEW_REQUESTED`/`RETEST_REQUESTED`, no subsequent verdict | Re-review/re-test in progress |
 | `REVIEW_PASS` + `TEST_PASS` | Task complete, may need shutdown only |
 | `EXIT_REQUESTED`, missing `*_READY_TO_EXIT` | Exit confirmation interrupted |
 | `SHUTDOWN` | Team should have exited |
 | `PAUSE`, no subsequent `RESUME` | Team paused |
+| `WAIT_TIMEOUT` as latest entry | A wait was abandoned (§3 ladder exhausted) — confirm with Lead before resuming the pipeline |

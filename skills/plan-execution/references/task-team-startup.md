@@ -32,7 +32,7 @@ Role-specific reads (standards/architecture/product docs/testing docs) are NOT p
 | File | Executor | Reviewer | Tester |
 |---|---|---|---|
 | `task.md` | Must exist at startup (hard error if missing) | Must exist at startup | Must exist at startup |
-| `signals.jsonl` | Read on startup for crash recovery state inference. During wait states, use `WaitForTeamMember` to poll (see `execution-communication-protocol.md` §3). | Read on startup for crash recovery. Use `WaitForTeamMember` when waiting for `EXIT_REQUESTED` and `SHUTDOWN`. | Read on startup for crash recovery. Use `WaitForTeamMember` when waiting for `EXIT_REQUESTED` and `SHUTDOWN`. |
+| `signals.jsonl` | Read on startup for crash recovery state inference. During wait states, use `WaitForTeamMember` per protocol §3 (bounded Monitor rounds). | Read on startup for crash recovery. Use `WaitForTeamMember` (per protocol §3) when waiting for `EXIT_REQUESTED` and `SHUTDOWN`. | Read on startup for crash recovery. Use `WaitForTeamMember` (per protocol §3) when waiting for `EXIT_REQUESTED` and `SHUTDOWN`. |
 | `plan.md` | Blocks on REVIEWER TAKE (via SendMessage or `REVIEWER_TAKE_READY` signal in signals.jsonl + `take.md`) before calling `Write` on plan.md. Explores codebase + mentally drafts the approach while waiting. Creates it in step 3 of its workflow once the take has arrived. | Does NOT read plan.md — Reviewer's upfront input is sent BEFORE plan.md exists; later formal review reads source files, not plan.md | Absent at lazy-spawn (Executor already wrote it before code-complete); read during startup pass if present, otherwise on first `FILE-UPDATED` broadcast |
 | `impl.md` | Creates it in step 4.5 of its workflow | Absent until "ready for review"; read on that signal | Absent at lazy-spawn (Executor is writing it in parallel with your startup); read when "ready for test" arrives — ONLY for the file list |
 
@@ -42,7 +42,7 @@ All inter-agent communication uses the unified execution communication protocol.
 
 - **`CommunicateTeamMember(to, message, signal?, content_file?)`** — send to one agent
 - **`CommunicateTeam(message, signal?, content_file?)`** — broadcast to all active teammates + Lead
-- **`WaitForTeamMember(signal, from?)`** — wait to receive a signal (accepts SendMessage or polls signals.jsonl)
+- **`WaitForTeamMember(signal, from?)`** — wait to receive a signal. SendMessage is the primary path; for pure waits, bounded Monitor rounds watch signals.jsonl as backup (mechanics, wake checklist, and recovery ladder in protocol §3 — never restate them, reference them)
 
 **FILE-UPDATED broadcasts** use `CommunicateTeam`:
 ```

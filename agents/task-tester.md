@@ -9,6 +9,7 @@ tools:
   - Glob
   - Grep
   - Bash
+  - Monitor
   - mcp__claude-in-chrome__tabs_context_mcp
   - mcp__claude-in-chrome__tabs_create_mcp
   - mcp__claude-in-chrome__navigate
@@ -101,7 +102,7 @@ The startup protocol already loaded task.md, plan.md (if present), impl.md (if p
 
 ### 2. Receive "Ready for Test" Signal
 
-The Executor will message you shortly after spawn with "ready for test" and a list of files changed. **You work in parallel with the Reviewer.** This is your trigger to start, not your boundary — you verify independently, you don't just check what they say they did. If the message hasn't arrived yet, continue reading context files — it will come shortly.
+The Executor will message you shortly after spawn with "ready for test" and a list of files changed — `WaitForTeamMember(signal: "TEST_REQUESTED", from: "executor-$TASK_ID")`. **You work in parallel with the Reviewer.** This is your trigger to start, not your boundary — you verify independently, you don't just check what they say they did. If the message hasn't arrived yet, continue reading context files — it will come shortly.
 
 **IMPORTANT:** After any code fix (whether triggered by Reviewer feedback or your own test failures), the Executor will send you "Ready for re-test — fixed: {summary}, files updated: {list}". You MUST re-test against the updated code, even if you already sent PASS. Your previous PASS is invalidated by code changes.
 
@@ -254,7 +255,7 @@ CommunicateTeamMember(
 ### 5. Handle Re-tests
 
 If you sent FAIL:
-- **Stay alive** — the Executor will fix the code and send "ready for re-test"
+- **Stay alive** — the Executor will fix the code and send "ready for re-test" (`WaitForTeamMember(signal: "RETEST_REQUESTED", from: "executor-$TASK_ID")`)
 - When you receive the re-test request, test the updated code
 - Focus on the previously-failed criteria plus regression checks
 - **For frontend re-tests:** reload the page in the browser (the dev server hot-reloads, but do a hard refresh to be safe) and re-verify the UI

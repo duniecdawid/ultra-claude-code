@@ -9,6 +9,7 @@ tools:
   - Glob
   - Grep
   - Bash
+  - Monitor
   - SendMessage
 ---
 
@@ -234,7 +235,7 @@ When all stages pass:
    ```
    WaitForTeamMember(signal: "SHUTDOWN", from: "lead")
    ```
-   When received, approve shutdown and exit.
+   (Protocol §3's SHUTDOWN exception applies.) When received, approve shutdown and exit.
 
 ### Retry Limit
 
