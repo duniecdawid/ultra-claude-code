@@ -252,11 +252,19 @@ function scanPanes() {
   if (!output) return new Map();
 
   const windows = new Map();
+  const seen = new Map(); // windowId -> Set<pane_id> already added
   for (const line of output.split('\n')) {
     const parts = line.trim().split(' ');
     if (parts.length < 5) continue;
     const [windowId, paneId, label, width, height] = parts;
-    if (!windows.has(windowId)) windows.set(windowId, []);
+    if (!windows.has(windowId)) { windows.set(windowId, []); seen.set(windowId, new Set()); }
+    // `list-panes -a` enumerates a window once per session it belongs to, so a
+    // window shared across a session GROUP (e.g. VS Code's tmux integration)
+    // lists every pane once per grouped session. Dedup by pane_id per window —
+    // otherwise the duplicate rows inflate the current pane count past the
+    // target and arrangeWindow aborts with a pane-count mismatch on every tick.
+    if (seen.get(windowId).has(paneId)) continue;
+    seen.get(windowId).add(paneId);
     windows.get(windowId).push({ paneId, label: label || '', width: parseInt(width), height: parseInt(height) });
   }
   return windows;

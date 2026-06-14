@@ -1,5 +1,12 @@
 [
   {
+    "seq": 171,
+    "version": "2026.06.14-1",
+    "date": "2026-06-14",
+    "summary": "Tmux layout daemon: dedup panes by pane_id per window in scanPanes(). `tmux list-panes -a` enumerates a window once per session it belongs to, so a window shared across a session GROUP (e.g. VS Code's tmux integration, where `vscode`/`vscode-37` share windows) lists every pane once per grouped session. The duplicate rows inflated the current pane count past the target — the scalar role slots (main/pm/watchdog/gate) collapse via last-wins while task/unnamed arrays keep duplicates, producing a stable current = target + (singleton roles present) mismatch — so arrangeWindow aborted with a pane-count-mismatch on every tick and never applied a layout. The manager was effectively non-functional for any window living in a grouped session. Fixed by skipping already-seen pane_ids per window during the scan.",
+    "migration": null
+  },
+  {
     "seq": 170,
     "version": "2026.06.11-3",
     "date": "2026-06-11",
