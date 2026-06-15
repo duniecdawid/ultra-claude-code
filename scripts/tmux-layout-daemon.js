@@ -316,6 +316,19 @@ function classifyPanes(panes) {
     result.tasks[num] = buckets[num].map(x => x.paneId);
   }
 
+  // Infer the main/Lead pane when it never got the `main-context` label.
+  // The label is set by a model-driven step (plan-execution phase-1 §1.1b /
+  // phase-2 §2.6) that the Lead can skip — e.g. when /uc:plan-execution is
+  // invoked mid-session. Teammates always self-label, so an execution window
+  // that has PM/watchdog/task panes but exactly ONE unlabelled pane: that lone
+  // pane is the Lead. Promote it so the daemon manages the window regardless of
+  // whether the Lead ever ran the label step. tick() persists the label once.
+  if (!result.mainPane && result.unnamed.length === 1 &&
+      (result.pmPane || result.watchdogPane || Object.keys(result.tasks).length > 0)) {
+    result.mainPane = result.unnamed.shift();
+    result.mainInferred = true;
+  }
+
   return result;
 }
 
@@ -441,13 +454,21 @@ function tick() {
   const windows = scanPanes();
 
   for (const [windowId, panes] of windows) {
-    const hasMain = panes.some(p => p.label === 'main-context');
-    if (!hasMain) {
+    const classified = classifyPanes(panes);
+
+    // No main pane (real or inferred) → not an execution window we manage.
+    if (!classified.mainPane) {
       managedWindows.delete(windowId);
       continue;
     }
 
-    const classified = classifyPanes(panes);
+    // Persist an inferred main-context label so the pane border is correct and
+    // subsequent ticks classify it directly (no re-inference). One-shot: once
+    // written, the pane carries the label and this branch is skipped.
+    if (classified.mainInferred) {
+      log(`INFER: ${windowId} promoted unlabelled pane ${classified.mainPane} to main-context`);
+      tmux(['set-option', '-p', '-t', classified.mainPane, '@agent-name', 'main-context']);
+    }
     const { columns, leftoverUnnamed } = computeTargetColumns(classified);
     const signature = targetSignature(columns);
     const size = getSize(panes);

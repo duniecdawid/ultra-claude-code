@@ -1,5 +1,12 @@
 [
   {
+    "seq": 174,
+    "version": "2026.06.15-2",
+    "date": "2026-06-15",
+    "summary": "Tmux layout daemon self-heals the Lead/main pane label instead of depending on a model-driven tmux step. Root cause of recurring 'window never arranged' reports: the `main-context` label is set by an instruction the Lead model has to choose to run (phase-1 §1.1b / phase-2 §2.6), and it gets skipped when /uc:plan-execution is invoked mid-session — leaving the Lead pane unlabelled, which made the daemon skip the entire window (teammate panes piled up un-gridded; the window never appeared in the daemon log). Teammates self-label mechanically, so the fix is inference: classifyPanes now promotes the lone unlabelled pane in a window that already has PM/watchdog/task panes to main-context, and tick() persists that label once via set-option (so the border is correct and later ticks classify it directly). The daemon no longer depends on the Lead ever running a label command; §1.1b/§2.6 remain as belt-and-suspenders for the border before the first arrange. Likely external trigger for the recent recurrence: a Claude Code update (2.1.177, installed two days prior) changing agent-teams pane spawning — the daemon fix is robust to that regardless.",
+    "migration": null
+  },
+  {
     "seq": 173,
     "version": "2026.06.15-1",
     "date": "2026-06-15",
