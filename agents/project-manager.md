@@ -173,7 +173,52 @@ At the very beginning of execution (before spawning any teams):
 6. **Update plan README status to "In Progress":**
    Read `documentation/plans/{PLAN_NAME}/README.md`, find the `> Status:` line, replace it with `> Status: In Progress`. Write the file back.
 
-   Do NOT send a startup ping to Lead. Lead spawned you and already knows you're running. The next message you send to Lead is the status URL (later in the startup sequence) or a validated alert — never an informational "PM ready" notification.
+7. **Emit the dashboard URL — only if the project is connected to the Ultra Claude Dashboard.**
+
+   The dashboard URL is the user's primary monitoring tool, but it only exists when the
+   `ultraclaude-agent` (see the `dashboard` skill) is set up and syncing this project. **Detect
+   the connection first. If any check below fails, send NO URL and move on silently** — do not
+   block, do not send a placeholder, do not send an empty line. A project with no dashboard simply
+   has no dashboard URL.
+
+   a. **Project registered?** The agent writes a server-side id on setup. Reuse `$PROJECT_ROOT`
+      from step 5:
+      ```bash
+      PROJECT_ID_FILE="$PROJECT_ROOT/.claude/ultra/project-id"
+      [ -f "$PROJECT_ID_FILE" ] || echo "dashboard not connected (no project-id) — skipping URL"
+      PROJECT_ID=$(cat "$PROJECT_ID_FILE" 2>/dev/null)
+      ```
+      No file (or empty value) ⇒ skip the URL.
+
+   b. **Daemon live?** Confirm the sync daemon is actually running (a non-zero exit also covers the
+      case where `ultraclaude-agent` isn't installed at all):
+      ```bash
+      ultraclaude-agent status >/dev/null 2>&1 || echo "dashboard not connected (daemon down / agent missing) — skipping URL"
+      ```
+      Non-zero exit ⇒ skip the URL.
+
+   c. **Resolve the dashboard host.** The per-server agent config dir is named after the host.
+      Prefer the dir whose `config.json` maps this `$PROJECT_ROOT`; else the first agent dir; else
+      fall back to the canonical product host:
+      ```bash
+      HOST=$(grep -rl -- "$PROJECT_ROOT" "$HOME/.claude/ultra/agent"/*/config.json 2>/dev/null \
+             | head -1 | awk -F/ '{print $(NF-1)}')
+      [ -z "$HOST" ] && HOST=$(ls -1 "$HOME/.claude/ultra/agent" 2>/dev/null | head -1)
+      HOST=${HOST:-dashboard.ultra-claude.dev}
+      ```
+
+   d. **Only when (a) AND (b) both pass**, construct the per-project deep-link and send it once:
+      ```bash
+      URL="https://$HOST/projects/$PROJECT_ID"
+      ```
+      `SendMessage` Lead: `"Dashboard live at {URL}"`. Lead displays it to the user. If you skipped
+      at (a) or (b), send nothing here.
+
+   Do NOT send a startup ping to Lead. Lead spawned you and already knows you're running. The next
+   message you send to Lead is the **dashboard URL if the project is connected** (step 7) —
+   otherwise the first thing Lead hears from you is a validated alert. Never send an informational
+   "PM ready" notification, and never send a placeholder or empty URL when the dashboard isn't
+   connected.
 
 ### events.json — event types
 
@@ -248,7 +293,10 @@ The Lead sends you terse status messages as it orchestrates. Process each into t
 
 ### Communication with Lead
 
-**You send to Lead (alerts only — all validated from watchdog signals):**
+**You send to Lead:**
+- "Dashboard live at {URL}" — **one-time, at startup, only when the project is connected to the dashboard** (Startup Sequence step 7). Skipped entirely when no dashboard is connected.
+
+**You send to Lead (alerts — all validated from watchdog signals):**
 - "USAGE KILL [{window}]: {pct}% used. ..." — emergency, validated from watchdog KILL signal (5h ≥95% or 7d ≥98%)
 - "USAGE PAUSE [{window}]: {pct}% used. ..." — approaching limit, validated from watchdog PAUSE signal (5h ≥90% or 7d ≥95%)
 - "USAGE CONSERVE [{window}]: {pct}% used. ..." — advisory, validated from watchdog CONSERVE signal (5h ≥80% or 7d ≥90%)

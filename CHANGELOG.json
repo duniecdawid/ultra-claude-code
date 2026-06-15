@@ -1,5 +1,19 @@
 [
   {
+    "seq": 173,
+    "version": "2026.06.15-1",
+    "date": "2026-06-15",
+    "summary": "Tmux layout daemon: the Lead's main pane is now reliably labelled `main-context`, so the daemon never skips a live execution window. Root cause: the daemon only manages a window once its Lead pane carries `@agent-name=main-context`, but that label was set in exactly one place — a one-shot in phase-1-setup §1.1b. If the Lead's controlling pane differed from `$TMUX_PANE` at startup, or the Lead moved to a new window after §1.1b ran, the label never landed on the pane the teammates spawned beside; the daemon then ignored the whole window (teammate panes piled up un-gridded, zero log lines for that window). Fix: re-assert the same idempotent label in Phase 2's Pre-Spawn Checklist (new §2.6), which runs before EVERY TeamCreate (initial spawn AND pipeline pre-spawn) — so the main pane is guaranteed labelled before the first teammate pane appears. Same mode gating as §1.1b (skipped for tmux mode none/custom or when $TMUX_PANE is unset). §1.1b cross-references §2.6 as the durable re-assertion. Verified swap-pane preserves pane-scoped @agent-name (keyed to pane_id), so the daemon's reordering is not the cause.",
+    "migration": null
+  },
+  {
+    "seq": 172,
+    "version": "2026.06.14-2",
+    "date": "2026-06-14",
+    "summary": "Plan-execution dashboard URL is now the real Ultra Claude Dashboard deep-link, emitted only when the project is connected. Removed the old half-implemented 'status URL' vestige: the PM was told to send a URL it had no way to construct, with no guard for projects that never set up the dashboard. New Project Manager startup step 7 detects connection (both `.claude/ultra/project-id` present AND `ultraclaude-agent status` confirming the daemon is live), resolves the host from `~/.claude/ultra/agent/<host>/config.json` (default dashboard.ultra-claude.dev), and sends Lead `Dashboard live at https://{host}/projects/{project-id}` — otherwise it sends nothing (no placeholder, no block). Detection commands/markers reused verbatim from the dashboard skill. plan-execution SKILL.md Lead-side wording made conditional (relay/display only if PM sends one); help skill PM entry synced. Docs site grep clean (no page describes the relay). No machine-specific values: host is config-derived with a canonical-product-host fallback, all paths use $HOME/$PROJECT_ROOT.",
+    "migration": null
+  },
+  {
     "seq": 171,
     "version": "2026.06.14-1",
     "date": "2026-06-14",

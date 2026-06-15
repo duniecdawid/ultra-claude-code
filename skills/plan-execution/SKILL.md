@@ -115,7 +115,7 @@ When you receive a message, match it against the table below and execute the act
 **Wake-up trace (temporary diagnostic mode):** every time a message wakes you up, your **first** user-visible output for that turn is exactly **one sentence** describing the message you just received — sender, type, and task ID if applicable. Examples: `Received: FILE-UPDATED task-3/impl.md from executor-3.` / `Received: code complete from executor-2.` / `Received: USAGE PAUSE [5h] from PM.` Then process the handler row. Between wake-ups, stay silent — do NOT narrate state, plans, or what teammates are doing. This trace exists so the user can audit which senders are noisy and decide whether Lead actually needs each message; it replaces the old "be silent between messages" rule for now.
 
 **Other user-visible outputs from the Lead during execution:**
-1. The status URL (relay from PM)
+1. The dashboard URL, if the project is connected to the dashboard (relayed from PM at startup)
 2. Escalation questions (relay to user)
 3. The Phase 5 completion summary
 
@@ -130,7 +130,7 @@ When you receive a message, match it against the table below and execute the act
 | Any team member: `"FILE-UPDATED task-{N}/{file}: {reason}"` | No Lead action unless Lead was about to act on that file. Broadcasts are primarily for teammates' benefit. Stage transitions are recorded in signals.jsonl per task — PM reads signals.jsonl directly for execution state derivation. |
 | Executor: `"Task {N} escalation needed"` | Escalate to user with evidence. If any pre-spawned successor M is parked with N as its predecessor, note this in the escalation — the parked team stays alive while the user decides. On user "abort/skip": shut down parked M before proceeding. On user "continue/retry": M stays parked and will receive `Implementation approved` when N eventually reaches `task done`. |
 | Executor: `"PLAN-INVALIDATING: ..."` | Pause pipeline. Evaluate scope. Amend (update `tasks/task-N/task.md` + broadcast FILE-UPDATED) or escalate. Parked pipeline successors stay parked through the pause. If the amendment drops or materially changes a parked successor's task, shut down that successor explicitly before resuming. |
-| PM: `"Dashboard live at {URL}"` | Display to user immediately: `"📊 Live dashboard: {URL}"` — do NOT silently consume. |
+| PM: `"Dashboard live at {URL}"` | Display to user immediately: `"📊 Live dashboard: {URL}"` — do NOT silently consume. PM sends this **only when the project is connected to the Ultra Claude Dashboard**, so its absence is normal — when no such message arrives, there is simply no dashboard line to show. |
 | PM: `"USAGE KILL [{window}]: ..."` | Emergency (5h ≥95% or 7d ≥98%). Read `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/usage-control.md`. **Write SHUTDOWN signal to all active tasks:** for each active task-{N}, `echo '{"ts":"...","signal":"SHUTDOWN","author":"lead"}' >> tasks/task-{N}/signals.jsonl`. **Kill all active task teams immediately via `shutdown_request`:** for each active executor-{N}, reviewer-{N}, and tester-{N}, send `shutdown_request`. Do NOT use plain text messages. Record `{window}: kill` in the `## Usage Blocks` section of `shared/lead.md`. Trigger checkpoint (Phase 3). Enter hold state: do not spawn anything new, do not respond to ADVICE/QUERY from killed agents. Wait for USAGE RESET to clear ALL blocks, then trigger "Recovery After KILL" from usage-control.md. |
 | PM: `"USAGE PAUSE [{window}]: ..."` | Approaching limit (5h ≥90% or 7d ≥95%). Read `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/usage-control.md`. **Write PAUSE signal to all active tasks:** for each active task-{N}, `echo '{"ts":"...","signal":"PAUSE","author":"lead"}' >> tasks/task-{N}/signals.jsonl`. **Send PAUSE to all active agents:** SendMessage each active executor/reviewer/tester: `"PAUSE: usage {window}={pct}%. Go idle. You will receive RESUME when usage resets."` Record `{window}: pause` in the `## Usage Blocks` section of `shared/lead.md`. Trigger checkpoint (Phase 3). Enter hold state: do not spawn anything new, do not respond to ADVICE/QUERY from paused agents. Wait for USAGE RESET to clear ALL blocks, then trigger "Recovery After PAUSE" from usage-control.md. |
 | PM: `"USAGE CONSERVE [{window}]: ..."` | Advisory (5h ≥80% or 7d ≥90%). Read `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/usage-control.md`. **Do NOT stop current work** — active teams finish their current task. No message to team members. **Stop spawning new teams** — no slot-fill, no pipeline pre-spawn. Record `{window}: conserve` in the `## Usage Blocks` section of `shared/lead.md`. On the next `task done` message, trigger checkpoint (Phase 3) in addition to the normal shutdown. Keep processing incoming task-done messages — shut down teams but do NOT fill slots. |
@@ -330,7 +330,7 @@ You are the **orchestrator and domain authority**. You spawn executor + reviewer
 - Handle escalations (relay to user, keep parked successors alive unless user aborts)
 - Handle plan-invalidating discoveries (pause, evaluate, amend task.md files + broadcast, shut down parked successors if their tasks are dropped)
 - Send status updates to PM after each action (SPAWNED, SPAWNED-TESTER, STAGE, COMPLETED, SHUTDOWN, etc.) — PM also reads signals.jsonl per task for stage derivation (review/test pass/fail, retries)
-- **Display the status URL to the user** when PM sends it — this is the user's primary monitoring tool
+- **Display the dashboard URL to the user** if PM sends one (PM only sends it when the project is connected to the dashboard) — this is the user's primary monitoring tool
 - Handle usage pause/resume from PM (defer spawning during pause, shut down teams as tasks complete, checkpoint on pause, go quiet until USAGE-RESUME)
 - Checkpoint when triggered
 - Run Phase 5 when all tasks are done
@@ -339,7 +339,7 @@ You are the **orchestrator and domain authority**. You spawn executor + reviewer
 - Narrate what team members are doing to the user
 - Comment on state transitions to the user
 - Send verbose status summaries (PM status updates are terse one-liners)
-- Silently consume the PM's status URL without showing it to the user
+- Silently consume the PM's dashboard URL without showing it to the user
 
 ### Anti-Patterns
 

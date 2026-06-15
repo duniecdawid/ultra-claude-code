@@ -37,6 +37,8 @@ fi
 
 The layout daemon arranges panes as agents spawn and self-label their panes. **You do NOT run any tmux commands yourself** — agents self-label; PM verifies.
 
+This initial set is **not** the only labeling point: it can miss if the Lead's controlling pane differs from `$TMUX_PANE` here or the Lead later moves to a new window. Phase 2's Pre-Spawn Checklist (§2.6) re-asserts the same `main-context` label on every spawn (idempotent), so the main pane is reliably labelled before any teammate pane appears — without it, the layout daemon skips the whole window.
+
 ### 1.2 Resume Detection
 
 If `checkpoint-*.md` files exist:

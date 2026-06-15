@@ -53,6 +53,17 @@ touch "$PLAN_DIR/tasks/task-{N}/signals.jsonl"
 
 This must happen before TeamCreate so agents can read and append to it from their first action. The file starts empty — signals are appended as pipeline events occur.
 
+### 2.6. Re-assert the main-context pane label (UC-managed tmux modes only)
+
+The layout daemon only manages a window once its Lead pane carries `@agent-name=main-context`; a window whose Lead pane is unlabelled is skipped entirely (so it never gets arranged and the teammate panes pile up un-gridded). Phase 1 §1.1b sets this label once, but a one-shot is fragile — if the Lead's controlling pane differs from `$TMUX_PANE` at startup, or the Lead moved to a new window after §1.1b ran, the label never lands on the pane the teammates actually spawn beside. Re-assert it here, on every spawn, so the main pane is guaranteed labelled by the time the first teammate pane appears (idempotent — setting an already-set pane option is a no-op):
+
+```bash
+TMUX_MODE=$(jq -r '.tmuxMode // empty' ~/.claude/ultra/uc-setup.json 2>/dev/null)
+if [ -n "$TMUX_PANE" ] && [ "$TMUX_MODE" != "none" ] && [ "$TMUX_MODE" != "custom" ]; then
+  tmux set-option -p -t "$TMUX_PANE" @agent-name "main-context"
+fi
+```
+
 ### 3. Pipeline-mode block (pipeline pre-spawn only)
 
 If this is a pipeline pre-spawn (Executor's `code complete` on predecessor task {P} freed a slot and task-{N} is the next unblocked dependent), append the Pipeline mode block to `tasks/task-{N}/task.md` after the knowledge review — there's a commented-out template inside the task.md template showing the exact format. Fill in `{P}` and uncomment it.
