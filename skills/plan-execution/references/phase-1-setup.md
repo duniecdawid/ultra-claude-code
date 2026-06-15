@@ -14,30 +14,19 @@ Read ALL files in `documentation/plans/$ARGUMENTS/`:
 
 You now have the full picture.
 
-### 1.1b Tmux Layout Daemon (when tmux mode is per-project or per-terminal)
+### 1.1b Tmux Layout Setup
 
-**Skip this step when `$TMUX_PANE` is unset OR when tmux mode is `none` or `custom`.** The layout daemon and pane organizer are only for users who chose a UC-managed tmux mode. Agent teams communicate via the signal protocol and SendMessage, which are tmux-independent. The layout grid is a visual enhancement only.
-
-Check the tmux mode from the marker file:
+Run the layout-setup script — **always, unconditionally**. Do not wrap it in a tmux check of your own; the script owns the gate. This keeps the instruction trivial ("run this one script") instead of a conditional you might skip or paraphrase wrong:
 
 ```bash
-TMUX_MODE=$(jq -r '.tmuxMode // empty' ~/.claude/ultra/uc-setup.json 2>/dev/null)
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/tmux-layout-setup.sh"
 ```
 
-Start the layout daemon only if tmux is available AND the user chose a UC-managed tmux mode:
+What the script does (so you know what to expect — you don't reproduce it): its single runtime gate is `$TMUX_PANE`. Inside tmux it (1) ensures the layout daemon is running, (2) names this — the Lead/main — pane `@agent-name=main-context`, and (3) turns on the pane-border label display. Outside tmux it no-ops. Per `skills/setup/references/tmux-modes.md`, `$TMUX_PANE` is the runtime signal for tmux commands; the setup-time `tmuxMode` preference does **not** gate runtime behaviour. Every action and skip is logged to `~/.claude/ultra/tmux-layout-setup.log` for debugging.
 
-```bash
-if [ -n "$TMUX_PANE" ] && [ "$TMUX_MODE" != "none" ] && [ "$TMUX_MODE" != "custom" ]; then
-  node "${CLAUDE_PLUGIN_ROOT}/scripts/tmux-layout-daemon.js" --ensure
-  tmux set-option -p -t $TMUX_PANE @agent-name "main-context"
-  tmux set-option -w pane-border-status top
-  tmux set-option -w pane-border-format " #{@agent-name} "
-fi
-```
+The layout daemon arranges panes as agents spawn and self-label their panes. **You do NOT run any tmux commands yourself** beyond this one script — agents self-label; PM verifies.
 
-The layout daemon arranges panes as agents spawn and self-label their panes. **You do NOT run any tmux commands yourself** — agents self-label; PM verifies.
-
-This initial set is **not** the only labeling point: it can miss if the Lead's controlling pane differs from `$TMUX_PANE` here or the Lead later moves to a new window. Phase 2's Pre-Spawn Checklist (§2.6) re-asserts the same `main-context` label on every spawn (idempotent), so the main pane is reliably labelled before any teammate pane appears — without it, the layout daemon skips the whole window.
+Two layers keep the main pane labelled so the daemon never skips the window: Phase 2's Pre-Spawn Checklist (§2.6) re-runs this same script before every spawn (idempotent), and the daemon itself self-heals — if the Lead pane is ever unlabelled, it infers the Lead from window contents and persists the label (see `scripts/tmux-layout-daemon.js`).
 
 ### 1.2 Resume Detection
 

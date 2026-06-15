@@ -1,5 +1,12 @@
 [
   {
+    "seq": 175,
+    "version": "2026.06.15-3",
+    "date": "2026-06-15",
+    "summary": "Extract tmux layout setup into a single always-invoked script (scripts/tmux-layout-setup.sh) instead of inline conditional bash the Lead model had to interpret. plan-execution phase-1 §1.1b and phase-2 §2.6 now just `bash ${CLAUDE_PLUGIN_ROOT}/scripts/tmux-layout-setup.sh` — the script owns the conditions, so the model instruction is trivial and hard to skip/paraphrase wrong. The script's single runtime gate is `$TMUX_PANE`, matching the design already documented in setup/references/tmux-modes.md (\"$TMUX_PANE is the runtime signal … the setup-time tmuxMode preference does not matter at runtime\"); the old inline block's extra `TMUX_MODE != none/custom` check was inconsistent with that and is dropped — in tmux ⇒ name the pane, full stop. Effects unchanged and idempotent: ensure the daemon, label the current pane @agent-name=main-context, enable the pane-border label display. Adds full action/skip logging to ~/.claude/ultra/tmux-layout-setup.log (1 MB cap) for future debugging. Complements the daemon self-heal (seq 174): the script makes the common case deterministic, the daemon infers the Lead pane if the label is ever still missing.",
+    "migration": null
+  },
+  {
     "seq": 174,
     "version": "2026.06.15-2",
     "date": "2026-06-15",
