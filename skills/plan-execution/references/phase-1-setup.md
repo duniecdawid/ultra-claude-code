@@ -1,5 +1,34 @@
 # Phase 1: Setup
 
+### 1.0 Lead Tooling Preflight
+
+**Do this before anything else.** Plan execution runs on a real persistent **team** — the Lead spawns teammates (Executor, Reviewer, Tester, PM, Watchdog) that stay alive, message each other, and appear on the team graph. The tools that make this work are **deferred** in a fresh session: they are not in your loaded toolset until you load them. If you skip this step, you will (correctly) observe that `SendMessage`/`Monitor` "aren't in my toolset" and may wrongly conclude the team feature is unavailable and degrade to a lossy one-shot path. Don't. Load the tools first.
+
+**1. Load the deferred agent-teams tools in one call:**
+
+```
+ToolSearch("select:SendMessage,Monitor,TaskCreate,TaskUpdate,TaskList")
+```
+
+(The `Agent` tool is already directly available — it does not need loading.)
+
+**2. Availability gate.** If `SendMessage` does **not** resolve (ToolSearch reports no match for it), agent teams is not enabled in this environment. **Stop** and tell the user:
+
+> "Plan execution needs agent teams enabled (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`). Run `/uc:setup` to configure it, then re-run `/uc:plan-execution`."
+
+Do **not** improvise a subagent-only fallback — a one-shot pipeline silently drops PM, the watchdog, peer messaging, signal durability, and pipeline pre-spawn. Stopping with a clear instruction is the correct behavior.
+
+**3. Primitive mapping — how you actually spawn and communicate.** There is **no** `TeamCreate` tool and no `CommunicateTeamMember`/`WaitForTeamMember` tool. Everything is built from these real primitives:
+
+| Concept | Real invocation |
+|---------|-----------------|
+| **Spawn a teammate** (Executor/Reviewer/Tester/PM/Watchdog) — persistent, team-graph member, addressable via `SendMessage` | `Agent` tool in **teammate mode**: `name="{role}-{N}"` + `run_in_background: true` + `subagent_type`/agent file + `model` + `mode`. Do **not** pass `team_name` — it is deprecated/ignored (the session has a single implicit team). |
+| **Spawn a one-shot subagent** (the researcher, via `/uc:research`) — stateless, returns once, not on the team graph | `Agent` tool in **one-shot mode**: foreground, no `name`. |
+| **Lead-side task list** | `TaskCreate(...)` / `TaskUpdate(...)` (this is unrelated to spawning — it tracks task state). |
+| **Send / broadcast / wait** | `CommunicateTeamMember`, `CommunicateTeam`, `WaitForTeamMember` are **procedures**, not tools — fixed sequences of `SendMessage` + an `echo >>` append to `signals.jsonl` + `Monitor`, defined in `references/execution-communication-protocol.md`. Never search for a tool by those names. |
+
+The teammate↔subagent distinction is load-bearing (see SKILL.md) — it is expressed by *which mode of the `Agent` tool* you use, not by different tools.
+
 ### 1.1 Read Entire Plan Directory
 
 Read ALL files in `documentation/plans/$ARGUMENTS/`:
@@ -195,9 +224,9 @@ Persist this in `shared/lead.md` under execution config so it's available if the
 
 Before spawning any task-teams, spawn the plan-wide utility agents: **PM and Haiku watchdog.**
 
-1. Spawn `pm-{PLAN_NAME}` via TeamCreate using the PM spawn prompt in `references/phase-2-spawn-prompts.md`. PM has Bash access and self-labels its pane on startup.
+1. Spawn `pm-{PLAN_NAME}` via the `Agent` tool in teammate mode (`name="pm-{PLAN_NAME}"`, `run_in_background: true`) using the PM spawn prompt in `references/phase-2-spawn-prompts.md`. PM has Bash access and self-labels its pane on startup.
 
-2. Spawn `watchdog-{PLAN_NAME}` via TeamCreate using the watchdog spawn prompt in `references/phase-2-spawn-prompts.md`. Pass the resolved `ACCOUNT_KEY` into the spawn prompt. The watchdog runs on Haiku (cheap), uses a bash monitoring script via Monitor (zero AI tokens on clean ticks), and signals PM on usage thresholds and stalls. It always runs regardless of `extra_usage` setting — stall detection is useful in all cases.
+2. Spawn `watchdog-{PLAN_NAME}` via the `Agent` tool in teammate mode (`name="watchdog-{PLAN_NAME}"`, `run_in_background: true`) using the watchdog spawn prompt in `references/phase-2-spawn-prompts.md`. Pass the resolved `ACCOUNT_KEY` into the spawn prompt. The watchdog runs on Haiku (cheap), uses a bash monitoring script via Monitor (zero AI tokens on clean ticks), and signals PM on usage thresholds and stalls. It always runs regardless of `extra_usage` setting — stall detection is useful in all cases.
 
 Both agents self-label their tmux panes when tmux is available (skipped otherwise). No tmux commands needed from you.
 

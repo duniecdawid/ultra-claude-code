@@ -2,6 +2,8 @@
 
 All task-team agents (Executor, Reviewer, Tester, PM) and Lead use this protocol for every inter-agent communication. It wraps SendMessage with a durable file-based signal layer so that no message is lost when SendMessage silently fails.
 
+> **`CommunicateTeamMember`, `CommunicateTeam`, and `WaitForTeamMember` are procedures defined in this file — not tools.** Do not look for a tool by these names; ToolSearch will not find them, and their absence does **not** mean the team feature is unavailable. Each is a fixed sequence built from real primitives: `SendMessage` (deferred — load via `ToolSearch` at startup), an `echo >>` append to `signals.jsonl` (Bash), and — for waits — `Monitor` (deferred, with a Bash fallback). Spawning teammates is done with the **`Agent` tool** (teammate mode: `name` + `run_in_background: true`), **not** a `TeamCreate` tool — no such tool exists.
+
 **Load this file during startup** — it is referenced from `task-team-startup.md` and your agent instructions.
 
 ## 1. CommunicateTeamMember(to, message, signal?, content_file?)

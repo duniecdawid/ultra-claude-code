@@ -2,7 +2,7 @@
 
 All task-team spawn prompts are **minimal pointers**. Per-task content (description, success criteria, patterns, research, files, dependencies) lives in `documentation/plans/$ARGUMENTS/tasks/task-{N}/task.md`. Every agent reads its task directory as its first action after pane labeling — see `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/task-team-startup.md`.
 
-Use TeamCreate with `team_name` set to the active team. **MANDATORY naming convention** — the `name` parameter MUST follow exactly `{role}-{N}` where role is one of `executor`, `reviewer`, `tester` and N is the task number:
+Spawn teammates with the **`Agent` tool in teammate mode**: `run_in_background: true`, `subagent_type`/agent file + `model` + `mode` as listed per role below. Do **not** pass `team_name` — it is deprecated/ignored (the session has a single implicit team). **MANDATORY naming convention** — the `name` parameter MUST follow exactly `{role}-{N}` where role is one of `executor`, `reviewer`, `tester` and N is the task number:
 
 | Task | Executor | Reviewer | Tester |
 |------|----------|----------|--------|
@@ -16,7 +16,7 @@ Use TeamCreate with `team_name` set to the active team. **MANDATORY naming conve
 
 ## Pre-Spawn Checklist
 
-Run these in order before EVERY `TeamCreate` for a task team (initial spawn AND pipeline pre-spawn):
+Run these in order before EVERY teammate spawn (`Agent` tool, teammate mode) for a task team (initial spawn AND pipeline pre-spawn):
 
 ### 1. Ensure `task.md` exists
 
@@ -34,7 +34,7 @@ Most of the time the planner already met the bar and Lead does nothing. When a g
 2. **Staleness check:** for each referenced research file under `documentation/technology/research/`, check the frontmatter staleness window (rules owned by `/uc:research`). If stale, invoke `/uc:research {lib} --refresh`. The pointer path stays the same; content updates in place.
 3. **Coverage check:** enumerate the core technologies this task will actually touch — external libraries/frameworks in the Files list, APIs referenced in the Description, architectural patterns the task inherently involves (retry, cache invalidation, queue, migration, auth flow, etc.). For each, confirm task.md has a pointer. If something is missing, invoke `/uc:research {missing-tech}` and append the new pointer to task.md's Research section (with a one-line gloss of what matters for this task).
 4. **Depth check:** if an existing pointer covers a topic shallowly (e.g., a library overview, but this task hits a specific API surface that isn't in the research), invoke `/uc:research` with a narrower query and either refresh the existing pointer or append an additional one.
-5. **Bar:** by the time you call TeamCreate, you should be able to say "every core technology this task depends on has been researched and is referenced from task.md." That's the contract.
+5. **Bar:** by the time you spawn the team, you should be able to say "every core technology this task depends on has been researched and is referenced from task.md." That's the contract.
 
 **What Lead does NOT do:**
 - Rewrite the task scope or change the planner's Files list.
@@ -51,7 +51,7 @@ Create the empty signal file for the task:
 touch "$PLAN_DIR/tasks/task-{N}/signals.jsonl"
 ```
 
-This must happen before TeamCreate so agents can read and append to it from their first action. The file starts empty — signals are appended as pipeline events occur.
+This must happen before the teammate spawn so agents can read and append to it from their first action. The file starts empty — signals are appended as pipeline events occur.
 
 ### 2.6. Re-assert the main-context pane label
 
@@ -67,9 +67,9 @@ Its only runtime gate is `$TMUX_PANE` (no-op outside tmux); re-running it is che
 
 If this is a pipeline pre-spawn (Executor's `code complete` on predecessor task {P} freed a slot and task-{N} is the next unblocked dependent), append the Pipeline mode block to `tasks/task-{N}/task.md` after the knowledge review — there's a commented-out template inside the task.md template showing the exact format. Fill in `{P}` and uncomment it.
 
-### 4. TeamCreate
+### 4. Spawn the team
 
-Spawn the task team using the minimal spawn prompts below. All 3 task members for a task are spawned **in parallel** (single message with multiple TeamCreate calls). Each agent self-labels its pane on startup — no PM intervention needed.
+Spawn the task team using the minimal spawn prompts below — each via the `Agent` tool in teammate mode (`name`, `run_in_background: true`, plus the role's agent file / `model` / `mode`). Executor and Reviewer are spawned together **in parallel** (single message with multiple `Agent` calls); the Tester is lazy-spawned later. Each agent self-labels its pane on startup — no PM intervention needed.
 
 After spawning, send to PM:
 

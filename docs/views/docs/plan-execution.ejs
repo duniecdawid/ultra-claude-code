@@ -47,7 +47,7 @@
       <li><strong>Project Manager</strong> (Sonnet) &mdash; monitors progress, detects stalls, tracks usage, maintains live execution state files</li>
     </ul>
 
-    <p>Knowledge lives <strong>per-task</strong> in each <code>tasks/task-N/task.md</code>'s <code>**Research:**</code> section &mdash; a list of pointers to durable files under <code>documentation/technology/research/</code>, populated by planning Stage 2 via <code>/uc:research</code>. Lead reviews research coverage per-task just before spawning each team and fills any gaps. Mid-execution, teammates send <code>QUERY: {question}</code> to Lead for external docs; Lead runs <code>/uc:research</code>, replies with an <code>ANSWER:</code>, and appends the new pointer to the task's task.md so it's durable for re-spawns and future teammates. The typed distinction between <em>Teammates</em> (TeamCreate, stateful, tracked) and <em>Subagents</em> (Task tool, stateless, invisible to the team graph) keeps the team focused on pipeline work while allowing cheap isolated research lookups.</p>
+    <p>Knowledge lives <strong>per-task</strong> in each <code>tasks/task-N/task.md</code>'s <code>**Research:**</code> section &mdash; a list of pointers to durable files under <code>documentation/technology/research/</code>, populated by planning Stage 2 via <code>/uc:research</code>. Lead reviews research coverage per-task just before spawning each team and fills any gaps. Mid-execution, teammates send <code>QUERY: {question}</code> to Lead for external docs; Lead runs <code>/uc:research</code>, replies with an <code>ANSWER:</code>, and appends the new pointer to the task's task.md so it's durable for re-spawns and future teammates. The distinction between <em>Teammates</em> (the <code>Agent</code> tool in teammate mode &mdash; <code>name</code> + <code>run_in_background</code>, stateful, tracked on the team graph) and <em>Subagents</em> (the <code>Agent</code> tool in one-shot mode &mdash; foreground, no name, stateless, invisible to the team graph) keeps the team focused on pipeline work while allowing cheap isolated research lookups.</p>
 
     <h2>How a task flows</h2>
     <ol>
@@ -149,7 +149,7 @@
     <details>
       <summary>Execution communication protocol</summary>
       <div class="details-content">
-        <p>SendMessage is unreliable (silent failures, name/ID mismatches, orphaned inboxes &mdash; multiple open bugs in Claude Code). All agents use a unified communication protocol with three functions:</p>
+        <p>SendMessage is unreliable (silent failures, name/ID mismatches, orphaned inboxes &mdash; multiple open bugs in Claude Code). All agents use a unified communication protocol with three <strong>procedures</strong> (named conventions defined by the protocol &mdash; not Claude Code tools, so they won't appear in a tool search). Each composes the real primitives <code>SendMessage</code> and <code>Monitor</code> (both loaded via <code>ToolSearch</code> at startup) with an append to <code>signals.jsonl</code>:</p>
         <ul>
           <li><strong><code>CommunicateTeamMember(to, message, signal?, content_file?)</code></strong> &mdash; send to one agent. Writes content file (if any), appends signal to <code>signals.jsonl</code> (if any), then attempts SendMessage (best-effort). The ordering is load-bearing: content before signal, signal before SendMessage.</li>
           <li><strong><code>CommunicateTeam(message, signal?, content_file?)</code></strong> &mdash; broadcast to all active teammates + Lead. Same ordering, SendMessage to each recipient.</li>

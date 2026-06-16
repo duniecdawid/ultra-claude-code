@@ -70,7 +70,7 @@ Present the scoping summary to the user before proceeding. Be concise — 5-8 li
 
 Run two research streams in parallel:
 
-**1. Explore subagent** (spawn via Task tool) — internal codebase and technical research:
+**1. Explore subagent** (spawn via the `Agent` tool, one-shot mode) — internal codebase and technical research:
 
 > Research topic: [topic from $ARGUMENTS]
 >

@@ -1,5 +1,12 @@
 [
   {
+    "seq": 176,
+    "version": "2026.06.16-1",
+    "date": "2026-06-16",
+    "summary": "Fix the intermittent plan-execution failure where the Lead announces the agent-teams tools aren't available and silently degrades to a lossy one-shot subagent pipeline (dropping PM, watchdog, peer messaging, signal durability, and pipeline pre-spawn). Root cause: the skill instructed the Lead to spawn teammates with a tool named `TeamCreate` (and `team_name`) and one-shot research via the 'Task tool' — neither name exists in current Claude Code. Verified against the live `Agent` tool schema (its `team_name` param is now 'Deprecated; ignored. The session has a single implicit team', and `name` 'makes it addressable via SendMessage') and ToolSearch (no TeamCreate/TeamAdd/CreateTeam tool): teammates are spawned via the `Agent` tool in teammate mode (`name` + `run_in_background: true`); one-shot subagents via the `Agent` tool foreground with no name. The teammate↔subagent distinction is unchanged and still load-bearing — only the obsolete tool name is corrected. Adds phase-1-setup §1.0 Lead Tooling Preflight: load the deferred agent-teams tools via `ToolSearch(select:SendMessage,Monitor,TaskCreate,TaskUpdate,TaskList)`, an availability gate that STOPS with a `/uc:setup` instruction if SendMessage is unavailable (replacing the invented degradation), and an explicit primitive mapping. Clarifies that `CommunicateTeamMember`/`CommunicateTeam`/`WaitForTeamMember` are protocol PROCEDURES (SendMessage + signals.jsonl + Monitor), not tools — added a banner to execution-communication-protocol.md and reinforced in SKILL.md. Replaced all TeamCreate/'Task tool' references across plan-execution SKILL.md + phase-1/phase-2 references, research and discovery-mode skills, and the docs site (plan-execution.ejs, token-efficiency.ejs). `shutdown_request` left as-is (out of scope).",
+    "migration": null
+  },
+  {
     "seq": 175,
     "version": "2026.06.15-3",
     "date": "2026-06-15",
