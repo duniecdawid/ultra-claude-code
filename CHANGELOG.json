@@ -1,5 +1,12 @@
 [
   {
+    "seq": 177,
+    "version": "2026.06.17-1",
+    "date": "2026-06-17",
+    "summary": "Make plan-execution spawn real tmux team members and cancel if it can't. The seq-176 fix corrected the teammate spawn tool name (TeamCreate → Agent) but never addressed the teammate execution BACKEND. Verified against the installed Claude Code 2.1.179 binary: how a named teammate runs is governed by the `teammateMode` settings.json key (tmux | in-process | auto), resolved per session — the Agent tool has no per-call override — and a BackendRegistry silently falls back to `in-process` when the mode resolves to in-process, the session is non-interactive, or no pane backend is reachable. With `teammateMode` unset (the machine default), named teammates spawn in-process with NO tmux panes, silently breaking the pane-based coordination plan-execution depends on (the reported 'it didn't run as a team / no panes' failure). Confirmed live: a named spawn created no pane and the session team config recorded every member as backendType=in-process, vs an older team that recorded backendType=tmux + a real tmuxPaneId. Fix: (1) /uc:setup now configures `teammateMode` in ~/.claude/settings.json (recommended `tmux`; avoids `auto` because it silently degrades), with a check (§3.2b) and fix (§5.2b) and a new marker field; (2) plan-execution gains a two-layer backend gate — a pre-spawn heuristic in phase-1-setup §1.0 (require $TMUX set AND teammateMode=tmux, else STOP) and an authoritative post-spawn check in §1.9 that reads the team config's backendType and ABORTS the run (shutdown_request to PM/watchdog) if any teammate is in-process, instead of running the degraded pipeline; prerequisite #3 changed from 'tmux optional' to 'tmux required'. (3) Spawn prompts now pass `subagent_type` as the registered type name (uc:Task Executor, etc.) instead of a file path, and the final-gate tester gets an explicit name (tester-final-gate). Docs site, help skill, and versioning synced. Existing users must re-run `/uc:setup` and relaunch inside tmux to pick up `teammateMode`.",
+    "migration": null
+  },
+  {
     "seq": 176,
     "version": "2026.06.16-1",
     "date": "2026-06-16",

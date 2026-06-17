@@ -18,11 +18,24 @@ ToolSearch("select:SendMessage,Monitor,TaskCreate,TaskUpdate,TaskList")
 
 Do **not** improvise a subagent-only fallback — a one-shot pipeline silently drops PM, the watchdog, peer messaging, signal durability, and pipeline pre-spawn. Stopping with a clear instruction is the correct behavior.
 
+**2b. Teammate backend gate (tmux).** Agent-teams being enabled is necessary but not sufficient: *how* a named teammate runs is governed by the `teammateMode` setting (`tmux` | `in-process` | `auto`), resolved per session. When it defaults to `in-process`, teammates spawn inside your process with **no tmux panes** — the pane-based coordination this skill is built on silently breaks. Check both preconditions:
+
+```bash
+echo "TMUX=${TMUX:-unset}"
+jq -r '.teammateMode // "unset"' "$HOME/.claude/settings.json" 2>/dev/null
+```
+
+If `$TMUX` is unset (you are not inside a tmux session) **or** `teammateMode` is not `tmux`, **Stop** and tell the user:
+
+> "Plan execution needs tmux-backed team members. Run `/uc:setup` to set `teammateMode: tmux`, (re)launch Claude **inside a tmux session**, then re-run `/uc:plan-execution`."
+
+`auto` does not pass this gate — it silently falls back to in-process when no pane backend is reachable, which is the failure mode we refuse to enter. This is a heuristic pre-check; the authoritative confirmation happens after the first spawn (§1.9).
+
 **3. Primitive mapping — how you actually spawn and communicate.** There is **no** `TeamCreate` tool and no `CommunicateTeamMember`/`WaitForTeamMember` tool. Everything is built from these real primitives:
 
 | Concept | Real invocation |
 |---------|-----------------|
-| **Spawn a teammate** (Executor/Reviewer/Tester/PM/Watchdog) — persistent, team-graph member, addressable via `SendMessage` | `Agent` tool in **teammate mode**: `name="{role}-{N}"` + `run_in_background: true` + `subagent_type`/agent file + `model` + `mode`. Do **not** pass `team_name` — it is deprecated/ignored (the session has a single implicit team). |
+| **Spawn a teammate** (Executor/Reviewer/Tester/PM/Watchdog) — persistent, team-graph member, addressable via `SendMessage` | `Agent` tool in **teammate mode**: `name="{role}-{N}"` + `run_in_background: true` + `subagent_type` (the registered type name, e.g. `uc:Task Executor` — not a file path) + `model` + `mode`. Do **not** pass `team_name` — it is deprecated/ignored (the session has a single implicit team). |
 | **Spawn a one-shot subagent** (the researcher, via `/uc:research`) — stateless, returns once, not on the team graph | `Agent` tool in **one-shot mode**: foreground, no `name`. |
 | **Lead-side task list** | `TaskCreate(...)` / `TaskUpdate(...)` (this is unrelated to spawning — it tracks task state). |
 | **Send / broadcast / wait** | `CommunicateTeamMember`, `CommunicateTeam`, `WaitForTeamMember` are **procedures**, not tools — fixed sequences of `SendMessage` + an `echo >>` append to `signals.jsonl` + `Monitor`, defined in `references/execution-communication-protocol.md`. Never search for a tool by those names. |
@@ -229,6 +242,16 @@ Before spawning any task-teams, spawn the plan-wide utility agents: **PM and Hai
 2. Spawn `watchdog-{PLAN_NAME}` via the `Agent` tool in teammate mode (`name="watchdog-{PLAN_NAME}"`, `run_in_background: true`) using the watchdog spawn prompt in `references/phase-2-spawn-prompts.md`. Pass the resolved `ACCOUNT_KEY` into the spawn prompt. The watchdog runs on Haiku (cheap), uses a bash monitoring script via Monitor (zero AI tokens on clean ticks), and signals PM on usage thresholds and stalls. It always runs regardless of `extra_usage` setting — stall detection is useful in all cases.
 
 Both agents self-label their tmux panes when tmux is available (skipped otherwise). No tmux commands needed from you.
+
+3. **Verify the teammate backend is really tmux (cancel if not).** The §1.0 gate is a heuristic; this is the authoritative check, against the backend Claude Code actually recorded. Read the session's team config and confirm PM and watchdog landed on tmux panes:
+
+```bash
+TEAM_CFG=$(grep -rl "\"pm-{PLAN_NAME}\"" "$HOME/.claude/teams"/*/config.json 2>/dev/null | head -1)
+[ -z "$TEAM_CFG" ] && TEAM_CFG=$(ls -dt "$HOME/.claude/teams"/session-*/config.json 2>/dev/null | head -1)
+jq -r '.members[] | "\(.name) backendType=\(.backendType) pane=\(.tmuxPaneId)"' "$TEAM_CFG" 2>/dev/null
+```
+
+Every spawned member must show `backendType=tmux` with a real pane id (e.g. `%168`), **not** `backendType=in-process` (pane `in-process`/`leader`). If any spawned teammate is `in-process`, the environment silently downgraded the backend — **abort the run**: send `shutdown_request` to `pm-{PLAN_NAME}` and `watchdog-{PLAN_NAME}` (and `TaskStop` any background tasks), record the abort in `shared/lead.md`, and stop with the same remediation as the §1.0 gate ("Run `/uc:setup` to set `teammateMode: tmux`, relaunch inside tmux, re-run"). Do **not** continue into Phase 2 on an in-process backend — that is the degraded pipeline the user reported.
 
 There is no Knowledge Brief synthesis step. Research lives per-task in each `tasks/task-N/task.md`'s `**Research:**` section (populated by planning Stage 4), and Lead reviews it per-task at spawn time in Phase 2.
 

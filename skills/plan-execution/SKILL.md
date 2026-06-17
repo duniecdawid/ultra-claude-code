@@ -41,16 +41,16 @@ Then verify:
 
 1. Plan exists at `documentation/plans/$ARGUMENTS/README.md`
 2. Agent teams enabled (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS: "1"` in settings)
-3. tmux (recommended for visual pane layout; agents work without it). If tmux is not available, note: "tmux is not installed — agent pane layout will be disabled, but execution will proceed normally."
+3. Teammates spawn as **tmux panes** — both: you are running **inside a tmux session** (`$TMUX` set), and `teammateMode: "tmux"` in `~/.claude/settings.json`. Without this, named teammates default to `in-process` (no panes) and the pipeline silently degrades. This is enforced by the §1.0/§1.9 backend gate, which **stops** execution rather than running in-process.
 4. Testing config: Verify `documentation/technology/testing/` exists. If missing, warn: "No testing configuration found. Run `/uc:migrate` to set up documentation/technology/testing/." Continue execution — agents will have limited testing guidance.
 
-If prerequisites 1-2 are missing, suggest running `/uc:setup` and stop. Prerequisite 3 (tmux) is informational — continue regardless.
+If prerequisites 1-3 are missing, suggest running `/uc:setup` (and relaunching inside tmux) and stop.
 
 ---
 
 ## Phase 1: Setup
 
-**First, run the Lead Tooling Preflight (§1.0):** load the deferred agent-teams tools via `ToolSearch` and confirm `SendMessage` resolves. Teammates are spawned with the `Agent` tool in teammate mode (`name` + `run_in_background: true`) — there is no `TeamCreate` tool. If `SendMessage` is unavailable, stop and tell the user to run `/uc:setup`; never fall back to a one-shot subagent pipeline.
+**First, run the Lead Tooling Preflight (§1.0):** load the deferred agent-teams tools via `ToolSearch` and confirm `SendMessage` resolves; then clear the **teammate backend gate** ($TMUX set + `teammateMode: tmux`). Teammates are spawned with the `Agent` tool in teammate mode (`name` + `run_in_background: true`) — there is no `TeamCreate` tool. If `SendMessage` is unavailable, or teammates would spawn `in-process` instead of as tmux panes, stop and tell the user to run `/uc:setup` (and relaunch inside tmux); never fall back to a one-shot or in-process pipeline. The §1.9 post-spawn check confirms the recorded `backendType` is `tmux` and aborts the run if it is `in-process`.
 
 Then read the plan directory (including all `tasks/task-N/task.md` files from planning Stage 4), detect resume state, handle legacy-plan self-heal if needed, decide concurrency, create the Lead-side task list, and spawn the Project Manager. No Knowledge Brief synthesis — per-task research lives in each task.md, and Lead reviews it per-task at spawn time in Phase 2.
 → Read `references/phase-1-setup.md`

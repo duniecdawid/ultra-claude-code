@@ -2,7 +2,7 @@
 
 All task-team spawn prompts are **minimal pointers**. Per-task content (description, success criteria, patterns, research, files, dependencies) lives in `documentation/plans/$ARGUMENTS/tasks/task-{N}/task.md`. Every agent reads its task directory as its first action after pane labeling — see `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/task-team-startup.md`.
 
-Spawn teammates with the **`Agent` tool in teammate mode**: `run_in_background: true`, `subagent_type`/agent file + `model` + `mode` as listed per role below. Do **not** pass `team_name` — it is deprecated/ignored (the session has a single implicit team). **MANDATORY naming convention** — the `name` parameter MUST follow exactly `{role}-{N}` where role is one of `executor`, `reviewer`, `tester` and N is the task number:
+Spawn teammates with the **`Agent` tool in teammate mode**: `run_in_background: true`, `subagent_type` set to the **registered agent type name** (listed per role below — e.g. `uc:Task Executor`, NOT a file path), `model`, and `mode`. Passing a file path as `subagent_type` does not resolve and can fall back to a generic agent. Do **not** pass `team_name` — it is deprecated/ignored (the session has a single implicit team). **MANDATORY naming convention** — the `name` parameter MUST follow exactly `{role}-{N}` where role is one of `executor`, `reviewer`, `tester` and N is the task number:
 
 | Task | Executor | Reviewer | Tester |
 |------|----------|----------|--------|
@@ -79,7 +79,7 @@ SendMessage to PM: "SPAWNED task-{N}: {short description from task.md heading}"
 
 ## Executor Spawn
 
-Agent: `${CLAUDE_PLUGIN_ROOT}/agents/task-executor.md`
+subagent_type: `uc:Task Executor` (defined in `${CLAUDE_PLUGIN_ROOT}/agents/task-executor.md`)
 Model: `opus` | Mode: `bypassPermissions`
 
 ```
@@ -105,7 +105,7 @@ Then run your agent workflow.
 
 ## Reviewer Spawn
 
-Agent: `${CLAUDE_PLUGIN_ROOT}/agents/code-review.md`
+subagent_type: `uc:Code Reviewer` (defined in `${CLAUDE_PLUGIN_ROOT}/agents/code-review.md`)
 Model: `sonnet` | Mode: `bypassPermissions`
 
 ```
@@ -130,7 +130,7 @@ and send a REVIEWER TAKE to the Executor BEFORE it writes plan.md.
 
 ## Tester Spawn
 
-Agent: `${CLAUDE_PLUGIN_ROOT}/agents/task-tester.md`
+subagent_type: `uc:Task Tester` (defined in `${CLAUDE_PLUGIN_ROOT}/agents/task-tester.md`)
 Model: `sonnet` | Mode: `bypassPermissions`
 
 ```
@@ -160,10 +160,10 @@ against impl.md. You may read impl.md only for the file list.
 
 ## Final Gate Tester Spawn
 
-Agent: `${CLAUDE_PLUGIN_ROOT}/agents/task-tester.md`
-Model: `sonnet` | Mode: `bypassPermissions`
+subagent_type: `uc:Task Tester` (defined in `${CLAUDE_PLUGIN_ROOT}/agents/task-tester.md`)
+Model: `sonnet` | Mode: `bypassPermissions` | Name: `tester-final-gate`
 
-For the final regression gate after all tasks complete, spawn a fresh team member:
+For the final regression gate after all tasks complete, spawn a fresh team member (teammate mode: `name="tester-final-gate"` + `run_in_background: true`):
 
 ```
 You are running the **final gate** regression test for the "$ARGUMENTS" plan.
@@ -191,7 +191,7 @@ across all completed tasks.
 
 ## Project Manager Spawn
 
-Agent: `${CLAUDE_PLUGIN_ROOT}/agents/project-manager.md`
+subagent_type: `uc:Project Manager` (defined in `${CLAUDE_PLUGIN_ROOT}/agents/project-manager.md`)
 Model: `sonnet` | Mode: `bypassPermissions`
 
 Spawn **once** before any task-teams. The Project Manager runs for the entire plan duration — it is NOT per-task. Name it `pm-{PLAN_NAME}` (e.g., `pm-user-auth`).
@@ -273,7 +273,7 @@ Follow the workflow in your team member instructions.
 
 ## Watchdog Spawn
 
-Agent: `${CLAUDE_PLUGIN_ROOT}/agents/watchdog.md`
+subagent_type: `uc:Watchdog` (defined in `${CLAUDE_PLUGIN_ROOT}/agents/watchdog.md`)
 Model: `haiku` | Mode: `bypassPermissions`
 
 Spawn **once** alongside PM, before any task-teams. Name it `watchdog-{PLAN_NAME}`.

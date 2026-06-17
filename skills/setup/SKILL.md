@@ -1,5 +1,5 @@
 ---
-description: One-time machine setup for Ultra Claude. Checks and configures shell environment (1M context, agent teams), installs prerequisites (node, optionally tmux), guides tmux mode selection (per-project, per-terminal, none, or custom — see references/tmux-modes.md), configures the statusline for per-account usage tracking, offers the Claude Code fullscreen renderer for flicker-free flat-memory output (opt-out, version-gated), offers recommended client-side VS Code settings for the Claude Code extension when VS Code is detected (opt-in — see references/vscode-settings.md), optionally sets up Tailscale for remote access, optionally installs a tmux disconnected-session reaper for per-terminal mode users whose tmux sessions pile up, and — if the `ultraclaude-agent` npm package is already installed — checks for and offers to update it to the latest published version. Idempotent — safe to re-run. Writes version marker to ~/.claude/ultra/uc-setup.json so other skills can quickly check if setup is current. Use when onboarding a new machine, after Ultra Claude install, when plan-execution reports missing prerequisites, when experiencing screen tearing/flickering in tmux, or when stale tmux sessions are accumulating on a remote machine. Triggers on "setup", "machine setup", "environment setup", "configure machine", "setup 1m context", "enable agent teams", "screen tearing", "tmux tearing", "flickering", "fullscreen", "fullscreen renderer", "fullscreen mode", "tui", "flicker-free", "session cleanup", "tmux reaper", "reap tmux", "orphaned tmux", "stale tmux sessions".
+description: One-time machine setup for Ultra Claude. Checks and configures shell environment (1M context, agent teams, teammate execution mode for tmux-paned plan-execution teams), installs prerequisites (node, optionally tmux), guides tmux mode selection (per-project, per-terminal, none, or custom — see references/tmux-modes.md), configures the statusline for per-account usage tracking, offers the Claude Code fullscreen renderer for flicker-free flat-memory output (opt-out, version-gated), offers recommended client-side VS Code settings for the Claude Code extension when VS Code is detected (opt-in — see references/vscode-settings.md), optionally sets up Tailscale for remote access, optionally installs a tmux disconnected-session reaper for per-terminal mode users whose tmux sessions pile up, and — if the `ultraclaude-agent` npm package is already installed — checks for and offers to update it to the latest published version. Idempotent — safe to re-run. Writes version marker to ~/.claude/ultra/uc-setup.json so other skills can quickly check if setup is current. Use when onboarding a new machine, after Ultra Claude install, when plan-execution reports missing prerequisites, when experiencing screen tearing/flickering in tmux, or when stale tmux sessions are accumulating on a remote machine. Triggers on "setup", "machine setup", "environment setup", "configure machine", "setup 1m context", "enable agent teams", "screen tearing", "tmux tearing", "flickering", "fullscreen", "fullscreen renderer", "fullscreen mode", "tui", "flicker-free", "session cleanup", "tmux reaper", "reap tmux", "orphaned tmux", "stale tmux sessions".
 user-invocable: true
 ---
 
@@ -54,6 +54,16 @@ echo $CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS
 ```
 
 PASS if the export line exists in shell config.
+
+### 3.2b Teammate execution mode
+
+Plan execution runs its teammates (Executor/Reviewer/Tester/PM/Watchdog) as **tmux panes**. *How* a named teammate runs is governed by the `teammateMode` key in `~/.claude/settings.json` (`tmux` | `in-process` | `auto`). When it is unset, Claude Code defaults to **`in-process`** — teammates spawn inside the Lead's process with **no tmux panes**, which silently breaks the pane-based coordination plan-execution depends on (the user sees "it didn't run as a team / no panes").
+
+```bash
+jq -r '.teammateMode // empty' ~/.claude/settings.json 2>/dev/null
+```
+
+PASS if `teammateMode` is `tmux` (the value plan-execution needs). Report `in-process`, `auto`, or empty as NOT configured for pane-based teams. `auto` is reported as a soft-fail: it silently falls back to `in-process` when no pane backend is reachable, so we prefer an explicit `tmux`.
 
 ### 3.3 1M Context env vars
 
@@ -313,6 +323,30 @@ Append to shell config file:
 # Ultra Claude: enable agent teams for plan execution
 export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
 ```
+
+### 5.2b Fix: Teammate execution mode (tmux panes)
+
+Run when §3.2b did not report `tmux`. This is the setting that makes plan-execution spawn real tmux team members instead of silent in-process ones.
+
+1. **Ask the user** (default/recommended **tmux**), tying the choice to their tmux mode from §3.1 / Step 5:
+   - **tmux (recommended)** — teammates spawn as panes; a missing pane backend fails loudly (`no_backend_available`) instead of silently degrading. Requires launching Claude inside a tmux session.
+   - **in-process** — teammates run inside the Lead with no panes. Honest choice only if the user's `tmuxMode` is `none` and they don't want pane-based teams; warn that `/uc:plan-execution` will refuse to run in this mode (it requires tmux teammates).
+   - Avoid recommending **auto** — it silently falls back to in-process when no pane backend is present, which is exactly the failure we're fixing.
+   - If the user's stored `tmuxMode` is `none`, surface that tmux teammates need an actual tmux session and let them decide knowingly.
+
+2. **Merge `teammateMode` into `~/.claude/settings.json`** preserving all other keys (same jq-merge pattern as statusLine/tui):
+
+```bash
+settings_file="$HOME/.claude/settings.json"
+mode="tmux"   # or the user's chosen value
+if [ -f "$settings_file" ]; then
+  jq --arg m "$mode" '.teammateMode = $m' "$settings_file" > "${settings_file}.tmp" && mv "${settings_file}.tmp" "$settings_file"
+else
+  printf '{"teammateMode":"%s"}\n' "$mode" > "$settings_file"
+fi
+```
+
+Tell the user: "Teammate mode set to `tmux` — takes effect on your **next Claude Code launch** (it's read at session start, not live). Relaunch inside a tmux session before running `/uc:plan-execution`."
 
 ### 5.3 Fix: 1M Context env vars
 
@@ -620,10 +654,12 @@ After all fixes are applied, write `~/.claude/ultra/uc-setup.json`:
   "shell": "{bash or zsh}",
   "shellConfig": "{path to shell config file}",
   "tmuxMode": "per-project" | "none" | "per-terminal" | "custom",
+  "teammateMode": "tmux" | "in-process" | "auto",
   "checks": {
     "tmux": true/false,
     "tmuxConf": true/false,
     "agentTeams": true/false,
+    "teammateMode": true/false,
     "context1m": true/false,
     "node": true/false,
     "statusline": true/false,
