@@ -1,5 +1,12 @@
 [
   {
+    "seq": 178,
+    "version": "2026.06.19-1",
+    "date": "2026-06-19",
+    "summary": "Fix plan-execution never auto-resuming after a usage-window reset (paused overnight, required a manual morning restart). Two root causes. (1) The watchdog could never detect a reset while paused: its bash script reads usage from ~/.claude/ultra/usage-status.json, which is only refreshed by statusline.sh on a new API response — but a PAUSE makes every agent idle, so zero API calls happen and the file goes stale forever. The time-based reset check (now > resets_at) was gated behind the (stale) percentage first dropping below CONSERVE, so it was structurally unreachable; the watchdog ticked every 60s but never emitted USAGE-RESET. Fix A (agents/watchdog.md): make reset detection time-authoritative — when a window previously alerted and its known resets_at has passed, emit USAGE-RESET regardless of the (possibly stale) percentage (carrying reason:reset_time_passed), guarded by resets_at>0. A per-window reset_latch (added to .watchdog-state.json init, read with jq // 0 so old state files still work) suppresses re-alerting on the same stale data until resets_at advances after work resumes, preventing an immediate spurious re-PAUSE. PM (agents/project-manager.md) now interprets the reset_time_passed variant so it doesn't report the stale pct as current usage. (2) The Lead's only wake path was watchdog→PM→Lead, which silently broke. Fix B (skills/plan-execution/SKILL.md + references/usage-control.md): per the user's principle 'pause is allowed, abandoning is not', the Lead now arms a self-owned one-shot HOLD-WAKE Monitor at the known reset time when entering hold state — a guaranteed self-restart independent of the watchdog/PM chain — and may only go idle once that wake is armed and the watchdog is confirmed alive; otherwise it surfaces to the user instead of going silent. HOLD-WAKE and the watchdog's USAGE-RESET are two independent, idempotent triggers for the same recovery. The old 'Lead does NOT need its own cron during pause' guidance is reversed. Watchdog check_window logic verified with 13 scenario unit tests. Help skill and docs site (token-efficiency, plan-execution, reference) synced.",
+    "migration": null
+  },
+  {
     "seq": 177,
     "version": "2026.06.17-1",
     "date": "2026-06-17",

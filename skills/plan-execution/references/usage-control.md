@@ -36,10 +36,10 @@ Meaning: approaching the rate-limit wall. All agents must stop working and go id
    Agents stop work at their next natural checkpoint (between fix cycles) and go idle. Idle agents consume zero tokens.
 2. **Trigger a Phase 3 checkpoint immediately.** Do not wait for a `task done`.
 3. **Record the block** in `shared/lead.md` → `## Usage Blocks` → `{window}: pause`.
-4. **Enter hold state.** While in hold state:
+4. **Enter hold state** (see the Hold State section below — arm the self-owned `HOLD-WAKE` at the known `resets_at` before going idle). While in hold state:
    - Do NOT respond to any ADVICE REQUEST or QUERY from paused agents. Responding could unblock agents to continue working.
    - Do NOT spawn anything new.
-   - Wait for PM to forward `USAGE RESET` or `USAGE KILL` messages. These are the only messages Lead acts on during hold.
+   - Act only on PM's `USAGE RESET`/`USAGE KILL` messages or Lead's own `HOLD-WAKE`. These are the only wakes Lead acts on during hold.
 5. If a message arrives from a paused agent (straggler verdict, straggler ADVICE): discard it. The agent will re-send after RESUME if still relevant.
 
 ### KILL (5h ≥95% or 7d ≥98%)
@@ -49,15 +49,15 @@ Meaning: rate-limit wall hit. If agents didn't stop on PAUSE, force-terminate th
 1. **Write the SHUTDOWN signal to each active task's `signals.jsonl`, then kill all active task teams immediately via `shutdown_request`** (see the `USAGE KILL` handler row in SKILL.md for the exact commands). For each active task-team, send `shutdown_request` to executor-{N}, reviewer-{N}, and tester-{N} (if spawned). Use the protocol message format — do NOT use a plain text message. `shutdown_request` is the only mechanism that reliably terminates agents.
 2. **Trigger a Phase 3 checkpoint immediately** (if not already triggered during PAUSE).
 3. **Record the block** in `shared/lead.md` → `## Usage Blocks` → `{window}: kill`.
-4. **Stay in hold state.** Same rules as PAUSE hold — no responses, no spawning. Wait for USAGE RESET.
+4. **Stay in hold state.** Same rules as PAUSE hold — no responses, no spawning. Arm the self-owned `HOLD-WAKE` at the known `resets_at` before going idle (see the Hold State section), then wait for USAGE RESET or HOLD-WAKE.
 
 There is no nuance at KILL tier. Everything stops immediately.
 
 ### USAGE RESET (per window)
 
-Meaning: the specified window has dropped below its CONSERVE threshold or has rolled over to a fresh rate-limit window.
+Meaning: the specified window has dropped below its CONSERVE threshold or has rolled over to a fresh rate-limit window. This recovery is triggered by **either** PM's `USAGE RESET` message (from the watchdog) **or** Lead's own `HOLD-WAKE` firing at the known `resets_at` — both run the steps below. The two triggers are independent and idempotent: whichever fires first does the work; a later duplicate finds the block already cleared and is a no-op.
 
-1. **Remove the entry for this window** from `shared/lead.md` → `## Usage Blocks`.
+1. **Remove the entry for this window** from `shared/lead.md` → `## Usage Blocks` (no-op if already removed by the other trigger).
 2. **If other usage blocks remain** (e.g., 5h reset while 7d is still at pause): stay in current state. No spawning, no resuming.
 3. **If all blocks are cleared**, trigger recovery based on the highest tier that was reached:
    - **Recovering from CONSERVE only:** Resume normal operations — reassess budget, fill available concurrency slots with the next unblocked pending tasks.
@@ -160,15 +160,29 @@ Lead investigates:
 
 ## Hold State (PAUSE/KILL block or deliberate wait)
 
+**Governing principle: Lead may go idle, but only while it retains a guaranteed way to wake itself.** Pausing is allowed; abandoning the plan (going idle with no armed wake, so a human must restart it) is forbidden. Before Lead ends its turn in hold state, BOTH of the following must be true — otherwise Lead does NOT go silent: it tells the user it cannot guarantee an automatic resume and stays active.
+
 When Lead has active usage blocks at PAUSE or KILL tier:
 
 1. Ensure all teams have received PAUSE messages or shutdown_request.
-2. Record state in `shared/lead.md` → `## Usage Blocks` with timestamps.
+2. Record state in `shared/lead.md` → `## Usage Blocks` with timestamps and the `resets_at` from PM's message (format below).
 3. Trigger Phase 3 checkpoint.
-4. Wait for PM's `USAGE RESET [window]` message. The watchdog continues ticking every minute during the pause — it will detect the reset and signal PM, who forwards to Lead.
-5. On USAGE RESET: clear that window's block. If ALL blocks cleared, trigger the appropriate recovery flow (PAUSE or KILL). Otherwise stay in hold state.
+4. **Arm a self-owned one-shot wake at the known reset time.** Compute the earliest `resets_at` (epoch) across all active blocks. Start a non-persistent Monitor that sleeps until that moment and then emits a single `HOLD-WAKE` line:
+   ```
+   Monitor({
+     command: "bash -c 't=<resets_epoch>; while [ \"$(date +%s)\" -lt \"$t\" ]; do sleep 30; done; echo HOLD-WAKE'",
+     description: "Hold-state self-wake for <PLAN_NAME>",
+     persistent: false
+   })
+   ```
+   This is Lead's own guaranteed restart — it does not depend on the watchdog or PM still being alive. It is the reset time we already know, so there is no polling of usage data.
+5. **Confirm the watchdog is still online** (it was spawned at Phase 1 and not shut down). The watchdog's time-authoritative `USAGE-RESET` (it fires on the known reset time even when usage data is stale) is a second, independent trigger.
+6. With the self-wake armed and the watchdog confirmed, Lead may go idle. It acts only on these wakes during hold:
+   - **PM's `USAGE RESET [window]` message** (from the watchdog), or
+   - **its own `HOLD-WAKE`** Monitor line.
+7. On either wake: re-evaluate `## Usage Blocks`. For a window whose `resets_at` has passed (or whose RESET arrived), clear that window's block. If ALL blocks are cleared, trigger the appropriate recovery flow (PAUSE or KILL). Otherwise re-arm the self-wake for the next-earliest `resets_at` and stay in hold state.
 
-Lead does NOT need to create its own cron during pause — the watchdog's cron is the heartbeat that detects the reset.
+**Resume is idempotent.** The self-wake and the watchdog's `USAGE-RESET` are two independent triggers for the same recovery. Whichever fires first clears the block and resumes; a later duplicate wake finds the blocks already cleared (or work already resumed) and is a no-op. Never double-resume or double-spawn.
 
 **Note on 7d reset horizon:** 7-day window resets can be hours or days away. If a 7d KILL triggers, execution may pause for a long time. Lead should inform the user when entering this state — the user may prefer to halt the plan entirely, switch accounts, or resume manually later rather than let the plan sit dormant for days.
 

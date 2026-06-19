@@ -322,6 +322,7 @@ Messages are prefixed with `WATCH: ` followed by a JSON object with an `"alert"`
 - `WATCH: {"alert":"PAUSE","window":"5h","pct":91,"resets_at":1776722400}` — 5h ≥ 90% or 7d ≥ 95%
 - `WATCH: {"alert":"CONSERVE","window":"7d","pct":92,"resets_at":1777136400}` — 5h ≥ 80% or 7d ≥ 90%
 - `WATCH: {"alert":"USAGE-RESET","window":"5h","pct":15}` — window dropped below CONSERVE or rolled over
+- `WATCH: {"alert":"USAGE-RESET","window":"5h","pct":91,"reason":"reset_time_passed"}` — known reset time passed while usage data was stale; `pct` is the pre-reset stale value
 - `WATCH: {"alert":"STALL","task_id":"task-3","silent_minutes":15}` — executor silent >10 min
 - `WATCH: {"alert":"STALE-DATA","minutes":12}` — data freshness warning
 - `WATCH: {"alert":"STATUS","pct_5h":25,"pct_7d":81,"resets_5h":...,"resets_7d":...}` — first-tick usage snapshot (always sent once at startup)
@@ -384,12 +385,16 @@ Forwarded messages to Lead always include the window in brackets (e.g. `USAGE PA
    - SendMessage Lead: `"USAGE CONSERVE [{window}]: {pct}% used. Resets at {resets_at_ISO}. {N} teams active (avg task cost ~{avg}%). {M} tasks remaining. At current burn rate, estimated to reach {projected}% before reset. Recommend: allow active teams to finish their current task, stop spawning new teams, checkpoint on next completion."`
 3. If NOT confirmed: log discrepancy, do NOT forward.
 
-### On alert `"USAGE-RESET"` — `{"alert":"USAGE-RESET","window":"...","pct":...}`
+### On alert `"USAGE-RESET"` — `{"alert":"USAGE-RESET","window":"...","pct":...[,"reason":"reset_time_passed"]}`
 
 The specified window dropped below its CONSERVE threshold or rolled over. This clears only that window's block — Lead resumes only when ALL windows are clear.
 
-1. Log to events.json: `{type: "usage_reset", window, pct}`
-2. SendMessage Lead: `"USAGE RESET [{window}]: window cleared. Current usage {pct}%. Clear this window's block — resume spawning if no other usage blocks remain."`
+A `"reason":"reset_time_passed"` field means the watchdog cleared the window because its known reset **time** passed while usage data was stale (no API calls happen while everything is paused, so the percentage never refreshed). In that case the reported `pct` is the **pre-reset stale value** (e.g. 91), not the current usage — do not present it as current.
+
+1. Log to events.json: `{type: "usage_reset", window, pct, reason}` (omit `reason` if absent).
+2. SendMessage Lead:
+   - Normal (no `reason`): `"USAGE RESET [{window}]: window cleared. Current usage {pct}%. Clear this window's block — resume spawning if no other usage blocks remain."`
+   - `reason=reset_time_passed`: `"USAGE RESET [{window}]: reset time passed — window rolled over (usage data was stale at {pct}%). Clear this window's block — resume spawning if no other usage blocks remain."`
 
 ### On alert `"STALL"` — `{"alert":"STALL","task_id":"...","silent_minutes":...}`
 

@@ -36,7 +36,7 @@ Spawned at plan start alongside PM. Cheapest agent (Haiku). Runs for the entire 
 
 2. **Initialize state file:**
    ```bash
-   echo '{"five_hour": {"last_signal": null, "last_signal_at": null}, "seven_day": {"last_signal": null, "last_signal_at": null}, "stall_pinged": {}, "last_stale_signal": 0}' > "$PLAN_DIR/.watchdog-state.json"
+   echo '{"five_hour": {"last_signal": null, "last_signal_at": null, "reset_latch": 0}, "seven_day": {"last_signal": null, "last_signal_at": null, "reset_latch": 0}, "stall_pinged": {}, "last_stale_signal": 0}' > "$PLAN_DIR/.watchdog-state.json"
    ```
 
 3. **Write the monitoring script:**
@@ -74,20 +74,61 @@ clear_signal() {
   jq ".${key}.last_signal = null | .${key}.last_signal_at = null" "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
 }
 
+set_latch() {
+  local key="$1" epoch="$2"
+  jq --argjson e "$epoch" ".${key}.reset_latch = \$e" "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
+}
+
+clear_latch() {
+  local key="$1"
+  jq ".${key}.reset_latch = 0" "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
+}
+
 check_window() {
   local key="$1" label="$2" pct="$3" resets_at="$4"
   local conserve="$5" pause="$6" kill_threshold="$7"
 
   local last_signal
   last_signal=$(jq -r ".${key}.last_signal // \"\"" "$STATE_FILE" 2>/dev/null || echo "")
+  local reset_latch
+  reset_latch=$(jq -r ".${key}.reset_latch // 0" "$STATE_FILE" 2>/dev/null || echo 0)
   local now_epoch
   now_epoch=$(date +%s)
   local resets_epoch
   resets_epoch=$(echo "$resets_at" | grep -q '^[0-9]*$' && echo "$resets_at" || date -d "$resets_at" +%s 2>/dev/null || echo 0)
 
-  local new_signal=""
+  # Signal hierarchy: KILL > PAUSE > CONSERVE > (none)
+  local last_rank=0
+  case "$last_signal" in CONSERVE) last_rank=1;; PAUSE) last_rank=2;; KILL) last_rank=3;; esac
 
-  # Determine which tier we're in
+  # --- Reset latch -----------------------------------------------------------
+  # After a time-based reset, usage-status.json is still STALE (no API calls
+  # happen while everything is paused): same pct, same resets_at. Stay silent
+  # for this window until the data actually refreshes (resets_at advances after
+  # work resumes) — otherwise we'd immediately re-emit PAUSE on the very data
+  # we just reset against, re-pausing the Lead the instant it woke up.
+  if [ "$reset_latch" != "0" ] && [ "$reset_latch" != "null" ]; then
+    if [ "$resets_epoch" = "$reset_latch" ]; then
+      return 0          # stale, unchanged data — suppress all alerts
+    else
+      clear_latch "$key"  # fresh data arrived post-resume — re-arm this window
+    fi
+  fi
+
+  # --- Time-authoritative reset ---------------------------------------------
+  # resets_at comes from the API and is authoritative. If we previously alerted
+  # and that time has now passed, the window HAS reset regardless of the
+  # (possibly stale) percentage. This is the wake that frees a paused Lead —
+  # it does NOT depend on a fresh API response refreshing the percentage.
+  if [ "$last_rank" -gt 0 ] && [ "$resets_epoch" -gt 0 ] 2>/dev/null && [ "$now_epoch" -ge "$resets_epoch" ] 2>/dev/null; then
+    emit "{\"alert\":\"USAGE-RESET\",\"window\":\"$label\",\"pct\":$pct,\"reason\":\"reset_time_passed\"}"
+    clear_signal "$key"
+    set_latch "$key" "$resets_epoch"
+    return 0
+  fi
+
+  # --- Normal (fresh-data) path ---------------------------------------------
+  local new_signal=""
   if [ "$pct" -ge "$kill_threshold" ] 2>/dev/null; then
     new_signal="KILL"
   elif [ "$pct" -ge "$pause" ] 2>/dev/null; then
@@ -96,19 +137,17 @@ check_window() {
     new_signal="CONSERVE"
   fi
 
-  # Signal hierarchy: KILL > PAUSE > CONSERVE > (none)
   local signal_rank=0
   case "$new_signal" in CONSERVE) signal_rank=1;; PAUSE) signal_rank=2;; KILL) signal_rank=3;; esac
-  local last_rank=0
-  case "$last_signal" in CONSERVE) last_rank=1;; PAUSE) last_rank=2;; KILL) last_rank=3;; esac
 
   # Emit on upward transitions only (new tier > last tier)
   if [ "$signal_rank" -gt 0 ] && [ "$signal_rank" -gt "$last_rank" ]; then
     emit "{\"alert\":\"$new_signal\",\"window\":\"$label\",\"pct\":$pct,\"resets_at\":$resets_at}"
     update_signal "$key" "$new_signal"
   elif [ "$signal_rank" -eq 0 ] && [ "$last_rank" -gt 0 ]; then
-    # Dropped below conserve or window reset
-    if [ "$pct" -lt "$conserve" ] 2>/dev/null || [ "$now_epoch" -gt "$resets_epoch" ] 2>/dev/null; then
+    # Percentage genuinely dropped below conserve on fresh data (the
+    # time-based reset above already handles the stale-while-paused case).
+    if [ "$pct" -lt "$conserve" ] 2>/dev/null; then
       emit "{\"alert\":\"USAGE-RESET\",\"window\":\"$label\",\"pct\":$pct}"
       clear_signal "$key"
     fi
@@ -238,6 +277,7 @@ If YES → SendMessage to `pm-{PLAN_NAME}` with the exact JSON line, prefixed wi
 | `{"alert":"STALL","task_id":"task-3","silent_minutes":15}` | `WATCH: {"alert":"STALL","task_id":"task-3","silent_minutes":15}` |
 | `{"alert":"STALE-DATA","minutes":12}` | `WATCH: {"alert":"STALE-DATA","minutes":12}` |
 | `{"alert":"USAGE-RESET","window":"5h","pct":15}` | `WATCH: {"alert":"USAGE-RESET","window":"5h","pct":15}` |
+| `{"alert":"USAGE-RESET","window":"5h","pct":91,"reason":"reset_time_passed"}` | `WATCH: {"alert":"USAGE-RESET","window":"5h","pct":91,"reason":"reset_time_passed"}` |
 | `{"alert":"STATUS","pct_5h":25,"pct_7d":81,...}` | `WATCH: {"alert":"STATUS","pct_5h":25,"pct_7d":81,...}` |
 
 Forward the JSON exactly as received. Do not modify, reformat, or rewrite it.
