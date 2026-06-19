@@ -280,7 +280,7 @@ const ROLE_PRIORITY = { executor: 0, reviewer: 1, tester: 2 };
 const ROLE_PRIORITY_UNKNOWN = 3;
 
 function classifyPanes(panes) {
-  const result = { mainPane: null, pmPane: null, watchdogPane: null, gatePane: null, tasks: {}, unnamed: [] };
+  const result = { mainPane: null, pmPane: null, gatePane: null, tasks: {}, unnamed: [] };
 
   // Intermediate buckets carry (role, scan order) so we can sort each task
   // column deterministically by role (executor, reviewer, tester).
@@ -291,7 +291,6 @@ function classifyPanes(panes) {
     const sIdx = scanIdx++;
     if (p.label === 'main-context') result.mainPane = p.paneId;
     else if (p.label.startsWith('pm')) result.pmPane = p.paneId;
-    else if (p.label.startsWith('watchdog')) result.watchdogPane = p.paneId;
     else if (p.label.startsWith('final-gate')) result.gatePane = p.paneId;
     else {
       const match = p.label.match(TASK_LABEL_RE);
@@ -320,11 +319,11 @@ function classifyPanes(panes) {
   // The label is set by a model-driven step (plan-execution phase-1 §1.1b /
   // phase-2 §2.6) that the Lead can skip — e.g. when /uc:plan-execution is
   // invoked mid-session. Teammates always self-label, so an execution window
-  // that has PM/watchdog/task panes but exactly ONE unlabelled pane: that lone
+  // that has PM/task panes but exactly ONE unlabelled pane: that lone
   // pane is the Lead. Promote it so the daemon manages the window regardless of
   // whether the Lead ever ran the label step. tick() persists the label once.
   if (!result.mainPane && result.unnamed.length === 1 &&
-      (result.pmPane || result.watchdogPane || Object.keys(result.tasks).length > 0)) {
+      (result.pmPane || Object.keys(result.tasks).length > 0)) {
     result.mainPane = result.unnamed.shift();
     result.mainInferred = true;
   }
@@ -347,11 +346,12 @@ function foldUnnamedIntoLastTask(tasks, taskNums, unnamed) {
 
 // Left column rows, top to bottom, with their relative heights. Missing
 // panes are dropped and the remaining weights are renormalized by
-// distributeWeighted, so main always ends up at the bottom.
+// distributeWeighted, so main always ends up at the bottom. The Lead (main)
+// gets the lion's share — the space the retired watchdog pane used to take is
+// reclaimed by main.
 const LEFT_COLUMN_SPEC = [
-  { key: 'watchdogPane', weight: 20 },
   { key: 'pmPane', weight: 30 },
-  { key: 'mainPane', weight: 50 },
+  { key: 'mainPane', weight: 70 },
 ];
 
 // Compute the target layout as an ordered list of columns. Used both by
@@ -481,7 +481,6 @@ function tick() {
       const summary = [
         classified.mainPane ? 'main' : null,
         classified.pmPane ? 'pm' : null,
-        classified.watchdogPane ? 'watchdog' : null,
         taskNums.length > 0 ? `tasks:[${taskNums.join(',')}]` : null,
         foldedCount > 0 ? `folded:${foldedCount}` : null,
         leftoverUnnamed.length > 0 ? `unnamed:${leftoverUnnamed.length}` : null,

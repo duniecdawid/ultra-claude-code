@@ -202,13 +202,16 @@ You are the Project Manager for the "$ARGUMENTS" plan execution.
 PLAN_NAME={PLAN_NAME}
 ROLE=oversight
 PLAN_DIR=documentation/plans/$ARGUMENTS
+ACCOUNT_KEY={ACCOUNT_KEY}
+USAGE_MODE={pause|push-through}
 
 **Lead name:** {lead name}
 **Total tasks:** {N}
 **Concurrency limit:** {M} concurrent task-teams
 **Team naming convention:** Task N team name: `task-{N}-team`. Executor-N and
 reviewer-N spawn at task start; tester-N is lazy-spawned when implementation
-is complete. Plan-wide teammates: yourself (PM) and the Haiku watchdog.
+is complete. The only plan-wide teammate is yourself (PM) — there is no
+separate watchdog; you own the usage monitor.
 
 **Task dependency graph:**
 (Read each tasks/task-N/task.md's Dependencies field to build this graph.
@@ -218,16 +221,19 @@ Example:)
 - Task 3: depends on task 1
 - Task 4: depends on task 2, task 3
 
-**Extra usage enabled:** {true/false}
-**Usage status file:** ~/.claude/ultra/usage-status.json
+**Start the usage monitor (First Action).** Via the Monitor tool:
+  Monitor({ command: "bash \"$HOME/.claude/ultra/usage-monitor.sh\" watch \"$PLAN_DIR\" \"$ACCOUNT_KEY\" \"$USAGE_MODE\"",
+            description: "Usage monitor for {PLAN_NAME}", persistent: true })
+It is silent on clean ticks and emits only actionable milestones:
+`CRITICAL` (stop in-flight), `USAGE-RESET` (restart), `STALL`. In
+push-through mode it suppresses usage emits (only STALL). Ignore any
+Monitor line that is not JSON with an `"alert"` field.
 
-**You are event-driven — no cron.** You receive messages from Lead (status
-updates, task completions with current_pct), from the Haiku watchdog
-(usage alerts, stall alerts, stale-data warnings), and from Executors
-(stage completions, retries). You validate watchdog signals by reading
-the source data yourself, add operational context, and forward to Lead
-with recommendations. See your agent instructions for the full signal
-handling protocol.
+**You are event-driven.** You wake on your monitor's emits and on messages
+from Lead (status updates, completions with current_pct) and Executors.
+On a monitor emit, apply USAGE_MODE and forward to Lead ONLY when
+actionable. See your agent instructions for the full Usage Monitor Handling
+protocol.
 
 **Per-task budget tracking:** On SPAWNED, read current usage % and record
 budget.start_pct. On COMPLETED (Lead includes current_pct), compute
@@ -243,56 +249,18 @@ agent instructions. After each SPAWNED message from Lead, verify labels.
 - `COMPLETED task-{N}, current_pct={pct}` — team completed, counts, event, compute budget.cost_pct
 - `SHUTDOWN task-{N}` — member ended_at timestamps, event
 
-**What the Haiku watchdog sends you:**
-Messages are `WATCH: ` followed by a JSON object. Parse the `"alert"` field to determine the type:
-- `WATCH: {"alert":"KILL","window":"5h","pct":96,"resets_at":...}` — validate, forward to Lead
-- `WATCH: {"alert":"PAUSE","window":"7d","pct":95,"resets_at":...}` — validate, forward to Lead
-- `WATCH: {"alert":"CONSERVE","window":"5h","pct":82,"resets_at":...}` — validate, forward with context
-- `WATCH: {"alert":"USAGE-RESET","window":"5h","pct":15}` — forward to Lead
-- `WATCH: {"alert":"STALL","task_id":"task-3","silent_minutes":15}` — ping executor, escalate if persists
-- `WATCH: {"alert":"STALE-DATA","minutes":12}` — forward to Lead
-- `WATCH: {"alert":"STATUS","pct_5h":25,"pct_7d":81,...}` — first-tick snapshot, forward to Lead
-
 **signals.jsonl reading (replaces direct Executor messages):**
 Executors no longer send STAGE-DONE or RETRY. Read `$PLAN_DIR/tasks/task-{N}/signals.jsonl`
-for each active task on every incoming Lead message to derive stage state:
+for each active task when you wake to derive stage state:
 - `REVIEW_PASS` / `TEST_PASS` → close stage, append event
 - `REVIEW_FAIL` / `TEST_FAIL` + `REREVIEW_REQUESTED` / `RETEST_REQUESTED` → retry_count++, reset timers, event
 See `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/execution-communication-protocol.md` §6.
 
-**What you send to Lead (validated alerts from watchdog):**
-- `USAGE KILL [{window}]: {pct}% used. ...` — emergency, force-terminate agents
-- `USAGE PAUSE [{window}]: {pct}% used. ...` — approaching limit, agents must go idle
-- `USAGE CONSERVE [{window}]: {pct}% used. ...` — advisory, stop spawning
-- `USAGE RESET [{window}]: rate-limit window cleared. ...`
+**What you send to Lead (actionable usage events only):**
+- `USAGE STOP [{window}]: {pct}% used. ...` — critical limit reached, stop in-flight work (pause mode only)
+- `USAGE RESET [{window}]: ...` — work may restart
 - `STALL: executor-{N} unresponsive for ~{minutes}m. ...`
-- `STALE DATA: usage-status.json not updated for {minutes}m. ...`
+You do NOT forward soft-band, status, or stale-data messages — those are not Lead-actionable.
 
 Follow the workflow in your team member instructions.
-```
-
-## Watchdog Spawn
-
-subagent_type: `uc:Watchdog` (defined in `${CLAUDE_PLUGIN_ROOT}/agents/watchdog.md`)
-Model: `haiku` | Mode: `bypassPermissions`
-
-Spawn **once** alongside PM, before any task-teams. Name it `watchdog-{PLAN_NAME}`.
-
-```
-You are the health watchdog for the "$ARGUMENTS" plan execution.
-
-PLAN_NAME={PLAN_NAME}
-ROLE=watchdog
-PLAN_DIR=documentation/plans/$ARGUMENTS
-ACCOUNT_KEY={ACCOUNT_KEY}
-
-**PM name:** pm-{PLAN_NAME}
-
-You run a background bash script that checks every 60 seconds:
-two rate-limit windows (5h: 80% CONSERVE / 90% PAUSE / 95% KILL,
-7d: 90% / 95% / 98%) and executor staleness (>10 min silence).
-The script outputs alert lines only on state transitions — you
-forward each alert to PM via SendMessage. Zero tokens on clean ticks.
-
-Follow the workflow in your agent instructions.
 ```

@@ -2,7 +2,7 @@
 
 ### 1.0 Lead Tooling Preflight
 
-**Do this before anything else.** Plan execution runs on a real persistent **team** — the Lead spawns teammates (Executor, Reviewer, Tester, PM, Watchdog) that stay alive, message each other, and appear on the team graph. The tools that make this work are **deferred** in a fresh session: they are not in your loaded toolset until you load them. If you skip this step, you will (correctly) observe that `SendMessage`/`Monitor` "aren't in my toolset" and may wrongly conclude the team feature is unavailable and degrade to a lossy one-shot path. Don't. Load the tools first.
+**Do this before anything else.** Plan execution runs on a real persistent **team** — the Lead spawns teammates (Executor, Reviewer, Tester, PM) that stay alive, message each other, and appear on the team graph. The tools that make this work are **deferred** in a fresh session: they are not in your loaded toolset until you load them. If you skip this step, you will (correctly) observe that `SendMessage`/`Monitor` "aren't in my toolset" and may wrongly conclude the team feature is unavailable and degrade to a lossy one-shot path. Don't. Load the tools first.
 
 **1. Load the deferred agent-teams tools in one call:**
 
@@ -16,7 +16,7 @@ ToolSearch("select:SendMessage,Monitor,TaskCreate,TaskUpdate,TaskList")
 
 > "Plan execution needs agent teams enabled (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`). Run `/uc:setup` to configure it, then re-run `/uc:plan-execution`."
 
-Do **not** improvise a subagent-only fallback — a one-shot pipeline silently drops PM, the watchdog, peer messaging, signal durability, and pipeline pre-spawn. Stopping with a clear instruction is the correct behavior.
+Do **not** improvise a subagent-only fallback — a one-shot pipeline silently drops PM (and its usage monitor), peer messaging, signal durability, and pipeline pre-spawn. Stopping with a clear instruction is the correct behavior.
 
 **2b. Teammate backend gate (tmux).** Agent-teams being enabled is necessary but not sufficient: *how* a named teammate runs is governed by the `teammateMode` setting (`tmux` | `in-process` | `auto`), resolved per session. When it defaults to `in-process`, teammates spawn inside your process with **no tmux panes** — the pane-based coordination this skill is built on silently breaks. Check both preconditions:
 
@@ -35,12 +35,64 @@ If `$TMUX` is unset (you are not inside a tmux session) **or** `teammateMode` is
 
 | Concept | Real invocation |
 |---------|-----------------|
-| **Spawn a teammate** (Executor/Reviewer/Tester/PM/Watchdog) — persistent, team-graph member, addressable via `SendMessage` | `Agent` tool in **teammate mode**: `name="{role}-{N}"` + `run_in_background: true` + `subagent_type` (the registered type name, e.g. `uc:Task Executor` — not a file path) + `model` + `mode`. Do **not** pass `team_name` — it is deprecated/ignored (the session has a single implicit team). |
+| **Spawn a teammate** (Executor/Reviewer/Tester/PM) — persistent, team-graph member, addressable via `SendMessage` | `Agent` tool in **teammate mode**: `name="{role}-{N}"` + `run_in_background: true` + `subagent_type` (the registered type name, e.g. `uc:Task Executor` — not a file path) + `model` + `mode`. Do **not** pass `team_name` — it is deprecated/ignored (the session has a single implicit team). |
 | **Spawn a one-shot subagent** (the researcher, via `/uc:research`) — stateless, returns once, not on the team graph | `Agent` tool in **one-shot mode**: foreground, no `name`. |
 | **Lead-side task list** | `TaskCreate(...)` / `TaskUpdate(...)` (this is unrelated to spawning — it tracks task state). |
 | **Send / broadcast / wait** | `CommunicateTeamMember`, `CommunicateTeam`, `WaitForTeamMember` are **procedures**, not tools — fixed sequences of `SendMessage` + an `echo >>` append to `signals.jsonl` + `Monitor`, defined in `references/execution-communication-protocol.md`. Never search for a tool by those names. |
 
 The teammate↔subagent distinction is load-bearing (see SKILL.md) — it is expressed by *which mode of the `Agent` tool* you use, not by different tools.
+
+**4. Ensure the usage-monitor script is reachable at a stable path (self-heal).** All usage checks (this skill and PM) invoke `~/.claude/ultra/usage-monitor.sh` — a stable absolute path that does NOT depend on `$CLAUDE_PLUGIN_ROOT` being present in a Bash shell (it often is not). `/uc:setup` creates this symlink; self-heal it here in case setup wasn't re-run:
+
+```bash
+mkdir -p ~/.claude/ultra
+[ -e ~/.claude/ultra/usage-monitor.sh ] || ln -sf "${CLAUDE_PLUGIN_ROOT}/scripts/usage-monitor.sh" ~/.claude/ultra/usage-monitor.sh
+# Verify it runs and returns JSON (proves the path + account resolution work BEFORE you rely on it):
+bash "$HOME/.claude/ultra/usage-monitor.sh" status
+```
+
+The `status` call must print a JSON object with a `band` field. **If it errors or prints no JSON, STOP** — do not proceed into a run where you cannot read usage; tell the user the monitor script is unreachable and to re-run `/uc:setup`. **Never invent or guess a usage status** — every usage figure you act on or report must come from this script's actual stdout.
+
+### 1.0b Usage Mode — ask FIRST (then check limits)
+
+**Step 1 — ask whether we care about the limits at all.** This is the **first user-facing question** of execution (the 1.0 preflight is an environment gate, not a question). Ask it BEFORE reading any usage data — the mode governs whether usage is even checked. Set once, never re-asked mid-run.
+
+```
+AskUserQuestion({
+  questions: [
+    {
+      question: "Do you want Ultra Claude to respect the rate limits during this run? Tip: plan during the day, execute overnight — most plans complete within the free limit window. Choose full speed only if you need it done as fast as possible (and have extra usage on your account).",
+      header: "Usage mode",
+      multiSelect: false,
+      options: [
+        {
+          label: "Yes — auto-pause at limits (Recommended)",
+          description: "We care about limits: Ultra Claude checks usage and stops/restarts work automatically around the rate limit. Maps to USAGE_MODE=pause."
+        },
+        {
+          label: "No — full speed, ignore limits",
+          description: "We don't care: no usage checking or stopping. If you don't have extra usage on your account, work will hit the rate limit and you'll recover manually. Maps to USAGE_MODE=push-through."
+        }
+      ]
+    }
+  ]
+})
+```
+
+Record the answer (held in context now; written to `shared/lead.md` → `## Execution Config` when that file is created in 1.7, and passed to PM at spawn in 1.9):
+- "Yes — auto-pause" → `extra_usage: false`, `USAGE_MODE=pause`
+- "No — full speed" → `extra_usage: true`, `USAGE_MODE=push-through`
+
+**Step 2 — only if `USAGE_MODE=pause`, check whether we are already over the limits.** (In `push-through`, skip this entirely — we don't care.) Read current usage from the single monitor script (self-resolves the account — no `$ACCOUNT_KEY` needed yet):
+
+```bash
+bash "$HOME/.claude/ultra/usage-monitor.sh" status
+```
+
+Read `.band`:
+- `clear` → proceed normally.
+- `soft` → do NOT start task-1 yet; record `{window}: soft` in `## Usage Blocks` (once `shared/lead.md` exists). The pre-spawn check (Phase 2) governs when slot-fill resumes.
+- `critical` → already over the limit. Do NOT spawn into an over-limit window: enter a pre-emptive `stop` hold — record `{window}: stop` with its `resets_at`, arm the self-owned `HOLD-WAKE` (see usage-control.md Hold State), and inform the user (they may prefer to wait for reset, switch accounts, or abort). task-1 spawns when the window resets.
 
 ### 1.1 Read Entire Plan Directory
 
@@ -101,7 +153,7 @@ Determine how many task-teams can run concurrently:
 | 4-8 tasks | 2-3 |
 | 9+ tasks  | 3-4 |
 
-Max ceiling: **4 concurrent task-teams**. Plan-wide teammates are the **Project Manager** and the **Haiku Watchdog** — no persistent knowledge teammate exists.
+Max ceiling: **4 concurrent task-teams**. The only plan-wide teammate is the **Project Manager** (which owns the usage monitor) — no separate watchdog and no persistent knowledge teammate exists.
 
 Each slot = 1 task-team. Executor and Reviewer are spawned when a slot opens. Tester is lazy-spawned when the Executor signals `code complete` — *before* the Executor writes `impl.md`, so the Tester cold-reads context in parallel with the impl-report write. All members exit together when the task is done.
 
@@ -114,8 +166,7 @@ Tasks normally spawn when their slot is available AND all dependencies are compl
 | **Executor** | **opus** | Code generation, architectural decisions, codebase research — highest capability required |
 | Reviewer | sonnet | Pattern recognition, architecture conformance |
 | Tester | sonnet | Test execution, failure diagnosis |
-| Project Manager | sonnet | Event-driven coordination — dashboard, watchdog validation, budget tracking |
-| Watchdog | haiku | Monitor-based sensor — bash script checks every 60s, model wakes only on alerts. Zero tokens on clean ticks. |
+| Project Manager | sonnet | Event-driven coordination — dashboard, budget tracking, and owns the usage monitor (bash does all checking via Monitor; model wakes only on actionable emits) |
 | Researcher (subagent) | sonnet | One-shot external documentation retrieval — spawned by Lead via `/uc:research` on cache miss |
 
 ### Permission Modes
@@ -125,13 +176,12 @@ Tasks normally spawn when their slot is available AND all dependencies are compl
 | **Executor** | **`bypassPermissions`** | **Writes code autonomously; plan reviewed by teammates before implementation** |
 | Reviewer | `bypassPermissions` | Read-only analysis, no approval needed |
 | Tester | `bypassPermissions` | Runs tests autonomously, no approval needed |
-| Project Manager | `bypassPermissions` | Event-driven coordination, no approval needed |
-| Watchdog | `bypassPermissions` | Read-only sensor, no approval needed |
+| Project Manager | `bypassPermissions` | Event-driven coordination + usage monitor, no approval needed |
 | Researcher (subagent) | `bypassPermissions` | Writes to `documentation/technology/research/` and `documentation/product/research/` only, stateless, no approval needed |
 
-### 1.5 Cost Estimate & Usage Mode
+### 1.5 Cost Estimate
 
-Present the cost estimate to the user (informational — no confirmation needed, the user already chose to execute by running the command):
+The usage mode was already chosen in 1.0b. Present the cost estimate to the user (informational — no confirmation needed, the user already chose to execute by running the command):
 
 ```
 Plan: $ARGUMENTS
@@ -143,44 +193,13 @@ Cost per task pipeline: ~100K tokens (Executor ~70K + Reviewer ~20K + Tester ~10
   (Reviewer spawns with Executor and immediately sends a REVIEWER TAKE; Tester is lazy-spawned — only active during test phase)
 Pre-spawn knowledge review (per task, at spawn time): ~2K per task for cache hits, up to ~15K if /uc:research fires on a gap — Lead only researches if the planner's Research pointers don't cover the task
 Mid-execution ADVICE + QUERY: ~1K per message (cache hit) or ~15K (cache miss with researcher subagent)
-Project Manager (plan-wide): ~20K tokens (event-driven, no cron — wakes only on messages)
-Watchdog (plan-wide, Haiku): near-zero (bash does all checking, model wakes only on alerts via Monitor)
+Project Manager (plan-wide): ~20K tokens (event-driven; owns the usage monitor, wakes only on messages or actionable usage emits)
+Usage monitor (plan-wide): near-zero (bash does all checking inside PM's Monitor; emits only on critical-stop / restart / stall)
 ```
 
-Then ask the usage mode question:
-
-```
-AskUserQuestion({
-  questions: [
-    {
-      question: "Enable extra usage? Tip: plan during the day, execute overnight — most plans complete within the free limit window. Enable extra usage only if you need it done as fast as possible.",
-      header: "Usage mode",
-      multiSelect: false,
-      options: [
-        {
-          label: "No — auto-pause at limits (Recommended)",
-          description: "Ultra Claude monitors usage and pauses/resumes automatically when approaching the 5-hour rate limit."
-        },
-        {
-          label: "Yes — full speed",
-          description: "No usage monitoring or pausing. If you don't have extra usage enabled on your Anthropic account, work will stop at the rate limit and you'll have to recover manually."
-        }
-      ]
-    }
-  ]
-})
-```
-
-After the user answers, store in `shared/lead.md` under a config header:
-
-```markdown
-## Execution Config
-- extra_usage: true  (or false)
-```
-
-Usage management is a three-agent system: **Haiku watchdog → PM → Lead.**
-- **If extra_usage = false:** A Haiku watchdog runs a bash monitoring script every 60 seconds via Monitor (zero AI tokens on clean ticks — model wakes only on alerts). The script checks two independent rate-limit windows (5h: 80% CONSERVE / 90% PAUSE / 95% KILL, 7d: 90% / 95% / 98%) and executor staleness. On alert, it signals PM with a window-qualified message. PM validates, adds operational context, and forwards to Lead with a `[5h]` or `[7d]` label. Lead's response is uniform across windows: on CONSERVE, let active teams finish their current task and stop spawning new ones (checkpoint on next `task done`); on PAUSE, tell all agents to go idle (zero tokens while waiting); on KILL, force-terminate agents via shutdown_request and checkpoint. Lead tracks blocks per window in `shared/lead.md` → `## Usage Blocks` and resumes when all blocks clear — guided by `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/usage-control.md`. Lead also performs a pre-task-1 budget assessment (of both windows) before starting any work.
-- **If extra_usage = true:** The watchdog still runs (it also handles stall detection), but Lead does not load the usage-control reference and does not perform budget assessments. Usage alerts from PM are noted but Lead trusts the account has extra usage capacity.
+Usage management is a **two-agent** system: **PM (owns the usage monitor) → Lead.**
+- **If `USAGE_MODE = pause` (extra_usage false):** PM runs `usage-monitor.sh watch` via the Monitor tool (zero AI tokens on clean ticks). It emits only on the critical-stop crossing and the work-can-restart reset. On a critical-stop, PM asks the Lead to stop in-flight work; on reset, the Lead restarts. The **soft band is not an interrupt** — the Lead enforces it with a `usage-monitor.sh status` check before each spawn (don't start new work while soft-or-worse). Lead tracks blocks per window in `shared/lead.md` → `## Usage Blocks`, guided by `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/usage-control.md`.
+- **If `USAGE_MODE = push-through` (extra_usage true):** the monitor suppresses usage emits entirely (only stall detection remains); the Lead does not stop for usage and does not run pre-spawn soft checks.
 
 Proceed directly to 1.6.
 
@@ -225,7 +244,7 @@ documentation/plans/$ARGUMENTS/
 
 ### 1.8 Resolve Account Identity
 
-Resolve the active account key so the watchdog and budget checks monitor the correct account:
+Resolve the active account key so the usage monitor and budget checks monitor the correct account (this is the `$ACCOUNT_KEY` passed to PM; the same value `usage-monitor.sh` resolves internally):
 
 ```bash
 ACCOUNT_KEY=$(source "$HOME/.claude/ultra/lib.sh" && slugifyEmail "$(claude auth status --json 2>/dev/null | jq -r '.email // empty')")
@@ -233,17 +252,15 @@ ACCOUNT_KEY=$(source "$HOME/.claude/ultra/lib.sh" && slugifyEmail "$(claude auth
 
 Persist this in `shared/lead.md` under execution config so it's available if the session is recovered from a checkpoint.
 
-### 1.9 Project Manager & Watchdog Spawn
+### 1.9 Project Manager Spawn
 
-Before spawning any task-teams, spawn the plan-wide utility agents: **PM and Haiku watchdog.**
+Before spawning any task-teams, spawn the plan-wide coordinator: **PM** (PM now owns the usage monitor — there is no separate watchdog agent).
 
-1. Spawn `pm-{PLAN_NAME}` via the `Agent` tool in teammate mode (`name="pm-{PLAN_NAME}"`, `run_in_background: true`) using the PM spawn prompt in `references/phase-2-spawn-prompts.md`. PM has Bash access and self-labels its pane on startup.
+1. Spawn `pm-{PLAN_NAME}` via the `Agent` tool in teammate mode (`name="pm-{PLAN_NAME}"`, `run_in_background: true`) using the PM spawn prompt in `references/phase-2-spawn-prompts.md`. **Pass the resolved `ACCOUNT_KEY` and `USAGE_MODE`** (`pause` or `push-through`, from 1.0b) into the spawn prompt. PM has Bash + Monitor access, self-labels its pane, and starts `usage-monitor.sh watch` on startup.
 
-2. Spawn `watchdog-{PLAN_NAME}` via the `Agent` tool in teammate mode (`name="watchdog-{PLAN_NAME}"`, `run_in_background: true`) using the watchdog spawn prompt in `references/phase-2-spawn-prompts.md`. Pass the resolved `ACCOUNT_KEY` into the spawn prompt. The watchdog runs on Haiku (cheap), uses a bash monitoring script via Monitor (zero AI tokens on clean ticks), and signals PM on usage thresholds and stalls. It always runs regardless of `extra_usage` setting — stall detection is useful in all cases.
+PM self-labels its tmux pane when tmux is available (skipped otherwise). No tmux commands needed from you.
 
-Both agents self-label their tmux panes when tmux is available (skipped otherwise). No tmux commands needed from you.
-
-3. **Verify the teammate backend is really tmux (cancel if not).** The §1.0 gate is a heuristic; this is the authoritative check, against the backend Claude Code actually recorded. Read the session's team config and confirm PM and watchdog landed on tmux panes:
+2. **Verify the teammate backend is really tmux (cancel if not).** The §1.0 gate is a heuristic; this is the authoritative check, against the backend Claude Code actually recorded. Read the session's team config and confirm PM landed on a tmux pane:
 
 ```bash
 TEAM_CFG=$(grep -rl "\"pm-{PLAN_NAME}\"" "$HOME/.claude/teams"/*/config.json 2>/dev/null | head -1)
@@ -251,22 +268,10 @@ TEAM_CFG=$(grep -rl "\"pm-{PLAN_NAME}\"" "$HOME/.claude/teams"/*/config.json 2>/
 jq -r '.members[] | "\(.name) backendType=\(.backendType) pane=\(.tmuxPaneId)"' "$TEAM_CFG" 2>/dev/null
 ```
 
-Every spawned member must show `backendType=tmux` with a real pane id (e.g. `%168`), **not** `backendType=in-process` (pane `in-process`/`leader`). If any spawned teammate is `in-process`, the environment silently downgraded the backend — **abort the run**: send `shutdown_request` to `pm-{PLAN_NAME}` and `watchdog-{PLAN_NAME}` (and `TaskStop` any background tasks), record the abort in `shared/lead.md`, and stop with the same remediation as the §1.0 gate ("Run `/uc:setup` to set `teammateMode: tmux`, relaunch inside tmux, re-run"). Do **not** continue into Phase 2 on an in-process backend — that is the degraded pipeline the user reported.
+PM must show `backendType=tmux` with a real pane id (e.g. `%168`), **not** `backendType=in-process` (pane `in-process`/`leader`). If PM is `in-process`, the environment silently downgraded the backend — **abort the run**: send `shutdown_request` to `pm-{PLAN_NAME}` (and `TaskStop` any background tasks), record the abort in `shared/lead.md`, and stop with the same remediation as the §1.0 gate ("Run `/uc:setup` to set `teammateMode: tmux`, relaunch inside tmux, re-run"). Do **not** continue into Phase 2 on an in-process backend — that is the degraded pipeline the user reported.
 
 There is no Knowledge Brief synthesis step. Research lives per-task in each `tasks/task-N/task.md`'s `**Research:**` section (populated by planning Stage 4), and Lead reviews it per-task at spawn time in Phase 2.
 
-### 1.10 Wait for Watchdog Usage Report
+### 1.10 Proceed to Phase 2
 
-Before spawning the first task-team, wait for PM to forward the watchdog's first-tick STATUS message. This arrives within ~60 seconds of watchdog startup and contains both rate-limit windows:
-
-`"USAGE STATUS: 5h={pct_5h}% 7d={pct_7d}%. Watchdog monitoring active."`
-
-Do NOT read `usage-status.json` yourself — the watchdog is the single source of truth for usage data.
-
-If `extra_usage = false` and either window is elevated (e.g., 5h >50% or 7d >70%), read `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/usage-control.md` and assess whether the plan can complete within the remaining budget. You may decide to proceed normally, reduce concurrency, or wait for the rate-limit window to reset. This is your judgment call based on the total plan scope. If both windows are low, proceed normally.
-
-If `extra_usage = true`, proceed immediately after receiving the STATUS — no assessment needed, but still wait for the message to confirm the watchdog is operational.
-
-### 1.11 Proceed to Phase 2
-
-Shared setup is done. Project Manager and watchdog are live and confirmed. Task teams can now be spawned per Phase 2.
+Shared setup is done. The usage mode is set (1.0b) and PM (with the usage monitor) is live and confirmed. There is no first-tick STATUS to wait for — the mode/budget decision already happened up front, and the Lead reads usage on demand via `usage-monitor.sh status` at each spawn decision (Phase 2). Task teams can now be spawned per Phase 2.

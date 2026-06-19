@@ -57,7 +57,7 @@ PASS if the export line exists in shell config.
 
 ### 3.2b Teammate execution mode
 
-Plan execution runs its teammates (Executor/Reviewer/Tester/PM/Watchdog) as **tmux panes**. *How* a named teammate runs is governed by the `teammateMode` key in `~/.claude/settings.json` (`tmux` | `in-process` | `auto`). When it is unset, Claude Code defaults to **`in-process`** — teammates spawn inside the Lead's process with **no tmux panes**, which silently breaks the pane-based coordination plan-execution depends on (the user sees "it didn't run as a team / no panes").
+Plan execution runs its teammates (Executor/Reviewer/Tester/PM) as **tmux panes**. *How* a named teammate runs is governed by the `teammateMode` key in `~/.claude/settings.json` (`tmux` | `in-process` | `auto`). When it is unset, Claude Code defaults to **`in-process`** — teammates spawn inside the Lead's process with **no tmux panes**, which silently breaks the pane-based coordination plan-execution depends on (the user sees "it didn't run as a team / no panes").
 
 ```bash
 jq -r '.teammateMode // empty' ~/.claude/settings.json 2>/dev/null
@@ -115,6 +115,7 @@ Check if session tracking hooks are configured and symlinked:
 
 ```bash
 [ -L ~/.claude/ultra/lib.sh ] && echo "lib exists" || echo "lib missing"
+[ -L ~/.claude/ultra/usage-monitor.sh ] && echo "usage-monitor exists" || echo "usage-monitor missing"
 [ -L ~/.claude/ultra/hooks/session-start.sh ] && echo "start exists" || echo "start missing"
 [ -L ~/.claude/ultra/hooks/session-end.sh ] && echo "end exists" || echo "end missing"
 jq -r '.hooks.SessionStart // empty' ~/.claude/settings.json 2>/dev/null
@@ -122,7 +123,7 @@ jq -r '.hooks.SessionEnd // empty' ~/.claude/settings.json 2>/dev/null
 ```
 
 PASS if:
-- All three symlinks exist (`lib.sh`, `hooks/session-start.sh`, `hooks/session-end.sh`)
+- All symlinks exist (`lib.sh`, `usage-monitor.sh`, `hooks/session-start.sh`, `hooks/session-end.sh`)
 - `~/.claude/settings.json` has `hooks.SessionStart` and `hooks.SessionEnd` entries
 
 ### 3.8 Tailscale (optional)
@@ -441,7 +442,10 @@ brew install jq
 mkdir -p ~/.claude/ultra
 ln -sf "${CLAUDE_PLUGIN_ROOT}/scripts/statusline.sh" ~/.claude/ultra/statusline.sh
 ln -sf "${CLAUDE_PLUGIN_ROOT}/scripts/lib.sh" ~/.claude/ultra/lib.sh
+ln -sf "${CLAUDE_PLUGIN_ROOT}/scripts/usage-monitor.sh" ~/.claude/ultra/usage-monitor.sh
 ```
+
+`usage-monitor.sh` is symlinked here so plan-execution can invoke it via a stable absolute path (`~/.claude/ultra/usage-monitor.sh`) that does not depend on `$CLAUDE_PLUGIN_ROOT` being present in the Bash shell.
 
 3. **Configure settings.json** — read `~/.claude/settings.json`, add or update the `statusLine` key:
 
