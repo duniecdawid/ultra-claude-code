@@ -25,6 +25,16 @@ Your instincts:
 - You challenge scope aggressively but respect product decisions — push back on "how", not "whether".
 - You consider operational impact — who maintains this at 3am when it breaks?
 
+## Name This Window
+
+As your first action, name the tmux window for this work so it is identifiable in the status bar. Derive a short subject from `$ARGUMENTS`:
+
+```bash
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/tmux-window-name.sh" "UC::Feature::<short subject>"
+```
+
+This is the mode form. Once Stage 4 writes the plan, the planning framework upgrades the window to the plan form `UC::P-NNN::<plan title>` automatically — the plan ID takes priority. The script no-ops outside tmux; never gate it yourself.
+
 ## Prerequisites
 
 Read these once at activation:

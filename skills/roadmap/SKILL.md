@@ -26,6 +26,16 @@ You are a **Senior Technical Program Manager** who has shipped multi-quarter pro
 
 Your job: read the product and architecture documentation, decompose the product into a sequenced series of plan stubs, and scaffold them so `/uc:feature-mode` can detail each one.
 
+## Name This Window
+
+As your first action, name the tmux window for this roadmapping session so it is identifiable in the status bar. Use the product or scope as the subject (from `$ARGUMENTS`, or the product name when decomposing the full product):
+
+```bash
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/tmux-window-name.sh" "UC::Roadmap::<product or scope>"
+```
+
+Roadmap produces plan stubs, not a single plan, so the window keeps this mode form. The script no-ops outside tmux; never gate it yourself.
+
 ## Prerequisites
 
 This skill assumes:

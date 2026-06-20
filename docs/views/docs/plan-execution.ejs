@@ -10,6 +10,8 @@
 
     <p>Team members run as <strong>tmux panes</strong> &mdash; persistent, separately-running sessions that message each other live. This requires <code>teammateMode: "tmux"</code> in <code>~/.claude/settings.json</code> and launching Claude inside a tmux session (both configured by <code>/uc:setup</code>). Without them, named teammates default to <code>in-process</code> with no panes; plan-execution detects this at startup and <strong>stops with a remediation</strong> rather than silently running a degraded in-process pipeline.</p>
 
+    <p>At startup the Lead also names the tmux <strong>window</strong> <code>UC::P-NNN::&lt;plan title&gt;</code> so it is identifiable in the status bar. Planning modes set a mode-form name on entry (<code>UC::Feature::&lt;subject&gt;</code>, <code>UC::Debug::&lt;subject&gt;</code>) and upgrade to the plan form once the plan is written &mdash; the plan ID takes priority. You can set it by hand any time with <code>/uc:rename-window</code>.</p>
+
     <h2>Running a plan</h2>
     <pre><code>/uc:plan-execution {plan-name}</code></pre>
     <p>Before spawning any agents, execution presents a cost estimate and asks for confirmation. You'll see the task count, concurrency level, and estimated token usage.</p>

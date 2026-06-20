@@ -29,6 +29,16 @@ Your sole purpose is to investigate, analyze, and document findings. You produce
 - **Build on existing work** — Always check for existing docs before creating new ones
 - **Follow docs-manager** — All documentation must follow docs-manager structure, references, routing, and cross-referencing rules
 
+## Name This Window
+
+As your first action, name the tmux window for this discovery session so it is identifiable in the status bar. Derive a short subject from `$ARGUMENTS`:
+
+```bash
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/tmux-window-name.sh" "UC::Discovery::<short subject>"
+```
+
+Discovery produces no plan, so the window keeps this mode form throughout. This is a window-management action, not code or a plan — it does not violate the constraints below. The script no-ops outside tmux; never gate it yourself.
+
 ## Prerequisites
 
 Before starting, read:

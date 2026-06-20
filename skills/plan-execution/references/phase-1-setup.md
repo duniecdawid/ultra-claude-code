@@ -122,6 +122,18 @@ The layout daemon arranges panes as agents spawn and self-label their panes. **Y
 
 Two layers keep the main pane labelled so the daemon never skips the window: Phase 2's Pre-Spawn Checklist (§2.6) re-runs this same script before every spawn (idempotent), and the daemon itself self-heals — if the Lead pane is ever unlabelled, it infers the Lead from window contents and persists the label (see `scripts/tmux-layout-daemon.js`).
 
+### 1.1c Name the Window
+
+Name the tmux window with the plan so it is identifiable in the status bar. The resolved plan is `$ARGUMENTS` (the full `NNN-name`); read its README title and apply the standardized plan form:
+
+```bash
+NNN=$(printf '%s' "$ARGUMENTS" | cut -d- -f1)
+TITLE=$(sed -n 's/^# Plan: //p' "documentation/plans/$ARGUMENTS/README.md" | head -1)
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/tmux-window-name.sh" "UC::P-${NNN}::${TITLE}"
+```
+
+This is the window-name analogue of the pane-label setup above — the script owns the `$TMUX_PANE` gate, sanitizes and truncates for the status bar, disables tmux automatic-rename so the name sticks, and no-ops outside tmux. Window naming is orthogonal to the pane-label/layout-daemon system, so there is no conflict.
+
 ### 1.2 Resume Detection
 
 If `checkpoint-*.md` files exist:

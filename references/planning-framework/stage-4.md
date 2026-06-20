@@ -205,6 +205,17 @@ Three write actions, in order:
 
 This ensures the dashboard can display tasks during the approval window, before the plan is approved. It also means every task has its authoritative `task.md` file on disk before execution begins — `/uc:plan-execution` never has to parse README sections for per-task content.
 
+## Step 5d: Upgrade the Window Name to the Plan Form
+
+The plan now has a number and a title, so upgrade the tmux window from the mode form (`UC::Feature::…` / `UC::Debug::…`, set at mode entry) to the **plan form** — the plan ID takes priority whenever it exists. Read the README `# Plan: {Name}` title and apply it:
+
+```bash
+TITLE=$(sed -n 's/^# Plan: //p' "documentation/plans/{NNN}-{name}/README.md" | head -1)
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/tmux-window-name.sh" "UC::P-{NNN}::${TITLE}"
+```
+
+`{NNN}` is the plan number (the directory's 3-digit prefix). The script sanitizes and truncates for the status bar and no-ops outside tmux — never gate it yourself.
+
 ## Step 6: Present Summary and Request Approval
 
 **Present a concise summary in chat** — NOT the full plan. Include: plan number, plan name, objective, task count, and the file path. The user can read the full plan from the file.

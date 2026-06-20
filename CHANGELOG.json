@@ -1,5 +1,12 @@
 [
   {
+    "seq": 180,
+    "version": "2026.06.20-1",
+    "date": "2026-06-20",
+    "summary": "Add tmux window naming. New shipped primitive scripts/tmux-window-name.sh renames the current tmux WINDOW (the window-name analogue of tmux-layout-setup.sh, which manages pane labels; the two are orthogonal — the layout daemon never touches window names). It owns the single $TMUX_PANE runtime gate, sanitizes the requested name (collapses whitespace, keeps the '::' delimiter unambiguous, lone colons -> '-'), truncates to ~40 chars for the status bar, renames the window, and disables tmux automatic-rename/allow-rename so the shell prompt or programs don't overwrite it; logs to ~/.claude/ultra/tmux-window-name.log and always exits 0 so it can never break a caller; no-ops outside tmux. New user-invocable skill /uc:rename-window wraps it for manual renames and documents the convention. Standardized naming wired into the planning/execution flows: each mode names its window on entry (UC::Feature::<subject>, UC::Debug::<subject>, UC::Discovery::<subject>, UC::Roadmap::<scope>); the shared planning-framework Stage 4 (new Step 5d) upgrades feature/debug windows to the plan form UC::P-NNN::<README title> once the plan is written; and plan-execution Phase 1 (new §1.1c) names the window UC::P-NNN::<README title> right after the existing layout setup. The plan ID form takes priority whenever a plan number exists. Help skill + docs site (reference) synced.",
+    "migration": null
+  },
+  {
     "seq": 179,
     "version": "2026.06.19-2",
     "date": "2026-06-19",

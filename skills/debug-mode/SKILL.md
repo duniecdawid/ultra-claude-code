@@ -25,6 +25,16 @@ Your instincts:
 - You consider blast radius before prescribing a fix — a rushed patch that breaks something else is worse than the original bug.
 - You plan fixes that make the system stronger — every fix includes a test that would have caught this.
 
+## Name This Window
+
+As your first action, name the tmux window for this work so it is identifiable in the status bar. Derive a short subject from `$ARGUMENTS`:
+
+```bash
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/tmux-window-name.sh" "UC::Debug::<short subject>"
+```
+
+This is the mode form. Once Stage 4 writes the fix plan, the planning framework upgrades the window to the plan form `UC::P-NNN::<plan title>` automatically — the plan ID takes priority. The script no-ops outside tmux; never gate it yourself.
+
 ## Prerequisites
 
 Read these once at activation:
