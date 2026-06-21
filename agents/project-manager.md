@@ -343,6 +343,13 @@ Derivation rules when new signals are found:
 - Unknown/future signal names → ignore for stage derivation (the vocabulary may grow)
 - Track which signals you've already processed (by line count or last-seen timestamp) to avoid duplicate state file updates
 
+**Channel-health metrics (feeds the report's Communication Channel Health section).** From the signal stream you can measure how well the *primary* (SendMessage) channel is delivering — the standing data for the open question of whether the durable backstop still earns its keep:
+- **Resends** — a `signal`+`author` line that repeats a still-unanswered earlier request (the §3 ~12-min resend). Soft indicator only — legitimate retry-cycle signals (`REREVIEW_REQUESTED`, `RETEST_REQUESTED`) also repeat; exclude those.
+- **Escalations** — `STALLED-WAIT` messages to Lead. Strong indicator a wait exceeded ~24 min.
+- **`WAIT_TIMEOUT`** signals — unambiguous: a wait exhausted the ladder (~40 min); the `note` says what was awaited.
+- **Backstop saves** — read `$PLAN_DIR/tasks/task-{N}/comms-telemetry.jsonl` (if present) and count `resolved_by:"file"` lines: waits the file unblocked when no SendMessage arrived. Clearest positive evidence the backstop fired. Absent file ⇒ treat as zero, never an error.
+All ≈ 0 across the run ⇒ the primary channel is healthy and the backstop is near-vestigial; any non-zero ⇒ it earned its keep.
+
 ## Usage Monitor Handling
 
 Your background monitor (`usage-monitor.sh watch`) emits only on actionable milestones. The script already resolves the account and applies the thresholds — you do **not** re-read `usage-status.json` to "validate" it (the single-source-of-truth script is authoritative; the old Haiku-relay validation step is gone). Your job: log the event, add operational context, and forward to Lead **only** when the chosen usage mode makes it actionable. Forwarded messages include the window in brackets (e.g. `USAGE STOP [5h]: ...`).
@@ -591,6 +598,20 @@ Assessments: efficient / acceptable / wasteful — with brief reason.
 
 ### Information Flow Gaps
 {What information should have been shared but wasn't?}
+
+### Communication Channel Health
+
+How well did the primary (SendMessage) channel deliver, and did the durable `signals.jsonl` backstop ever have to catch a dropped message? Standing instrumentation for the open question of whether the dual-write layer is still necessary given Claude Code's name-addressing delivery bugs.
+
+| Metric | Count | Source |
+|--------|-------|--------|
+| Waits resolved by SendMessage (happy path) | {N} | `comms-telemetry.jsonl` `resolved_by:sendmessage` |
+| **Waits resolved by file backstop** (SendMessage missed) | {N} | `comms-telemetry.jsonl` `resolved_by:file` |
+| Resends (~12 min, soft) | {N} | duplicate unanswered request signals |
+| Escalations (~24 min) | {N} | `STALLED-WAIT` to Lead |
+| `WAIT_TIMEOUT` hard-fails (~40 min) | {N} | `signals.jsonl` |
+
+**Read:** backstop-save + escalation + timeout counts all 0 ⇒ the primary channel delivered everything this run; non-zero ⇒ the backstop/ladder was load-bearing. The resend/escalation/timeout columns are authoritative (derived from `signals.jsonl`); the `comms-telemetry.jsonl` columns are best-effort corroboration (agents may not log every wake).
 
 ## Repeated Work Analysis
 

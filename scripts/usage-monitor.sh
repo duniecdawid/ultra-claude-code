@@ -203,7 +203,10 @@ cmd_watch() {
       check_window seven_day 7d "$p7" "$r7" "$CRIT_7D" "$SOFT_7D"
     fi
     check_stalls "$plan_dir"
-    sleep 60
+    # 120s poll: the loop is silent on clean ticks, so this is churn/debug-log reduction, not
+    # output-rate reduction. Usage % moves slowly and the >10-min stall threshold dominates
+    # detection latency, so a 2-min cadence loses nothing actionable.
+    sleep 120
   done
 }
 

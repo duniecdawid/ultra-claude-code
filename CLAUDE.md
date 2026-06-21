@@ -35,7 +35,7 @@ Rule: each skill and agent gets exactly 3 sentences in the help knowledge base:
 
 Any skill or agent built on Claude Code agent teams MUST use the execution communication protocol at `skills/plan-execution/references/execution-communication-protocol.md` for inter-agent communication and waiting.
 
-1. **SendMessage is the primary channel; the `signals.jsonl` layer is the durable backup.** Any signal a receiver waits on must be sent via `CommunicateTeamMember`/`CommunicateTeam` (signal + SendMessage) — never raw SendMessage alone.
+1. **SendMessage is the primary (immediate) channel; `signals.jsonl` is the durable shared state log — crash recovery + observability — *and* a delivery backstop, not merely a backup.** Any signal a receiver waits on must be sent via `CommunicateTeamMember`/`CommunicateTeam` (signal + SendMessage) — never raw SendMessage alone. The log carries jobs SendMessage architecturally cannot (re-spawn state inference, PM/report state), so it stays even where SendMessage is reliable; see the protocol preamble.
 2. **Never wait in a foreground Bash loop.** SendMessages are delivered only between turns, so a foreground wait makes the agent deaf to the primary channel. Pure waits use bounded Monitor rounds per protocol §3.
 3. **Reference, don't copy.** Skills and agents point to the protocol file by function and section (e.g. "wait per protocol §3") instead of restating mechanics. The protocol file is the single source of truth — when behavior needs to change, change it there.
 4. **Agents that perform pure waits need the `Monitor` tool** in their frontmatter (see `agents/task-executor.md` for the pattern).
