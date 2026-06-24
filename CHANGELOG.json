@@ -1,5 +1,12 @@
 [
   {
+    "seq": 182,
+    "version": "2026.06.23-1",
+    "date": "2026-06-23",
+    "summary": "Fix the Project Manager dashboard deep-link: the path segment was /projects/<id>, a route the Ultra Claude Dashboard does not serve, so the link the PM emits at startup (Startup Sequence step 7d in agents/project-manager.md) 404'd. Corrected to /dashboard/<id> — the project-overview route the dashboard actually serves (matching the canonical form https://dashboard.ultra-claude.dev/dashboard/<UUID>, where anything after the UUID is an optional project-relative file path). One-line change to the URL template; host resolution, the (a) project-id / (b) daemon-live connection guards, and the `SendMessage Lead: \"Dashboard live at {URL}\"` relay are unchanged. Supersedes the /projects/ format introduced in seq 172. Relays in skills/plan-execution/SKILL.md and the help-skill PM entry only carry {URL} and don't state the path, so no edits there; docs site grep clean.",
+    "migration": null
+  },
+  {
     "seq": 181,
     "version": "2026.06.21-1",
     "date": "2026-06-21",

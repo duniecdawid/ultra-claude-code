@@ -219,7 +219,7 @@ At the very beginning of execution (before spawning any teams):
 
    d. **Only when (a) AND (b) both pass**, construct the per-project deep-link and send it once:
       ```bash
-      URL="https://$HOST/projects/$PROJECT_ID"
+      URL="https://$HOST/dashboard/$PROJECT_ID"
       ```
       `SendMessage` Lead: `"Dashboard live at {URL}"`. Lead displays it to the user. If you skipped
       at (a) or (b), send nothing here.
