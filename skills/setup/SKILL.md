@@ -1,5 +1,5 @@
 ---
-description: One-time machine setup for Ultra Claude. Checks and configures shell environment (1M context, agent teams, teammate execution mode for tmux-paned plan-execution teams), installs prerequisites (node, optionally tmux), guides tmux mode selection (per-project, per-terminal, none, or custom — see references/tmux-modes.md), configures the statusline for per-account usage tracking, offers the Claude Code fullscreen renderer for flicker-free flat-memory output (opt-out, version-gated), offers recommended client-side VS Code settings for the Claude Code extension when VS Code is detected (opt-in — see references/vscode-settings.md), optionally sets up Tailscale for remote access, optionally installs a tmux disconnected-session reaper for per-terminal mode users whose tmux sessions pile up, and — if the `ultraclaude-agent` npm package is already installed — checks for and offers to update it to the latest published version. Idempotent — safe to re-run. Writes version marker to ~/.claude/ultra/uc-setup.json so other skills can quickly check if setup is current. Use when onboarding a new machine, after Ultra Claude install, when plan-execution reports missing prerequisites, when experiencing screen tearing/flickering in tmux, or when stale tmux sessions are accumulating on a remote machine. Triggers on "setup", "machine setup", "environment setup", "configure machine", "setup 1m context", "enable agent teams", "screen tearing", "tmux tearing", "flickering", "fullscreen", "fullscreen renderer", "fullscreen mode", "tui", "flicker-free", "session cleanup", "tmux reaper", "reap tmux", "orphaned tmux", "stale tmux sessions".
+description: One-time machine setup for Ultra Claude. Checks and configures shell environment (1M context, agent teams, teammate execution mode for tmux-paned plan-execution teams), installs prerequisites (node, optionally tmux), guides tmux mode selection (per-project, per-terminal, none, or custom — see references/tmux-modes.md), configures the statusline for per-account usage tracking, offers the Claude Code fullscreen renderer for flicker-free flat-memory output (opt-out, version-gated), offers recommended client-side VS Code settings for the Claude Code extension when VS Code is detected (opt-in — see references/vscode-settings.md), optionally sets up Tailscale for remote access, and — if the `ultraclaude-agent` npm package is already installed — checks for and offers to update it to the latest published version. Idempotent — safe to re-run. Writes version marker to ~/.claude/ultra/uc-setup.json so other skills can quickly check if setup is current. Use when onboarding a new machine, after Ultra Claude install, when plan-execution reports missing prerequisites, when experiencing screen tearing/flickering in tmux. Triggers on "setup", "machine setup", "environment setup", "configure machine", "setup 1m context", "enable agent teams", "screen tearing", "tmux tearing", "flickering", "fullscreen", "fullscreen renderer", "fullscreen mode", "tui", "flicker-free".
 user-invocable: true
 ---
 
@@ -67,9 +67,21 @@ PASS if `teammateMode` is `tmux` (the value plan-execution needs). Report `in-pr
 
 ### 3.3 1M Context env vars
 
-Grep shell config for `ANTHROPIC_DEFAULT_OPUS_MODEL` and `ANTHROPIC_DEFAULT_SONNET_MODEL`.
+Grep shell config for `ANTHROPIC_DEFAULT_OPUS_MODEL` and `ANTHROPIC_DEFAULT_SONNET_MODEL`, and read the value each one currently pins.
 
-PASS if **both** export lines exist in shell config with `[1m]` suffix.
+**Canonical pins** (single source of truth — keep in sync with §5.3):
+
+| Var | Canonical value |
+|-----|-----------------|
+| `ANTHROPIC_DEFAULT_OPUS_MODEL` | `claude-opus-4-8[1m]` |
+| `ANTHROPIC_DEFAULT_SONNET_MODEL` | `claude-sonnet-5[1m]` |
+
+Classify **each** var independently into one of three states:
+- **current** — the export line exists and its value exactly matches the canonical pin.
+- **outdated** — the export line exists but pins a different/older model or lacks the `[1m]` suffix (e.g. an existing `claude-sonnet-4-6[1m]` while canonical is `claude-sonnet-5[1m]`). Soft-fail: §5.3 upgrades it in place.
+- **missing** — no export line at all.
+
+PASS only if **both** vars are **current**. Report `outdated` distinctly from `missing` so the user sees "will upgrade" rather than "will add" — this is what lets a re-run pick up a model bump instead of silently leaving an old pin in place.
 
 ### 3.4 Node.js
 
@@ -165,39 +177,6 @@ test -f ~/.claude/skills/machine-context/SKILL.md && echo present || echo missin
 
 Record status but don't mark as MISSING — this is optional. The `machine-context` skill holds per-machine values (Chrome install, VM/host topology, dev runtimes, network conventions, warnings) that other Ultra Claude skills read at runtime. Skills like `/uc:chrome-debug` fall back to pure runtime detection when it's absent, so the skill is not strictly required, but populating it makes future diagnostics and workflows more targeted.
 
-### 3.11 Session Cleanup (optional, Linux/systemd only)
-
-Optional opt-in tmux disconnected-session reaper for users whose tmux sessions accumulate on a remote machine (typically VSCode Remote SSH workflows). Full procedure — including the tradeoff prompt, file templates, and systemd unit definitions — lives in `references/session-cleanup.md`.
-
-SKIP if tmux mode is `none`, `per-project`, or `custom`. The reaper is only relevant for `per-terminal` mode where sessions accumulate.
-
-Platform gate first:
-
-```bash
-[ "$(uname -s)" = "Linux" ] || echo "skip: not linux"
-command -v systemctl >/dev/null 2>&1 || echo "skip: no systemctl"
-```
-
-If the gate fails, record SKIP and move on — never mark as MISSING on non-Linux platforms.
-
-Otherwise detect current state per the reference's "Detection" section:
-
-```bash
-REAPER_BIN="$HOME/.local/bin/tmux-reap-disconnected.sh"
-SERVICE_UNIT="$HOME/.config/systemd/user/tmux-reap.service"
-TIMER_UNIT="$HOME/.config/systemd/user/tmux-reap.timer"
-[ -f "$REAPER_BIN" ] && [ -f "$SERVICE_UNIT" ] && [ -f "$TIMER_UNIT" ] && echo "files: yes" || echo "files: no"
-systemctl --user is-enabled tmux-reap.timer >/dev/null 2>&1 && echo "enabled: yes" || echo "enabled: no"
-systemctl --user is-active  tmux-reap.timer >/dev/null 2>&1 && echo "active: yes"  || echo "active: no"
-loginctl show-user "$USER" 2>/dev/null | grep -q '^Linger=yes' && echo "linger: yes" || echo "linger: no"
-```
-
-Record status but don't mark as MISSING — this is **strictly opt-in**. Treat as:
-
-- **PASS** — all three files exist AND timer is enabled AND active AND linger is on.
-- **OPT-IN AVAILABLE** — platform gate passed but files are absent or partial. Surface in Step 4 with the optional label; the fix in Step 5.11 must explicitly ask the user to opt in before touching anything.
-- **SKIP** — non-Linux or systemctl unavailable.
-
 ### 3.12 Dashboard (optional)
 
 Check whether the sync agent is connected to the Ultra Claude Dashboard. This check only runs if Step 3.9 detected the agent as installed — skip entirely if the agent is not on `PATH`.
@@ -268,14 +247,13 @@ Ultra Claude Environment Check (plugin v{version})
   tmux mode                 ✓ per-project (recommended)   # or "— none (no tmux)" / "— custom (user-managed)" / "✓ per-terminal (legacy)" / "✗ not configured"
   tmux.conf                 ✓ passthrough enabled          # or "— skipped" if mode is none/custom
   Agent teams env var       ✗ missing
-  1M context env vars       ✗ missing
+  1M context env vars       ✗ missing                       # or "✓ current" / "⤴ outdated → will upgrade to claude-sonnet-5[1m]"
   Node.js                   ✓ v22.0.0
   Statusline                ✗ not configured
   Session Hooks             ✗ not configured
   Tailscale (optional)      — not installed
   Agent (optional)          — not installed   # or "✓ 0.0.26 (latest)" / "✗ 0.0.25 → 0.0.26"
   Machine Context (optional) — not configured
-  Session Cleanup (optional) — not installed  # or "✓ reaper active (24h)" / "— skipped (not linux)" / "— skipped (not per-terminal)"
   Dashboard (optional)       — skipped       # or "✓ connected" / "✗ not connected" / "— skipped (agent not installed)"
   Fullscreen renderer        ✗ classic (recommended: fullscreen)  # or "✓ fullscreen" / "— skipped (needs Claude Code v2.1.89+)"
   VS Code settings (optional) — available     # or "✓ applied" / "— declined" / "— skipped (no VS Code)"
@@ -292,7 +270,7 @@ If ALL required checks pass (3.2–3.7 — tmux mode is always valid since all f
 
 If tmux mode is not yet configured (no `tmuxMode` in marker file), present the tmux mode selection prompt from `references/tmux-modes.md` Section "Selection Prompt" FIRST, before the multi-select fix list. The mode choice determines which tmux-related fixes appear.
 
-Then use AskUserQuestion with a multi-select to let the user choose which items to fix. List only MISSING items. Always include Tailscale if not installed (marked as optional in the description). On Linux, include Session Cleanup only if tmux mode is `per-terminal` (marked as optional, with a short one-liner about the tradeoff — the full warning lives in the fix step's own prompt). Include VS Code client settings only if check 3.14 reported OPT-IN AVAILABLE (marked as optional: "recommended editor + Claude Code extension settings").
+Then use AskUserQuestion with a multi-select to let the user choose which items to fix. List only MISSING items. Always include Tailscale if not installed (marked as optional in the description). Include VS Code client settings only if check 3.14 reported OPT-IN AVAILABLE (marked as optional: "recommended editor + Claude Code extension settings").
 
 The fullscreen renderer (5.13) is **not** part of this multi-select — because it's recommended-on (opt-out), present it as its own dedicated question per 5.13 whenever check 3.13 reported OPT-OUT AVAILABLE.
 
@@ -351,17 +329,30 @@ Tell the user: "Teammate mode set to `tmux` — takes effect on your **next Clau
 
 ### 5.3 Fix: 1M Context env vars
 
-Only if NOT already present in shell config (grep first):
+Act on the state each var was classified into in §3.3. Handle the two vars **independently** — a machine can have a current Opus pin but an outdated Sonnet one.
 
-Append to shell config file:
+**missing** → append the canonical export line(s) to the shell config (append only the var(s) actually missing — don't duplicate one that's already present):
 
 ```bash
 # Ultra Claude: enable 1M context window for all opus/sonnet usage (including subagents)
 export ANTHROPIC_DEFAULT_OPUS_MODEL='claude-opus-4-8[1m]'
-export ANTHROPIC_DEFAULT_SONNET_MODEL='claude-sonnet-4-6[1m]'
+export ANTHROPIC_DEFAULT_SONNET_MODEL='claude-sonnet-5[1m]'
 ```
 
-**Important:** If old/partial entries exist (e.g., the vars are set but without `[1m]`), warn the user and ask before modifying.
+**outdated** → rewrite the existing line **in place** to the canonical value. This is the path that upgrades an already-set-up machine across a model bump (e.g. Sonnet 4.6 → Sonnet 5) — a bare append would create a duplicate export and the last one wins unpredictably, so you MUST edit in place. Back up first, replace the whole `export VAR=…` line, then print the before→after so the change is visible (`$SHELL_CONFIG` = the file detected in Step 2, `~/.bashrc` or `~/.zshrc`):
+
+```bash
+config="$SHELL_CONFIG"
+# Sonnet — repeat the same substitution for ANTHROPIC_DEFAULT_OPUS_MODEL if it too is outdated:
+sed -i.uc-bak -E "s|^([[:space:]]*export[[:space:]]+ANTHROPIC_DEFAULT_SONNET_MODEL=).*|\1'claude-sonnet-5[1m]'|" "$config"
+```
+
+- Upgrading an Ultra-Claude-written default (any `claude-{opus,sonnet,haiku}-…[1m]` Anthropic pin) is the expected non-destructive path — just do it and report before→after; no need to ask.
+- **Only** if the existing value is an unexpected custom pin (NOT a `claude-…[1m]` Anthropic model — i.e. the user appears to have deliberately chosen something else) do you warn and ask before overwriting.
+
+**current** → nothing to do.
+
+After any change, remind the user the new pins take effect on the **next shell / Claude Code launch** (env vars are read at process start, not live).
 
 ### 5.4 Fix: Node.js
 
@@ -557,32 +548,6 @@ If the user selected Machine Context, run the interview-driven scaffolding proce
 
 See `references/machine-context-interview.md` for the full question set and file templates.
 
-### 5.11 Fix: Session Cleanup (opt-in, Linux/systemd only)
-
-Skip this fix entirely if the platform gate in 3.11 failed (not Linux, or no systemctl). Skip it also if check 3.11 already reported PASS — the user has a working reaper, leave it alone unless they explicitly picked "Reinstall" or "Repair".
-
-This is **strictly opt-in**. Before writing any files, present the user with the tradeoff prompt from `references/session-cleanup.md` (section "Opt-in prompt"). The prompt must make clear that:
-
-1. The reaper **cleans up** stale tmux sessions — great for VSCode Remote SSH users whose integrated terminals leave orphaned sessions behind.
-2. The reaper **disrupts your ability to resume work** in any detached tmux session older than 24 hours — including sessions you deliberately detached with `Ctrl-b d` intending to come back later. Scrollback and running processes inside those sessions are lost.
-3. If the user relies on long-lived detached sessions to pick up work across days, they should pick `[Skip]`.
-
-Use `AskUserQuestion` with the options described in the reference — at minimum `[Install]` and `[Skip]`, adding `[Reinstall]`, `[Repair]`, `[Remove]`, or `[Leave as is]` when the current install state calls for them. Default to the non-destructive option.
-
-Only if the user explicitly chose Install / Reinstall / Repair, follow the "Install / repair implementation" section of `references/session-cleanup.md`:
-
-1. Write `$HOME/.local/bin/tmux-reap-disconnected.sh` with the `Write` tool (the exact content is in the reference). `chmod +x` it afterwards.
-2. Write `$HOME/.config/systemd/user/tmux-reap.service`.
-3. Write `$HOME/.config/systemd/user/tmux-reap.timer`.
-4. Run `systemctl --user daemon-reload` and `systemctl --user enable --now tmux-reap.timer`.
-5. If `loginctl show-user "$USER"` reports `Linger=no`, run `sudo loginctl enable-linger "$USER"`. If the user doesn't have passwordless sudo, print the exact command and wait for them to run it — do **not** silently proceed.
-
-If the user picked `[Remove]`, follow the "Remove" section of the reference and stop.
-
-After any install/reinstall/repair, run the "Verify" block from the reference and report: timer enabled/active, next scheduled run, linger state, threshold (default 24h, tunable via `TMUX_REAP_THRESHOLD` in the service unit), and the three file paths.
-
-All writes land under `$HOME`. Nothing touches project directories.
-
 ### 5.12 Fix: Dashboard
 
 Skip if the agent is not installed (Step 3.9 must report the agent on `PATH`). Skip if Step 3.12 already reported PASS.
@@ -671,7 +636,6 @@ After all fixes are applied, write `~/.claude/ultra/uc-setup.json`:
     "tailscale": true/false,
     "agent": "{installed version or null if not installed}",
     "machineContext": true/false,
-    "sessionCleanup": "installed" | "skipped" | "not-linux" | "opted-out",
     "dashboard": "connected" | "not-connected" | "skipped",
     "fullscreen": "fullscreen" | "classic" | "unsupported",
     "vscodeSettings": "applied" | "declined" | "skipped"

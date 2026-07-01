@@ -4,12 +4,12 @@ tmux is a terminal multiplexer: it lets you run multiple terminal sessions insid
 
 ## Modes
 
-| Mode | Marker value | Description | Session Reaper? | tmux Required? | UC touches tmux config? |
-|------|-------------|-------------|-----------------|----------------|------------------------|
-| Per-project session | `per-project` | One tmux session per project directory. Created on first terminal open, reattached on subsequent ones. Processes survive VS Code reloads, SSH disconnects, lid closes. No orphan sessions. | No | Yes | Yes |
-| No tmux | `none` | Plain shell. Terminals are regular shells. Closing VS Code kills running processes. Agent teams still work — communication is tmux-independent. | N/A | No | No |
-| Per-terminal session | `per-terminal` | Each terminal spawns its own tmux session. Processes survive but sessions accumulate over time. A systemd reaper can be installed to clean up old ones (see `session-cleanup.md`). | Yes (opt-in) | Yes | Yes |
-| Don't touch it | `custom` | User manages their own tmux setup. Ultra Claude won't install tmux, modify tmux.conf, write terminal profiles, or offer the session reaper. Agent pane labeling still works at runtime if `$TMUX_PANE` is set. | User's choice | User's choice | No |
+| Mode | Marker value | Description | tmux Required? | UC touches tmux config? |
+|------|-------------|-------------|----------------|------------------------|
+| Per-project session | `per-project` | One tmux session per project directory. Created on first terminal open, reattached on subsequent ones. Processes survive VS Code reloads, SSH disconnects, lid closes. No orphan sessions. | Yes | Yes |
+| No tmux | `none` | Plain shell. Terminals are regular shells. Closing VS Code kills running processes. Agent teams still work — communication is tmux-independent. | No | No |
+| Per-terminal session | `per-terminal` | Each terminal spawns its own tmux session. Processes survive but sessions accumulate over time — per-project mode is preferred since it reuses one session and leaves no orphans. (Legacy.) | Yes | Yes |
+| Don't touch it | `custom` | User manages their own tmux setup. Ultra Claude won't install tmux, modify tmux.conf, or write terminal profiles. Agent pane labeling still works at runtime if `$TMUX_PANE` is set. | User's choice | No |
 
 ## Selection Prompt
 
@@ -165,9 +165,7 @@ Each VS Code terminal spawns its own tmux session. Simple but generates orphan s
 
 ### Session cleanup
 
-Sessions pile up because each terminal creates a new one and closing VS Code doesn't kill them. A systemd-based reaper can be installed to kill sessions detached for more than 24 hours. See `session-cleanup.md` for the full procedure and tradeoffs.
-
-The reaper is only relevant for this mode — per-project mode reuses sessions so there's nothing to clean up.
+Sessions pile up in this mode because each terminal creates a new one and closing VS Code doesn't kill them. There's no automatic cleanup — periodically prune stale sessions by hand (`tmux kill-session -t <name>`), or switch to per-project mode (the default), which reuses one session per project and never orphans.
 
 ## No-tmux Mode
 
@@ -177,7 +175,7 @@ No VS Code terminal profile changes are made.
 
 ## Custom Mode
 
-Ultra Claude skips ALL tmux-related setup: no tmux installation, no tmux.conf changes, no VS Code terminal profile changes, no session reaper.
+Ultra Claude skips ALL tmux-related setup: no tmux installation, no tmux.conf changes, no VS Code terminal profile changes.
 
 Agent pane labeling still works at runtime — every agent checks `$TMUX_PANE` before running tmux commands. If you happen to run Claude Code inside your own tmux session, panes get labeled and the layout daemon arranges them automatically. If you're not in tmux, the labeling is silently skipped.
 

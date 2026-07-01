@@ -1,5 +1,19 @@
 [
   {
+    "seq": 184,
+    "version": "2026.07.01-1",
+    "date": "2026-07-01",
+    "summary": "Switch the default Sonnet model from Sonnet 4.6 to Sonnet 5, and make /uc:setup upgrade an already-set-up machine to it on re-run. Bumped the ANTHROPIC_DEFAULT_SONNET_MODEL export written by /uc:setup (§5.3, 1M Context env vars) from 'claude-sonnet-4-6[1m]' to 'claude-sonnet-5[1m]'; Opus stays on 'claude-opus-4-8[1m]'. This env var is the single control point for the Sonnet tier: all Sonnet-tier agents (Reviewer, Tester, PM, Researcher, Checker, Code/Doc Surveyor, System Tester) and every 'model: sonnet' spawn reference resolve through the alias, so they pick up Sonnet 5 once the pin is in place. Made the env-var check version-aware so a re-run actually migrates a stale pin instead of no-op'ing: §3.3 now defines canonical pins and classifies each var as current / outdated / missing (previously it PASSed on mere presence + [1m] suffix, so 'claude-sonnet-4-6[1m]' looked fine and was never touched); §5.3 now handles the two vars independently — appends when missing, and rewrites an OUTDATED line IN PLACE via sed (with a .uc-bak backup and a printed before→after) rather than appending a duplicate export. Upgrading a claude-{opus,sonnet,haiku}-…[1m] Anthropic default is automatic; only an unexpected custom pin prompts before overwrite. Step-4 status table gains the 'outdated → will upgrade' state. No project-template files change (this only affects what /uc:setup writes to the user's shell config), so migration is null.",
+    "migration": null
+  },
+  {
+    "seq": 183,
+    "version": "2026.06.30-1",
+    "date": "2026-06-30",
+    "summary": "Remove the tmux disconnected-session reaper entirely — it was a legacy band-aid for per-terminal-mode session pile-up, now superseded by per-project mode (one reused session per project, no orphans) plus standardized window naming. Deleted skills/setup/references/session-cleanup.md (the full install/repair/remove reference and systemd unit + reaper-script templates). Stripped /uc:setup of the reaper: removed check 3.11 (Session Cleanup detection) and fix 5.11 (opt-in install), the 'Session Cleanup (optional)' status-table row, the Step-5 multi-select inclusion rule, the checks.sessionCleanup marker slot, and the reaper clauses + trigger phrases ('session cleanup', 'tmux reaper', 'reap tmux', 'orphaned tmux', 'stale tmux sessions') from the skill description. Section anchors 3.12-3.14 and 5.12-5.14 are intentionally left un-renumbered (stable internal labels; a gap at 3.11/5.11 avoids churning every cross-reference). tmux-modes.md: dropped the 'Session Reaper?' table column, reworded the per-terminal row to point at per-project mode, and replaced the 'Session cleanup' subsection's reaper instructions with manual-prune / switch-to-per-project guidance. help/SKILL.md setup entry and docs/views/docs/dev-environment.ejs per-terminal row updated to match. Machine-side: the systemd --user timer (tmux-reap.timer/.service) and ~/.local/bin/tmux-reap-disconnected.sh have no install path anymore; anyone who installed it removes it with 'systemctl --user disable --now tmux-reap.timer && rm -f ~/.local/bin/tmux-reap-disconnected.sh ~/.config/systemd/user/tmux-reap.{service,timer} && systemctl --user daemon-reload'. No project-template files change — the reaper only ever wrote under $HOME — so migration is null.",
+    "migration": null
+  },
+  {
     "seq": 182,
     "version": "2026.06.23-1",
     "date": "2026-06-23",
