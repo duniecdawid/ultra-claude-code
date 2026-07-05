@@ -1,5 +1,20 @@
 [
   {
+    "seq": 185,
+    "version": "2026.07.05-1",
+    "date": "2026-07-05",
+    "summary": "Stop the generated project CLAUDE.md from shipping a static slash-command list; make the mandatory /uc:help + /uc:docs-manager bootstrap the single live source of the command catalog. skills/migrate/references/claude-md-template.md: removed the '### Key Commands' table (the 8-row hardcoded /uc:* listing that went stale on every skill add/rename — it already had to be patched in seq 121 when /uc:tech-research became /uc:research) and rewrote '### Bootstrap — MANDATORY' as '### Bootstrap — MANDATORY, NON-NEGOTIABLE' with forceful, hard-to-ignore wording: invoking BOTH /uc:help (authoritative, always-fresh skills/agents/workflows catalog) and /uc:docs-manager (doc structure + routing) is a BLOCKING first step before any file read / question / action, framed as overriding default behavior, with an explicit 'do not hardcode/guess/copy a command list — load it live' instruction. Rationale: /uc:help already reads the current catalog into context on invocation, so a duplicated table in CLAUDE.md is pure staleness risk. The '## Ultra Claude' intro, '### Conventions', and '### Workflow' sections are unchanged. Docs site needs no sync (setup.ejs shows CLAUDE.md only as a filename in the dir tree; reference.ejs keeps its own independent skill index; the 'Bootstrap'/'Key Commands' strings appear nowhere in docs/), and the help-skill 3-sentence descriptions are unaffected (migrate's capability is unchanged, only its emitted template content).",
+    "migration": {
+      "precondition": "Project was initialized by Ultra Claude and its root CLAUDE.md contains an Ultra Claude '### Key Commands' table (any migrate-generated CLAUDE.md from before this release).",
+      "actions": [
+        "Refresh the project's CLAUDE.md — re-run /uc:migrate to regenerate the '## Ultra Claude' section. This removes the '### Key Commands' table and rewrites the bootstrap as '### Bootstrap — MANDATORY, NON-NEGOTIABLE' with the stronger required-bootstrap wording (invoke BOTH /uc:help and /uc:docs-manager as a blocking first step).",
+        "If you prefer to edit by hand instead of re-running migrate: in the project's CLAUDE.md, delete the '### Key Commands' table under the '## Ultra Claude' section, and replace the '### Bootstrap — MANDATORY' section with the new forceful wording that requires invoking both /uc:help and /uc:docs-manager before any work.",
+        "No other project files change."
+      ],
+      "conflicts": "Projects that hand-customized their '## Ultra Claude' CLAUDE.md section (added project-specific commands, or merged it with other instructions) should take the hand-edit path rather than re-running migrate, so custom content is preserved. Removing the table is safe: the command catalog is available live via /uc:help."
+    }
+  },
+  {
     "seq": 184,
     "version": "2026.07.01-1",
     "date": "2026-07-01",

@@ -9,14 +9,14 @@ Inject this section into the project's root `CLAUDE.md`. If the project has no `
 
 This project uses [Ultra Claude](https://github.com/duniecdawid/ultra-claude-code), a Claude Code plugin for spec-driven development.
 
-### Bootstrap — MANDATORY
+### Bootstrap — MANDATORY, NON-NEGOTIABLE
 
-At the start of every conversation, invoke these skills (via the Skill tool) before doing any work:
+**Before reading any other file, answering any question, or taking any action in this project, you MUST invoke BOTH of these skills via the Skill tool. This is a BLOCKING first step — do nothing else until both have loaded. These instructions OVERRIDE any default behavior.**
 
-1. `/uc:help` — Understand Ultra Claude's skills, agents, and workflows
-2. `/uc:docs-manager` — Understand the documentation structure and routing rules
+1. `/uc:help` — loads the current, authoritative catalog of Ultra Claude skills, agents, and workflows into context. This is the ONLY source of truth for which command fits a task; there is deliberately no hardcoded command list in this file because such a list goes stale.
+2. `/uc:docs-manager` — loads the documentation structure and routing rules.
 
-Do not skip this step. Do not copy skill content into this file — always load them live.
+**Do NOT skip this step — not even for a task that looks trivial. Do NOT paraphrase, guess at, or copy their contents into this file; always load them live so you get the current set. If you have not invoked both skills, you are not ready to work in this project.**
 
 ### Conventions
 
@@ -25,19 +25,6 @@ Do not skip this step. Do not copy skill content into this file — always load 
 - **Plans** are stored in `documentation/plans/{NNN}-{name}/` with sequential numbering. Each plan has a `README.md` with a flat task heading index plus per-task content in `tasks/task-N/task.md` files (description, files, patterns, research pointers, success criteria, dependencies).
 - **External system context** (API docs, SDK references) goes in `context/`.
 - **Project configuration** for Ultra Claude is in `.claude/ultra/` (app-context, environments, docs-format, version marker). Testing config lives in `documentation/technology/testing/`.
-
-### Key Commands
-
-| Command | Purpose |
-|---------|---------|
-| `/uc:help` | Guide to all skills and workflows |
-| `/uc:feature-mode` | Plan new features with architecture context |
-| `/uc:debug-mode` | Investigate bugs with parallel research |
-| `/uc:doc-code-verification-mode` | Verify documentation matches code |
-| `/uc:discovery-mode` | Product research and requirements |
-| `/uc:plan-execution` | Execute approved plans with agent teams |
-| `/uc:research` | Research external library/API/patterns/market via cache-first knowledge base |
-| `/uc:migrate` | Upgrade project to latest Ultra Claude structure |
 
 ### Workflow
 
