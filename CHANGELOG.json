@@ -1,5 +1,12 @@
 [
   {
+    "seq": 187,
+    "version": "2026.07.05-3",
+    "date": "2026-07-05",
+    "summary": "Dashboard skill: document cross-account project transfer (supports ultra-claude-web plan 049). skills/dashboard/SKILL.md adds a \"Transferring a project to another account (ownership transfer)\" section covering the agent `move <project> --to <account>` command and the dashboard \"Transfer project…\" → recipient \"Incoming transfers\" accept/reject flow (in-app only, no email); clarifies that `assign` is now guarded (it refuses an account that doesn't already own the project and points to `move`) and that after a transfer the daemon auto-reconciles — re-routing sync to the owning local account, or marking the project \"transferred away\" and stopping sync (surfaced in `ultraclaude-agent status`), so no manual push is needed. Frontmatter triggers extended (transfer/move/incoming transfers/transferred away); Common Issues rows added for guarded-assign, \"project not registered under X\" on push, and transferred-away. Help-skill 3-sentence entry and docs site reference.ejs row synced. Internal skill + docs change only — no project-level file structure changes.",
+    "migration": null
+  },
+  {
     "seq": 186,
     "version": "2026.07.05-2",
     "date": "2026-07-05",

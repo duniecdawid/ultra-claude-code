@@ -1,5 +1,5 @@
 ---
-description: Connect to Ultra Claude Dashboard for real-time project visibility. Guides agent installation and setup, verifies connectivity, manages multiple dashboard accounts and per-project account routing, and runs self-contained debug checks for common sync issues. Use when setting up the dashboard, troubleshooting agent connectivity, checking sync status, managing accounts, or after "dashboard not updating", "agent not syncing", "connect to dashboard", "dashboard setup", "agent status", "which account", "wrong account", "sync to a different account", "switch account", "multiple accounts".
+description: Connect to Ultra Claude Dashboard for real-time project visibility. Guides agent installation and setup, verifies connectivity, manages multiple dashboard accounts and per-project account routing, transfers project ownership between accounts (agent `move` or the dashboard's Incoming-transfers inbox), and runs self-contained debug checks for common sync issues. Use when setting up the dashboard, troubleshooting agent connectivity, checking sync status, managing accounts, transferring/moving a project to another account, or after "dashboard not updating", "agent not syncing", "connect to dashboard", "dashboard setup", "agent status", "which account", "wrong account", "sync to a different account", "switch account", "multiple accounts", "transfer project", "move project to another account", "incoming transfers", "accept transfer", "transferred away", "project moved".
 user-invocable: true
 ---
 
@@ -53,7 +53,7 @@ The agent supports **multiple dashboard accounts** and routes each project's syn
 
 - **Multiple accounts** — log into more than one dashboard account; each is stored under the server's `accounts/` directory, keyed by user id.
 - **Default account** — new/unmapped projects sync here.
-- **Per-project mapping** *(optional)* — bind a specific project to a specific account, overriding the default.
+- **Per-project mapping** *(optional)* — bind a specific project to a specific account, overriding the default. `assign` is guarded: the account must already **own** the project (same workspace). To move a project to a *different* account, use an ownership **transfer** (see "Transferring a project to another account" below), not `assign`.
 - **Auto-assign** — when on, newly discovered projects are auto-mapped to the default account; when off, they show as `unassigned` until you `assign` them.
 
 ### Commands (CLI form shown — same verbs work in the REPL)
@@ -70,7 +70,8 @@ ultraclaude-agent status                       # full status incl. account per p
 
 # Set routing
 ultraclaude-agent default <account>            # set the default account (email prefix or full email)
-ultraclaude-agent assign <project> <account>   # bind a project to an account (optional override)
+ultraclaude-agent assign <project> <account>   # bind a project to an account (guarded: must already own it, else use `move`)
+ultraclaude-agent move <project> --to <account>  # TRANSFER ownership to another account (see section below)
 ultraclaude-agent auto-assign on|off           # toggle auto-mapping of newly discovered projects
 ultraclaude-agent remove <account>             # remove an account (warns about orphaned projects)
 
@@ -79,6 +80,8 @@ ultraclaude-agent push <project> --account <account>   # one-shot full sync into
 ```
 
 ### Always force a push after switching an account
+
+> This applies to routing among accounts that **already own** the project (the same workspace). To move a project to a *different* account, use an ownership **transfer** (next section) — that moves the data and the daemon reconciles for you; no manual push.
 
 Switching a project's account with `assign` (or changing the `default`) only **rewrites
 routing config** — it moves no data. The background daemon re-syncs only on the *next* file
@@ -126,6 +129,35 @@ Mappings live in a per-server config file:
 ```
 
 `projectAccounts` is keyed by local project path → account user id and is **optional** — omit a project and it follows `defaultAccount`. Prefer the commands above over hand-editing this file (they validate accounts and handle orphan cleanup).
+
+## Transferring a project to another account (ownership transfer)
+
+`assign` only rewrites **local routing** and is guarded — it refuses an account that does not already **own** the project on the server (e.g. a different workspace) and points you here. To move a project to a *different* account, use an **ownership transfer**: it preserves the project's id, URL, history, and snapshots (nothing is orphaned, no new URL).
+
+Two ways to transfer:
+
+**From the agent** (both accounts logged in on this machine):
+
+```bash
+ultraclaude-agent move <project> --to <account>          # e.g. move my-app work@example.com
+ultraclaude-agent move <project> --to <account> --to-org <org>   # if the target account has >1 workspace
+```
+
+`move` runs the whole handshake: it opens the transfer as the current owner, accepts it as the target account, and re-points local routing — the project id is unchanged. Add `--yes` to skip confirmation. If the target account isn't logged in on this machine, `move` stops with an actionable message — use the dashboard flow instead.
+
+**From the dashboard** (works across machines, or when the other account isn't local):
+
+1. As the current owner, open the project and choose **"Transfer project…"**, then enter the recipient's email.
+2. The recipient sees it in their **"Incoming transfers"** inbox and **Accepts** (choosing the destination workspace if they have more than one) or **Rejects** it. Discovery is entirely in-app — no email is sent.
+
+### After a transfer, the daemon reconciles automatically
+
+You do **not** need to `push` after a transfer. On its next reconcile the local daemon converges to the new server-side ownership:
+
+- If the new owner is **another account on this machine**, the daemon re-routes sync to it automatically.
+- If **no local account** owns it anymore, the daemon marks the project **"transferred away"**, stops syncing it from this machine, and shows that in `ultraclaude-agent status`.
+
+The daemon also watches `config.json`, so routing changes are picked up without a restart. Run `ultraclaude-agent status` to see each project's current owner/route and any "transferred away" projects.
 
 ## Step 2: Verify & Debug
 
@@ -203,3 +235,6 @@ ls ~/.claude/ultra/agent/*/logs/daemon.log 2>/dev/null && echo "Log file found �
 | Project synced to the wrong account | No / stale per-project mapping | `ultraclaude-agent assign <project> <account>`, then `ultraclaude-agent push <project> --account <account>` to back-fill the new account |
 | New account's dashboard empty after a switch | `assign`/`default` only rewrite routing — they move no data | `ultraclaude-agent push <project> --account <account>` (force a one-shot full sync) |
 | New projects not syncing automatically | Auto-assign is off | `ultraclaude-agent auto-assign on` (or `assign` each) |
+| `assign` refuses — "account doesn't own this project" | You're routing to a different-workspace account; `assign` only rewrites routing | Use an ownership transfer instead: `ultraclaude-agent move <project> --to <account>` (or the dashboard "Transfer project…" flow) |
+| `push --account X` errors "project not registered under X" | That account doesn't own the project (routing points at the wrong account) | Transfer it (`move` / dashboard), or `push`/`assign` under the account that actually owns it |
+| Project shows "transferred away" in `status` / stopped syncing here | It was transferred to an account not present on this machine | Expected — it now syncs from the owning account. If you own it under a local account, the daemon re-routes automatically; otherwise log in as the owner or transfer it back |
