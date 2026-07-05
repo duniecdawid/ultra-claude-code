@@ -8,10 +8,10 @@ The instructions below extend the base rules with verification-mode-specific beh
 
 ## Mode Extensions
 
-Walk through all findings — both code-documentation discrepancies and structural adherence issues — with the user. For each one:
+Walk through all findings — code-documentation discrepancies, structural adherence issues, and duplicate-content clusters — with the user. For each one:
 
-1. Present the evidence: what the docs say vs what the code does (with file:line references), or what's wrong structurally.
-2. Ask for a decision via AskUserQuestion: **update docs** / **update code** / **fix structure** / **skip**.
+1. Present the evidence: what the docs say vs what the code does (with file:line references), what's wrong structurally, or which documents duplicate the same content (with the recommended canonical home).
+2. Ask for a decision via AskUserQuestion: **update docs** / **update code** / **fix structure** / **consolidate** (for duplicate content — merge into the recommended canonical home and replace the copies with cross-links) / **skip**.
 3. Allow discussion between items — the user may want to debate, ask questions, or change their mind on a previous decision before moving to the next.
 
 Do not auto-resolve ambiguous discrepancies. When it's unclear which source of truth is correct, the human decides.

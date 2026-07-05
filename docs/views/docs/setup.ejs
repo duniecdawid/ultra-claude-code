@@ -125,7 +125,7 @@
           <li><strong>plans/</strong> &mdash; feature and fix plans from planning modes</li>
           <li><strong>backlog/</strong> &mdash; bugs, questions, ideas, tech debt (JSON files)</li>
         </ul>
-        <p>The <code>/uc:docs-manager</code> skill enforces this structure &mdash; it routes documents to the correct directory and catches violations. See <a href="/docs/standards">Technology Standards</a> for how this integrates with the enforcement loop.</p>
+        <p>The <code>/uc:docs-manager</code> skill enforces this structure &mdash; it routes documents to the correct directory and catches violations. It also keeps each fact in a single canonical home: drift-prone content (schemas, values, procedures) lives in one place and other docs link to it with standardized anchored cross-links rather than restating it, while decision history stays in RFCs and design docs read as settled state. See <a href="/docs/standards">Technology Standards</a> for how this integrates with the enforcement loop.</p>
       </div>
     </details>
 

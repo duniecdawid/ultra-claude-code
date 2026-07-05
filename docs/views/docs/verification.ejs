@@ -11,8 +11,8 @@
     <h2>When to use</h2>
     <p>Run <code>/uc:doc-code-verification-mode</code> after major changes, before releases, or as a periodic audit. You can scope it to a specific directory, topic, or run it across the entire project.</p>
 
-    <h2>Two dimensions of verification</h2>
-    <p>Verification checks both accuracy and structure &mdash; they're different problems with different fixes.</p>
+    <h2>Three dimensions of verification</h2>
+    <p>Verification checks accuracy, structure, and redundancy &mdash; three different problems with different fixes.</p>
 
     <h3>Code-documentation accuracy</h3>
     <p>Pairs documentation sections with the code they describe, then spawns Checker agents to compare claims against reality. Each discrepancy gets a severity level and file:line references.</p>
@@ -23,11 +23,19 @@
     </ul>
 
     <h3>Documentation structure adherence</h3>
-    <p>Verifies your docs follow the canonical structure: correct directories, expected sections present, cross-references between related docs, no content duplication across document types.</p>
+    <p>Verifies your docs follow the canonical structure: correct directories, expected sections present, cross-references between related docs (with anchors that resolve to real headings), no content duplication across document types.</p>
     <ul>
       <li><strong>Critical</strong> &mdash; document in wrong directory (routing violation)</li>
-      <li><strong>Major</strong> &mdash; missing key sections, missing cross-references, duplicated content</li>
+      <li><strong>Major</strong> &mdash; missing key sections, missing cross-references, broken cross-reference anchors, duplicated content</li>
       <li><strong>Minor</strong> &mdash; formatting deviations</li>
+    </ul>
+
+    <h3>Documentation redundancy</h3>
+    <p>Catches the same drift-prone content &mdash; schemas, config values, counts, versions, definitions, procedures &mdash; copied across multiple documents (distinct from wrong-doc-type placement above). Each fact should have one canonical home that everything else links to; a brief orienting summary that links to the source is fine, wholesale copies are not.</p>
+    <ul>
+      <li><strong>Critical</strong> &mdash; a spec, value, count, version, or contract shape copied verbatim across docs</li>
+      <li><strong>Major</strong> &mdash; substantial overlapping procedures or definitions to consolidate</li>
+      <li><strong>Minor</strong> &mdash; small repeated substantive phrasing</li>
     </ul>
 
     <h2>Fix classification</h2>
@@ -35,6 +43,7 @@
     <ul>
       <li><strong>Update docs</strong> &mdash; the code is correct, docs need to catch up</li>
       <li><strong>Update code</strong> &mdash; the docs are correct, code has drifted</li>
+      <li><strong>Consolidate</strong> &mdash; duplicated content merged into one canonical home, copies replaced with cross-links</li>
       <li><strong>Needs decision</strong> &mdash; unclear which is right, flagged for you to decide</li>
     </ul>
 
@@ -48,7 +57,7 @@
           <li>Checker agents are spawned for each pair &mdash; each returns discrepancies with severity and evidence</li>
           <li>Results are deduplicated and synthesized into a single report</li>
         </ol>
-        <p>The AI then walks through findings with you. For each discrepancy, you decide: update docs, update code, fix structure, or skip. Only the fixes you approve go into the plan.</p>
+        <p>The AI then walks through findings with you. For each discrepancy, you decide: update docs, update code, fix structure, consolidate, or skip. Only the fixes you approve go into the plan.</p>
       </div>
     </details>
 

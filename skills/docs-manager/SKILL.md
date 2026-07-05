@@ -151,7 +151,7 @@ Reference paths are relative to this skill's directory (`skills/docs-manager/`).
 
 ## Document Relationships
 
-Each document type has a distinct perspective. Content must not be duplicated across types — instead, documents cross-reference each other.
+Each document type has a distinct perspective. **Every fact has exactly one canonical home; other documents link to it rather than restating it.** This applies most strictly to **drift-prone content** — schemas, config values, counts, version numbers, definitions, step-by-step procedures, acceptance criteria, and API/contract shapes — which MUST live in one place, because copies silently fall out of sync. A short (1–2 sentence) orienting summary that links to the canonical source is fine; readability beats dogmatic DRY. The per-type table below determines *which* document is the canonical home for a given kind of content.
 
 | Doc Type | Perspective | Contains | Does NOT contain |
 |----------|------------|----------|-----------------|
@@ -161,16 +161,34 @@ Each document type has a distinct perspective. Content must not be duplicated ac
 | Architecture | **Builder** — how the platform is built | Components, data flow, tech stack, interfaces | User experience, market analysis |
 | Standards | **Quality** — how code should be written | Conventions, patterns, anti-patterns | Product behavior, market data |
 | Testing | **Verification** — how to prove it works | Strategy, commands, coverage, agent rules | Product behavior, architecture design |
+| RFCs | **Decisions** — why the design is what it is | Rationale, alternatives, decision history, superseded framing, "decided when/by" | Settled-state description (link forward to it) |
+
+**Settled state vs decision record.** Design, architecture, and product docs describe **settled state** — the current design as it stands. They must not carry decision residue: round/iteration tags, decision dates, attributions, "for the record" notes, or superseded-option framing. That rationale and history belong in **RFCs**, which link *forward* to where the settled state now lives (see the decision-record table in the pattern below).
 
 ### Cross-Reference Pattern
 
-Documents link to related docs of other types rather than restating their content:
+Documents link to related docs rather than restating their content. Use one standardized, machine-navigable form so links are consistent and an agent can follow them straight to the relevant section.
 
-- **Product description** → links to architecture (how it's built), research (why these capabilities matter), requirements (what must be achieved)
-- **Architecture** → links to product description (what it enables), requirements (what it must achieve), standards (how to build it)
-- **Requirements** → links to product description (what's being required), research (evidence for priorities), personas (who needs this)
-- **Research** → links to product description (what it informs), requirements (implications for priorities)
-- **Personas** → links to product description (what they use), requirements (what's built for them)
+**Link form:**
+
+- **Section pointer** (preferred whenever you point at drift-prone content): `[doc §Section](../relative/path.md#heading-anchor)`. The `#heading-anchor` must match a real heading slug in the target file, so a reader — or an agent — can jump straight to that section (grep the heading / offset-read) **without reading the whole file**. This is why the anchor is required, not optional.
+- **Whole-doc**: `[Name](../relative/path.md)` — when you mean the document as a whole.
+- **Prose pointer**: "…is defined in `file` §N" or "lives in [X](../path.md#anchor)".
+- **Decision record**: an RFC records each decision in a table whose last column links to the canonical home of the settled state:
+
+  | Decision | Replaces / sharpens | Decided state now lives in |
+  |----------|---------------------|----------------------------|
+  | … | … | `[doc §Section](../path.md#anchor)` |
+
+Paths are always relative. So links stay addressable, keep canonical content under a **stable, descriptive heading**.
+
+Documents of different types point at each other by perspective:
+
+- **Product description** → architecture (how it's built), research (why these capabilities matter), requirements (what must be achieved)
+- **Architecture** → product description (what it enables), requirements (what it must achieve), standards (how to build it)
+- **Requirements** → product description (what's being required), research (evidence for priorities), personas (who needs this)
+- **Research** → product description (what it informs), requirements (implications for priorities)
+- **Personas** → product description (what they use), requirements (what's built for them)
 
 Each template includes a "Related" section with these cross-reference slots. When creating or updating a document, populate the Related section with actual links — not placeholders.
 
@@ -185,6 +203,7 @@ Before writing any document to `documentation/`:
 3. **If ambiguous** — ask the user which category the document belongs to
 4. **Create parent directories** as needed
 5. **If format is docsify** — ensure the target category directory has a `README.md`. If missing, create one from the category README template (see Docsify section below)
+6. **Check for an existing canonical home** — before writing drift-prone content (schemas, config values, counts, versions, definitions, procedures, acceptance criteria, contract shapes), Grep the tree for where it already lives. If it exists elsewhere, link to it with the standard section-pointer form instead of copying; only a brief orienting summary may accompany the link.
 
 ### Docsify README.md Audit
 
@@ -198,6 +217,7 @@ When modifying existing documents:
 
 1. **Verify the document is in the correct location** — if not, suggest moving it
 2. **Do not restructure** while editing — suggest restructuring as a separate step
+3. **Do not introduce drift-prone duplication** — if an edit would restate content that has a canonical home, replace it with a cross-link. If you rename a heading that is a link target, update the inbound anchors that point to it.
 
 ## Format Awareness
 
@@ -343,5 +363,7 @@ See [Plans](plans/) for implementation plans and execution status.
 - Do NOT create top-level files inside `documentation/` except `README.md`
 - Do NOT delete documentation without user confirmation
 - Do NOT restructure documentation during an edit — suggest it as a separate step
+- Do NOT restate drift-prone content that has a canonical home elsewhere — link to it with the standard section-pointer form. Brief orienting summaries that link to the canonical source are fine.
+- Do NOT keep decision residue (round/date/attribution, superseded framing) in settled-state docs — it belongs in RFCs.
 - Do NOT modify `context/` — that is managed by the context-management skill
 - Always regenerate the index after structural changes

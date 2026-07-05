@@ -36,21 +36,21 @@
           <li><strong>Internal (Explore agent)</strong> &mdash; investigates your existing codebase, documentation, and context directory. Finds patterns, capabilities, and constraints that exist today.</li>
           <li><strong>External (<code>/uc:research --mode=market</code>)</strong> &mdash; the cache-first research skill runs in market mode, producing a committed report at <code>documentation/product/research/</code> with competitor analysis, market trends, technology landscape, and user archetypes. Cites sources for every claim. Cache hits on previously-researched market topics return immediately; misses spawn the stateless researcher subagent.</li>
         </ul>
-        <p>Results are merged in the synthesis phase with strict content separation &mdash; product descriptions contain user-facing information, research reports contain market data. No duplication across document types.</p>
+        <p>Results are merged in the synthesis phase with strict content separation &mdash; product descriptions contain user-facing information, research reports contain market data. Each fact has one canonical home; other documents link to it rather than restating it.</p>
       </div>
     </details>
 
     <details>
       <summary>Content separation rules</summary>
       <div class="details-content">
-        <p>Each document type has a distinct perspective. Content never duplicates across types:</p>
+        <p>Each document type has a distinct perspective, and each fact has a single canonical home. Content is not duplicated &mdash; documents link to the canonical source:</p>
         <ul>
           <li><strong>Product description</strong> &mdash; how the platform works from the user's view</li>
           <li><strong>Research report</strong> &mdash; external market context, competitors, trends</li>
           <li><strong>Requirements</strong> &mdash; what problems to solve, acceptance criteria</li>
           <li><strong>Personas</strong> &mdash; who the users are, their goals and pain points</li>
         </ul>
-        <p>Documents cross-reference each other rather than restating content.</p>
+        <p>Documents cross-reference each other with standardized anchored links rather than restating content.</p>
       </div>
     </details>
 
