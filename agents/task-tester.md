@@ -285,13 +285,13 @@ Then wait for shutdown:
 ```
 WaitForTeamMember(signal: "SHUTDOWN", from: "lead")
 ```
-Approve it to exit.
+When it arrives, **`TaskStop` your inbox monitor**, then approve it to exit.
 
 ### Handling PAUSE, RESUME, and shutdown_request
 
-**On receiving "PAUSE:" from Lead:** Stop all test work. If a dev server is running, leave it running (no token cost while idle). Do not send verdicts. Do not process re-test requests. Discard any queued teammate messages. Go idle until you receive RESUME.
+**On receiving "PAUSE:" from Lead:** Stop all test work. If a dev server is running, leave it running (no token cost while idle). Do not send verdicts. Do not act on re-test requests while paused — you will re-derive state from `signals.jsonl` on RESUME (§6), so nothing is lost by leaving them unprocessed. Go idle until you receive RESUME.
 
-**On receiving "RESUME:" from Lead:** Resume normal operations. If you had a pending re-test request from before the pause, process it now. Verify your dev server is still running — restart it if needed.
+**On receiving "RESUME:" from Lead:** Re-derive your state from `signals.jsonl` (a mini crash-recovery pass per §6) — a re-test request may have landed during the pause — then resume normal operations. Verify your dev server is still running — restart it if needed.
 
 **On receiving `shutdown_request` at any point:** Approve it immediately. This may arrive outside the normal exit flow (e.g., during KILL threshold). Do NOT delay approval to clean up dev servers — process termination handles cleanup. A future re-spawn will re-read task files and re-test from the current code state.
 

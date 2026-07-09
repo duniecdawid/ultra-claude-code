@@ -272,13 +272,13 @@ After sending PASS:
   ```
   WaitForTeamMember(signal: "SHUTDOWN", from: "lead")
   ```
-  Approve it to exit.
+  When it arrives, **`TaskStop` your inbox monitor**, then approve it to exit.
 
 ### Handling PAUSE, RESUME, and shutdown_request
 
-**On receiving "PAUSE:" from Lead:** Stop all review work. Do not send verdicts. Do not process re-review requests. Discard any queued teammate messages. Go idle until you receive RESUME.
+**On receiving "PAUSE:" from Lead:** Stop all review work. Do not send verdicts. Do not act on re-review requests while paused — you will re-derive state from `signals.jsonl` on RESUME (§6), so nothing is lost by leaving them unprocessed. Go idle until you receive RESUME.
 
-**On receiving "RESUME:" from Lead:** Resume normal operations. If you had a pending re-review request from before the pause, process it now.
+**On receiving "RESUME:" from Lead:** Re-derive your state from `signals.jsonl` (a mini crash-recovery pass per §6) — a re-review request may have landed during the pause — then resume normal operations.
 
 **On receiving `shutdown_request` at any point:** Approve it immediately. This may arrive outside the normal completion flow (e.g., during KILL threshold). No files to save — your review state is ephemeral. A future re-spawn will re-read the task's files and re-review from the current file state.
 

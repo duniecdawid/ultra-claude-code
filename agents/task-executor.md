@@ -107,7 +107,7 @@ If your `task.md` includes a `**Pipeline mode:**` block (appended by Lead when t
 1. After your deviation self-check passes:
    ```
    CommunicateTeamMember(
-     to: "lead",
+     to: "team-lead",
      message: "Task $TASK_ID planning complete — awaiting implementation approval"
    )
    ```
@@ -149,7 +149,7 @@ The moment ALL source code files are written — **before** you create or update
 1. **Signal code complete:**
    ```
    CommunicateTeamMember(
-     to: "lead",
+     to: "team-lead",
      message: "Task $TASK_ID code complete — writing impl report",
      signal: "CODE_COMPLETE"
    )
@@ -189,28 +189,22 @@ After ALL implementation is complete:
 
    These are pure triggers — no path, no file list. Reviewer and Tester already received the `FILE-UPDATED task-$TASK_ID/impl.md: initial impl notes` broadcast you sent in step 4.5, so they know where to read the delta from. Duplicating the file list in the message creates two sources of truth that drift on fix cycles.
 
-2. **Track two independent verdicts:**
+2. **Track two independent verdicts in your own state:**
    - Review verdict: pending/pass/fail
    - Test verdict: pending/pass/fail
 
-3. **Process verdicts as they arrive** — use `WaitForTeamMember` for each:
-   ```
-   WaitForTeamMember(signal: "REVIEW_PASS" or "REVIEW_FAIL", from: "reviewer-$TASK_ID")
-   WaitForTeamMember(signal: "TEST_PASS" or "TEST_FAIL", from: "tester-$TASK_ID")
-   ```
-   On FAIL, the content file (`review-feedback.md` or `test-feedback.md`) has the structured feedback.
+3. **The review and test verdicts arrive as separate events on your one inbox monitor** (protocol §3 — you do NOT arm a monitor per verdict; both are already covered by the inbox armed at startup). On each wake, process every new verdict line, then evaluate the gate. On FAIL, the content file (`review-feedback.md` or `test-feedback.md`) has the structured feedback.
 
-   - **Review FAIL** or **Test FAIL**: Read the feedback. Fix code, update impl.md with the fix notes, then:
+   - **Any FAIL (`REVIEW_FAIL` and/or `TEST_FAIL`):** if a review-fail *and* a test-fail land in the same wake batch, read both and do **one** consolidated fix — not two fix cycles. Fix code, update impl.md with the fix notes, then:
      ```
      CommunicateTeam(message: "FILE-UPDATED task-$TASK_ID/impl.md: fix cycle {K} — {summary}")
      CommunicateTeamMember(to: "reviewer-$TASK_ID", message: "Ready for re-review", signal: "REREVIEW_REQUESTED")
      CommunicateTeamMember(to: "tester-$TASK_ID", message: "Ready for re-test", signal: "RETEST_REQUESTED")
      ```
-     Reset BOTH verdicts to pending (both must re-verify after any code change).
-   - **Review PASS**: If test also PASS → step 6.
-   - **Test PASS**: If review also PASS → step 6.
+     **Reset BOTH verdicts to pending** (both must re-verify after any code change). This reset — plus the monotonic cursor that keeps a prior cycle's `REVIEW_PASS` behind you (§3) — is what stops a stale pass from satisfying the gate.
+   - **PASS:** record it; if the other verdict is also a *fresh* PASS (no code change since) → step 6.
 
-4. **Both PASS required** — proceed to step 6 (Complete) only when BOTH verdicts are PASS with no subsequent code changes.
+4. **Both PASS required** — proceed to step 6 (Complete) only when BOTH verdicts are a fresh PASS with no subsequent code changes.
 
 ### 6. Complete
 
@@ -221,21 +215,12 @@ When all stages pass:
    CommunicateTeamMember(to: "reviewer-$TASK_ID", message: "All stages passed — confirm ready to exit", signal: "EXIT_REQUESTED")
    CommunicateTeamMember(to: "tester-$TASK_ID", message: "All stages passed — confirm ready to exit", signal: "EXIT_REQUESTED")
    ```
-2. **Wait for BOTH to confirm:**
-   ```
-   WaitForTeamMember(signal: "REVIEWER_READY_TO_EXIT", from: "reviewer-$TASK_ID")
-   WaitForTeamMember(signal: "TESTER_READY_TO_EXIT", from: "tester-$TASK_ID")
-   ```
-   Do NOT send "task done" to Lead until both confirmations are received.
+2. **Wait for BOTH to confirm.** `REVIEWER_READY_TO_EXIT` and `TESTER_READY_TO_EXIT` arrive as separate events on your inbox (§3); track both and do NOT send "task done" to Lead until both have been received.
 3. **Report to Lead:**
    ```
-   CommunicateTeamMember(to: "lead", message: "Task {N} done — all stages passed")
+   CommunicateTeamMember(to: "team-lead", message: "Task {N} done — all stages passed")
    ```
-4. **Wait for shutdown:**
-   ```
-   WaitForTeamMember(signal: "SHUTDOWN", from: "lead")
-   ```
-   (Protocol §3's SHUTDOWN exception applies.) When received, approve shutdown and exit.
+4. **Wait for shutdown:** yield until the `SHUTDOWN` event arrives on your inbox (§3 — no per-agent timeout; Lead owns shutdown). When it arrives, **`TaskStop` your inbox monitor**, approve shutdown, and exit.
 
 ### Retry Limit
 
@@ -256,11 +241,11 @@ You may receive a `"PAUSE: ..."` message from Lead when usage limits are approac
 1. If you are mid-fix (currently writing code or running a tool), finish the current tool call.
 2. Do NOT send "ready for re-review" or "ready for re-test" after the current work.
 3. Do NOT start a new fix cycle.
-4. Do NOT process any further teammate messages (FAIL verdicts, etc.) — discard them.
+4. Do NOT *act on* further teammate signals (FAIL verdicts, etc.) while paused — you will re-derive state from `signals.jsonl` on RESUME (§6), so nothing is lost by leaving them unprocessed.
 5. Go idle. You will receive `"RESUME: ..."` from Lead when usage resets.
 
 **On receiving "RESUME:" from Lead:**
-1. Resume from where you stopped.
+1. **Re-derive your pipeline state from `signals.jsonl`** (a mini crash-recovery pass per §6) rather than trusting anything you discarded while paused — a verdict or re-request may have landed during the pause.
 2. If you had completed a fix but not sent for re-review/re-test: send now.
 3. If you were mid-fix: continue the fix.
 4. Normal pipeline operations resume.

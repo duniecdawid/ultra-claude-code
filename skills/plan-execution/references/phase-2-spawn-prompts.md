@@ -92,7 +92,7 @@ SIGNAL_FILE=documentation/plans/$ARGUMENTS/tasks/task-{N}/signals.jsonl
 
 **Teammates (SendMessage):**
 - Reviewer: reviewer-{N} (spawned with you — will send you a REVIEWER TAKE shortly)
-- Lead: {lead name} (ADVICE channel — send `ADVICE REQUEST task-{N} [{case}]: ...` for complicated / deep-reasoning / knowledge / deviation cases. QUERY channel — send `QUERY: {question}` for external library docs.)
+- Lead: team-lead (ADVICE channel — send `ADVICE REQUEST task-{N} [{case}]: ...` for complicated / deep-reasoning / knowledge / deviation cases. QUERY channel — send `QUERY: {question}` for external library docs.)
 - Project Manager: pm-{PLAN_NAME} (reads signals.jsonl for stage tracking — no direct messages needed)
 - Tester: tester-{N} (lazy-spawned by Lead when you signal "code complete")
 
@@ -119,7 +119,7 @@ SIGNAL_FILE=documentation/plans/$ARGUMENTS/tasks/task-{N}/signals.jsonl
 **Teammates (SendMessage):**
 - Executor: executor-{N} (you will send a REVIEWER TAKE to them immediately after your startup read — see your agent workflow step 2)
 - Tester: tester-{N}
-- Lead: {lead name} (ADVICE + QUERY channels, same as Executor)
+- Lead: team-lead (ADVICE + QUERY channels, same as Executor)
 - Project Manager: pm-{PLAN_NAME} (may ping for monitoring status)
 
 Your first action is the startup read — follow
@@ -144,7 +144,7 @@ SIGNAL_FILE=documentation/plans/$ARGUMENTS/tasks/task-{N}/signals.jsonl
 **Teammates (SendMessage):**
 - Executor: executor-{N}
 - Reviewer: reviewer-{N}
-- Lead: {lead name} (ADVICE + QUERY channels, same as Executor)
+- Lead: team-lead (ADVICE + QUERY channels, same as Executor)
 - Project Manager: pm-{PLAN_NAME}
 
 You were lazy-spawned when the Executor signaled "code complete" — its
@@ -183,7 +183,7 @@ across all completed tasks.
 
 **Workflow:**
 1. Run the entire test suite.
-2. Report results to Lead (SendMessage to {lead name}):
+2. Report results to Lead (SendMessage to team-lead):
    - ALL PASS: "Final gate PASSED — full test suite green"
    - FAILURES: "Final gate FAILED — {specific failures with output}"
 3. Exit after reporting.
@@ -205,7 +205,7 @@ PLAN_DIR=documentation/plans/$ARGUMENTS
 ACCOUNT_KEY={ACCOUNT_KEY}
 USAGE_MODE={pause|push-through}
 
-**Lead name:** {lead name}
+**Lead name:** team-lead
 **Total tasks:** {N}
 **Concurrency limit:** {M} concurrent task-teams
 **Team naming convention:** Task N team name: `task-{N}-team`. Executor-N and

@@ -331,7 +331,7 @@ Parse the JSON and process via the Usage Monitor Handling section below. There i
 
 **signals.jsonl reading for stage derivation:**
 
-PM uses the execution communication protocol (`${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/execution-communication-protocol.md`) to monitor pipeline state. Read `$PLAN_DIR/tasks/task-{N}/signals.jsonl` for each active task when you wake (on a Lead/executor message or a monitor emit); PM reads the files directly (the bounded-Monitor wait rounds in protocol §3 are for task-team agents parked on a specific signal).
+PM uses the execution communication protocol (`${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/execution-communication-protocol.md`) to monitor pipeline state. Read `$PLAN_DIR/tasks/task-{N}/signals.jsonl` for each active task when you wake (on a Lead/executor message or a monitor emit); PM reads the files directly (the persistent inbox monitor in protocol §3 is for task-team agents parked on their signals; PM is not a task-team agent).
 
 Derivation rules when new signals are found:
 - `PLAN_READY` → enter implementation stage, append `stage_entered` event
@@ -343,12 +343,11 @@ Derivation rules when new signals are found:
 - Unknown/future signal names → ignore for stage derivation (the vocabulary may grow)
 - Track which signals you've already processed (by line count or last-seen timestamp) to avoid duplicate state file updates
 
-**Channel-health metrics (feeds the report's Communication Channel Health section).** From the signal stream you can measure how well the *primary* (SendMessage) channel is delivering — the standing data for the open question of whether the durable backstop still earns its keep:
-- **Resends** — a `signal`+`author` line that repeats a still-unanswered earlier request (the §3 ~12-min resend). Soft indicator only — legitimate retry-cycle signals (`REREVIEW_REQUESTED`, `RETEST_REQUESTED`) also repeat; exclude those.
-- **Escalations** — `STALLED-WAIT` messages to Lead. Strong indicator a wait exceeded ~24 min.
-- **`WAIT_TIMEOUT`** signals — unambiguous: a wait exhausted the ladder (~40 min); the `note` says what was awaited.
-- **Backstop saves** — read `$PLAN_DIR/tasks/task-{N}/comms-telemetry.jsonl` (if present) and count `resolved_by:"file"` lines: waits the file unblocked when no SendMessage arrived. Clearest positive evidence the backstop fired. Absent file ⇒ treat as zero, never an error.
-All ≈ 0 across the run ⇒ the primary channel is healthy and the backstop is near-vestigial; any non-zero ⇒ it earned its keep.
+**Channel-health metrics (feeds the report's Communication Channel Health section).** From the signal stream and telemetry you can measure how well the *primary* (SendMessage) channel is delivering — the standing data for the open question of whether the durable file channel still earns its keep:
+- **Stalls** — `STALL` alerts you emitted (a team went >10 min without appending a signal). Indicates a team parked longer than expected; benign for legitimately-parked pipeline successors, actionable otherwise.
+- **`WAIT_TIMEOUT`** signals (author `lead`) — unambiguous hard incidents: Lead abandoned a stalled wait it couldn't resolve; the `note` says what was awaited.
+- **Backstop saves** — read `$PLAN_DIR/tasks/task-{N}/comms-telemetry.jsonl` (if present) and count `resolved_by:"file"` lines: waits the persistent inbox monitor unblocked from the file append when no SendMessage arrived. Clearest positive evidence the file channel (not SendMessage) did the work. Absent file ⇒ treat as zero, never an error.
+Few stalls and mostly `resolved_by:"sendmessage"` ⇒ the primary channel is healthy; frequent `resolved_by:"file"` ⇒ SendMessage is dropping and the file-follow is carrying delivery.
 
 ## Usage Monitor Handling
 
@@ -376,7 +375,7 @@ The window dropped below the soft band on fresh data, or its known reset time pa
 
 ### On `{"alert":"STALL","task_id":"...","silent_minutes":...}`
 
-A team has been silent for >10 minutes.
+A team has been silent for >10 minutes. **This watch is the sole stall net for parked agents** — task-team agents run one persistent inbox monitor with no self-timeout (execution communication protocol §3), so they do not self-escalate a missing signal. Detecting a dead/stuck counterparty is entirely your job here.
 
 1. If this is the **first stall report** for this task: ping the executor directly — SendMessage executor-{N}: `"Status check — what stage are you in?"`
 2. If this is the **second stall report** for the same task (still stalled): log `{type: "stall_detected", task_id, silent_minutes}` and SendMessage Lead: `"STALL: executor-{N} unresponsive for ~{minutes} minutes. Recommend: investigate or respawn."`
@@ -606,12 +605,11 @@ How well did the primary (SendMessage) channel deliver, and did the durable `sig
 | Metric | Count | Source |
 |--------|-------|--------|
 | Waits resolved by SendMessage (happy path) | {N} | `comms-telemetry.jsonl` `resolved_by:sendmessage` |
-| **Waits resolved by file backstop** (SendMessage missed) | {N} | `comms-telemetry.jsonl` `resolved_by:file` |
-| Resends (~12 min, soft) | {N} | duplicate unanswered request signals |
-| Escalations (~24 min) | {N} | `STALLED-WAIT` to Lead |
-| `WAIT_TIMEOUT` hard-fails (~40 min) | {N} | `signals.jsonl` |
+| **Waits resolved by file follow** (SendMessage missed) | {N} | `comms-telemetry.jsonl` `resolved_by:file` |
+| Stalls detected (>10 min silence) | {N} | `STALL` alerts you emitted |
+| `WAIT_TIMEOUT` hard-fails (Lead, unresolved stall) | {N} | `signals.jsonl` (author `lead`) |
 
-**Read:** backstop-save + escalation + timeout counts all 0 ⇒ the primary channel delivered everything this run; non-zero ⇒ the backstop/ladder was load-bearing. The resend/escalation/timeout columns are authoritative (derived from `signals.jsonl`); the `comms-telemetry.jsonl` columns are best-effort corroboration (agents may not log every wake).
+**Read:** file-follow-save + stall + timeout counts all 0 ⇒ the primary channel delivered everything and no team stalled this run; non-zero ⇒ the file-follow was load-bearing (delivery saves) or a team stalled (stalls/timeouts). The stall and `WAIT_TIMEOUT` columns are authoritative (derived from your STALL emits and `signals.jsonl`); the `comms-telemetry.jsonl` columns are best-effort corroboration (agents may not log every wake).
 
 ## Repeated Work Analysis
 
