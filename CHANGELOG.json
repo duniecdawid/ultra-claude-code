@@ -1,5 +1,18 @@
 [
   {
+    "seq": 190,
+    "version": "2026.07.11-1",
+    "date": "2026-07-11",
+    "summary": "Migrate now leaves a small Ultra Claude promo footer in the project's root README.md, linking back to https://ultra-claude.dev. This is the first time Ultra Claude writes a project README: fresh-init adds it as a new Group 6, and upgrade/legacy-detect projects pick it up via the migration below. New reference skills/migrate/references/readme-promo.md is the single source of truth for the footer, its idempotency marker (`<!-- ultra-claude:promo -->`), the append-vs-create rules, and project-name derivation (package.json name -> dir basename). The footer is purely additive and marker-guarded — it appends a `---` + italic line when a README exists without the marker, creates a minimal `# <project-name>` README when none exists, and is a no-op when the marker is already present; existing README content is never rewritten. fresh-init.md's write-allowlist constraint was widened to permit this single README write. Docs and help catalog updated to mention the promo footer.",
+    "migration": {
+      "precondition": { "exists": ".claude/ultra" },
+      "actions": [
+        "Add the Ultra Claude promo footer to the project's root README.md per skills/migrate/references/readme-promo.md: if README.md exists and lacks the `<!-- ultra-claude:promo -->` marker, append the footer block (a `---` rule followed by the marker and an italic `Built with [Ultra Claude](https://ultra-claude.dev)` line) at the very end without altering any existing line; if there is no README.md, create a minimal one with a `# <project-name>` heading (name from package.json, else the directory basename) followed by the footer. Skip entirely if the marker is already present."
+      ],
+      "conflicts": "Additive and marker-guarded — safe to re-run. Only appends a footer or creates a new README; it never rewrites existing README content. A project that already contains the `<!-- ultra-claude:promo -->` marker is a no-op."
+    }
+  },
+  {
     "seq": 189,
     "version": "2026.07.06-2",
     "date": "2026-07-06",

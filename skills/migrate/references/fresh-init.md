@@ -70,6 +70,7 @@ Using all survey findings + user answers, produce a comprehensive plan covering 
 Read these references for Phase 2:
 - `${SKILL_DIR}/references/claude-md-template.md` — the CLAUDE.md section to inject
 - `${SKILL_DIR}/references/config-specs.md` — `.claude/ultra/` file specs, standards signals table, and migration mapping rules
+- `${SKILL_DIR}/references/readme-promo.md` — the promo footer to add to the project README
 
 The plan includes these task groups, in order:
 
@@ -133,6 +134,13 @@ If `documentation/dependencies/` exists with markdown files (excluding README.md
 
 If the directory is empty or doesn't exist, skip silently.
 
+#### Group 6 — README promo footer
+
+Add the Ultra Claude promo footer to the project's root `README.md` per
+`${SKILL_DIR}/references/readme-promo.md`. Idempotent and marker-guarded: skip if the
+`<!-- ultra-claude:promo -->` marker is already present, append the footer if a README exists without
+it, or create a minimal README if none exists.
+
 Ask for approval via AskUserQuestion: "Review the initialization plan above. Proceed?" Options: "Approve" / "Reject with feedback" / "Approve with changes". Only an explicit "Approve" counts — empty, blank, or ambiguous responses must be re-asked.
 
 ---
@@ -186,6 +194,7 @@ End with a concise report:
 
 - **Scaffolded**: directories created/verified
 - **Configured**: CLAUDE.md updated with Ultra Claude section, which `.claude/ultra/` files were populated (and which skipped)
+- **Promo footer**: Ultra Claude footer added to `README.md` (appended / created / skipped — already present)
 - **Documented**: architecture/docs bootstrapped or migrated
 - **Migrated**: files moved to canonical locations (originals removed)
 - **Standards created**: {list of files with core principle for each}
@@ -209,6 +218,6 @@ Then stamp the version marker and print the "What's New" summary (see main SKILL
 - Do NOT modify existing source code
 - Do NOT overwrite existing `.claude/ultra/` config files without user approval in the plan
 - Migration moves files (delete originals after successful move, clean up empty directories)
-- Do NOT create files outside `CLAUDE.md`, `documentation/`, `context/`, and `.claude/`
+- Do NOT create files outside `CLAUDE.md`, `README.md`, `documentation/`, `context/`, and `.claude/`. The only permitted `README.md` write is the marker-guarded promo footer (append or create-if-missing) per `references/readme-promo.md` — never rewrite existing README content
 - Ask questions in Phase 1 for anything ambiguous — don't guess
 - Always present the full plan and get user approval before creating or moving files
