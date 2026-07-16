@@ -19,7 +19,7 @@ DEBUG_LOG="$TEST_DIR/dbg.log"
 
 pass=0; fail=0
 ck(){ if [ "$2" = "$3" ]; then pass=$((pass+1)); else echo "  FAIL: $1 (exp [$2] got [$3])"; fail=$((fail+1)); fi; }
-fresh_state(){ echo '{"five_hour":{"last_signal":null,"reset_latch":0},"seven_day":{"last_signal":null,"reset_latch":0},"stall_pinged":{}}' > "$STATE_FILE"; }
+fresh_state(){ echo '{"five_hour":{"last_signal":null,"reset_latch":0},"seven_day":{"last_signal":null,"reset_latch":0},"silence_logged":{}}' > "$STATE_FILE"; }
 mkusage(){ jq -nc --arg a "$1" --argjson p5 "$2" --argjson r5 "$3" --argjson p7 "$4" --argjson r7 "$5" \
   '{accounts:{($a):{rate_limits:{five_hour:{used_percentage:$p5,resets_at:$r5},seven_day:{used_percentage:$p7,resets_at:$r7}},updated_at:"2026-01-01T00:00:00Z"}}}' > "$USAGE_FILE"; }
 
@@ -62,5 +62,22 @@ ck "stale-after-reset overall band clear" clear "$(echo "$js3" | jq -r '.band')"
 # Genuinely over (high pct, reset still in the future) must read critical
 mkusage "acct-over" 96 "$future" 50 "$future"
 ck "real over-limit reads critical" critical "$(cmd_status acct-over | jq -r '.five_hour.band')"
+
+# --- watch: check_silence (quiet trace — never stdout, appends silence_observed to events.json) ---
+PLAN_DIR="$TEST_DIR/plan"; mkdir -p "$PLAN_DIR"
+stale_ts=$(date -u -d "20 minutes ago" +%Y-%m-%dT%H:%M:%SZ)
+fresh_ts=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+echo '{"tasks":[{"task_id":"task-1","status":"in_progress"}]}' > "$PLAN_DIR/plan.json"
+jq -nc --arg ts "$stale_ts" '{events:[{timestamp:$ts,type:"stage_entered",task_id:"task-1",agent:"pm",message:"x"}]}' > "$PLAN_DIR/events.json"
+fresh_state
+ck "silent task → no stdout" "" "$(check_silence "$PLAN_DIR")"
+ck "silence_observed traced to events.json" 1 "$(jq '[.events[] | select(.type=="silence_observed" and .task_id=="task-1")] | length' "$PLAN_DIR/events.json")"
+ck "debounce state set" 1 "$(jq '.silence_logged | has("task-1") | if . then 1 else 0 end' "$STATE_FILE")"
+check_silence "$PLAN_DIR"  # own trace must not count as activity → no second event
+ck "no duplicate trace while still silent" 1 "$(jq '[.events[] | select(.type=="silence_observed")] | length' "$PLAN_DIR/events.json")"
+jq --arg ts "$fresh_ts" '.events += [{timestamp:$ts,type:"stage_entered",task_id:"task-1",agent:"pm",message:"y"}]' \
+  "$PLAN_DIR/events.json" > "$PLAN_DIR/events.json.t" && mv "$PLAN_DIR/events.json.t" "$PLAN_DIR/events.json"
+check_silence "$PLAN_DIR"
+ck "debounce self-clears on fresh activity" 0 "$(jq '.silence_logged | has("task-1") | if . then 1 else 0 end' "$STATE_FILE")"
 
 if [ "$fail" -eq 0 ]; then echo "PASS ($pass checks)"; exit 0; else echo "FAILED ($fail of $((pass+fail)))"; exit 1; fi

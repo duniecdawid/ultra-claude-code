@@ -225,9 +225,11 @@ Example:)
   Monitor({ command: "bash \"$HOME/.claude/ultra/usage-monitor.sh\" watch \"$PLAN_DIR\" \"$ACCOUNT_KEY\" \"$USAGE_MODE\"",
             description: "Usage monitor for {PLAN_NAME}", persistent: true })
 It is silent on clean ticks and emits only actionable milestones:
-`CRITICAL` (stop in-flight), `USAGE-RESET` (restart), `STALL`. In
-push-through mode it suppresses usage emits (only STALL). Ignore any
-Monitor line that is not JSON with an `"alert"` field.
+`CRITICAL` (stop in-flight), `USAGE-RESET` (restart). In push-through
+mode it suppresses usage emits entirely. It also quietly traces >10-min
+task silence straight into events.json (`silence_observed`) — never an
+emit, never your cue to act. Ignore any Monitor line that is not JSON
+with an `"alert"` field.
 
 **You are event-driven.** You wake on your monitor's emits and on messages
 from Lead (status updates, completions with current_pct) and Executors.
@@ -259,7 +261,6 @@ See `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/execution-communicat
 **What you send to Lead (actionable usage events only):**
 - `USAGE STOP [{window}]: {pct}% used. ...` — critical limit reached, stop in-flight work (pause mode only)
 - `USAGE RESET [{window}]: ...` — work may restart
-- `STALL: executor-{N} unresponsive for ~{minutes}m. ...`
 You do NOT forward soft-band, status, or stale-data messages — those are not Lead-actionable.
 
 Follow the workflow in your team member instructions.

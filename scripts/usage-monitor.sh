@@ -10,10 +10,13 @@
 # `watch` emits (one stdout line each → one Monitor notification):
 #   {"alert":"CRITICAL","window":"5h|7d","pct":N,"resets_at":N}                 in-flight work must STOP now
 #   {"alert":"USAGE-RESET","window":"5h|7d","pct":N[,"reason":"reset_time_passed"]}  work may RESTART
-#   {"alert":"STALL","task_id":"task-N","silent_minutes":N}                     a team appears stuck
 # It is SILENT on clean ticks, on the soft band (handled at spawn time, never emitted), and on the
-# first tick (no STATUS). With MODE=push-through, usage milestones are suppressed entirely — only STALL
-# emits — so the monitor never wakes anyone about usage when the user chose to push through the limit.
+# first tick (no STATUS). With MODE=push-through, usage milestones are suppressed entirely — the monitor
+# never wakes anyone about usage when the user chose to push through the limit.
+#
+# Silence trace (all modes, never emitted): tasks silent >10 min get a `silence_observed` event
+# appended to events.json for post-mortem visibility. No alert, no escalation — long tool calls
+# look identical to real stalls, so alerting on silence produced noise no one could act on.
 #
 # Bands: clear  <  soft (stop starting NEW work — enforced by the pre-spawn check)  <  critical (stop in-flight).
 
@@ -153,15 +156,18 @@ check_window() { # key label pct resets crit soft
   fi
 }
 
-# Orthogonal "a team is stuck" detection — actionable, kept in all modes.
-check_stalls() {
+# Quiet silence trace — post-mortem visibility only, kept in all modes. Never emits to stdout;
+# appends a `silence_observed` event to events.json instead. Debounce self-clears: one event per
+# silence episode, re-armed as soon as the task shows real activity again.
+check_silence() {
   local plan_dir="$1"
   [ -f "$plan_dir/events.json" ] && [ -f "$plan_dir/plan.json" ] || return 0
   local now task_id last_event task_num signal_file last_sig sig_epoch evt_epoch silent already
   now=$(date +%s)
   for task_id in $(jq -r '.tasks[]? | select(.status=="in_progress") | .task_id' "$plan_dir/plan.json" 2>/dev/null); do
     [ -z "$task_id" ] && continue
-    last_event=$(jq -r --arg t "$task_id" '[.events[]? | select(.task_id==$t) | .timestamp] | sort | last // ""' "$plan_dir/events.json" 2>/dev/null || echo "")
+    # silence_observed is our own trace, not task activity — excluding it keeps the clock honest.
+    last_event=$(jq -r --arg t "$task_id" '[.events[]? | select(.task_id==$t and .type!="silence_observed") | .timestamp] | sort | last // ""' "$plan_dir/events.json" 2>/dev/null || echo "")
     task_num=${task_id#task-}
     signal_file="$plan_dir/tasks/task-${task_num}/signals.jsonl"
     if [ -s "$signal_file" ]; then
@@ -175,12 +181,16 @@ check_stalls() {
     [ -z "$last_event" ] || [ "$last_event" = "null" ] && continue
     evt_epoch=$(date -d "$last_event" +%s 2>/dev/null || echo 0)
     silent=$(( (now - evt_epoch) / 60 ))
-    already=$(jq -r --arg t "$task_id" '.stall_pinged[$t] // ""' "$STATE_FILE" 2>/dev/null || echo "")
+    already=$(jq -r --arg t "$task_id" '.silence_logged[$t] // ""' "$STATE_FILE" 2>/dev/null || echo "")
     if [ "$silent" -gt 10 ] && [ -z "$already" ]; then
-      emit "{\"alert\":\"STALL\",\"task_id\":\"$task_id\",\"silent_minutes\":$silent}"
-      jq --arg t "$task_id" --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" '.stall_pinged[$t]=$ts' "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
+      local ts; ts=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+      jq --arg t "$task_id" --arg ts "$ts" --argjson m "$silent" \
+        '.events += [{timestamp:$ts, type:"silence_observed", task_id:$t, agent:"usage-monitor", message:("No activity from " + $t + " for " + ($m|tostring) + " minutes"), silent_minutes:$m}]' \
+        "$plan_dir/events.json" > "$plan_dir/events.json.tmp" 2>/dev/null && mv "$plan_dir/events.json.tmp" "$plan_dir/events.json"
+      log "SILENCE: $task_id silent ${silent}m (traced to events.json)"
+      jq --arg t "$task_id" --arg ts "$ts" '.silence_logged[$t]=$ts' "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
     elif [ "$silent" -le 10 ] && [ -n "$already" ]; then
-      jq --arg t "$task_id" 'del(.stall_pinged[$t])' "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
+      jq --arg t "$task_id" 'del(.silence_logged[$t])' "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
     fi
   done
 }
@@ -192,7 +202,7 @@ cmd_watch() {
   mode="${3:-pause}"
   STATE_FILE="$plan_dir/.usage-monitor-state.json"
   DEBUG_LOG="$plan_dir/.usage-monitor-debug.log"
-  [ -f "$STATE_FILE" ] || echo '{"five_hour":{"last_signal":null,"reset_latch":0},"seven_day":{"last_signal":null,"reset_latch":0},"stall_pinged":{}}' > "$STATE_FILE"
+  [ -f "$STATE_FILE" ] || echo '{"five_hour":{"last_signal":null,"reset_latch":0},"seven_day":{"last_signal":null,"reset_latch":0},"silence_logged":{}}' > "$STATE_FILE"
   log "watch start acct=$acct mode=$mode"
   while true; do
     if [ "$mode" != "push-through" ] && [ -f "$USAGE_FILE" ] && [ -n "$acct" ]; then
@@ -202,10 +212,10 @@ cmd_watch() {
       check_window five_hour 5h "$p5" "$r5" "$CRIT_5H" "$SOFT_5H"
       check_window seven_day 7d "$p7" "$r7" "$CRIT_7D" "$SOFT_7D"
     fi
-    check_stalls "$plan_dir"
+    check_silence "$plan_dir"
     # 120s poll: the loop is silent on clean ticks, so this is churn/debug-log reduction, not
-    # output-rate reduction. Usage % moves slowly and the >10-min stall threshold dominates
-    # detection latency, so a 2-min cadence loses nothing actionable.
+    # output-rate reduction. Usage % moves slowly and the >10-min silence threshold dominates
+    # trace latency, so a 2-min cadence loses nothing actionable.
     sleep 120
   done
 }

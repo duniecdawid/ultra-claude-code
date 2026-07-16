@@ -96,9 +96,9 @@ echo '{"ts":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'","task":"'"$TASK_ID"'","wait_for
 
 `TaskStop` your inbox monitor when you exit (after `SHUTDOWN`).
 
-### Stall detection — delegated to PM
+### No automated stall detection — silence is traced, not escalated
 
-With a persistent inbox there is no per-agent timer, so a **counterparty that dies and never appends the signal you are blocked on** is not detected by you. That case is owned entirely by the **PM's independent stall watch** (`scripts/usage-monitor.sh check_stalls`, keyed off the latest signal ts per `in_progress` task), which emits `STALL` to Lead; Lead investigates, records a visible `WAIT_TIMEOUT` (§5), and/or re-spawns. That is the system-level "never hang silently" guarantee. **Do not** add your own timeout loop — one persistent inbox per agent, PM is the sole stall net.
+With a persistent inbox there is no per-agent timer, so a **counterparty that dies and never appends the signal you are blocked on** is not detected by you — and not by anyone else automatically either. There is deliberately **no automated stall alerting or escalation**: long tool calls look identical to real stalls, so alerting on silence produced noise no one could act on. The usage monitor (`scripts/usage-monitor.sh check_silence`, keyed off the latest signal ts per `in_progress` task) quietly appends a `silence_observed` event to `events.json` after >10 min of task silence — post-mortem visibility only, no message to anyone. A genuinely dead counterparty is resolved by Lead or the user noticing (dashboard, direct observation, a stuck pipeline) and re-spawning per Phase 4 failure handling. This tradeoff is accepted: **do not** add your own timeout loop to compensate — one persistent inbox per agent, no self-escalation.
 
 *Fallback — `Monitor` not in your tool set.* A persistent `tail -F` cannot run as a background `Bash` job (it never exits, so it never notifies). Degrade to **bounded background rounds that do exit**, re-armed per round (the only place re-arming reappears):
 
@@ -146,7 +146,7 @@ On re-review/re-test cycles, overwrite the feedback file with the new cycle's co
 
 ## 5. Signal Vocabulary
 
-21 signal types. Agents use these as the `signal` parameter in `CommunicateTeamMember` and `CommunicateTeam` calls, and as the `signal` parameter in `WaitForTeamMember`.
+20 signal types. Agents use these as the `signal` parameter in `CommunicateTeamMember` and `CommunicateTeam` calls, and as the `signal` parameter in `WaitForTeamMember`.
 
 | Signal | Writer | Purpose |
 |--------|--------|---------|
@@ -170,7 +170,6 @@ On re-review/re-test cycles, overwrite the feedback file with the new cycle's co
 | `SHUTDOWN` | Lead | Team must exit |
 | `PAUSE` | Lead | Usage limit control — go idle |
 | `RESUME` | Lead | Usage limit control — continue work |
-| `WAIT_TIMEOUT` | Lead | Lead abandoned a stalled wait after an unresolved PM `STALL` (§3); `note` says what was awaited |
 
 ## 6. Crash Recovery
 
@@ -189,4 +188,3 @@ On re-spawn, agents read `signals.jsonl` during startup to infer pipeline state,
 | `EXIT_REQUESTED`, missing `*_READY_TO_EXIT` | Exit confirmation interrupted |
 | `SHUTDOWN` | Team should have exited |
 | `PAUSE`, no subsequent `RESUME` | Team paused |
-| `WAIT_TIMEOUT` as latest entry | Lead abandoned a stalled wait (§3) — confirm with Lead before resuming the pipeline |

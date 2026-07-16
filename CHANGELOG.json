@@ -1,5 +1,12 @@
 [
   {
+    "seq": 194,
+    "version": "2026.07.16-4",
+    "date": "2026-07-16",
+    "summary": "Remove stall detection from the plan execution system — it was noisy (long-running tool calls look identical to real stalls) and its automated response chain couldn't actually fix anything. The full alerting/escalation path is gone: usage-monitor.sh no longer emits STALL (check_stalls → check_silence, state key stall_pinged → silence_logged), PM's On-STALL handler and two-strike ping/escalate flow are removed, Lead's STALL coordination-table row and usage-control.md On-STALL section are deleted, and the WAIT_TIMEOUT signal type (whose only producer was the unresolved-stall flow) is dropped from the protocol §5 vocabulary and §6 crash-recovery table (21 → 20 signal types). What remains is a quiet trace: the monitor still detects >10 min of task silence but appends a silence_observed event directly to events.json (debounced, self-clearing on renewed activity, excluded from its own last-activity computation) — post-mortem visibility with zero alerting; PM's operational report sources a 'Silence Periods Observed' section from those events. The protocol's stall-delegation section is rewritten to state the accepted tradeoff explicitly: no automated net for a dead counterparty (resolved by Lead/user observation + re-spawn), and agents still must not add their own timeout loops. test-usage-monitor.sh gains 5 checks covering the trace (no stdout, event append, debounce, self-clear). Help skill (PM + usage-monitor entries) and docs site (plan-execution, reference, token-efficiency) synced. Plugin-side files only — no project-level structure change.",
+    "migration": null
+  },
+  {
     "seq": 193,
     "version": "2026.07.16-3",
     "date": "2026-07-16",

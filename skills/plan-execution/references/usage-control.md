@@ -83,15 +83,6 @@ Optionally annotate each non-`none` entry with the timestamp and the `resets_at`
 
 The usage **mode** is the first interaction (Phase 1.0b): ask whether we care about the limits at all, BEFORE reading any usage data. Only if the answer is `pause` does Lead then read `usage-monitor.sh status` to check whether we are already over: `clear` → proceed; `soft` → start with a `soft` block (don't spawn task-1 yet); `critical` → pre-emptive `stop` hold (arm HOLD-WAKE, inform the user). In `push-through` there is no limit check at all. There is no first-tick STATUS message to wait for. All point-in-time usage reads go through `usage-monitor.sh status` (account-correct); Lead never hand-reads `usage-status.json`.
 
-## On STALL from PM
-
-PM forwards this when an executor has been silent for >10 minutes despite being in_progress.
-
-Lead investigates:
-1. Check if the stalled executor has a long-running tool call in progress (may be normal).
-2. If the executor appears genuinely stuck: re-spawn the task-team. The task.md, plan.md, and impl.md files provide re-spawn context per the failure-handling reference.
-3. If multiple executors are stalled simultaneously: suspect a systemic issue (API problems, disk full, etc.) and consider pausing execution.
-
 ## Hold State (`stop` block or deliberate wait)
 
 **Governing principle: Lead may go idle, but only while it retains a guaranteed way to wake itself.** Pausing is allowed; abandoning the plan (going idle with no armed wake, so a human must restart it) is forbidden. If Lead cannot arm its self-wake, it does NOT go silent — it tells the user it cannot guarantee an automatic resume and stays active.
