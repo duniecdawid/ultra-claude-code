@@ -2,7 +2,7 @@
 
 All task-team spawn prompts are **minimal pointers**. Per-task content (description, success criteria, patterns, research, files, dependencies) lives in `documentation/plans/$ARGUMENTS/tasks/task-{N}/task.md`. Every agent reads its task directory as its first action after pane labeling — see `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/task-team-startup.md`.
 
-Spawn teammates with the **`Agent` tool in teammate mode**: `run_in_background: true`, `subagent_type` set to the **registered agent type name** (listed per role below — e.g. `uc:Task Executor`, NOT a file path), `model`, and `mode`. Passing a file path as `subagent_type` does not resolve and can fall back to a generic agent. Do **not** pass `team_name` — it is deprecated/ignored (the session has a single implicit team). **MANDATORY naming convention** — the `name` parameter MUST follow exactly `{role}-{N}` where role is one of `executor`, `reviewer`, `tester` and N is the task number:
+Spawn teammates with the **`Agent` tool in teammate mode** (Mode T per `${CLAUDE_PLUGIN_ROOT}/references/agent-spawn-modes.md`): `run_in_background: true`, `subagent_type` set to the **registered agent type name** (listed per role below — e.g. `uc:Task Executor`, NOT a file path), `model`, and `mode`. Passing a file path as `subagent_type` does not resolve and can fall back to a generic agent. Do **not** pass `team_name` — it is deprecated/ignored (the session has a single implicit team). **MANDATORY naming convention** — the `name` parameter MUST follow exactly `{role}-{N}` where role is one of `executor`, `reviewer`, `tester` and N is the task number:
 
 | Task | Executor | Reviewer | Tester |
 |------|----------|----------|--------|

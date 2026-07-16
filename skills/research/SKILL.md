@@ -14,14 +14,14 @@ allowed-tools:
 
 # Research
 
-Cache-first external research. The skill checks the relevant index for a fresh entry; on hit, it returns an excerpt directly. On miss or stale, it spawns the `researcher` agent as a stateless subagent via the `Agent` tool (one-shot mode), waits for the result, and returns it. Research findings are durable documentation, not invisible cache.
+Cache-first external research. The skill checks the relevant index for a fresh entry; on hit, it returns an excerpt directly. On miss or stale, it spawns the `researcher` agent as a stateless subagent via the `Agent` tool (one-shot sync — `run_in_background: false`), waits for the result, and returns it. Research findings are durable documentation, not invisible cache.
 
 ## Invariant — MANDATORY
 
 **Every invocation of `/uc:research` produces exactly one of two outcomes:**
 
 1. **Cache hit** — an existing research file covers the topic, and you return its relevant section(s) to the caller (see Step 5).
-2. **Agent spawn** — the `researcher` subagent is spawned via the `Agent` tool (one-shot mode), it does the research, and you return its result to the caller (see Step 6).
+2. **Agent spawn** — the `researcher` subagent is spawned via the `Agent` tool (one-shot sync, `run_in_background: false`), it does the research, and you return its result to the caller (see Step 6).
 
 **There is no third outcome.** You never return "I couldn't find anything," "the cache had something but not quite right," "the topic was ambiguous so I stopped," or any other shrug. If you are about to reply to the caller without having done (1) or (2), **STOP and spawn the agent.** The spawn is the default fallback for every uncertain case — not a conditional branch you can skip.
 
@@ -210,11 +210,12 @@ Evaluate the jq result. **A cache hit requires ALL of these to be true:**
    b. Call `mcp__Ref__ref_search_documentation` with the topic (e.g., `"zod object schema validation typescript"`)
    c. Extract the result URLs into a list. If Ref.tools is unavailable or returns no results, pass an empty list — the agent falls back to WebSearch/WebFetch.
 
-4. **Spawn the researcher agent** via the `Agent` tool (one-shot mode), passing the chosen `target_path`, `index_path` (per Step 3), and the pre-fetched Ref.tools URLs:
+4. **Spawn the researcher agent** via the `Agent` tool (one-shot **sync**: no `name`, explicit `run_in_background: false` — Mode S per `${CLAUDE_PLUGIN_ROOT}/references/agent-spawn-modes.md`; the result gates Step 6.5's relay to the caller), passing the chosen `target_path`, `index_path` (per Step 3), and the pre-fetched Ref.tools URLs:
 
    ```
    Agent(
      subagent_type="researcher",
+     run_in_background=false,
      description="Research {topic}",
      prompt="""
      mode: {mode}

@@ -8,7 +8,7 @@ The instructions below extend the base rules with verification-mode-specific beh
 
 ## Mode Extensions
 
-Use the base research skills (code-surveyor + doc-surveyor) to survey code and documentation in scope. Then run three verification dimensions in parallel.
+Use the base research skills (code-surveyor + doc-surveyor) to survey code and documentation in scope. Then run three verification dimensions in parallel. All subagents in this stage (surveyors, Checkers) spawn as one-shot fan-out — no `name`, explicit `run_in_background: true` (Mode F per `${CLAUDE_PLUGIN_ROOT}/references/agent-spawn-modes.md`).
 
 **Tech Stack sweep input for verification mode:** the base framework's mandatory Tech Stack sweep needs an in-scope file set. For verification mode, that's the code files being checked against documentation claims — whatever is in the verification matrix (Dimension 1 below). Sweep those files' imports via `/uc:research --fill-only`. Library research is particularly valuable here because "docs claim X, code does Y" is sometimes actually "docs claim X, library behavior is Z, code correctly implements Z, docs are wrong" — and you need current library docs to tell those cases apart.
 
@@ -16,7 +16,7 @@ Use the base research skills (code-surveyor + doc-surveyor) to survey code and d
 
 1. **Build a verification matrix** — pair documentation sections with the code they describe. Each row is a (doc section, code path) pair to compare.
 2. **Spawn Checker agents** for each pair — compare code implementation against documentation claims. Each Checker returns discrepancies with severity and file:line references.
-3. **Synthesize results:**
+3. **Synthesize results** (only after every Checker's completion notification has been collected):
    - Deduplicate discrepancies found by multiple checkers.
    - Classify severity: **Critical** (phantom docs describing nonexistent code), **Major** (undocumented code, significant drift), **Minor** (naming, formatting).
    - Classify fix type: **Update docs** (code is correct), **Update code** (docs are correct), **Needs decision** (unclear — flag for user).

@@ -1,6 +1,6 @@
 # Explore Agent Prompts (Phase 3 — Stage B)
 
-Spawn these as parallel Explore agents (subagent_type `Explore`, thoroughness: `very thorough`). Run up to 5 agents in parallel; batch if more.
+Spawn these as parallel Explore agents (subagent_type `Explore`, thoroughness: `very thorough`, one-shot fan-out: no `name`, explicit `run_in_background: true` — Mode F per `${CLAUDE_PLUGIN_ROOT}/references/agent-spawn-modes.md`). Run up to 5 agents in parallel; batch if more; collect every completion notification before Stage C.
 
 ## Standards Explore Agent
 

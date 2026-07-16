@@ -1,6 +1,6 @@
 # Surveyor Spawn Prompts
 
-Prompts for Phase 1b — spawn these as parallel subagent pairs scaled to project size.
+Prompts for Phase 1b — spawn these as parallel subagent pairs scaled to project size (one-shot fan-out: no `name`, explicit `run_in_background: true` — Mode F per `${CLAUDE_PLUGIN_ROOT}/references/agent-spawn-modes.md`; collect every completion notification before merging).
 
 ## Doc Surveyor
 

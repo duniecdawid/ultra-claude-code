@@ -1,6 +1,12 @@
 # Executor Spawn Prompts (Phase 3 — Stage C)
 
-Spawn these after Stage B Explore agents complete. Use subagent_type `uc:Task Executor`. Run up to 5 executors in parallel; batch if more.
+Spawn these only after **every** Stage B Explore completion notification has been collected. Use subagent_type `general-purpose` with `model: opus`, as one-shot fan-out — no `name`, explicit `run_in_background: true` (Mode F per `${CLAUDE_PLUGIN_ROOT}/references/agent-spawn-modes.md`). Run up to 5 executors in parallel; batch if more; collect all completion notifications before proceeding.
+
+Do NOT use `uc:Task Executor` — that agent is a pipeline-team coordinator whose protocol (reviewer gates, SendMessage waits) misfires outside an execution team.
+
+Because `general-purpose` carries all tools, **every executor prompt below must include this constraint block verbatim**:
+
+> Constraints: You are a stateless one-shot worker. Never modify source code. Write only under `documentation/` (plus `context/`, `.claude/`, `CLAUDE.md`, or the marker-guarded README footer when the prompt says so). Do not spawn subagents. Do not send messages — return a structured completion report as your final output and exit. Be idempotent: check current state before writing.
 
 Pass the Explore agent results directly into the executor spawn prompt — no intermediate research file needed since Explore agents return results inline.
 

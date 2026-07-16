@@ -1,5 +1,12 @@
 [
   {
+    "seq": 191,
+    "version": "2026.07.16-1",
+    "date": "2026-07-16",
+    "summary": "Agent spawn-mode explicitness refactor, prompted by Claude Code v2.1.198 making Agent spawns background-by-default (which silently flipped every unspecified one-shot spawn from sync to background). New canonical reference references/agent-spawn-modes.md defines the three modes — Mode T teammate (name + run_in_background: true), Mode S one-shot sync (run_in_background: false, result gates the next step), Mode F one-shot background fan-out (collect every completion notification before synthesizing; never have one-shot workers SendMessage results back) — and mandates that every Agent call state run_in_background explicitly. All one-shot spawn sites updated accordingly: research (sync), discovery/planning-framework/feature/debug/doc-verification stage-2 and migrate surveyor/explore prompts (fan-out). Migrate's one-shot batch executors switched from uc:Task Executor (a pipeline-team coordinator whose reviewer-gate/SendMessage protocol misfires outside an execution team) to general-purpose with model: opus and a mandatory inline constraint block. The execution communication protocol's addressing note is now the canonical category rule (named teammates -> team-lead; anonymous background subagents only -> main), re-verified against Claude Code v2.1.211. Refreshed .claude/ultra/research/claude-code-sendmessage.md (background default, v2.1.205/207/211 fixes, addressing split, #43706 still open). Docs site synced (token-efficiency, plan-execution, reference pages).",
+    "migration": null
+  },
+  {
     "seq": 190,
     "version": "2026.07.11-1",
     "date": "2026-07-11",

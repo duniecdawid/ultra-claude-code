@@ -20,14 +20,14 @@ This is **not optional**. The hypothesis list is the contract that defines what 
 
 ### Parallel Investigation
 
-Once the user has confirmed/refined the hypothesis list, investigate in parallel:
+Once the user has confirmed/refined the hypothesis list, investigate in parallel — spawn every agent below as one-shot fan-out (no `name`, explicit `run_in_background: true`; Mode F per `${CLAUDE_PLUGIN_ROOT}/references/agent-spawn-modes.md`):
 
 - **Per-hypothesis Explore agents** — one per hypothesis, scoped to the relevant code paths. Each should return evidence supporting or refuting the hypothesis with file:line references.
 - **System Tester** — attempt to reproduce the bug. Try the exact steps first, then variations to understand boundary conditions. Read all files from `documentation/technology/testing/` for project-specific test instructions.
 
 ### Synthesis
 
-After all agents return, synthesize evidence:
+After **every** agent's completion notification has been collected (not before — completion order is not guaranteed), synthesize evidence:
 
 - Rank hypotheses by evidence strength.
 - Cross-reference — does evidence from multiple hypotheses point to the same root cause?

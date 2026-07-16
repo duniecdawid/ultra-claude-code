@@ -14,7 +14,7 @@ Use the base research skills (code-surveyor, doc-surveyor, research) to understa
 - **Documentation** — What architecture, product description, and requirements docs are relevant?
 - **External libraries** — Are there new dependencies or integrations to investigate? Invoke `/uc:research` whenever the answer is yes — it's cache-first, so repeated lookups across plans are free.
 
-If the surveyors reveal **cross-component complexity** (a feature touching multiple subsystems with non-obvious interactions) or **undocumented patterns** (code conventions that need to be understood before extending), spawn additional Explore agents to do deeper investigation. The base surveyors give you a structural map; Explore gives you the line-by-line context for the parts that matter.
+If the surveyors reveal **cross-component complexity** (a feature touching multiple subsystems with non-obvious interactions) or **undocumented patterns** (code conventions that need to be understood before extending), spawn additional Explore agents to do deeper investigation (same one-shot fan-out config as the surveyors — no `name`, explicit `run_in_background: true`; Mode F per `${CLAUDE_PLUGIN_ROOT}/references/agent-spawn-modes.md` — collect every completion notification before moving on). The base surveyors give you a structural map; Explore gives you the line-by-line context for the parts that matter.
 
 **Tech Stack sweep input for feature mode:** the base framework's mandatory Tech Stack sweep needs an in-scope file set. For feature mode, that's the Files list from your draft task breakdown. Track the library-to-draft-task mapping as you sweep — Stage 4 Step 5b turns it into each `task.md`'s `**Research:**` section.
 

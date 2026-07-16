@@ -36,7 +36,7 @@ If `$TMUX` is unset (you are not inside a tmux session) **or** `teammateMode` is
 | Concept | Real invocation |
 |---------|-----------------|
 | **Spawn a teammate** (Executor/Reviewer/Tester/PM) — persistent, team-graph member, addressable via `SendMessage` | `Agent` tool in **teammate mode**: `name="{role}-{N}"` + `run_in_background: true` + `subagent_type` (the registered type name, e.g. `uc:Task Executor` — not a file path) + `model` + `mode`. Do **not** pass `team_name` — it is deprecated/ignored (the session has a single implicit team). |
-| **Spawn a one-shot subagent** (the researcher, via `/uc:research`) — stateless, returns once, not on the team graph | `Agent` tool in **one-shot mode**: foreground, no `name`. |
+| **Spawn a one-shot subagent** (the researcher, via `/uc:research`) — stateless, returns once, not on the team graph | `Agent` tool in **one-shot mode**: no `name`, explicit `run_in_background: false` (sync — the answer gates the next step; see `${CLAUDE_PLUGIN_ROOT}/references/agent-spawn-modes.md`, Mode S). |
 | **Lead-side task list** | `TaskCreate(...)` / `TaskUpdate(...)` (this is unrelated to spawning — it tracks task state). |
 | **Send / broadcast / wait** | `CommunicateTeamMember`, `CommunicateTeam`, `WaitForTeamMember` are **procedures**, not tools — fixed sequences of `SendMessage` + an `echo >>` append to `signals.jsonl` + `Monitor`, defined in `references/execution-communication-protocol.md`. Never search for a tool by those names. |
 

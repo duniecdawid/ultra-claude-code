@@ -80,7 +80,7 @@ Present the scoping summary to the user before proceeding. Be concise — 5-8 li
 
 Run two research streams in parallel:
 
-**1. Explore subagent** (spawn via the `Agent` tool, one-shot mode) — internal codebase and technical research:
+**1. Explore subagent** (spawn via the `Agent` tool, one-shot fan-out: no `name`, explicit `run_in_background: true` — Mode F per `${CLAUDE_PLUGIN_ROOT}/references/agent-spawn-modes.md`; it runs in the background while you do stream 2 inline, and you must collect its completion notification before Phase 3 synthesis) — internal codebase and technical research:
 
 > Research topic: [topic from $ARGUMENTS]
 >

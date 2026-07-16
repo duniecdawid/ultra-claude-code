@@ -41,13 +41,13 @@ Do a top-level scan (Glob + ls) to understand project size and structure:
 
 Read `${SKILL_DIR}/references/surveyor-prompts.md` for the exact subagent prompts.
 
-Spawn Code Surveyor and Doc Surveyor subagents in parallel, scaled to project size:
+Spawn Code Surveyor and Doc Surveyor subagents in parallel — one-shot fan-out: no `name`, explicit `run_in_background: true` (Mode F per `${CLAUDE_PLUGIN_ROOT}/references/agent-spawn-modes.md`) — scaled to project size:
 
 - **Small project** (few top-level dirs, <50 files): 1 Code Surveyor + 1 Doc Surveyor covering the whole project
 - **Medium project**: 2-3 pairs, each scoped to a subset of top-level directories
 - **Large project / monorepo**: Up to 5 pairs, each scoped to a major area (e.g., `packages/auth`, `services/`, `libs/`)
 
-Wait for all surveyors to complete. Merge results into unified code + doc reports.
+Collect every surveyor's completion notification. Merge results into unified code + doc reports.
 
 #### 1c — Ask questions
 
@@ -153,38 +153,39 @@ Phase 3 runs in three stages. Stages A and B run in parallel; Stage C waits for 
 
 Create `documentation/technology/standards/` directory inline before spawning.
 
-Spawn Task Executor agent(s) (subagent_type `uc:Task Executor`) to carry out Groups 1-4 from the approved plan. Provide the agent with:
+Spawn batch executor agent(s) (subagent_type `general-purpose`, `model: opus`, one-shot fan-out: no `name`, explicit `run_in_background: true` — Mode F per `${CLAUDE_PLUGIN_ROOT}/references/agent-spawn-modes.md`; do NOT use `uc:Task Executor`, a pipeline-team coordinator whose protocol misfires outside an execution team) to carry out Groups 1-4 from the approved plan. Provide the agent with:
 - The full approved plan (Groups 1-4)
 - The merged survey results for reference
 - The canonical structure definition from Docs Manager
 - Clear instructions for each task group
+- The constraint block from `${SKILL_DIR}/references/executor-prompts.md` (stateless one-shot; never modify source code; write only under `documentation/`, `context/`, `.claude/`, `CLAUDE.md`, marker-guarded README footer; move-then-delete; no subagents; no messages; idempotent; return a structured completion report)
 
 The agent executes: create directories, write config files, copy templates, move documentation, clean up empty directories, generate/update index.
 
-For very large projects (many files to move, 4+ task groups with significant work), spawn multiple Task Executor agents in parallel — one per task group.
+For very large projects (many files to move, 4+ task groups with significant work), spawn multiple batch executors in parallel — one per task group.
 
 #### Stage B: Research Phase (parallel with Stage A)
 
 Read `${SKILL_DIR}/references/explore-prompts.md` for the exact subagent prompts.
 
-For each approved standard topic + testing config, spawn an Explore agent (subagent_type `Explore`, thoroughness: `very thorough`). Run up to 5 agents in parallel; batch if more.
+For each approved standard topic + testing config, spawn an Explore agent (subagent_type `Explore`, thoroughness: `very thorough`, one-shot fan-out: no `name`, explicit `run_in_background: true`). Run up to 5 agents in parallel; batch if more.
 
 #### Stage C: Standards Writing (after Stage B completes)
 
 Read `${SKILL_DIR}/references/executor-prompts.md` for the exact subagent prompts.
 
-Wait for all Stage B Explore agents to finish. Then, for each approved standard + testing config, spawn a Task Executor (subagent_type `uc:Task Executor`). Run up to 5 executors in parallel; batch if more.
+Collect **every** Stage B Explore completion notification first. Then, for each approved standard + testing config, spawn a batch executor (subagent_type `general-purpose`, `model: opus`, one-shot fan-out — config and mandatory constraint block per `${SKILL_DIR}/references/executor-prompts.md`). Run up to 5 executors in parallel; batch if more.
 
 Pass the Explore agent results directly into the executor spawn prompt — no intermediate research file needed since Explore agents return results inline.
 
 #### Parallelism Summary
 
-- **Stage A + Stage B**: Run in parallel (write to different paths)
-- **Stage C**: Waits for Stage B to complete (needs exploration results)
+- **Stage A + Stage B**: Spawn together as background fan-out (write to different paths)
+- **Stage C**: Spawns only after **all** Stage B completion notifications are collected (needs exploration results)
 - **Within Stage B**: All Explore agents run in parallel (up to 5 at a time, batch if more)
-- **Within Stage C**: All Executors run in parallel (up to 5 at a time, batch if more)
+- **Within Stage C**: All executors run in parallel (up to 5 at a time, batch if more)
 
-After all stages complete, verify results and report.
+After every stage's completion notifications are collected (Stage A's included), verify results and report.
 
 ---
 

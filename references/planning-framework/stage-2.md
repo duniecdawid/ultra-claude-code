@@ -12,7 +12,7 @@ These are always available and run when applicable.
 - **`doc-surveyor`** — structural survey of relevant documentation sections
 - **`/uc:research`** — cache-first external library, API, pattern, or market research. Writes committed research files under `documentation/technology/research/` (libraries + patterns) or `documentation/product/research/` (market). Cache hits return instantly; misses spawn the `researcher` subagent.
 
-Spawn all applicable research skills in parallel. At minimum, always launch `code-surveyor` + `doc-surveyor` together — even for seemingly simple issues, because doc-surveyor frequently reveals context that changes your understanding of "simple." Invoke `/uc:research` whenever external libraries or unfamiliar patterns are involved. If you genuinely believe only one surveyor applies (e.g., pure documentation change with zero code impact), state which one you are skipping and why in your stage transition message.
+Spawn all applicable research skills in parallel — surveyor subagents as one-shot fan-out (no `name`, explicit `run_in_background: true`; Mode F per `${CLAUDE_PLUGIN_ROOT}/references/agent-spawn-modes.md`), and collect every completion notification before synthesizing. At minimum, always launch `code-surveyor` + `doc-surveyor` together — even for seemingly simple issues, because doc-surveyor frequently reveals context that changes your understanding of "simple." Invoke `/uc:research` whenever external libraries or unfamiliar patterns are involved. If you genuinely believe only one surveyor applies (e.g., pure documentation change with zero code impact), state which one you are skipping and why in your stage transition message.
 
 ## Tech Stack Sweep — MANDATORY (all modes)
 
@@ -44,7 +44,7 @@ Every planning mode — feature, debug, doc-code-verification, anything else tha
 
 - No files written to disk by this stage directly. (`/uc:research` itself writes durable files under `documentation/technology/research/` — that's the skill's own persistence, not a stage write.)
 - Research results remain in conversation context.
-- Modes extend by: adding scoping context to surveyors, adding extra agents (e.g., Explore, System Tester, Checker), adding extra research phases. The mode-specific extensions live in the active mode's `references/stage-2.md`.
+- Modes extend by: adding scoping context to surveyors, adding extra agents (e.g., Explore, System Tester, Checker — same one-shot fan-out config as the surveyors, per `${CLAUDE_PLUGIN_ROOT}/references/agent-spawn-modes.md`), adding extra research phases. The mode-specific extensions live in the active mode's `references/stage-2.md`.
 
 ## Track research-to-task mapping
 
