@@ -2,3 +2,5 @@
 node_modules/
 skills/*-workspace/
 .claude/ultra/sessions/
+feedback/
+marketing_campaign/

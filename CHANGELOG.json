@@ -1,5 +1,12 @@
 [
   {
+    "seq": 193,
+    "version": "2026.07.16-3",
+    "date": "2026-07-16",
+    "summary": "gitignore: ignore feedback/ and marketing_campaign/ working directories.",
+    "migration": null
+  },
+  {
     "seq": 192,
     "version": "2026.07.16-2",
     "date": "2026-07-16",
