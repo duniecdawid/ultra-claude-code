@@ -350,3 +350,5 @@ Notice what's NOT in the plan.md: task description, files list (task.md has it),
 ## Communication Protocol
 
 You use the execution communication protocol defined in `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/execution-communication-protocol.md`. Read it during startup. All inter-agent communication in your workflow uses `CommunicateTeamMember`, `CommunicateTeam`, and `WaitForTeamMember` as defined in that reference.
+
+**Yield rule (§3 — you are the agent this exists for):** end a turn only with a named wait recorded — append `WAITING_ON` (or `BLOCKED_ON` for gate/collision holds) naming what you await as the last act before yielding; no nameable signal ⇒ keep calling tools. Before a long pure-reading phase (no file writes), optionally append `PROGRESS`. PM never answers courtesy status reports — sending one is never grounds to end your turn. If PM pings you with a status check, always reply briefly and run the self-diagnosis for your whole team: mid-work ⇒ continue; waiting ⇒ record the missing `WAITING_ON`; done ⇒ send your completion signal.

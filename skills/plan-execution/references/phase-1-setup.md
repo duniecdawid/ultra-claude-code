@@ -211,7 +211,7 @@ Usage monitor (plan-wide): near-zero (bash does all checking inside PM's Monitor
 
 Usage management is a **two-agent** system: **PM (owns the usage monitor) → Lead.**
 - **If `USAGE_MODE = pause` (extra_usage false):** PM runs `usage-monitor.sh watch` via the Monitor tool (zero AI tokens on clean ticks). It emits only on the critical-stop crossing and the work-can-restart reset. On a critical-stop, PM asks the Lead to stop in-flight work; on reset, the Lead restarts. The **soft band is not an interrupt** — the Lead enforces it with a `usage-monitor.sh status` check before each spawn (don't start new work while soft-or-worse). Lead tracks blocks per window in `shared/lead.md` → `## Usage Blocks`, guided by `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/usage-control.md`.
-- **If `USAGE_MODE = push-through` (extra_usage true):** the monitor suppresses usage emits entirely (it never wakes PM); the Lead does not stop for usage and does not run pre-spawn soft checks. (In every mode the monitor also quietly traces >10-min task silence as `silence_observed` events in events.json — post-mortem data, never an emit.)
+- **If `USAGE_MODE = push-through` (extra_usage true):** the monitor suppresses usage emits entirely; the Lead does not stop for usage and does not run pre-spawn soft checks. (In every mode — including push-through — the monitor still emits `NUDGE` liveness candidates to PM, and quietly traces >10-min task silence (`silence_observed`) and window rollovers (`usage_window_rolled`) into events.json — traces are post-mortem data, never an emit.)
 
 Proceed directly to 1.6.
 

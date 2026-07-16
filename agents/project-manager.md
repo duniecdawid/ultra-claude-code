@@ -63,7 +63,7 @@ You **never** make technical decisions — you don't review code, judge implemen
      persistent: true
    })
    ```
-   The script lives at the stable path `~/.claude/ultra/usage-monitor.sh` (symlinked by `/uc:setup`; the Lead self-heals it in phase-1 preflight) — do not invoke it via `$CLAUDE_PLUGIN_ROOT`, which is often unset in a Bash shell. It is silent on clean ticks (zero tokens) and emits a JSON line only on actionable milestones — `CRITICAL` (stop in-flight work), `USAGE-RESET` (work may restart). In `push-through` mode it suppresses usage emits entirely (it never wakes you). You handle these via the Usage Monitor Handling section below. The script also quietly traces >10-min task silence as `silence_observed` events straight into events.json — that is post-mortem data for your report, never an alert and never your cue to act. You are otherwise event-driven — you also wake on messages from Lead (status updates) and executors (stage completions). **Never invent a usage figure — only ever act on or forward values that came from this monitor's actual output.**
+   The script lives at the stable path `~/.claude/ultra/usage-monitor.sh` (symlinked by `/uc:setup`; the Lead self-heals it in phase-1 preflight) — do not invoke it via `$CLAUDE_PLUGIN_ROOT`, which is often unset in a Bash shell. It is silent on clean ticks (zero tokens) and emits a JSON line only on actionable milestones — `CRITICAL` (stop in-flight work), `USAGE-RESET` (work may restart), `NUDGE` (a task looks wrongly parked — you verify, then ping; fires in ALL modes including `push-through`, since it is about pipeline liveness, not usage). You handle these via the Usage Monitor Handling section below. The script also quietly traces >10-min task silence (`silence_observed`) and mid-execution usage-window rollovers (`usage_window_rolled`) straight into events.json — post-mortem data for your report, never alerts. You are otherwise event-driven — you also wake on messages from Lead (status updates) and executors (stage completions). **Never invent a usage figure — only ever act on or forward values that came from this monitor's actual output.**
 
    **Notification filtering:** the Monitor also delivers lifecycle lines (the monitor's own description text, with no JSON). Ignore anything that is not a single JSON object with an `"alert"` field — do nothing, produce no output.
 
@@ -243,6 +243,10 @@ task_failed           — task failed / escalated to Lead
 usage_critical        — usage monitor reported the critical limit crossed (5h ≥90% or 7d ≥95%); forwarded to Lead only in `pause` mode. Event includes `window` field.
 usage_reset           — usage monitor reported a window dropped below its soft band or its reset time passed. Event includes `window` field.
 silence_observed      — usage monitor traced >10min of task silence (written directly by the monitor script, not by you; post-mortem data only)
+usage_window_rolled   — usage monitor traced a window's resets_at advancing mid-execution (written by the script; cost_pct spanning it is unreliable)
+nudge_sent            — PM verified a NUDGE candidate and pinged the executor with a status check
+nudge_escalated       — pinged executor stayed silent through a second qualifying window; escalated to Lead
+signal_gap_nudge      — a claimed verdict was missing from signals.jsonl; PM nudged the author to append it
 budget_task_start     — per-task budget: recorded start_pct when task spawned
 budget_task_end       — per-task budget: recorded end_pct and cost_pct when task completed
 execution_started     — plan execution began
@@ -325,6 +329,7 @@ Each emit is a single JSON object with an `"alert"` field. The only alerts it pr
 - `{"alert":"CRITICAL","window":"5h","pct":91,"resets_at":1776722400}` — usage crossed the stop threshold; in-flight work must stop (suppressed in `push-through` mode)
 - `{"alert":"USAGE-RESET","window":"5h","pct":15}` — usage dropped below the soft band on fresh data; work may restart
 - `{"alert":"USAGE-RESET","window":"5h","pct":91,"reason":"reset_time_passed"}` — the known reset time passed while usage data was stale; `pct` is the pre-reset stale value
+- `{"alert":"NUDGE","task_id":"task-3","silent_minutes":14,"count":1}` — protocol-violation candidate: the task is silent, its latest signal is not a named wait (`WAITING_ON`/`BLOCKED_ON`), and nothing changed in the repo tree; `count` grows per consecutive qualifying window
 Parse the JSON and process via the Usage Monitor Handling section below. There is no STATUS/CONSERVE/PAUSE/KILL/STALE-DATA — the monitor never emits those (the soft band is handled at spawn time; status is read on demand).
 
 **signals.jsonl reading for stage derivation:**
@@ -338,7 +343,10 @@ Derivation rules when new signals are found:
 - `TEST_PASS` → close testing stage (set `ended_at`), append `stage_done` event
 - `REVIEW_FAIL` or `TEST_FAIL` followed by `REREVIEW_REQUESTED` or `RETEST_REQUESTED` → increment `retry_count`, reset both stage timers, append retry event
 - Unknown/future signal names → ignore for stage derivation (the vocabulary may grow)
+- `WAITING_ON`/`BLOCKED_ON`/`PROGRESS` → no stage derivation (state-only appends per protocol §3); they matter to you only as evidence when verifying a `NUDGE`
 - Track which signals you've already processed (by line count or last-seen timestamp) to avoid duplicate state file updates
+
+**Verdict-gap check:** when a status message claims a stage verdict (e.g. an executor reports TEST_PASS) that is absent from that task's `signals.jsonl`, first RE-READ the file — the append may simply postdate the claim (a false alarm of exactly this shape occurred in a real run). If it is genuinely missing after the re-read, nudge the author: SendMessage {agent}: `"Your {SIGNAL} isn't in signals.jsonl — append it via the protocol so the durable record is complete."` Log `{type: "signal_gap_nudge", task_id, signal}`. A verdict that exists only in a mailbox is invisible to crash recovery and your stage tracking.
 
 **Channel-health metrics (feeds the report's Communication Channel Health section).** From the signal stream and telemetry you can measure how well the *primary* (SendMessage) channel is delivering — the standing data for the open question of whether the durable file channel still earns its keep:
 - **Silence periods** — `silence_observed` events in events.json (the monitor script traced a team >10 min without appending a signal). Post-mortem data only; benign for legitimately-parked pipeline successors.
@@ -349,7 +357,7 @@ Few silence periods and mostly `resolved_by:"sendmessage"` ⇒ the primary chann
 
 Your background monitor (`usage-monitor.sh watch`) emits only on actionable milestones. The script already resolves the account and applies the thresholds — you do **not** re-read `usage-status.json` to "validate" it (the single-source-of-truth script is authoritative; the old Haiku-relay validation step is gone). Your job: log the event, add operational context, and forward to Lead **only** when the chosen usage mode makes it actionable. Forwarded messages include the window in brackets (e.g. `USAGE STOP [5h]: ...`).
 
-The mode is in your spawn prompt as `USAGE_MODE` (`pause` or `push-through`). In `push-through` the monitor suppresses `CRITICAL` at the source, so you should normally only ever see `USAGE-RESET` there; if a `CRITICAL` somehow arrives in `push-through`, log it and do NOT forward.
+The mode is in your spawn prompt as `USAGE_MODE` (`pause` or `push-through`). In `push-through` the monitor suppresses `CRITICAL` at the source, so you should normally only ever see `USAGE-RESET`/`NUDGE` there (NUDGE fires in all modes — it is liveness, not usage); if a `CRITICAL` somehow arrives in `push-through`, log it and do NOT forward.
 
 ### On `{"alert":"CRITICAL","window":"...","pct":...,"resets_at":...}`
 
@@ -368,6 +376,15 @@ The window dropped below the soft band on fresh data, or its known reset time pa
 2. SendMessage Lead:
    - Normal: `"USAGE RESET [{window}]: window cleared. Clear this window's block — work may restart if no other blocks remain."`
    - `reason=reset_time_passed`: `"USAGE RESET [{window}]: reset time passed — window rolled over (usage data was stale at {pct}%). Clear this window's block — work may restart if no other blocks remain."`
+
+### On `{"alert":"NUDGE","task_id":"...","silent_minutes":...,"count":...}`
+
+The script flagged a **protocol-violation candidate** (execution communication protocol §3 yield rule): the task is silent, no `WAITING_ON`/`BLOCKED_ON` is recorded, and the repo tree is quiet. **The emit is a candidate, not a verdict — you verify before acting.** A wrongly-parked agent is alive, so your ping is itself the cure: it wakes the agent, which resumes or records its wait.
+
+1. **Verify first** (the emit races real activity): re-read the task's `signals.jsonl` tail and your own recent messages from that team; optionally check the agent's tmux pane liveness. If the evidence shows real work or a legitimate wait, log your finding and do nothing.
+2. **`count:1`, verified** → ping the executor: SendMessage executor-{N}: `"Status check — you appear parked with no named wait and no file activity. If mid-work: continue (reply briefly). If waiting: append WAITING_ON per protocol §3. If done: send your completion signal."` Log `{type: "nudge_sent", task_id, silent_minutes}`. A reply resolves it.
+3. **`count:≥2`** with no reply to your ping and no new signals → escalate: SendMessage Lead: `"NUDGE-ESCALATION task-{N}: no named wait, no activity, pinged at {ts}, no response. Recommend: investigate or re-spawn."` Log `{type: "nudge_escalated", task_id, silent_minutes}`.
+4. The script's ladder self-clears when the task shows activity — a resolved episode needs no cleanup from you.
 
 ### Per-Task Budget Tracking
 
@@ -397,6 +414,8 @@ Log to events.json: `{type: "budget_task_start", task_id: "task-{N}", start_pct:
 ```
 
 Log to events.json: `{type: "budget_task_end", task_id: "task-{N}", end_pct: 56, cost_pct: 4}`
+
+**Window-rollover rule:** cost_pct assumes monotonic usage within one window. If a `usage_window_rolled` event (written by the monitor script) falls between the task's start and end — or end_pct < start_pct, which implies an undetected one — set `cost_pct: null` with a note naming the rollover instead of recording a negative or misleading value.
 
 **Computing averages:** When preparing context for a critical-stop alert, compute `avg_cost_pct` across all completed tasks with budget data. Report this to Lead so Lead can reason about remaining capacity.
 
@@ -510,7 +529,14 @@ When the Lead sends "Execution complete — write operational report":
 |------|------|-----------------|--------------|
 | {time} | task-N | ~Xm | {long tool call / parked successor / genuinely dead} |
 
-Sourced post-hoc from `silence_observed` events in events.json. Informational only — no alerting or escalation happens on silence.
+Sourced post-hoc from `silence_observed` events in events.json. Informational only — silence alone is never alerted or escalated.
+
+### Nudges (protocol §3 yield-rule violations)
+| Time | Task | Count | Verified Outcome |
+|------|------|-------|------------------|
+| {time} | task-N | {1/2+} | {false candidate / ping cured it / escalated to Lead → re-spawned} |
+
+Sourced from your `nudge_sent` / `nudge_escalated` events. Each row is a task that was silent with no named wait and no file activity — the report should say whether the yield rule was actually violated (agent forgot `WAITING_ON` or parked wrongly) or the candidate was noise.
 
 ### Usage Limit Events
 | Time | Window | Type | Percentage | Lead Decision | Duration |
@@ -597,8 +623,11 @@ How well did the primary (SendMessage) channel deliver, and did the durable `sig
 | Waits resolved by SendMessage (happy path) | {N} | `comms-telemetry.jsonl` `resolved_by:sendmessage` |
 | **Waits resolved by file follow** (SendMessage missed) | {N} | `comms-telemetry.jsonl` `resolved_by:file` |
 | Silence periods observed (>10 min) | {N} | `silence_observed` events in events.json |
+| Nudges sent (verified yield-rule candidates) | {N} | your `nudge_sent` events |
+| Nudge escalations to Lead | {N} | your `nudge_escalated` events |
+| Verdict-gap nudges (claimed verdict missing from signals.jsonl) | {N} | your `signal_gap_nudge` events |
 
-**Read:** file-follow-save + silence counts both 0 ⇒ the primary channel delivered everything and no team went quiet this run; non-zero ⇒ the file-follow was load-bearing (delivery saves) or a team went silent (long tool call, parked successor, or genuinely dead). The silence column is authoritative (the monitor script writes it); the `comms-telemetry.jsonl` columns are best-effort corroboration (agents may not log every wake).
+**Read:** all counts 0 ⇒ the primary channel delivered everything, every park had a named wait, and no verdict lived only in a mailbox. Non-zero silence is often benign (long tool calls, parked successors); non-zero nudges mean the yield rule was violated or nearly so — name the offending agent pattern in the report; non-zero verdict-gaps mean the dual-write discipline slipped. The events.json columns are authoritative; the `comms-telemetry.jsonl` columns are best-effort corroboration (agents may not log every wake).
 
 ## Repeated Work Analysis
 

@@ -10,13 +10,25 @@
 # `watch` emits (one stdout line each → one Monitor notification):
 #   {"alert":"CRITICAL","window":"5h|7d","pct":N,"resets_at":N}                 in-flight work must STOP now
 #   {"alert":"USAGE-RESET","window":"5h|7d","pct":N[,"reason":"reset_time_passed"]}  work may RESTART
+#   {"alert":"NUDGE","task_id":"task-N","silent_minutes":N,"count":K}           protocol-violation candidate (all modes)
 # It is SILENT on clean ticks, on the soft band (handled at spawn time, never emitted), and on the
-# first tick (no STATUS). With MODE=push-through, usage milestones are suppressed entirely — the monitor
-# never wakes anyone about usage when the user chose to push through the limit.
+# first tick (no STATUS). With MODE=push-through, usage milestones are suppressed entirely; NUDGE
+# still fires — it is about pipeline liveness, not usage.
 #
 # Silence trace (all modes, never emitted): tasks silent >10 min get a `silence_observed` event
 # appended to events.json for post-mortem visibility. No alert, no escalation — long tool calls
 # look identical to real stalls, so alerting on silence produced noise no one could act on.
+#
+# NUDGE (all modes): NOT stall detection — a protocol-violation candidate per the execution
+# communication protocol §3 yield rule. Emitted only on the full conjunction: task silent >10 min
+# AND its latest signal is not WAITING_ON/BLOCKED_ON (agent recorded no named wait) AND no file
+# changed anywhere in the repo tree in 10 min (nothing is building/editing). PM verifies before
+# acting (the emit is a candidate, not a verdict); count increments per consecutive qualifying
+# window so PM can escalate on count>=2.
+#
+# Window-rollover trace (all modes, never emitted): when a window's resets_at advances while tasks
+# are in_progress, a `usage_window_rolled` event is appended to events.json — PM's per-task
+# cost_pct assumes monotonic usage inside one window, so tasks spanning a rollover get cost null.
 #
 # Bands: clear  <  soft (stop starting NEW work — enforced by the pre-spawn check)  <  critical (stop in-flight).
 
@@ -156,22 +168,30 @@ check_window() { # key label pct resets crit soft
   fi
 }
 
-# Quiet silence trace — post-mortem visibility only, kept in all modes. Never emits to stdout;
-# appends a `silence_observed` event to events.json instead. Debounce self-clears: one event per
-# silence episode, re-armed as soon as the task shows real activity again.
+# Quiet silence trace + NUDGE candidates — kept in all modes.
+# Trace: >10 min task silence appends a `silence_observed` event to events.json (never stdout).
+# NUDGE: protocol-violation candidate (§3 yield rule) — silent AND no named wait recorded AND no
+# repo file activity. Emits to stdout for PM to verify; count grows per consecutive qualifying
+# window. Both debounces self-clear as soon as the task shows real activity again.
 check_silence() {
   local plan_dir="$1"
   [ -f "$plan_dir/events.json" ] && [ -f "$plan_dir/plan.json" ] || return 0
-  local now task_id last_event task_num signal_file last_sig sig_epoch evt_epoch silent already
+  local now task_id last_event task_num signal_file last_sig last_sig_name sig_epoch evt_epoch silent already
+  local repo_root plan_prune nudge_last nudge_count
   now=$(date +%s)
+  repo_root=$(git -C "$plan_dir" rev-parse --show-toplevel 2>/dev/null || echo "")
+  # Physical path for the find prune — git returns symlink-resolved paths, so the prune must too.
+  plan_prune=$(cd "$plan_dir" 2>/dev/null && pwd -P || echo "$plan_dir")
   for task_id in $(jq -r '.tasks[]? | select(.status=="in_progress") | .task_id' "$plan_dir/plan.json" 2>/dev/null); do
     [ -z "$task_id" ] && continue
     # silence_observed is our own trace, not task activity — excluding it keeps the clock honest.
     last_event=$(jq -r --arg t "$task_id" '[.events[]? | select(.task_id==$t and .type!="silence_observed") | .timestamp] | sort | last // ""' "$plan_dir/events.json" 2>/dev/null || echo "")
     task_num=${task_id#task-}
     signal_file="$plan_dir/tasks/task-${task_num}/signals.jsonl"
+    last_sig_name=""
     if [ -s "$signal_file" ]; then
       last_sig=$(tail -1 "$signal_file" | jq -r '.ts // ""' 2>/dev/null || echo "")
+      last_sig_name=$(tail -1 "$signal_file" | jq -r '.signal // ""' 2>/dev/null || echo "")
       if [ -n "$last_sig" ] && [ "$last_sig" != "null" ]; then
         sig_epoch=$(date -d "$last_sig" +%s 2>/dev/null || echo 0)
         evt_epoch=$(date -d "$last_event" +%s 2>/dev/null || echo 0)
@@ -192,6 +212,58 @@ check_silence() {
     elif [ "$silent" -le 10 ] && [ -n "$already" ]; then
       jq --arg t "$task_id" 'del(.silence_logged[$t])' "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
     fi
+
+    # --- NUDGE candidate (protocol §3 yield rule violation) ---
+    if [ "$silent" -le 10 ]; then
+      # Activity ⇒ episode over; re-arm the nudge ladder.
+      jq -e --arg t "$task_id" '.nudge_state[$t]' "$STATE_FILE" >/dev/null 2>&1 && \
+        { jq --arg t "$task_id" 'del(.nudge_state[$t])' "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"; }
+      continue
+    fi
+    # A recorded named wait (or explicit heartbeat) is a legitimate park — trace only, no NUDGE.
+    case "$last_sig_name" in WAITING_ON|BLOCKED_ON) continue;; esac
+    # Activity suppressor: anything changing in the repo tree (builds touch build dirs) means work
+    # is happening somewhere — imprecise across teams, but a real fleet-stop quiets the whole tree.
+    # Prune .git and the plan dir itself (our own events/state/log writes must not count as work).
+    if [ -n "$repo_root" ]; then
+      local recent
+      recent=$(timeout 3 find "$repo_root" \( -name .git -o -path "$plan_prune" \) -prune -o -type f -newermt "@$((now - 600))" -print -quit 2>/dev/null || echo "")
+      [ -n "$recent" ] && continue
+    fi
+    nudge_last=$(jq -r --arg t "$task_id" '.nudge_state[$t].last_emit // 0' "$STATE_FILE" 2>/dev/null || echo 0)
+    nudge_count=$(jq -r --arg t "$task_id" '.nudge_state[$t].count // 0' "$STATE_FILE" 2>/dev/null || echo 0)
+    # One emit per qualifying 10-min window: first immediately, then every 600s while it persists.
+    if [ $(( now - nudge_last )) -ge 600 ] 2>/dev/null; then
+      nudge_count=$(( nudge_count + 1 ))
+      emit "{\"alert\":\"NUDGE\",\"task_id\":\"$task_id\",\"silent_minutes\":$silent,\"count\":$nudge_count}"
+      jq --arg t "$task_id" --argjson e "$now" --argjson c "$nudge_count" \
+        '.nudge_state[$t] = {last_emit:$e, count:$c}' "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
+    fi
+  done
+}
+
+# Quiet window-rollover trace — all modes, never stdout. PM's per-task cost_pct assumes monotonic
+# usage within one window; a sub-threshold reset mid-task silently breaks that (run 012: end_pct <
+# start_pct). Appends `usage_window_rolled` to events.json when resets_at advances while any task
+# is in_progress, so PM can null the affected cost instead of recording a bogus value.
+check_rollover() {
+  local plan_dir="$1" acct="$2"
+  [ -n "$acct" ] && [ -f "$USAGE_FILE" ] && [ -f "$plan_dir/events.json" ] || return 0
+  local win label pct resets prev active ts
+  active=$(jq -r '[.tasks[]? | select(.status=="in_progress")] | length' "$plan_dir/plan.json" 2>/dev/null || echo 0)
+  for win in five_hour seven_day; do
+    label=$([ "$win" = five_hour ] && echo 5h || echo 7d)
+    read -r pct resets < <(read_window "$acct" "$win")
+    [ "$resets" -gt 0 ] 2>/dev/null || continue
+    prev=$(jq -r ".rollover.${win} // 0" "$STATE_FILE" 2>/dev/null || echo 0)
+    if [ "$prev" -gt 0 ] 2>/dev/null && [ "$resets" -gt "$prev" ] 2>/dev/null && [ "$active" -gt 0 ] 2>/dev/null; then
+      ts=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+      jq --arg ts "$ts" --arg w "$label" --argjson o "$prev" --argjson n "$resets" \
+        '.events += [{timestamp:$ts, type:"usage_window_rolled", task_id:null, agent:"usage-monitor", message:("Usage window " + $w + " rolled over mid-execution (resets_at " + ($o|tostring) + " -> " + ($n|tostring) + ") — per-task cost_pct spanning this point is unreliable"), window:$w, old_resets_at:$o, new_resets_at:$n}]' \
+        "$plan_dir/events.json" > "$plan_dir/events.json.tmp" 2>/dev/null && mv "$plan_dir/events.json.tmp" "$plan_dir/events.json"
+      log "ROLLOVER: $label window resets_at $prev -> $resets (traced to events.json)"
+    fi
+    [ "$resets" != "$prev" ] && set_state rollover "$win" "$resets"
   done
 }
 
@@ -202,7 +274,7 @@ cmd_watch() {
   mode="${3:-pause}"
   STATE_FILE="$plan_dir/.usage-monitor-state.json"
   DEBUG_LOG="$plan_dir/.usage-monitor-debug.log"
-  [ -f "$STATE_FILE" ] || echo '{"five_hour":{"last_signal":null,"reset_latch":0},"seven_day":{"last_signal":null,"reset_latch":0},"silence_logged":{}}' > "$STATE_FILE"
+  [ -f "$STATE_FILE" ] || echo '{"five_hour":{"last_signal":null,"reset_latch":0},"seven_day":{"last_signal":null,"reset_latch":0},"silence_logged":{},"nudge_state":{},"rollover":{}}' > "$STATE_FILE"
   log "watch start acct=$acct mode=$mode"
   while true; do
     if [ "$mode" != "push-through" ] && [ -f "$USAGE_FILE" ] && [ -n "$acct" ]; then
@@ -213,6 +285,7 @@ cmd_watch() {
       check_window seven_day 7d "$p7" "$r7" "$CRIT_7D" "$SOFT_7D"
     fi
     check_silence "$plan_dir"
+    check_rollover "$plan_dir" "$acct"
     # 120s poll: the loop is silent on clean ticks, so this is churn/debug-log reduction, not
     # output-rate reduction. Usage % moves slowly and the >10-min silence threshold dominates
     # trace latency, so a 2-min cadence loses nothing actionable.

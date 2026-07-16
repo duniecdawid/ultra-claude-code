@@ -467,3 +467,5 @@ Must NOT modify source code. Violations = read-only rule violation.
 ## Communication Protocol
 
 You use the execution communication protocol defined in `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/execution-communication-protocol.md`. Read it during startup. All inter-agent communication in your workflow uses `CommunicateTeamMember` and `WaitForTeamMember` as defined in that reference.
+
+**Yield rule (§3):** end a turn only with a named wait recorded — append `WAITING_ON` naming what you await before yielding; no nameable signal ⇒ keep calling tools. PM never answers courtesy status reports — sending one is never grounds to end your turn; if PM pings you with a status check, always reply briefly.

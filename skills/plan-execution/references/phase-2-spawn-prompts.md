@@ -225,11 +225,14 @@ Example:)
   Monitor({ command: "bash \"$HOME/.claude/ultra/usage-monitor.sh\" watch \"$PLAN_DIR\" \"$ACCOUNT_KEY\" \"$USAGE_MODE\"",
             description: "Usage monitor for {PLAN_NAME}", persistent: true })
 It is silent on clean ticks and emits only actionable milestones:
-`CRITICAL` (stop in-flight), `USAGE-RESET` (restart). In push-through
-mode it suppresses usage emits entirely. It also quietly traces >10-min
-task silence straight into events.json (`silence_observed`) — never an
-emit, never your cue to act. Ignore any Monitor line that is not JSON
-with an `"alert"` field.
+`CRITICAL` (stop in-flight), `USAGE-RESET` (restart), and `NUDGE` (a
+task silent with no named wait and no repo activity — verify, then
+ping; all modes). In push-through mode it suppresses usage emits
+entirely (NUDGE still fires — liveness, not usage). It also quietly
+traces >10-min task silence (`silence_observed`) and mid-execution
+window rollovers (`usage_window_rolled`) straight into events.json —
+never an emit, never your cue to act. Ignore any Monitor line that is
+not JSON with an `"alert"` field.
 
 **You are event-driven.** You wake on your monitor's emits and on messages
 from Lead (status updates, completions with current_pct) and Executors.
@@ -258,10 +261,11 @@ for each active task when you wake to derive stage state:
 - `REVIEW_FAIL` / `TEST_FAIL` + `REREVIEW_REQUESTED` / `RETEST_REQUESTED` → retry_count++, reset timers, event
 See `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/execution-communication-protocol.md` §6.
 
-**What you send to Lead (actionable usage events only):**
+**What you send to Lead (actionable events only):**
 - `USAGE STOP [{window}]: {pct}% used. ...` — critical limit reached, stop in-flight work (pause mode only)
 - `USAGE RESET [{window}]: ...` — work may restart
-You do NOT forward soft-band, status, or stale-data messages — those are not Lead-actionable.
+- `NUDGE-ESCALATION task-{N}: ...` — only after you verified a NUDGE candidate, pinged the executor, and got no response (see your agent instructions)
+You do NOT forward soft-band, status, or stale-data messages — those are not Lead-actionable. NUDGE count:1 is yours to verify and ping, never forwarded.
 
 Follow the workflow in your team member instructions.
 ```

@@ -27,6 +27,8 @@ Role-specific reads (standards/architecture/product docs/testing docs) are NOT p
 
 Immediately after the startup read, arm the **one persistent inbox monitor** that will wake you for the rest of your life (protocol §3). Set `PROCESSED_LINES` to the current `signals.jsonl` line count, then arm `tail -n +$((PROCESSED_LINES+1)) -F` over `signals.jsonl` filtered to your role's signal alternation, with `persistent: true`. From then on every "wait" is just *yield your turn* — do NOT arm another monitor per wait. See protocol §3 for the exact command, per-role alternations, cursor handling, `TaskStop` teardown, and the Bash fallback. This replaces the old bounded-round waits entirely.
 
+**Yield rule (protocol §3 — the fleet-stop guard):** you may end a turn only with a named wait recorded — append `WAITING_ON` (or `BLOCKED_ON`) naming what you await as the last act before yielding. No nameable awaited signal ⇒ you are not waiting ⇒ keep calling tools. PM never answers courtesy status reports, so sending one is never grounds to end your turn; PM-initiated status checks are two-way — always reply, briefly.
+
 ## 3. Research — lazy-read, not startup-read
 
 `task.md`'s `**Research:**` section lists pointers to durable files under `documentation/technology/research/`. **Do NOT auto-read those files during startup.** You only know the paths at this point. Read the actual research file content on demand — when a question arises during planning, review, or testing that the gloss suggests the research answers. This keeps startup tokens bounded while making the research discoverable.
@@ -46,7 +48,7 @@ All inter-agent communication uses the unified execution communication protocol.
 
 - **`CommunicateTeamMember(to, message, signal?, content_file?)`** — send to one agent
 - **`CommunicateTeam(message, signal?, content_file?)`** — broadcast to all active teammates + Lead
-- **`WaitForTeamMember(signal, from?)`** — wait to receive a signal. SendMessage is the primary wake; the durable channel is your one persistent inbox monitor that follows signals.jsonl and wakes you on any relevant append. Waiting is just *yield your turn* — you arm no per-wait monitor (mechanics, per-role alternations, cursor, teardown, and Bash fallback in protocol §3 — never restate them, reference them)
+- **`WaitForTeamMember(signal, from?)`** — wait to receive a signal. SendMessage is the primary wake; the durable channel is your one persistent inbox monitor that follows signals.jsonl and wakes you on any relevant append. Waiting is just *yield your turn* — you arm no per-wait monitor, and per the §3 yield rule you append `WAITING_ON` naming the awaited signal before yielding (mechanics, per-role alternations, cursor, teardown, and Bash fallback in protocol §3 — never restate them, reference them)
 
 **FILE-UPDATED broadcasts** use `CommunicateTeam`:
 ```

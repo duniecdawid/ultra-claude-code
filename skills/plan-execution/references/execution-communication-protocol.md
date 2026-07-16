@@ -96,9 +96,21 @@ echo '{"ts":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'","task":"'"$TASK_ID"'","wait_for
 
 `TaskStop` your inbox monitor when you exit (after `SHUTDOWN`).
 
-### No automated stall detection — silence is traced, not escalated
+### The yield rule — never park without a named wait
 
-With a persistent inbox there is no per-agent timer, so a **counterparty that dies and never appends the signal you are blocked on** is not detected by you — and not by anyone else automatically either. There is deliberately **no automated stall alerting or escalation**: long tool calls look identical to real stalls, so alerting on silence produced noise no one could act on. The usage monitor (`scripts/usage-monitor.sh check_silence`, keyed off the latest signal ts per `in_progress` task) quietly appends a `silence_observed` event to `events.json` after >10 min of task silence — post-mortem visibility only, no message to anyone. A genuinely dead counterparty is resolved by Lead or the user noticing (dashboard, direct observation, a stuck pipeline) and re-spawning per Phase 4 failure handling. This tradeoff is accepted: **do not** add your own timeout loop to compensate — one persistent inbox per agent, no self-escalation.
+"Wait = yield your turn" is safe **only when something will wake you**. A real production fleet-stop (run 012, executor-7, twice) came from yielding without that guarantee: the agent sent a courtesy status message to PM, ended its turn believing it was waiting, and parked indefinitely — no inbound signal was pending, so its inbox never fired. The rule that closes this:
+
+**You may end a turn (outside task-complete/exit states) ONLY with a named wait recorded.** As the last act before yielding, append `WAITING_ON` (specific signal from a specific counterparty) or `BLOCKED_ON` (external condition — see §5) with a `note` naming what you await. If you cannot name an awaited signal, **you are not waiting — keep calling tools.** These are file-only appends (raw `echo >>`, exempt from the CommunicateTeamMember dual-write — nobody waits on them; they are state, not messages). Before a long quiet phase with no file writes (pure code reading/exploration), optionally append a one-line `PROGRESS` — it resets the silence clock, which keys off the `signals.jsonl` tail timestamp.
+
+**PM communication is two-way, but courtesy reports get no reply.** PM may ping any agent with a status check and you MUST reply to it (briefly is fine). You may message PM at any time. But PM does not answer courtesy status reports — sending one is never grounds to end your turn. A message you sent counts as a wait only if the counterparty is obligated to reply AND you recorded the `WAITING_ON`.
+
+### Detection ladder — script detects, PM verifies, Lead only on confirmed incidents
+
+Silence alone is never escalated: long tool calls look identical to real stalls, so alerting on raw silence produced noise no one could act on (run 012: ~15 STALL alerts, nearly all false positives). The usage monitor (`scripts/usage-monitor.sh check_silence`) quietly appends a `silence_observed` event to `events.json` after >10 min of task silence — post-mortem trace, no message to anyone.
+
+What IS escalated is a **protocol violation**: an agent that is neither working nor waiting on something nameable. The monitor emits a `NUDGE` candidate to PM only on the full conjunction — task silent >10 min ∧ latest signal is not `WAITING_ON`/`BLOCKED_ON` ∧ no repo file activity in 10 min. **PM verifies before acting** (re-reads the signals tail, checks its own message history, optionally pane liveness), then pings the executor with a status check — the ping itself cures the wrongly-parked-but-alive case, since it wakes the agent to resume or record its wait. Only a verified non-response escalates to Lead. Note the self-expiry property: once the awaited signal is appended after your `WAITING_ON`, continued silence becomes suspicious again — this also backstops a dropped inbox wake.
+
+**Do not** add your own timeout loop to compensate — one persistent inbox per agent, no self-escalation. The yield rule plus the PM-verified nudge is the liveness net.
 
 *Fallback — `Monitor` not in your tool set.* A persistent `tail -F` cannot run as a background `Bash` job (it never exits, so it never notifies). Degrade to **bounded background rounds that do exit**, re-armed per round (the only place re-arming reappears):
 
@@ -146,7 +158,7 @@ On re-review/re-test cycles, overwrite the feedback file with the new cycle's co
 
 ## 5. Signal Vocabulary
 
-20 signal types. Agents use these as the `signal` parameter in `CommunicateTeamMember` and `CommunicateTeam` calls, and as the `signal` parameter in `WaitForTeamMember`.
+23 signal types. Agents use these as the `signal` parameter in `CommunicateTeamMember` and `CommunicateTeam` calls, and as the `signal` parameter in `WaitForTeamMember` — except the three state-only signals (`WAITING_ON`, `BLOCKED_ON`, `PROGRESS`), which are raw file appends per §3's yield rule: nobody waits on them, so they skip the dual-write.
 
 | Signal | Writer | Purpose |
 |--------|--------|---------|
@@ -170,6 +182,11 @@ On re-review/re-test cycles, overwrite the feedback file with the new cycle's co
 | `SHUTDOWN` | Lead | Team must exit |
 | `PAUSE` | Lead | Usage limit control — go idle |
 | `RESUME` | Lead | Usage limit control — continue work |
+| `WAITING_ON` | any | Parking (§3 yield rule): `note` names the awaited signal + counterparty, e.g. `"REVIEW_PASS from reviewer-7"`. File-only append |
+| `BLOCKED_ON` | any | Blocked on an external condition, not a specific signal (another task's file hold, collision arbitration): `note` names the condition and the unblocking event. File-only append |
+| `PROGRESS` | any | Optional one-line heartbeat before an anticipated long quiet phase with no file writes (pure exploration/reading); resets the silence clock. File-only append |
+
+**impl.md audit note:** `CODE_COMPLETE` means *source is done*, NOT *impl.md is on disk* — the gap between the signal and the report write is deliberate (tester cold-start overlap). The report-on-disk flag is the `FILE-UPDATED task-N/impl.md` broadcast; never audit a task for a missing impl.md before it.
 
 ## 6. Crash Recovery
 
@@ -188,3 +205,4 @@ On re-spawn, agents read `signals.jsonl` during startup to infer pipeline state,
 | `EXIT_REQUESTED`, missing `*_READY_TO_EXIT` | Exit confirmation interrupted |
 | `SHUTDOWN` | Team should have exited |
 | `PAUSE`, no subsequent `RESUME` | Team paused |
+| `WAITING_ON`/`BLOCKED_ON` as latest entry | Agent was parked awaiting the `note`'s target — verify whether it arrived after the append (or the condition cleared) before re-parking; if it did, act on it instead of waiting again |
