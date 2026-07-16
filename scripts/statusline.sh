@@ -52,6 +52,7 @@ fi
 # --- Persist usage data keyed by account_id ---
 # Only write on new API responses — stale refresh ticks would overwrite fresh data from other sessions.
 usage_file="$HOME/.claude/ultra/usage-status.json"
+usage_log="$HOME/.claude/ultra/usage-status.log"
 if [ -n "$session_id" ] && [ -n "$account_id" ] && [ "$is_new_response" = true ]; then
   snippet=$(echo "$input" | jq -c \
     --arg account_id "$account_id" \
@@ -77,7 +78,6 @@ if [ -n "$session_id" ] && [ -n "$account_id" ] && [ "$is_new_response" = true ]
       updated_at: (now | todate)
     }' 2>/dev/null)
   if [ -n "$snippet" ] && [ "$snippet" != "null" ]; then
-    usage_log="$HOME/.claude/ultra/usage-status.log"
     printf '[%s] WRITE session=%s account=%s 5h=%s 7d=%s\n' \
       "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
       "$session_id" \
@@ -105,7 +105,6 @@ if [ -n "$session_id" ] && [ -n "$account_id" ] && [ "$is_new_response" = true ]
     ) 9>"${usage_file}.lock"
   fi
 elif [ -n "$session_id" ] && [ -n "$account_id" ] && [ "$is_new_response" = false ]; then
-  usage_log="$HOME/.claude/ultra/usage-status.log"
   rl_5h_skip=$(echo "$input" | jq -r '.rate_limits.five_hour.used_percentage // "null"' 2>/dev/null)
   rl_7d_skip=$(echo "$input" | jq -r '.rate_limits.seven_day.used_percentage // "null"' 2>/dev/null)
   printf '[%s] SKIP  session=%s account=%s 5h=%s 7d=%s\n' \
@@ -115,6 +114,14 @@ elif [ -n "$session_id" ] && [ -n "$account_id" ] && [ "$is_new_response" = fals
     "$rl_5h_skip" \
     "$rl_7d_skip" \
     >> "$usage_log" 2>/dev/null
+fi
+
+# --- Self-rotate the debug log: cap at ~1MB, keep the recent tail ---
+if [ -f "$usage_log" ] && [ "$(stat -c %s "$usage_log" 2>/dev/null || echo 0)" -gt 1048576 ]; then
+  (
+    flock -n 9 || exit 0
+    tail -n 2000 "$usage_log" > "${usage_log}.tmp" 2>/dev/null && mv "${usage_log}.tmp" "$usage_log"
+  ) 9>"${usage_log}.lock"
 fi
 
 # --- Extract display values from input ---
