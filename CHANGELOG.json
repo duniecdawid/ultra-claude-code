@@ -1,5 +1,12 @@
 [
   {
+    "seq": 197,
+    "version": "2026.07.17-2",
+    "date": "2026-07-17",
+    "summary": "feat(docs): favicon for the docs site — purple rounded-square U mark in the site primary color (#584cf5, converted from the theme oklch primary). SVG favicon with 32px PNG and 180px apple-touch-icon fallbacks, linked from partials/head.ejs. Docs site only — no project-level structure change.",
+    "migration": null
+  },
+  {
     "seq": 196,
     "version": "2026.07.17-1",
     "date": "2026-07-17",
