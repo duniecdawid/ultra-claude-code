@@ -16,6 +16,12 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/styles.css">
-  <script defer src="https://stats.ultra-claude.dev/stats" data-website-id="e687a456-9aa7-4517-9ebc-9ad23a8b575f" data-domains="ultra-claude.dev"></script>
+  <script>
+    function umamiBeforeSend(type, payload) {
+      try { if (localStorage.getItem('umami.self') === '1') payload.tag = 'self'; } catch (e) {}
+      return payload;
+    }
+  </script>
+  <script defer src="https://stats.ultra-claude.dev/stats" data-website-id="e687a456-9aa7-4517-9ebc-9ad23a8b575f" data-domains="ultra-claude.dev" data-before-send="umamiBeforeSend"></script>
 </head>
 <body>
