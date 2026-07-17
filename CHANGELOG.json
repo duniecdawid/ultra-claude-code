@@ -1,5 +1,12 @@
 [
   {
+    "seq": 196,
+    "version": "2026.07.17-1",
+    "date": "2026-07-17",
+    "summary": "feat(docs): landing page rewrite per marketing content plan (marketing_campaign/content-plan.md). New structure: outcome-first hero (\"Give Claude Code an engineering process.\") with whole-process-harness subhead and trust strip; new problem-narrative section (week 1 / week 6 / the fix); new plain-language 4-step How It Works centerpiece with demoted command chips (migrate, feature-mode, plan-execution, doc-code-verification-mode); new 3-column differentiation section (vs raw Claude Code / spec-format tools / multi-agent frameworks); feature grid reworked to 9 outcome-led cards adding backlog management, Claude Code limits monitoring, and debugging mode; getting-started command strip linking the dedicated /getting-started page; 6-question FAQ using existing details/summary component; closing CTA. Honest-costs section from the content plan deliberately dropped. Append-only CSS additions (trust-strip, landing-section, problem-beats, compare-grid, phase-cmd, cta-final) reusing existing design tokens; landing SEO title/description updated in server.js. Docs site only — no project-level structure change. Added a dedicated Ultra Claude Dashboard section (dark-themed, using the dashboard web app's own oklch dark palette — the yang to the docs site's light yin) positioned between the feature grid and the getting-started strip: org-collaboration framing, three highlight cards (live plan execution, team-readable docs with snapshots/diffs, workspaces with read-only stakeholder roles), CTA to dashboard.ultra-claude.dev, and the ultraclaude-agent install note.",
+    "migration": null
+  },
+  {
     "seq": 195,
     "version": "2026.07.16-5",
     "date": "2026-07-16",

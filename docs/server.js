@@ -26,8 +26,8 @@ const pages = {
 
 app.get('/', (req, res) => {
   res.render('index', {
-    title: 'Ultra Claude',
-    description: 'Spec-driven development for Claude Code. Documentation governs code growth. Agent teams coordinate execution.',
+    title: 'Ultra Claude — Spec-driven development and agent teams for Claude Code',
+    description: 'Ultra Claude turns Claude Code from a fast prototyper into a governed engineering team — documentation is the source of truth, and agent teams build, review, and test against it.',
     page: 'home'
   });
 });

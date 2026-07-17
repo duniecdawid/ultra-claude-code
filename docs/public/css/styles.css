@@ -676,8 +676,192 @@ tr:hover td { background: var(--muted); }
   text-decoration: underline;
 }
 
+/* ── Landing: trust strip (under hero CTAs) ── */
+.trust-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+}
+
+.trust-dot { color: var(--border); }
+
+/* ── Landing: stacked sections ── */
+.landing-section {
+  width: 100%;
+  max-width: 56rem;
+  margin: 6rem auto 0;
+}
+
+.landing-section > h2 {
+  font-size: 1.625rem;
+  letter-spacing: -0.025em;
+  margin-bottom: 1.5rem;
+}
+
+.landing-section .section-label { margin-bottom: 0.5rem; }
+
+.section-lede {
+  font-size: 1rem;
+  color: var(--muted-foreground);
+  margin-top: -0.75rem;
+  margin-bottom: 1.5rem;
+  max-width: 40rem;
+}
+
+/* ── Landing: problem beats ── */
+.problem-beats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.problem-beat {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+}
+
+.problem-beat-num {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--primary);
+  margin-bottom: 0.625rem;
+}
+
+.problem-beat p {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ── Landing: how-it-works command chip ── */
+.phase-cmd {
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+  margin-bottom: 0 !important;
+}
+
+/* ── Landing: comparison grid ── */
+.compare-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.compare-grid .card p { font-size: 0.875rem; line-height: 1.6; }
+
+/* ── Landing: feature grid inside sections ── */
+.landing-section .landing-features {
+  margin-top: 0;
+  padding-bottom: 0;
+  max-width: none;
+}
+
+/* ── Landing: getting-started strip CTA row ── */
+.strip-cta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 1.5rem;
+}
+
+/* ── Landing: dashboard section — the dashboard's own dark theme (yang to this site's yin) ── */
+.dashboard-section {
+  background: oklch(0.145 0 0);
+  color: oklch(0.985 0 0);
+  border: 1px solid oklch(1 0 0 / 10%);
+  border-radius: var(--radius-lg);
+  padding: 3rem;
+}
+
+.dashboard-section .section-label { color: oklch(0.708 0 0); }
+.dashboard-section > h2 { color: oklch(0.985 0 0); }
+.dashboard-section .section-lede { color: oklch(0.708 0 0); }
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.dashboard-card {
+  background: oklch(0.205 0 0);
+  border: 1px solid oklch(1 0 0 / 10%);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+}
+
+.dashboard-card h3 {
+  font-size: 0.875rem;
+  color: oklch(0.985 0 0);
+  margin-bottom: 0.375rem;
+}
+
+.dashboard-card p {
+  font-size: 0.8125rem;
+  color: oklch(0.708 0 0);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.dashboard-cta {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  margin-top: 2rem;
+}
+
+.btn-dashboard {
+  background: oklch(0.922 0 0);
+  color: oklch(0.205 0 0);
+}
+
+.dashboard-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  color: oklch(0.708 0 0);
+}
+
+.dashboard-live .live-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: oklch(0.72 0.19 142);
+  box-shadow: 0 0 0 3px oklch(0.72 0.19 142 / 20%);
+}
+
+.dashboard-note {
+  font-size: 0.8125rem;
+  color: oklch(0.708 0 0);
+  margin-top: 1.25rem;
+}
+
+.dashboard-note code {
+  background: oklch(0.269 0 0);
+  color: oklch(0.985 0 0);
+}
+
 /* ── Responsive ── */
 @media (max-width: 768px) {
+  .problem-beats { grid-template-columns: 1fr; }
+  .compare-grid { grid-template-columns: 1fr; }
+  .landing-section { margin-top: 4rem; }
+  .dashboard-grid { grid-template-columns: 1fr; }
+  .dashboard-section { padding: 2rem 1.5rem; }
+
   .landing-hero h1 { font-size: 1.75rem; }
   .landing-cta { flex-direction: column; }
   .card-grid { grid-template-columns: 1fr; }

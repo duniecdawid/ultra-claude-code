@@ -14,66 +14,263 @@
   <!-- Hero -->
   <main class="landing-main">
     <div class="landing-hero">
-      <h1>Spec-driven development for Claude Code</h1>
-      <p>Claude Code is powerful for prototyping. Ultra Claude makes it powerful for production &mdash; a specification layer where documentation governs code growth and agent teams coordinate execution.</p>
+      <h1>Give Claude Code an engineering process.</h1>
+      <p>An open-source harness that builds the entire product-building process into Claude Code &mdash; researched plans, enforced standards, agent-reviewed and tested code, and documentation that stays true to the codebase. What ships is engineered, not just generated.</p>
       <div class="landing-cta">
-        <a href="/getting-started" class="btn btn-primary btn-lg">Get Started &rarr;</a>
-        <a href="/docs/setup" class="btn btn-outline btn-lg">Documentation</a>
+        <a href="/getting-started" class="btn btn-primary btn-lg">Get started &rarr;</a>
+        <a href="#how-it-works" class="btn btn-outline btn-lg">See how it works</a>
+      </div>
+      <div class="trust-strip">
+        <span>Open source</span>
+        <span class="trust-dot">&middot;</span>
+        <span>Free</span>
+        <span class="trust-dot">&middot;</span>
+        <span>No extra services, no account &mdash; just your Claude Code</span>
       </div>
     </div>
+
+    <!-- The problem -->
+    <section class="landing-section">
+      <div class="section-label">The problem</div>
+      <h2>Fast code is easy. A maintainable product is not.</h2>
+      <div class="problem-beats">
+        <div class="problem-beat">
+          <div class="problem-beat-num">Week 1</div>
+          <p>Claude Code is astonishing. Features appear in hours. You ship faster than you ever have.</p>
+        </div>
+        <div class="problem-beat">
+          <div class="problem-beat-num">Week 6</div>
+          <p>Decisions nobody wrote down. Inconsistent patterns. Architecture that exists only in old chat sessions. Every new feature fights the last one.</p>
+        </div>
+        <div class="problem-beat">
+          <div class="problem-beat-num">The fix</div>
+          <p>Not a better prompt &mdash; a process. One the AI actually follows: plan, build, review, test, document. Every time.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- How it works -->
+    <section class="landing-section" id="how-it-works">
+      <div class="section-label">How it works</div>
+      <h2>From idea to reviewed, tested, documented code</h2>
+      <p class="section-lede">Four steps. Each is one command in Claude Code &mdash; you approve the decisions, the agents do the work.</p>
+
+      <div class="phase">
+        <div class="phase-number">1</div>
+        <h2>Give your project a single source of truth</h2>
+        <p>One command reads your codebase and builds an organized documentation library from it &mdash; architecture, coding standards, requirements, and research, each in its designated place. This is much more than a notes file: it's the structured knowledge that every later step reads, builds against, and keeps up to date.</p>
+        <p class="phase-cmd">One command: <code>/uc:migrate</code> &nbsp;&middot;&nbsp; <a href="/docs/setup">Read more &rarr;</a></p>
+      </div>
+
+      <div class="phase">
+        <div class="phase-number">2</div>
+        <h2>Plan like a tech lead</h2>
+        <p>Describe what you want to build. Ultra Claude questions the scope, researches your existing code, and turns the idea into a step-by-step plan &mdash; which you review and approve before anything gets built.</p>
+        <p class="phase-cmd">One command: <code>/uc:feature-mode</code> &nbsp;&middot;&nbsp; <a href="/docs/feature-planning">Read more &rarr;</a></p>
+      </div>
+
+      <div class="phase">
+        <div class="phase-number">3</div>
+        <h2>Build with a team, not a single bot</h2>
+        <p>Every task in the plan gets its own small team: one agent writes the code, a second reviews it against your standards, and a third tests that it actually works &mdash; opening the app in a real browser for UI work. Nothing counts as done until all three agree.</p>
+        <p class="phase-cmd">One command: <code>/uc:plan-execution</code> &nbsp;&middot;&nbsp; <a href="/docs/plan-execution">Read more &rarr;</a></p>
+      </div>
+
+      <div class="phase">
+        <div class="phase-number">4</div>
+        <h2>Keep docs and code aligned over time</h2>
+        <p>Whenever you like, Ultra Claude compares what the documentation says to what the code actually does and flags anything that no longer matches. The project stays understandable &mdash; to the agents and to you.</p>
+        <p class="phase-cmd">One command: <code>/uc:doc-code-verification-mode</code> &nbsp;&middot;&nbsp; <a href="/docs/verification">Read more &rarr;</a></p>
+      </div>
+    </section>
+
+    <!-- What makes it different -->
+    <section class="landing-section">
+      <div class="section-label">What makes it different</div>
+      <h2>Not a spec format. Not a framework. A process.</h2>
+      <div class="compare-grid">
+        <div class="card">
+          <h3>vs. raw Claude Code</h3>
+          <p>Same tool underneath. Ultra Claude adds governance on top: review gates before code lands, standards enforced with citations, and an organized documentation library in your repo instead of knowledge scattered across chat history.</p>
+        </div>
+        <div class="card">
+          <h3>vs. spec-format tools</h3>
+          <p>Specs here aren't input templates you hope the model respects. They're enforced during execution and audited afterward. Define &rarr; enforce &rarr; verify &mdash; the loop closes.</p>
+        </div>
+        <div class="card">
+          <h3>vs. multi-agent frameworks</h3>
+          <p>No new runtime, no orchestration server, no SDK. It's skills and agents inside the Claude Code you already run. Delete it and your repo still works.</p>
+        </div>
+      </div>
+    </section>
 
     <!-- Features -->
-    <div class="landing-features">
-      <div class="landing-feature">
-        <div class="landing-feature-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+    <section class="landing-section">
+      <div class="section-label">What you get</div>
+      <h2>The full lifecycle, covered</h2>
+      <div class="landing-features">
+        <div class="landing-feature">
+          <div class="landing-feature-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <h3>Agent teams per task</h3>
+          <p>Every task is written, reviewed, and tested by separate agents before it lands. The reviewer cites your standards; the tester runs the real thing.</p>
         </div>
-        <h3>Spec-Driven Building</h3>
-        <p>Documentation governs code growth. Architecture docs exist before code is written. When code diverges from specs, you fix the spec first.</p>
-      </div>
 
-      <div class="landing-feature">
-        <div class="landing-feature-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <div class="landing-feature">
+          <div class="landing-feature-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          </div>
+          <h3>Docs govern code</h3>
+          <p>Architecture and requirements exist before code is written, and every plan is checked against them. When code and spec disagree, you fix the spec first &mdash; deliberately.</p>
         </div>
-        <h3>Agent Teams</h3>
-        <p>Each task gets a dedicated Executor, Reviewer, and Tester. They coordinate autonomously &mdash; writing code, enforcing standards, and validating against product docs.</p>
-      </div>
 
-      <div class="landing-feature">
-        <div class="landing-feature-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        <div class="landing-feature">
+          <div class="landing-feature-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
+          <h3>Standards that actually hold</h3>
+          <p>Define coding standards once. The reviewer enforces them on every task with specific citations, and verification audits that they still hold months later.</p>
         </div>
-        <h3>Cache-First Knowledge Base</h3>
-        <p>External library docs, patterns, and market research are fetched once and committed as first-class project documentation under <code>documentation/technology/research/</code>. The <code>/uc:research</code> skill is cache-first: repeated lookups across plans hit the cache instantly, and stale entries auto-refresh via a stateless researcher subagent.</p>
-      </div>
 
-      <div class="landing-feature">
-        <div class="landing-feature-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        <div class="landing-feature">
+          <div class="landing-feature-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+          </div>
+          <h3>Research once, reuse forever</h3>
+          <p>Library docs and patterns are fetched once and committed as project documentation. Repeat lookups hit the cache instantly &mdash; a fraction of the tokens of raw web search.</p>
         </div>
-        <h3>Documentation Structure</h3>
-        <p>A canonical layout for all project documentation &mdash; architecture, standards, requirements, research, personas. Every document has a place, and the system enforces it.</p>
-      </div>
 
-      <div class="landing-feature">
-        <div class="landing-feature-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        <div class="landing-feature">
+          <div class="landing-feature-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+          </div>
+          <h3>Survives sessions</h3>
+          <p>Checkpoints save execution progress automatically. A session can die mid-plan and resume where it left off &mdash; completed work is never re-done or re-paid for.</p>
         </div>
-        <h3>Standards Enforcement</h3>
-        <p>Define coding standards once. The Reviewer enforces them on every task with specific citations. Verification mode audits that they hold over time.</p>
-      </div>
 
-      <div class="landing-feature">
-        <div class="landing-feature-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <div class="landing-feature">
+          <div class="landing-feature-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+          </div>
+          <h3>Roadmaps for whole products</h3>
+          <p>Too big for one plan? Roadmapping decomposes a product into a sequenced series of plans with dependency ordering &mdash; each one feeds straight into feature planning.</p>
         </div>
-        <h3>Drift Detection</h3>
-        <p>Documentation and code drift apart over time. Verification mode catches it &mdash; comparing doc claims against code reality with severity-classified discrepancies.</p>
+
+        <div class="landing-feature">
+          <div class="landing-feature-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          </div>
+          <h3>Backlog management</h3>
+          <p>Bugs, open questions, ideas, and tech debt are tracked in the repo alongside the code. Agents log what they find; nothing gets lost between sessions.</p>
+        </div>
+
+        <div class="landing-feature">
+          <div class="landing-feature-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </div>
+          <h3>Knows your Claude Code limits</h3>
+          <p>Live usage monitoring, per-task budget tracking, and execution that paces itself around rate-limit windows.</p>
+        </div>
+
+        <div class="landing-feature">
+          <div class="landing-feature-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </div>
+          <h3>Debugging mode</h3>
+          <p>Hypothesis-driven bug investigation: evidence gathered in parallel, the bug reproduced before it's fixed, and the fix validated by a dedicated tester.</p>
+        </div>
       </div>
-    </div>
+    </section>
+
+    <!-- Getting started strip -->
+    <section class="landing-section">
+      <div class="section-label">Getting started</div>
+      <h2>Ready to build like a team?</h2>
+      <p class="section-lede">10 minutes to your first governed feature. Two commands to install, one to set up &mdash; everything else is a conversation.</p>
+      <pre><code><span style="color: var(--muted-foreground)"># In any Claude Code session:</span>
+/plugin marketplace add duniecdawid/ultra-claude-code
+/plugin install uc@ultra-claude
+
+<span style="color: var(--muted-foreground)"># Once per machine:</span>
+/uc:setup
+
+<span style="color: var(--muted-foreground)"># Once per project:</span>
+/uc:migrate</code></pre>
+      <div class="strip-cta">
+        <a href="/getting-started" class="btn btn-primary btn-lg">Get started &rarr;</a>
+        <a href="/docs/setup" class="btn btn-outline btn-lg">Docs</a>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="landing-section">
+      <div class="section-label">FAQ</div>
+      <h2>The questions everyone asks</h2>
+
+      <details>
+        <summary>Is this a framework?</summary>
+        <div class="details-content">
+          <p>No. Ultra Claude is a set of skills and agents that run inside Claude Code &mdash; no runtime, no server, no SDK. Uninstall it and your repo still works; the documentation it wrote stays useful on its own.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>Does it work on existing codebases?</summary>
+        <div class="details-content">
+          <p>Yes. Initialization detects existing projects, reads the code, and derives the architecture docs and coding standards from what's already there &mdash; you review and correct them, then everything builds on that.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>What does it cost?</summary>
+        <div class="details-content">
+          <p>Ultra Claude is free and open source. You pay only your normal Claude usage &mdash; no account, no subscription, no separate billing.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>Do I need tmux?</summary>
+        <div class="details-content">
+          <p>No &mdash; it's optional. With tmux, agent teams appear in split panes so you can watch them work; without it, everything still runs the same way.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>How is this different from just writing a CLAUDE.md?</summary>
+        <div class="details-content">
+          <p>A CLAUDE.md is a page of advice the model may or may not follow. Ultra Claude is an enforced lifecycle: plans are challenged before building, code is reviewed and tested against your standards on every task, and the docs are audited against the code afterward.</p>
+        </div>
+      </details>
+    </section>
+
+    <!-- Dashboard (dark — the dashboard's own theme) -->
+    <section class="landing-section dashboard-section">
+      <div class="section-label">Take it further</div>
+      <h2>Make Ultra a collaboration platform for your organization</h2>
+      <p class="section-lede">The Ultra Claude Dashboard is the dark counterpart to your local setup: a live, shared view of every Ultra Claude project &mdash; documentation, plans, backlog, and execution history &mdash; synced from your machine in real time. Anyone on your team follows along from a browser; no dev environment needed.</p>
+      <div class="dashboard-grid">
+        <div class="dashboard-card">
+          <h3>Watch plans execute, live</h3>
+          <p>Plans appear on the board while they're still being planned and update as agent teams work through tasks &mdash; Kanban boards, timelines, and execution status in real time.</p>
+        </div>
+        <div class="dashboard-card">
+          <h3>Docs your whole team can read</h3>
+          <p>Rendered documentation with comments on any heading, automatic snapshots on every commit, and side-by-side diffs between any two points in time.</p>
+        </div>
+        <div class="dashboard-card">
+          <h3>Workspaces for the whole org</h3>
+          <p>Invite anyone to the workspace &mdash; PMs and stakeholders finally see the docs, plans, and backlog that used to be buried in developers' repos. No CLI, no dev environment.</p>
+        </div>
+      </div>
+      <div class="dashboard-cta">
+        <a href="https://dashboard.ultra-claude.dev" class="btn btn-lg btn-dashboard">Open the dashboard &rarr;</a>
+        <span class="dashboard-live"><span class="live-dot"></span>Changes appear within seconds of saving locally</span>
+      </div>
+      <p class="dashboard-note">One package: <code>npm i -g ultraclaude-agent</code> &mdash; then <code>ultraclaude-agent setup</code> connects your projects.</p>
+    </section>
+
   </main>
-
 
 </div>
 
