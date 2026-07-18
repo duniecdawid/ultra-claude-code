@@ -1,5 +1,12 @@
 [
   {
+    "seq": 198,
+    "version": "2026.07.18-1",
+    "date": "2026-07-18",
+    "summary": "style(docs): de-AI pass on landing page copy via humanize review. Em-dashes reduced from 23 to 1 (kept only in the problem-section closer), replaced with colons before lists, periods between clauses, commas for light parentheticals, and parentheses for the dashboard lede list. Hero: builds-the-entire-product-building-process wordiness fixed to a-full-engineering-process (deliberate H1 echo) and the not-just-generated hedge tightened to not-generated. Deduped the framework FAQ answer that near-verbatim repeated the vs-multi-agent-frameworks comparison card. Minor wording: designated-place to own-place, re-done-or-re-paid-for to redone-or-paid-for-twice, dropped a redundant actually. Docs site only — no project-level structure change.",
+    "migration": null
+  },
+  {
     "seq": 197,
     "version": "2026.07.17-2",
     "date": "2026-07-17",
