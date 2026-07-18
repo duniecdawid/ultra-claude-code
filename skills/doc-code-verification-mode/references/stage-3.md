@@ -18,7 +18,7 @@ Do not auto-resolve ambiguous discrepancies. When it's unclear which source of t
 
 ## Stage Transition
 
-When all findings have a decision (or have been explicitly skipped), and the user picks "Proceed to plan" via the base exit gate, announce:
+When all findings have a decision (or have been explicitly skipped), and the user says an explicit proceed phrase (base Exit Protocol), announce:
 
 > **▶ PROCEED TO STAGE 4: WRITE**
 

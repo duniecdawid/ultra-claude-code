@@ -14,7 +14,7 @@ If you find yourself wanting more structure here in practice, that's a signal to
 
 ## Stage Transition
 
-When the discussion converges and the user picks "Proceed to plan" via the base exit gate, announce:
+When the discussion converges and the user says an explicit proceed phrase (base Exit Protocol), announce:
 
 > **▶ PROCEED TO STAGE 4: WRITE**
 

@@ -10,7 +10,7 @@ Before beginning any Stage 4 work, verify you actually completed the prior stage
 
 - **Stage 1 happened:** You asked the user questions via AskUserQuestion and received answers. (If you cannot point to at least one AskUserQuestion call and response in this conversation, Stage 1 was skipped.)
 - **Stage 2 happened:** You spawned research agents or surveyors and synthesized their results. (If there are no agent results in context, Stage 2 was skipped.)
-- **Stage 3 happened:** You presented your synthesis, the user engaged in discussion, and you used the Stage 3 exit gate (AskUserQuestion with Proceed/Keep discussing/Abandon). (If there was no exit gate interaction, Stage 3 was skipped.)
+- **Stage 3 happened:** You presented your synthesis (including the Proposed task breakdown), the user engaged in discussion, and the user explicitly said a proceed phrase ("proceed to plan" or equivalent) per the Stage 3 Exit Protocol. (If the user never explicitly said to proceed, Stage 3 was skipped or is still open.)
 
 This check exists because the most common failure mode is jumping from a detailed user request straight to writing a plan. A detailed request makes Stages 1-3 faster, not unnecessary — fast research still catches things the user missed, and fast discussion still validates your approach.
 

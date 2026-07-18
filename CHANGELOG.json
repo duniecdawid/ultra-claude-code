@@ -1,5 +1,12 @@
 [
   {
+    "seq": 200,
+    "version": "2026.07.18-3",
+    "date": "2026-07-18",
+    "summary": "feat(planning): conversational discussion exit — footer instead of modal gate. Stage 3 no longer polls with the AskUserQuestion exit gate after each exchange; every discussion response now ends with a fixed one-line footer (say proceed-to-plan to move on, or keep discussing; abandon cancels) and the stage exits only on an explicit user phrase — ambiguous agreement (sounds good / ok) stays conversational, mirroring critical-brainstorm rule 2. Convergence is noted in prose, never via an are-we-done modal; AskUserQuestion remains for genuine decisions (RFC alternatives, per-finding verdicts in doc-code-verification). Stage 4 Stage Entry Check now verifies an explicit proceed phrase instead of the removed modal. Mode stage-3 extensions (feature/debug/doc-code-verification) reworded to the base Exit Protocol; critical-brainstorm gains its own exit footer hard rule; discovery-mode audited — linear pipeline, no polling, unchanged. Docs site: feature-planning Discuss-stage copy updated. No project-level structure change.",
+    "migration": null
+  },
+  {
     "seq": 199,
     "version": "2026.07.18-2",
     "date": "2026-07-18",

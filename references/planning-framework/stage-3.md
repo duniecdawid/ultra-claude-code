@@ -14,13 +14,21 @@ Before presenting any synthesis, as the first procedural action on entering this
 
 This and the Abandon cancel below are the only writes permitted in Stage 3 — discussion content stays in conversation context (see `framework.md` Constraints).
 
+## The Discussion Footer — every response ends with it
+
+End **every** Stage 3 discussion response with this single line (verbatim, after your content):
+
+> — Ready? Say **"proceed to plan"** to move on, or just keep discussing. ("abandon" cancels this plan.)
+
+The footer is the exit affordance. Because it is always present, you never need to ask whether the discussion is over — the user always knows how to proceed and can simply converse.
+
 ## Rules
 
-- No files written, except the on-entry `stage` update above and the Exit Gate "Abandon" cancel below.
+- No files written, except the on-entry `stage` update above and the Exit Protocol "Abandon" cancel below.
 - You MUST present your own perspective — not just ask questions.
 - The opening synthesis MUST include a **Proposed task breakdown** (see below).
 - Goal is convergence toward an approach.
-- Exit ONLY via the explicit AskUserQuestion exit gate (see below).
+- Exit ONLY on an explicit user exit phrase (see Exit Protocol below). Never poll for the end of the discussion with AskUserQuestion.
 
 ## Proposed Task Breakdown — Mandatory Synthesis Element
 
@@ -39,7 +47,7 @@ Adapted from the Critical Brainstorm skill and tuned for planning context:
 - **Every response must advance the discussion.** Raise a new concern, deepen an existing one, propose an alternative, or ask a pointed question. Never just summarize or agree. If you have nothing new to add, it's time to exit.
 - **Present your own perspective — don't just ask questions.** The user wants a dialogue with a senior technical partner, not an interviewer collecting requirements.
 - **Task count is a cost decision.** Every task spins up a full Executor + Reviewer + Tester team. Challenge proposed splits the same way you challenge scope — a split that buys no parallelism or independence is pure overhead (see `task-sizing.md`).
-- **Goal is convergence toward an approach.** This is not open-ended brainstorming. Each exchange should narrow the space of possibilities. When you and the user agree on the shape of the solution, prompt the exit gate.
+- **Goal is convergence toward an approach.** This is not open-ended brainstorming. Each exchange should narrow the space of possibilities. When you and the user agree on the shape of the solution, note the convergence in prose — the footer carries the exit affordance.
 
 ## RFC for Architectural Challenges
 
@@ -53,17 +61,18 @@ When the discussion reveals an architectural challenge — multiple valid approa
 
 The RFC stays on disk as a decision record. The plan then references it rather than re-explaining the architectural choice.
 
-## Exit Gate
+## Exit Protocol
 
-When the discussion reaches convergence, offer the user a choice via AskUserQuestion:
+The user exits the discussion, not you. There is no exit modal:
 
-- **"Proceed to plan"** — moves to Stage 4: Write
-- **"Keep discussing"** — continues Stage 3
-- **"Abandon"** — cancels the planning session (see below), then exits the planning mode entirely
+- **Exit triggers — explicit phrases only.** "proceed" / "proceed to plan" / "let's write the plan" → move to Stage 4: Write. "abandon" → the Abandon → Cancel flow below, then exit the planning mode entirely.
+- **Ambiguous agreement is NOT an exit signal.** "sounds good", "makes sense", "ok" are conversational — respond to them and keep discussing. Only a clear, explicit exit phrase moves the stage.
+- **Never ask "are we done?"** — no AskUserQuestion polling for the end of the discussion. When you believe the discussion has converged, say so in prose ("I think we've converged — say proceed when you're ready") and let the footer carry the affordance.
+- **AskUserQuestion remains available for genuine decisions** mid-discussion — choosing between RFC alternatives, resolving a real fork in the approach. Questions with real options, never exit polling.
 
 ### Abandon → Cancel
 
-When the user selects "Abandon", do NOT delete the skeleton. Cancel it so it stays visible as a tombstone and its number stays reserved:
+When the user says "abandon", do NOT delete the skeleton. Cancel it so it stays visible as a tombstone and its number stays reserved:
 
 1. Update `plan.json`: set `"status"` → `"cancelled"`. Leave `"stage"` as-is (it records how far planning got).
 2. Update the README `Status:` line → `Cancelled`.

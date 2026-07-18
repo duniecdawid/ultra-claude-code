@@ -24,7 +24,7 @@
     <p>Agents survey your codebase and documentation in parallel, finding existing patterns, potential conflicts, and relevant architecture decisions. If external libraries are involved, the cache-first <code>/uc:research</code> skill fetches focused documentation and writes it to the project knowledge base under <code>documentation/technology/research/</code>.</p>
 
     <h3>3. Discuss</h3>
-    <p>The AI synthesizes all findings and presents its perspective. You brainstorm the approach together. If the AI identifies genuine concerns, it pushes back &mdash; respectfully but firmly. The goal is convergence toward an approach you both believe in.</p>
+    <p>The AI synthesizes all findings and presents its perspective, including a proposed task breakdown with per-task file estimates &mdash; task boundaries are negotiated here, in conversation, before anything is written. You brainstorm the approach together. If the AI identifies genuine concerns, it pushes back &mdash; respectfully but firmly. The goal is convergence toward an approach you both believe in. The discussion flows naturally: every response ends with a one-line footer ("say 'proceed to plan' to move on, or keep discussing"), so there is no "are we done?" prompt after each message &mdash; you exit by saying so, whenever you're ready.</p>
 
     <h3>4. Write</h3>
     <p>The plan is written to <code>documentation/plans/{NNN}-{name}/README.md</code> with structured tasks. Each task has a description, file list, success criteria, and dependencies. You review and explicitly approve before anything executes.</p>

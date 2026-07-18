@@ -19,7 +19,7 @@ Present this, then enter the base discussion loop. Do not skip to Stage 4 even i
 
 ## Stage Transition
 
-When the discussion converges and the user picks "Proceed to plan" via the base exit gate, announce:
+When the discussion converges and the user says an explicit proceed phrase (base Exit Protocol), announce:
 
 > **▶ PROCEED TO STAGE 4: WRITE**
 
