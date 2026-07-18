@@ -40,6 +40,14 @@ Narrative summary of the external libraries, frameworks, and services this plan 
 
 - [ ]
 
+## Task Sizing
+
+Final sizing table from the Stage 4 task sizing gate (see `references/planning-framework/task-sizing.md`). For a single-task plan, replace the table with: `1 task — no split needed.`
+
+| Task | Est. files | Why it can't merge with a neighbor | Verdict |
+|------|-----------|-----------------------------------|---------|
+| 1. {Title} | ~N | {independence justification} | in band / justified exception |
+
 ## Task List
 
 Flat index only. Per-task details (description, files, patterns, success criteria, research pointers, dependencies) live in `tasks/task-N/task.md`.

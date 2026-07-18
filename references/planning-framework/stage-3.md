@@ -2,7 +2,9 @@
 
 Mandatory for ALL planning modes — no exceptions.
 
-**Purpose:** Synthesize all findings from Stages 1-2, present a summary with your own perspective, and brainstorm the approach with the user. This is a mandatory conversation gate before the plan is written.
+**Purpose:** Synthesize all findings from Stages 1-2, present a summary with your own perspective — including a proposed task breakdown — and brainstorm the approach with the user. This is a mandatory conversation gate before the plan is written.
+
+**Before composing the opening synthesis**, read `${CLAUDE_PLUGIN_ROOT}/references/planning-framework/task-sizing.md` — the canonical task-sizing rules. You need them to build the Proposed task breakdown below.
 
 ## On Entry — Update the Stage Field
 
@@ -16,8 +18,15 @@ This and the Abandon cancel below are the only writes permitted in Stage 3 — d
 
 - No files written, except the on-entry `stage` update above and the Exit Gate "Abandon" cancel below.
 - You MUST present your own perspective — not just ask questions.
+- The opening synthesis MUST include a **Proposed task breakdown** (see below).
 - Goal is convergence toward an approach.
 - Exit ONLY via the explicit AskUserQuestion exit gate (see below).
+
+## Proposed Task Breakdown — Mandatory Synthesis Element
+
+The opening synthesis must include a high-level task breakdown built per `task-sizing.md`: the proposed task list with, for each task, an estimated file count and a one-line justification for why it can't merge with a neighbor (the sizing table in conversational form; a single-task plan just says so). Task boundaries are explicitly **up for discussion** — the user can merge, split, or reshape them here, before anything is written. This is where task division gets decided; Stage 4 only confirms it.
+
+If the breakdown exceeds 4 tasks, getting the user's explicit agreement to the split is part of this discussion (see `task-sizing.md` Hard cap).
 
 ## Discussion Principles
 
@@ -29,6 +38,7 @@ Adapted from the Critical Brainstorm skill and tuned for planning context:
 - **Think in time horizons.** A solution that works today might create pain in 3 months. Map out how the decision ages.
 - **Every response must advance the discussion.** Raise a new concern, deepen an existing one, propose an alternative, or ask a pointed question. Never just summarize or agree. If you have nothing new to add, it's time to exit.
 - **Present your own perspective — don't just ask questions.** The user wants a dialogue with a senior technical partner, not an interviewer collecting requirements.
+- **Task count is a cost decision.** Every task spins up a full Executor + Reviewer + Tester team. Challenge proposed splits the same way you challenge scope — a split that buys no parallelism or independence is pure overhead (see `task-sizing.md`).
 - **Goal is convergence toward an approach.** This is not open-ended brainstorming. Each exchange should narrow the space of possibilities. When you and the user agree on the shape of the solution, prompt the exit gate.
 
 ## RFC for Architectural Challenges

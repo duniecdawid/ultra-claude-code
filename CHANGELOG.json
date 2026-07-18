@@ -1,5 +1,12 @@
 [
   {
+    "seq": 199,
+    "version": "2026.07.18-2",
+    "date": "2026-07-18",
+    "summary": "feat(planning): task-sizing gate — fewer, larger tasks. New canonical references/planning-framework/task-sizing.md (cost model, merge-first algorithm, ~10-40 files/task band raised from ~7-20 for 1M context, required sizing table, >4-task hard cap needing explicit user agreement). Stage 3 opening synthesis now MUST include a Proposed task breakdown with per-task file estimates and merge justifications so task division is discussed before anything is written; Stage 4 sizing rules replaced by a mandatory confirmation gate that checks the final list against the Stage 3 agreement. Sizing table lands in plan README (new Task Sizing section in templates/plan.md) and the approval summary (per-task ~N files). Roadmap plan-stub targets retargeted to 1-4 tasks / 20-120 files; Project Manager granularity feedback loop re-pointed from stale Plan-Enhancer naming to the canonical task-sizing.md with predicted-vs-actual comparison and ~15-min/~10-file too-small thresholds. Docs site: feature-planning and roadmap pages updated. No project-level structure change (Task Sizing section applies to future plans only).",
+    "migration": null
+  },
+  {
     "seq": 198,
     "version": "2026.07.18-1",
     "date": "2026-07-18",

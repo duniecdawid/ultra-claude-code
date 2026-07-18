@@ -467,12 +467,12 @@ This is one of the most important things you watch for. Read the artifacts acros
 When you detect repeated work **during execution**, act on it directly: SendMessage to the relevant executor pointing them to existing work (e.g., "executor-3: auth patterns already implemented in task-1 — check impl.md for approach"). Log the incident for the operational report.
 
 **Task Size Assessment:**
-Track how each task flows through the pipeline and assess whether it was sized correctly:
-- **Too small signals**: Task completes in under 10 minutes total. Reviewer/tester have almost nothing to check. The overhead of 3 agents (executor, reviewer, tester) exceeded the actual work. These should have been absorbed into a neighboring task.
+Track how each task flows through the pipeline and assess whether it was sized correctly. The plan README's `## Task Sizing` section holds the predicted per-task file estimates from planning — compare actual files touched and effort against it:
+- **Too small signals**: Task completes in under ~15 minutes total, or touches fewer than ~10 files. Reviewer/tester have almost nothing to check. The overhead of 3 agents (executor, reviewer, tester) exceeded the actual work. These should have been absorbed into a neighboring task.
 - **Too large signals**: Task takes 3x+ longer than other tasks. Multiple review/test cycles (3+ retries). Executor discovers hidden sub-tasks mid-implementation. Success criteria are vague or cover multiple distinct behaviors. The task should have been split.
 - **Wrong boundaries signals**: Executor needs files that "belong" to another task. Reviewer flags dependencies on code that doesn't exist yet (from a later task). Research reveals the task can't be tested independently.
 
-Log these observations — they feed directly into the Plan Quality Retrospective section of the report, and more importantly into specific suggestions for improving the Plan Enhancer's granularity rules.
+Log these observations — they feed directly into the Plan Quality Retrospective section of the report, and more importantly into specific suggestions for improving the canonical task-sizing rules (`references/planning-framework/task-sizing.md`).
 
 ## Observation Workflow
 
@@ -654,26 +654,26 @@ How well did the primary (SendMessage) channel deliver, and did the durable `sig
 
 ### Task Granularity Assessment
 
-| Task | Duration | Retries | Size Verdict | Evidence |
-|------|----------|---------|-------------|----------|
-| task-1: {name} | ~Xm | N | right / too small / too large | {why} |
+| Task | Predicted files | Actual files | Duration | Retries | Size Verdict | Evidence |
+|------|----------------|--------------|----------|---------|-------------|----------|
+| task-1: {name} | ~N (from README Task Sizing) | N | ~Xm | N | right / too small / too large | {why} |
 
 **Too-small tasks found:** {count}
 - {task}: {why it was too small — e.g., "completed in 8 minutes, research was 3 lines, 4-agent overhead not justified"}
-- **Suggestion:** These should have been absorbed into {neighboring task}. Recommend Plan Enhancer rule: {specific rule improvement}
+- **Suggestion:** These should have been absorbed into {neighboring task}. Recommend task-sizing rule: {specific rule improvement}
 
 **Too-large tasks found:** {count}
 - {task}: {why it was too large — e.g., "took 3x average, 5 review cycles, executor discovered 2 hidden sub-tasks"}
-- **Suggestion:** Should have been split into {proposed split}. Recommend Plan Enhancer rule: {specific rule improvement}
+- **Suggestion:** Should have been split into {proposed split}. Recommend task-sizing rule: {specific rule improvement}
 
 **Wrong-boundary tasks found:** {count}
 - {task}: {why boundaries were wrong — e.g., "executor needed files from task-3, couldn't test independently"}
 - **Suggestion:** {how to redraw boundaries}
 
-### Plan Enhancer Improvement Recommendations
-{Based on the task sizing analysis above, specific recommendations for improving the Plan Enhancer's granularity rules. Reference the current rules and suggest concrete additions or changes. For example:}
+### Task-Sizing Rule Improvement Recommendations
+{Based on the task sizing analysis above, specific recommendations for improving the canonical task-sizing rules in `references/planning-framework/task-sizing.md`. Reference the current rules and suggest concrete additions or changes. For example:}
 - "Current rule catches sequential chains (A→B→C) but missed that task 2 and task 3 were functionally coupled despite being technically independent. Add rule: if two tasks modify the same file, consider merging."
-- "Min-time threshold: tasks under 10 minutes total execution time should trigger a warning during planning."
+- "Min-time threshold: tasks under 15 minutes total execution time should trigger a warning during planning."
 
 ### Success Criteria Clarity
 {Were criteria interpreted consistently? Ambiguities found}
@@ -691,8 +691,8 @@ Specific, actionable suggestions for improving Ultra Claude based on this execut
 ### Pipeline Process
 {Suggestions for improving the pipeline}
 
-### Plan Enhancer
-{Consolidate all granularity/sizing recommendations from above, plus any other plan quality improvements}
+### Task Sizing & Plan Quality
+{Consolidate all granularity/sizing recommendations from above (target: `references/planning-framework/task-sizing.md`), plus any other plan quality improvements}
 
 ### Token Efficiency
 {Consolidate cost reduction recommendations from the Token Efficiency Analysis section. Prioritize by estimated savings. Flag any that require architectural changes to the pipeline vs simple config tweaks.}

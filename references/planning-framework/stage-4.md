@@ -139,12 +139,14 @@ Reference the documentation updated in Steps 2-3 — do not duplicate content. E
 - Per-task content (description, files, patterns, research, success criteria, dependencies) lives in `tasks/task-N/task.md`. The README does NOT contain these fields.
 - The Tech Stack section in the README is a plan-wide narrative overview. The machine-readable research mapping lives per-task in each `task.md`'s `**Research:**` section.
 
-### Task sizing rules
+### Task sizing gate — MANDATORY
 
-- **Split by feature, not by tech layer.** Each task delivers a complete vertical slice (database through API/UI). Never split into "backend task" and "frontend task" for the same feature. Testing is part of the execution pipeline, not a separate task.
-- **Default to 1 task.** Only split when the work has two or more independent features that don't depend on each other.
-- **Minimum ~7 files per task.** Each task spins up a full pipeline (Executor + Reviewer + Tester). If a change touches fewer than 7 files, absorb it into a larger task — the pipeline overhead isn't justified.
-- **Maximum ~20 files per task.** If a task would touch more than 20 files, consider splitting — but only along feature boundaries, not arbitrary lines.
+Before proceeding to Step 5, run the sizing gate against `${CLAUDE_PLUGIN_ROOT}/references/planning-framework/task-sizing.md` (the canonical sizing rules, already read at Stage 3 entry — re-read it if it is no longer in context):
+
+1. **Confirm the task list matches the breakdown agreed in Stage 3.** The task division was proposed and discussed there; Stage 4 writes down what was agreed, it does not re-decide.
+2. **If the list diverged** (scope changed during discussion, tasks appeared or split since), re-run the merge-first algorithm from task-sizing.md on the current list.
+3. **Apply the hard cap:** if the plan now exceeds 4 tasks and that split was NOT explicitly agreed in Stage 3, STOP and confirm via AskUserQuestion ("This plan splits into N tasks — approve the split, or merge?") before writing any files.
+4. **Produce the final sizing table** (format in task-sizing.md) — it is written into the README in Step 5a and shown in the approval summary in Step 6.
 
 ### Forbidden task patterns
 
@@ -153,7 +155,7 @@ The README task index is a **flat sequence** — no hierarchy, no grouping, no n
 **Do NOT:**
 - **Group tasks into phases.** No "Phase 0: Foundation", "Phase 1: Core", etc. If tasks have a natural order, express it through each task.md's Dependencies field, not README section headers. The README task index has one level: `### Task N:`.
 - **Use nested numbering.** No T0.1, T1.2, T2.3. Tasks are numbered sequentially: Task 1, Task 2, Task 3, ... Task N. That's it.
-- **Split by tech layer.** No separate "web implementation", "native implementation", "tests", "review gate" tasks for the same feature. Each task is a complete vertical slice — one component means one task that delivers types + web + native + tests + stories.
+- **Split by tech layer.** No separate "web implementation", "native implementation", "tests", "review gate" tasks for the same feature. Each task is a complete vertical slice — one component means one task that delivers types + web + native + tests + stories (see task-sizing.md Structural rules).
 - **Invent custom task formats in README.** No bold-text pseudo-headings (`**T1.1**`), no bullet-list tasks, no sub-tasks within tasks. Every task is an H3 heading matching the exact format: `### Task N: {Title} <!-- status:pending -->` followed by `- [ ] **Complete**`.
 - **Put per-task content in README.** Description, files, patterns, research, success criteria, and dependencies go in `tasks/task-N/task.md`. The README is an index only.
 - **Omit required fields in task.md.** Every task.md has all fields from `templates/task.md`. No abbreviated one-liner tasks.
@@ -185,7 +187,7 @@ Each task's `tasks/task-N/task.md` file MUST contain all fields from `templates/
 
 Three write actions, in order:
 
-**5a. Write plan README.md** to `documentation/plans/{NNN}-{name}/README.md` via the Write tool. Plan-level content (Objective, Context, Tech Stack, Scope, Success Criteria, Documentation Changes, Risk Assessment) plus the flat task heading index. The README is the canonical plan overview.
+**5a. Write plan README.md** to `documentation/plans/{NNN}-{name}/README.md` via the Write tool. Plan-level content (Objective, Context, Tech Stack, Scope, Success Criteria, Task Sizing, Documentation Changes, Risk Assessment) plus the flat task heading index. The README is the canonical plan overview. The `## Task Sizing` section holds the final sizing table from the task sizing gate — a durable record of the sizing decision that the Project Manager's retrospective compares against actual per-task outcomes.
 
 **5b. Write per-task `task.md` files.** For each task, create `tasks/task-N/` and write `tasks/task-N/task.md` using `templates/task.md`. Populate every field. Key points:
 - Description, files, patterns, success criteria, dependencies come from your Stage 1-3 work.
@@ -220,16 +222,16 @@ bash "${CLAUDE_PLUGIN_ROOT}/scripts/tmux-window-name.sh" "UC::P-{NNN}::${TITLE}"
 
 **Present a concise summary in chat** — NOT the full plan. Include: plan number, plan name, objective, task count, and the file path. The user can read the full plan from the file.
 
-**Include a task list summary** — for each task, show one line with the task name and a brief goal:
+**Include a task list summary** — for each task, show one line with the task name, a brief goal, and the estimated file count from the sizing table:
 
 ```
 Tasks:
-1. {Task name} — {1-line goal}
-2. {Task name} — {1-line goal}
+1. {Task name} — {1-line goal} (~N files)
+2. {Task name} — {1-line goal} (~N files)
 ...
 ```
 
-This gives the user a quick overview of the task breakdown alongside the plan summary.
+This gives the user a quick overview of the task breakdown alongside the plan summary. If the task list or sizing changed after the Stage 3 discussion, say what changed and why — over-splitting must be visible at this gate, not discovered during execution.
 
 **Ask for approval via AskUserQuestion** — Options: "Approve" / "Reject with feedback" / "Partially reject (specify changes)"
 

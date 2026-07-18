@@ -57,7 +57,7 @@
           <li><strong>Success criteria</strong> &mdash; numbered list of how to verify it's done</li>
           <li><strong>Dependencies</strong> &mdash; other tasks that must complete first</li>
         </ul>
-        <p>Task sizing targets ~7-20 files per task. Fewer than 7 gets absorbed into a larger task; more than 20 gets split along feature boundaries.</p>
+        <p>Task sizing targets ~10-40 files per task, and fewer, larger tasks is the explicit goal &mdash; every task spins up a full Executor + Reviewer + Tester team, so splitting costs real overhead. Fewer than 10 files gets absorbed into a larger task; more than 40 gets split along feature boundaries only. The proposed breakdown is presented during the Discuss stage (with per-task file estimates and merge justifications) so task boundaries are negotiated in conversation, then confirmed by a sizing gate before the plan is written. The final sizing table lands in the plan README and the approval summary, and any plan exceeding 4 tasks requires your explicit agreement to the split.</p>
         <p><strong>Why a separate file per task?</strong> During execution, every team member (Executor, Reviewer, Tester) reads its task's directory on startup. Keeping per-task content in dedicated files means spawn prompts carry no inline content, crash re-spawns reload context from disk with zero Lead intervention, and amendments are a simple file edit + broadcast instead of a mass message round-trip.</p>
       </div>
     </details>

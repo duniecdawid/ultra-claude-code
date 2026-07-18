@@ -4,7 +4,7 @@ How to decompose a product into plans. Each plan should be independently detaila
 
 ## Target size
 
-A well-sized plan typically produces 3-8 tasks when detailed by feature-mode, touching 20-100 files total. This is roughly one planning + execution cycle.
+A well-sized plan typically produces 1-4 tasks when detailed by feature-mode, touching 20-120 files total. This is roughly one planning + execution cycle. Tasks are large by design (~10-40 files each — see `references/planning-framework/task-sizing.md`): every task spins up a full Executor + Reviewer + Tester team, so fewer, larger tasks is the goal.
 
 ## Decomposition heuristics
 
@@ -36,6 +36,6 @@ Apply in order:
 
 ## Size guardrails
 
-- **Too big (>8 tasks / >100 files):** Split along feature boundaries. Look for independent sub-capabilities within the plan.
-- **Too small (<2 tasks / <15 files):** Merge with an adjacent plan that shares context. The overhead of a separate plan isn't justified for very small scope.
+- **Too big (>4 tasks / >150 files):** Split along feature boundaries. Look for independent sub-capabilities within the plan.
+- **Too small (<15 files):** Merge with an adjacent plan that shares context. The overhead of a separate plan isn't justified for very small scope.
 - **When in doubt, keep it as one plan.** It's easier to split a plan during feature-mode's Stage 1 (scope challenge) than to merge plans that were split prematurely.
