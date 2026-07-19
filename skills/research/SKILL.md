@@ -1,5 +1,5 @@
 ---
-description: Cache-first research skill — looks up existing research in documentation/technology/research/ (product/domain libraries and patterns) or .claude/ultra/research/ (Claude Code / Agent SDK / Anthropic API harness knowledge) and spawns the Researcher agent only on cache miss or stale entry. Covers library/API documentation, architectural patterns research, and market/competitor analysis via a single auto-classified interface. Use when adding a new library, debugging an external dependency, investigating patterns or best practices, running competitor analysis, asking how Claude Code / Claude Agent SDK / Anthropic API features work, or any "how does X work / what changed in X / best practice for X" question. Triggers on "research library", "look up docs", "how does X work", "why is X failing", "best practice for X", "competitors for X", "alternatives to X", "landscape of X", "what changed in X".
+description: Cache-first research skill — looks up existing research in documentation/technology/research/ (product/domain libraries and patterns) or .claude/ultra/research/ (Claude Code / Agent SDK / Anthropic API harness knowledge) and spawns the Researcher agent only on cache miss or stale entry — in the background by default so the conversation continues while research runs (--sync to block). Covers library/API documentation, architectural patterns research, and market/competitor analysis via a single auto-classified interface. Use when adding a new library, debugging an external dependency, investigating patterns or best practices, running competitor analysis, asking how Claude Code / Claude Agent SDK / Anthropic API features work, or any "how does X work / what changed in X / best practice for X" question. Triggers on "research library", "look up docs", "how does X work", "why is X failing", "best practice for X", "competitors for X", "alternatives to X", "landscape of X", "what changed in X".
 user-invocable: true
 argument-hint: "topic to research [--mode=library|patterns|market]"
 allowed-tools:
@@ -14,18 +14,23 @@ allowed-tools:
 
 # Research
 
-Cache-first external research. The skill checks the relevant index for a fresh entry; on hit, it returns an excerpt directly. On miss or stale, it spawns the `researcher` agent as a stateless subagent via the `Agent` tool (one-shot sync — `run_in_background: false`), waits for the result, and returns it. Research findings are durable documentation, not invisible cache.
+Cache-first external research. The skill checks the relevant index for a fresh entry; on hit, it returns an excerpt directly. On miss or stale, it spawns the `researcher` agent as a stateless **background** subagent via the `Agent` tool (one-shot fan-out, `run_in_background: true` — the conversation continues while it works, and the findings are relayed when its completion notification arrives). Pass `--sync` to block until the result instead. Research findings are durable documentation, not invisible cache.
 
 ## Invariant — MANDATORY
 
-**Every invocation of `/uc:research` produces exactly one of two outcomes:**
+**Every invocation of `/uc:research` produces exactly one of three outcomes:**
 
 1. **Cache hit** — an existing research file covers the topic, and you return its relevant section(s) to the caller (see Step 5).
-2. **Agent spawn** — the `researcher` subagent is spawned via the `Agent` tool (one-shot sync, `run_in_background: false`), it does the research, and you return its result to the caller (see Step 6).
+2. **Dispatched (default)** — the `researcher` subagent is spawned in the background via the `Agent` tool (`run_in_background: true`), and you immediately return a dispatch notice (see Step 6). **The dispatch is not the end of the obligation:** when the researcher's completion notification arrives, you MUST relay its result (summary + target path) into the conversation — a dispatch that never resolves to a relay is the same as a shrug.
+3. **Sync result** (`--sync`, or background-spawn fallback) — the researcher is spawned with `run_in_background: false`, you wait, and you return its result in the same turn.
 
-**There is no third outcome.** You never return "I couldn't find anything," "the cache had something but not quite right," "the topic was ambiguous so I stopped," or any other shrug. If you are about to reply to the caller without having done (1) or (2), **STOP and spawn the agent.** The spawn is the default fallback for every uncertain case — not a conditional branch you can skip.
+**There is no fourth outcome.** You never return "I couldn't find anything," "the cache had something but not quite right," "the topic was ambiguous so I stopped," or any other shrug. If you are about to reply to the caller without having done (1), (2), or (3), **STOP and spawn the agent.** The spawn is the default fallback for every uncertain case — not a conditional branch you can skip.
 
-The only allowed clarification interrupt is the AskUserQuestion in Step 2 when the topic is genuinely ambiguous between modes. Once the user answers (or you auto-classify), you MUST reach outcome (1) or (2) before ending the turn.
+**Never read or relay `target_path` while a dispatch is pending** — the file may be absent or half-written until the completion notification arrives.
+
+**Background-spawn fallback:** if the background spawn returns an error (in-process teammates cannot spawn background subagents), fall back to outcome (3) silently — spawn sync and wait. Never fail the invocation because backgrounding is unavailable.
+
+The only allowed clarification interrupt is the AskUserQuestion in Step 2 when the topic is genuinely ambiguous between modes. Once the user answers (or you auto-classify), you MUST reach outcome (1), (2), or (3) before ending the turn.
 
 There are **two cache scopes** with separate indexes:
 
@@ -45,14 +50,16 @@ From `$ARGUMENTS`:
 - Extract the topic text (everything that isn't a flag)
 - Extract an explicit `--mode=library|patterns|market` if present
 - Extract the `--fill-only` flag if present
+- Extract the `--sync` flag if present (block on the researcher instead of dispatching it in the background — use when the answer gates the caller's very next step and there is nothing useful to do meanwhile)
 - If no `--mode`, classify automatically (Step 2)
 
 **`--fill-only` mode** is for callers that want to ensure research exists without absorbing its content into their own context. It's designed for bulk sweeps from planning modes (see Stage 2 Tech Stack sweep). Semantics:
 
 - Full flow runs (classify → canonicalize → cache check → spawn on miss) exactly as in the default path. The researcher agent still writes the file if spawned. The index still updates.
-- The only difference is the caller's return payload: instead of returning the H2 section content (cache hit) or the agent's summary paragraph (cache miss), return a compact envelope: `{target_path, mode, subject, status: "hit" | "spawned" | "refreshed" | "failed", expires}`.
+- The only difference is the caller's return payload: instead of returning the H2 section content (cache hit) or the agent's summary paragraph (cache miss), return a compact envelope: `{target_path, mode, subject, status: "hit" | "pending" | "spawned" | "refreshed" | "failed", expires}`. With the background default, a cache miss returns `status: "pending"` immediately; the researcher's completion notification upgrades it to `"spawned"`/`"refreshed"` (or `"failed"`).
+- Bulk sweeps benefit doubly: each miss dispatches its researcher in parallel (fan-out) instead of serializing sync spawns. The sweeping caller MUST collect every completion notification before reading any `target_path` — a `"pending"` entry's file may not exist yet.
 - This saves the caller ~2–5K tokens per sweep entry when it just needs "is this research on disk now?" rather than "what does it say?"
-- If the caller later needs the content, it reads the returned `target_path` directly.
+- If the caller later needs the content, it reads the returned `target_path` directly (only after the entry's researcher has completed).
 
 ### Step 2: Auto-Classify Mode
 
@@ -210,12 +217,12 @@ Evaluate the jq result. **A cache hit requires ALL of these to be true:**
    b. Call `mcp__Ref__ref_search_documentation` with the topic (e.g., `"zod object schema validation typescript"`)
    c. Extract the result URLs into a list. If Ref.tools is unavailable or returns no results, pass an empty list — the agent falls back to WebSearch/WebFetch.
 
-4. **Spawn the researcher agent** via the `Agent` tool (one-shot **sync**: no `name`, explicit `run_in_background: false` — Mode S per `${CLAUDE_PLUGIN_ROOT}/references/agent-spawn-modes.md`; the result gates Step 6.5's relay to the caller), passing the chosen `target_path`, `index_path` (per Step 3), and the pre-fetched Ref.tools URLs:
+4. **Spawn the researcher agent** via the `Agent` tool — one-shot **background by default**: no `name`, explicit `run_in_background: true` (Mode F per `${CLAUDE_PLUGIN_ROOT}/references/agent-spawn-modes.md`), so the conversation continues while research runs. With `--sync`, use `run_in_background: false` and wait. If the background spawn errors (teammate contexts can't background subagents), retry sync. Pass the chosen `target_path`, `index_path` (per Step 3), and the pre-fetched Ref.tools URLs:
 
    ```
    Agent(
      subagent_type="researcher",
-     run_in_background=false,
+     run_in_background=true,   # false only with --sync, or as fallback when backgrounding errors
      description="Research {topic}",
      prompt="""
      mode: {mode}
@@ -235,7 +242,10 @@ Evaluate the jq result. **A cache hit requires ALL of these to be true:**
 
    The agent reads its own root file + one mode-specific reference from `skills/research/references/{mode}-mode.md`, fetches the `ref_urls` via WebFetch as its primary source, supplements with WebSearch, writes the target file, updates the index, and returns a one-paragraph summary.
 
-5. **Relay the agent's return** to the caller. In default mode, this includes the summary paragraph plus the target file path. In `--fill-only` mode, return the compact envelope `{target_path, mode, subject, status, expires}` where `status` is `"spawned"` (new file written) or `"refreshed"` (stale entry updated) or `"failed"` (agent reported failure; `error` field carries the reason). Do NOT include the agent's summary paragraph in fill-only mode — the caller will read `target_path` directly if it needs content.
+5. **Return to the caller — two-phase in the background default:**
+   - **At dispatch** (background spawn succeeded): immediately return the dispatch notice (see Output Format) — topic, `target_path`, and "research running in background; findings will be relayed when it completes." In `--fill-only` mode, return the compact envelope with `status: "pending"`. Then continue with whatever the conversation was doing. **Do not read `target_path` or claim any findings while the dispatch is pending.**
+   - **At the completion notification**: relay the researcher's result — the summary paragraph plus the target file path (`status` upgrades to `"spawned"` new file / `"refreshed"` stale entry updated / `"failed"` with the reason). This relay is mandatory (Invariant outcome 2); fold it into the current conversation turn naturally.
+   - **Sync path** (`--sync` or fallback): both phases collapse into one — wait for the agent and return its result directly. Do NOT include the agent's summary paragraph in fill-only mode — the caller will read `target_path` directly if it needs content.
 
 ## Output Format
 
@@ -255,7 +265,16 @@ Sources:
 {source URLs from frontmatter}
 ```
 
-**Cache miss (after agent return):**
+**Cache miss — at dispatch (background default):**
+
+```
+🔬 Research dispatched: {topic}
+
+Target: {target_path}
+Running in the background — findings will be relayed here when it completes. We can continue in the meantime.
+```
+
+**Cache miss — at completion (relay on notification, or immediately with `--sync`):**
 
 ```
 🔬 Researched: {topic}
@@ -276,13 +295,13 @@ Sources:
   "target_path": "documentation/technology/research/libraries/zod.md",
   "mode": "library",
   "subject": "zod",
-  "status": "hit" | "spawned" | "refreshed" | "failed",
+  "status": "hit" | "pending" | "spawned" | "refreshed" | "failed",
   "expires": "2026-04-24" | null,
   "error": "..."        // only on status=failed
 }
 ```
 
-Callers that invoked `--fill-only` use the `status` field to decide whether the research is available (any value other than `failed`) and read `target_path` themselves when they need the content. A `failed` status should never happen silently — the skill still returns the envelope so callers can log/report the gap.
+Callers that invoked `--fill-only` use the `status` field to decide whether the research is available: `"hit"`, `"spawned"`, and `"refreshed"` mean the file is on disk now; `"pending"` means a background researcher is still writing it — the caller must wait for that researcher's completion notification before reading `target_path`. A `failed` status should never happen silently — the skill still returns the envelope so callers can log/report the gap.
 
 ## Examples
 
@@ -292,9 +311,15 @@ Callers that invoked `--fill-only` use the `status` field to decide whether the 
 
 1. Classify → `library`, subject `zod`, target `documentation/technology/research/libraries/zod.md`
 2. Check index → no entry
-3. Spawn researcher agent with the above fields, empty existing content
+3. Spawn researcher agent in the background with the above fields, empty existing content; immediately return the dispatch notice — the conversation continues
 4. Agent writes `zod.md` with sections for schema validation and associated topics, updates index, returns summary
-5. Skill returns the summary to the user
+5. On the completion notification, skill relays the summary into the conversation
+
+### Blocking lookup (`--sync`)
+
+**User (or a calling skill whose next step needs the answer):** `/uc:research zod schema validation --sync`
+
+Same flow, but step 3 spawns with `run_in_background: false` and steps 3–5 collapse into one turn: wait, then return the summary directly.
 
 ### Second lookup on same library (cache hit)
 
@@ -353,7 +378,7 @@ Callers that invoked `--fill-only` use the `status` field to decide whether the 
 
 ## Guidelines
 
-- **Every invocation ends in a research result.** Cache hit or agent spawn — no third option. This is the Invariant above, repeated because it is the single most important rule in this skill. If you find yourself about to return without a result, you have a bug in your flow — spawn the agent.
+- **Every invocation ends in a research result.** Cache hit, background dispatch (which MUST later resolve to a relay of the findings), or sync result — no fourth option. This is the Invariant above, repeated because it is the single most important rule in this skill. If you find yourself about to return without a result or a pending dispatch, you have a bug in your flow — spawn the agent.
 - **Cache first, always.** Check the index before spawning. The skill's main value is the cheap cache hit path.
 - **Cache miss is the default fallback, not a separate condition.** Any uncertainty, any weak match, any missing section, any classification ambiguity that didn't resolve to a clear hit → spawn. The agent is cheap compared to returning no result.
 - **One file per library, one file per pattern topic.** Don't create `zod-schemas.md` + `zod-parsing.md` — they go in `zod.md` as H2 sections. The researcher agent handles the merge.

@@ -26,7 +26,7 @@ Agent(subagent_type=..., run_in_background: false, ...)   # no name
 ```
 
 - The caller blocks; the agent's final message returns as the `Agent` tool result.
-- Use when the caller **cannot proceed without the answer** — e.g. the research skill relaying a researcher's findings to its caller.
+- Use when the caller **cannot proceed without the answer and has nothing useful to do meanwhile** — e.g. the research skill's `--sync` path, or its fallback when backgrounding is unavailable (teammate contexts).
 
 ## Mode F — One-shot background fan-out (parallel workers)
 
@@ -34,7 +34,7 @@ Agent(subagent_type=..., run_in_background: false, ...)   # no name
 Agent(subagent_type=..., run_in_background: true, ...)    # no name, issued in one message for parallel batches
 ```
 
-- Independent parallel workers; the caller receives one completion notification per agent.
+- Independent parallel workers (a batch, or a single worker dispatched so the conversation stays responsive — e.g. the research skill's default researcher spawn); the caller receives one completion notification per agent.
 - **Collect every completion notification before synthesizing.** Do not assume completion order; do not proceed on a partial set.
 - **Never instruct a one-shot worker to SendMessage its results back** — background-agent → lead delivery can be silently dropped (see the delivery bugs in `.claude/ultra/research/claude-code-sendmessage.md`). The completion notification *is* the collection mechanism.
 - Batch size: cap parallel spawns per the calling skill's guidance (typically ≤5; batch if more).

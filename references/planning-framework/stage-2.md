@@ -29,8 +29,8 @@ Every planning mode — feature, debug, doc-code-verification, anything else tha
    ```
    /uc:research {library} --fill-only
    ```
-   The `--fill-only` flag keeps research summaries out of your planner context — the skill classifies, canonicalizes, checks the cache, and spawns the researcher on miss, but returns only `{target_path, status, expires}` per call. Bulk sweeps of 10 libraries cost ~10 small tool calls instead of 10 large summary absorptions. The skill's canonicalization rules ensure different phrasings (`zod`, `zod v4`, `zod schemas`) all route to the same file — no duplicates.
-5. **Read research files on demand.** When you need actual content during Stage 3 discussion or Stage 4 writing, read the file at the returned `target_path` directly.
+   The `--fill-only` flag keeps research summaries out of your planner context — the skill classifies, canonicalizes, checks the cache, and dispatches the researcher on miss (background — misses fan out in parallel instead of serializing), returning only `{target_path, status, expires}` per call. Bulk sweeps of 10 libraries cost ~10 small tool calls instead of 10 large summary absorptions, and the misses research concurrently while you continue Stage 2/3 discussion. The skill's canonicalization rules ensure different phrasings (`zod`, `zod v4`, `zod schemas`) all route to the same file — no duplicates.
+5. **Read research files on demand — but never while pending.** When you need actual content during Stage 3 discussion or Stage 4 writing, read the file at the returned `target_path` directly. Entries returned as `status: "pending"` have a background researcher still writing them — collect every pending entry's completion notification before Stage 4 writing begins (or before reading that entry's file, whichever comes first).
 
 **Why strict:** "core technology the plan touches" is a judgment call that lets planners skip things. "Every external package imported in any in-scope file" is mechanical and unambiguous. Use the mechanical rule.
 

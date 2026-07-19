@@ -1,5 +1,12 @@
 [
   {
+    "seq": 202,
+    "version": "2026.07.19-2",
+    "date": "2026-07-19",
+    "summary": "/uc:research now dispatches the researcher subagent in the background by default (run_in_background: true) instead of blocking the conversation: on a cache miss the skill immediately returns a dispatch notice and the conversation continues, then relays the findings when the researcher's completion notification arrives. New --sync flag restores the blocking spawn for callers whose very next step is gated; the skill silently falls back to sync when backgrounding errors (teammate contexts cannot background subagents). The skill invariant grows a third outcome (dispatched-pending, which MUST resolve to a relay), and --fill-only gains status: \"pending\" — sweep callers must collect completion notifications before reading a pending entry's target_path. Downstream updates: planning-framework Stage 2 tech-stack sweeps now fan out misses in parallel and gate Stage 4 on collected notifications; plan-execution's Lead stays responsive to teammates during QUERY research and relays ANSWERs on notification; agent-spawn-modes reference, discovery-mode, help catalog, and docs site (token-efficiency, plan-execution) updated to match.",
+    "migration": null
+  },
+  {
     "seq": 201,
     "version": "2026.07.19-1",
     "date": "2026-07-19",
