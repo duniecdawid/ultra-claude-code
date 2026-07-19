@@ -16,11 +16,14 @@ This and the Abandon cancel below are the only writes permitted in Stage 3 — d
 
 ## The Discussion Footer — every response ends with it
 
-End **every** Stage 3 discussion response with this single line (verbatim, after your content):
+End **every** Stage 3 discussion response with this footer (verbatim, after your content) — a dotted separator line, then the exit line:
 
-> — Ready? Say **"proceed to plan"** to move on, or just keep discussing. ("abandon" cancels this plan.)
+```
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+— Ready? Say **"proceed to plan"** to move on, or just keep discussing. ("abandon" cancels this plan.)
+```
 
-The footer is the exit affordance. Because it is always present, you never need to ask whether the discussion is over — the user always knows how to proceed and can simply converse.
+The dotted line visually separates the exit affordance from the discussion content. Because the footer is always present, you never need to ask whether the discussion is over — the user always knows how to proceed and can simply converse.
 
 ## Rules
 

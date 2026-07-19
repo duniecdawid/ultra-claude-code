@@ -1,5 +1,12 @@
 [
   {
+    "seq": 201,
+    "version": "2026.07.19-1",
+    "date": "2026-07-19",
+    "summary": "style(planning): dotted separator line above the discussion exit footer. The Stage 3 discussion footer and the critical-brainstorm exit footer are now two lines — a dotted rule (┄┄┄) then the exit line — so the moving-to-next-stage affordance is visually detached from the discussion content. No behavior change; no project-level structure change.",
+    "migration": null
+  },
+  {
     "seq": 200,
     "version": "2026.07.18-3",
     "date": "2026-07-18",
