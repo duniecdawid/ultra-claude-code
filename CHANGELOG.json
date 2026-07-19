@@ -1,5 +1,12 @@
 [
   {
+    "seq": 203,
+    "version": "2026.07.19-3",
+    "date": "2026-07-19",
+    "summary": "Hard research-collection gate on plan writing: Stage 4's Stage Entry Check now requires that every background researcher dispatched by /uc:research (Stage 2 sweep or later calls) has delivered its completion notification before any plan file is written — with a mechanical disk backstop (target_path exists + index entry fresh) in case a notification was missed. Failed dispatches don't block but must be named in the plan's Risk Assessment. Stage 2 cross-references the gate. Closes the race introduced by background-by-default research (2026.07.19-2) where Stage 4 could bake pointers to half-written research files into task.md.",
+    "migration": null
+  },
+  {
     "seq": 202,
     "version": "2026.07.19-2",
     "date": "2026-07-19",
