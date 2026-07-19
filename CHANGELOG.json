@@ -3,6 +3,13 @@
     "seq": 202,
     "version": "2026.07.19-2",
     "date": "2026-07-19",
+    "summary": "feat(planning): plan review discussion replaces the Stage 4 approval modal. Step 6 no longer fires the Approve / Reject / Partially-reject AskUserQuestion right after the summary — the written plan enters a review discussion like Stage 3: the user asks questions, challenges task boundaries, or requests changes (Plan Revision applies edits and re-presents), and every review response ends with the dotted footer (say approve to approve the plan, or keep discussing; abandon cancels). Approval only on an explicit phrase — looks-good / ok stay conversational; no do-you-approve polling; never auto-approve. Step 7 trigger and Plan Revision reworded to the conversational flow; feature-mode stage-4 flow summary and the feature-planning docs page updated. One-shot decision gates (migrate init approval, >4-task split confirmation) intentionally keep AskUserQuestion. No project-level structure change.",
+    "migration": null
+  },
+  {
+    "seq": 202,
+    "version": "2026.07.19-2",
+    "date": "2026-07-19",
     "summary": "/uc:research now dispatches the researcher subagent in the background by default (run_in_background: true) instead of blocking the conversation: on a cache miss the skill immediately returns a dispatch notice and the conversation continues, then relays the findings when the researcher's completion notification arrives. New --sync flag restores the blocking spawn for callers whose very next step is gated; the skill silently falls back to sync when backgrounding errors (teammate contexts cannot background subagents). The skill invariant grows a third outcome (dispatched-pending, which MUST resolve to a relay), and --fill-only gains status: \"pending\" — sweep callers must collect completion notifications before reading a pending entry's target_path. Downstream updates: planning-framework Stage 2 tech-stack sweeps now fan out misses in parallel and gate Stage 4 on collected notifications; plan-execution's Lead stays responsive to teammates during QUERY research and relays ANSWERs on notification; agent-spawn-modes reference, discovery-mode, help catalog, and docs site (token-efficiency, plan-execution) updated to match.",
     "migration": null
   },

@@ -2,7 +2,7 @@
 
 Mandatory for ALL planning modes — no exceptions.
 
-**Purpose:** All file writing happens here — documentation updates, plan scaffolding, plan README, and per-task `task.md` files. Then approval gate. Then post-approval (commit + print execution command + hard stop).
+**Purpose:** All file writing happens here — documentation updates, plan scaffolding, plan README, and per-task `task.md` files. Then plan review discussion ending in explicit approval. Then post-approval (commit + print execution command + hard stop).
 
 ## Stage Entry Check
 
@@ -24,7 +24,7 @@ Once the Stage Entry Check passes, as the first action of this stage update the 
 
 - This is the ONLY stage where files are created or modified.
 - Product docs are updated in Step 2, architecture/standards in Step 3 — do it now, not as plan tasks.
-- After plan file is written: approval gate via AskUserQuestion (Step 6).
+- After plan files are written: plan review discussion with explicit-phrase approval (Step 6). Never push for approval — the footer carries the affordance.
 - After approval: commit, print execution command, STOP (Step 7).
 
 ## Prerequisites
@@ -218,7 +218,7 @@ bash "${CLAUDE_PLUGIN_ROOT}/scripts/tmux-window-name.sh" "UC::P-{NNN}::${TITLE}"
 
 `{NNN}` is the plan number (the directory's 3-digit prefix). The script sanitizes and truncates for the status bar and no-ops outside tmux — never gate it yourself.
 
-## Step 6: Present Summary and Request Approval
+## Step 6: Present Summary and Plan Review Discussion
 
 **Present a concise summary in chat** — NOT the full plan. Include: plan number, plan name, objective, task count, and the file path. The user can read the full plan from the file.
 
@@ -233,17 +233,23 @@ Tasks:
 
 This gives the user a quick overview of the task breakdown alongside the plan summary. If the task list or sizing changed after the Stage 3 discussion, say what changed and why — over-splitting must be visible at this gate, not discovered during execution.
 
-**Ask for approval via AskUserQuestion** — Options: "Approve" / "Reject with feedback" / "Partially reject (specify changes)"
+**Then enter the plan review discussion.** The written plan is up for discussion the same way the approach was in Stage 3 — the user can ask questions, challenge task boundaries, or request changes (apply them per Plan Revision below). Do not push for approval or ask whether the plan is approved; the user approves when ready. End **every** review response — including the initial summary — with this footer (verbatim, after your content):
 
-**Approval gate rules — strictly enforce:**
+```
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+— Say **"approve"** to approve the plan, or keep discussing — ask questions or request changes. ("abandon" cancels this plan.)
+```
 
-- Only an explicit "Approve" selection counts as approval. Do NOT infer approval from empty, blank, ambiguous, or non-committal responses.
-- If the user selects "Other" with empty or unclear text, re-ask the question. Say: "I need an explicit approval, rejection, or feedback before proceeding."
+**Approval rules — strictly enforce:**
+
+- Only an explicit approval phrase counts — "approve", "approved", "approve the plan". Do NOT infer approval from ambiguous or non-committal responses: "looks good", "makes sense", "ok" are conversational — respond to them and keep the review open.
+- Never ask "do you approve?" — no AskUserQuestion polling for approval. The footer carries the affordance.
 - Never skip or auto-approve this step. The plan is not approved until the user explicitly says so.
+- "abandon" triggers the Stage 4 abandon cancel (see Plan Revision below).
 
 ## Step 7: Post-Approval — HARD STOP
 
-When the user explicitly approves the plan, you MUST complete ALL sub-steps before stopping:
+When the user says an explicit approval phrase, you MUST complete ALL sub-steps before stopping:
 
 1. **Update README status:** change `> Status: Draft` → `> Status: Approved`
 2. **Flip plan.json status** — THIS IS MANDATORY, DO NOT SKIP:
@@ -271,16 +277,15 @@ When the user explicitly approves the plan, you MUST complete ALL sub-steps befo
    - Continue the conversation for ANY reason
    - Offer next steps or suggestions
 
-## Plan Revision (if rejected)
+## Plan Revision (changes requested during review)
 
-If the user rejects or partially rejects the plan:
+When the user requests changes during the review discussion:
 
 1. Read their feedback.
-2. Edit the existing `documentation/plans/{NNN}-{name}/README.md` using the Edit tool to incorporate changes.
-3. Re-present the concise summary with changes highlighted.
-4. Re-ask for approval via AskUserQuestion.
+2. Edit the existing `documentation/plans/{NNN}-{name}/README.md` (and the affected `tasks/task-N/task.md` files) using the Edit tool to incorporate changes.
+3. Re-present the concise summary with changes highlighted, ending with the review footer.
 
-Repeat until approved or the user abandons the plan.
+The review discussion continues until the user explicitly approves or abandons the plan.
 
 **If the user gives up at Stage 4** (abandons instead of approving), cancel the skeleton rather than leaving it stranded at `status: planning, stage: write` — mirror the Stage 3 Abandon cancel:
 
