@@ -1,5 +1,12 @@
 [
   {
+    "seq": 204,
+    "version": "2026.07.19-4",
+    "date": "2026-07-19",
+    "summary": "Researcher agent toolset fixed to match the work its own instructions demand: added Edit (targeted merges into existing research files — previously a large file could stall the agent, which has no way to rewrite selectively, leaving prepared diffs in its transcript for the caller to salvage) and Bash (the agent's Index Write Protocol has always instructed a Bash mv rename and rm -f tmp cleanup that the frontmatter never granted, forcing Write-only index updates and stray index.json.tmp files). Merge step now explicitly prefers Edit for updates and forbids abandoning a write due to file size. Help catalog entry synced.",
+    "migration": null
+  },
+  {
     "seq": 203,
     "version": "2026.07.19-3",
     "date": "2026-07-19",

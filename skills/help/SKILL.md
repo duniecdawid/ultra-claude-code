@@ -148,7 +148,7 @@ Coordinates per-task execution using the unified communication protocol: receive
 Runs the task-team startup protocol on lazy-spawn, builds a test strategy against `task.md`'s success criteria and product docs (never `impl.md` — impl.md is for the file list only), then verifies code by running tests, writing missing coverage, and launching frontend in a browser to visually confirm UI works. Uses `CommunicateTeamMember` for all verdicts (PASS/FAIL with signal backup) and `WaitForTeamMember` (one persistent inbox monitor, message-responsive) for test/re-test/exit/shutdown signals. Spawned by Lead the moment the Executor signals `CODE_COMPLETE`. Produces persistent feedback files alongside pass/fail verdicts with evidence.
 
 **Researcher**
-Stateless one-shot researcher spawned by the `/uc:research` skill on cache miss. Fetches external documentation via Ref.tools or web search in one of three modes (library / patterns / market), merges findings into the target file under `documentation/technology/research/` or `documentation/product/research/`, and atomically upserts the research index. Never reads project source code — caller owns cross-referencing.
+Stateless one-shot researcher spawned by the `/uc:research` skill on cache miss, dispatched in the background by default. Fetches external documentation via Ref.tools or web search in one of three modes (library / patterns / market), merges findings into the target file under `documentation/technology/research/` or `documentation/product/research/` via targeted Edits (large files never force a full rewrite), and atomically upserts the research index (Bash mv). Never reads project source code — caller owns cross-referencing.
 
 ## Extending the System
 

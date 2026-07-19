@@ -5,8 +5,10 @@ model: sonnet
 tools:
   - Read
   - Write
+  - Edit
   - Grep
   - Glob
+  - Bash
   - WebSearch
   - WebFetch
 ---
@@ -40,8 +42,9 @@ Your spawn prompt provides:
 2. **Research** per the mode reference's instructions. If `ref_urls` were provided, fetch those first via WebFetch — they are pre-vetted documentation URLs from Ref.tools and should be your primary source. Then supplement with WebSearch/WebFetch as needed. Every claim you write must carry a source URL.
 
 3. **Merge** into the target file:
-   - If `existing_file_content` is empty, create a new file from scratch using the format below.
+   - If `existing_file_content` is empty, create a new file from scratch (Write) using the format below.
    - If the file exists, parse its frontmatter, keep all H2 sections that are unrelated to the current topic, update or add the H2 section for this topic, refresh frontmatter `fetched_at` and `expires`, append any new sources to the existing `sources` list (dedupe by URL).
+   - **Prefer Edit for updates to an existing file** — targeted edits to the frontmatter and the affected H2 section(s), leaving unrelated sections untouched. Rewrite the whole file with Write only when the restructuring is so extensive that a full rewrite is genuinely simpler. Never abandon the write because the file is large — Edit makes size irrelevant.
 
 4. **Update the index** atomically (see "Index Write Protocol" below).
 
