@@ -7,6 +7,7 @@ tools:
   - Glob
   - Grep
   - Bash
+  - SendMessage
 disallowedTools:
   - Write
   - Edit

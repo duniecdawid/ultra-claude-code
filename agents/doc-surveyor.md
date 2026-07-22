@@ -6,6 +6,7 @@ tools:
   - Read
   - Grep
   - Glob
+  - SendMessage
 ---
 
 # Documentation Surveyor Agent

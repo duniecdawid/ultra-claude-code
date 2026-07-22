@@ -1,5 +1,12 @@
 [
   {
+    "seq": 205,
+    "version": "2026.07.22-1",
+    "date": "2026-07-22",
+    "summary": "SendMessage added to the tools allowlist of the five read-only agents that lacked it (Checker, Code Surveyor, Doc Surveyor, Researcher, System Tester). tools: is a hard allowlist, so any of them spawned with a name — 19 such spawns in this fleet's transcripts since June, mostly Doc/Code Surveyor under doc-code-verification and Researcher under uc:research — could be messaged but could never answer, and never received the sibling roster naming who to answer. The tool grants no file, shell, or network reach, so each agent's read-only posture is unchanged; disallowedTools on System Tester is untouched.",
+    "migration": null
+  },
+  {
     "seq": 204,
     "version": "2026.07.19-4",
     "date": "2026-07-19",

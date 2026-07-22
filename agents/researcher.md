@@ -11,6 +11,7 @@ tools:
   - Bash
   - WebSearch
   - WebFetch
+  - SendMessage
 ---
 
 # Researcher Agent
