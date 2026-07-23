@@ -51,3 +51,9 @@ jq -n \
     started_at: (now | todate),
     active: true
   }' > "${sessions_dir}/${session_id}.json"
+
+# Revive the limit sentinel lazily — the first session after any reboot restarts it.
+# Backgrounded + disowned so the hook stays fast; missing symlink (pre-setup) is a no-op.
+if [ -x "$HOME/.claude/ultra/limit-sentinel.sh" ] || [ -L "$HOME/.claude/ultra/limit-sentinel.sh" ]; then
+  (bash "$HOME/.claude/ultra/limit-sentinel.sh" ensure >/dev/null 2>&1 &) 2>/dev/null
+fi

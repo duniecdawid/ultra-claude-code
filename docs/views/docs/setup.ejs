@@ -28,7 +28,8 @@
       <li><strong>Node.js</strong> &mdash; required for Ultra Claude scripts (including the tmux layout daemon when tmux is enabled)</li>
       <li><strong>VS Code settings</strong> (optional) &mdash; when VS Code or vscode-server is detected, setup offers recommended client-side settings for the Claude Code extension (printed as merged JSON to paste) and configures mode-aware terminal profiles per the tmux mode. Skipped silently when VS Code isn't installed.</li>
       <li><strong>Statusline</strong> &mdash; per-account usage tracking displayed in the Claude Code status bar</li>
-      <li><strong>Session hooks</strong> &mdash; start/end hooks for usage tracking</li>
+      <li><strong>Session hooks</strong> &mdash; start/end hooks for usage tracking, plus a <code>StopFailure</code> hook (<code>rate_limit</code> matcher) that reports usage-limit hits to the limit sentinel</li>
+      <li><strong>Limit sentinel</strong> &mdash; symlinks <code>limit-sentinel.sh</code> and starts the machine-global background process that detects limit hits, wakes parked sessions at each window reset, injects 90% soft-band advisories, and notifies on weekly limits. Optionally writes the <code>limit-sentinel.md</code> machine-context topic (account&rarr;profile map, notify command, standalone-wake toggle)</li>
       <li><strong>Agent updates</strong> &mdash; if the <code>ultraclaude-agent</code> npm package is already installed, setup checks for a newer published version and offers to update it (never installs from scratch)</li>
     </ul>
     <p>Setup is idempotent &mdash; safe to re-run after updates or if anything changes. It writes a version marker to <code>~/.claude/ultra/uc-setup.json</code> so other skills can verify your environment is current.</p>

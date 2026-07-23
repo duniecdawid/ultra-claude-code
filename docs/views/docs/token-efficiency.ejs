@@ -71,22 +71,16 @@
     <p>The statusline shows a live cache indicator and response weight bar. The cache indicator (<code>&bullet;</code> green = warm, <code>&cir;</code> red = cold) tracks the 5-minute Anthropic prompt cache TTL with a live countdown. The weight bar (<code>$▁▂▃▅▇</code>) combines context fill percentage, model type, and cache state into a single visual &mdash; it jumps in real time when the cache expires, showing the cost difference between cached and uncached responses.</p>
 
     <h2>Usage management</h2>
-    <p>Before execution, you're asked whether to enable extra usage:</p>
-
-    <h3>Extra usage enabled</h3>
-    <p>Development runs as fast as possible with no pauses. Use this when you need results quickly and your Anthropic account has extra usage capacity.</p>
-
-    <h3>Extra usage disabled</h3>
-    <p>A two-agent design keeps usage management cheap and keeps the Lead almost never interrupted for it:</p>
+    <p>Usage limits are handled reactively &mdash; no question at plan start, no babysitting, and no wasted window. <strong>The limit itself is the pause; the machine-global limit sentinel is the resume.</strong></p>
     <ol>
-      <li><strong>The usage mode is chosen first.</strong> The very first question of execution is push-through vs. auto-pause; it&rsquo;s set once and never re-asked, so the Lead is never interrupted mid-run to make that call.</li>
-      <li><strong>PM owns one script</strong> (<code>scripts/usage-monitor.sh</code>) run in the background via the Monitor tool. It is the single source of truth for usage (account resolution + thresholds) and emits a line <em>only</em> on actionable milestones: the critical-stop crossing, the work-can-restart reset (time-authoritative &mdash; fires on the known reset time even if usage data went stale while paused), and liveness <code>NUDGE</code> candidates (a task silent with no named <code>WAITING_ON</code> wait and no repo file activity &mdash; PM verifies before pinging anyone). No STATUS, no advisory chatter. In push-through mode it suppresses usage emits entirely. Task silence &gt;10 min and mid-execution window rollovers are quietly traced to <code>events.json</code> for post-mortems &mdash; never emitted, never escalated.</li>
-      <li><strong>The soft limit never interrupts anyone</strong> &mdash; it only matters when starting new work, so the Lead enforces it with a one-shot <code>status</code> check before each spawn. The Lead is messaged only for a real start/stop: on a critical-stop it pauses in-flight work, checkpoints, and arms a self-owned one-shot wake at the known reset time (its guaranteed restart); on reset it resumes with full context.</li>
+      <li><strong>Execution rides every 5-hour window to 100%.</strong> The old design stopped proactively at 90&ndash;95%, sacrificing ~10% of every window as a safety margin. Nothing proactively stops in-flight work anymore: when the limit hits, sessions park at their composer with full context &mdash; a free, uncoordinated pause.</li>
+      <li><strong>The limit sentinel resumes everything automatically.</strong> One machine-global background process (<code>scripts/limit-sentinel.sh</code>, installed by <code>/uc:setup</code> &mdash; a script, not an agent) detects limit hits via a <code>StopFailure</code> hook, knows every account&rsquo;s reset time, and at reset (+90s) wakes the whole fleet: durable <code>RESUME</code> signals plus tmux pane injection, including standalone (non-plan) sessions. No tokens are burned while parked, and no early wakes are wasted into a still-active limit.</li>
+      <li><strong>At 90% the sentinel injects a soft-band advisory</strong> into the Lead pane: finish in-flight work, don&rsquo;t start new tasks. That is the only proactive element left, and it costs one injected line. PM does not monitor usage at all &mdash; its background monitor is liveness-only (<code>NUDGE</code> candidates for yield-rule violations, verified before anyone is pinged), and it consumes the sentinel&rsquo;s usage events passively for per-task budget tracking.</li>
     </ol>
-    <p>Per-task budget data (usage % at start/end of each task) is tracked in plan.json. Multiple stop/restart cycles are supported with automatic recovery, and there is no separate watchdog agent to idle-nudge the Lead.</p>
+    <p>Per-task budget data (usage % at start/end of each task) is tracked in plan.json. If a weekly (7d) limit is hit you&rsquo;re notified &mdash; a days-long park is a user decision. Opt out of the soft-band gating with an explicit &ldquo;full speed&rdquo; instruction; reset wakes always happen regardless.</p>
 
     <div class="callout callout-purple">
-      <p><strong>Plan during the day, execute overnight.</strong> Planning modes (feature, debug, verification) are interactive and use modest tokens. Execution is autonomous and token-heavy. Start a plan during the day when you can discuss scope, then kick off execution before bed &mdash; most plans complete within a single rate limit window.</p>
+      <p><strong>Plan during the day, execute overnight.</strong> Planning modes (feature, debug, verification) are interactive and use modest tokens. Execution is autonomous and token-heavy &mdash; and it survives limit hits unattended: an overnight run that hits the window limit parks for free and the sentinel resumes it the moment the window resets. Start a plan during the day when you can discuss scope, then kick off execution before bed &mdash; it rides across rate-limit windows on its own.</p>
     </div>
 
     <details>

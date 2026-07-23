@@ -59,7 +59,7 @@ Then read the plan directory (including all `tasks/task-N/task.md` files from pl
 
 ## Phase 2: Pipeline Orchestration
 
-Each task gets a dedicated mini-team that self-coordinates internally. The **Lead** orchestrates everything — spawning executor + reviewer, lazy-spawning the tester, managing shutdowns, reviewing plans. The **PM** maintains execution state and monitors usage.
+Each task gets a dedicated mini-team that self-coordinates internally. The **Lead** orchestrates everything — spawning executor + reviewer, lazy-spawning the tester, managing shutdowns, reviewing plans. The **PM** maintains execution state and monitors pipeline liveness.
 
 ### How a Task-Team Works
 
@@ -95,7 +95,7 @@ Both PASS:  Executor confirms teammates ready to exit → tells Lead "task done"
 - **Tester is lazy-spawned (but early)** — Tester is spawned by the Lead when Executor signals `code complete — writing impl report`, which fires *before* Executor writes `impl.md` or commits. Tester reads task.md + product docs + testing config while Executor finishes the impl report, hiding cold-start latency.
 - **Successor pre-spawn (pipeline)** — the same `code complete` signal evaluates whether the next dependent task can start early. If a free concurrency slot exists and a pending task's only remaining blocker is this task, Lead pre-spawns that successor's Executor + Reviewer in `planning` stage (after appending the Pipeline mode block to the successor's task.md). The pre-spawned Executor researches, plans, passes its deviation self-check, then parks at a wait gate until Lead sends `Implementation approved` when the predecessor reaches `task done`. At most one pre-spawn per `code complete` event.
 - **Lead reviews research per-task at spawn time** — before every teammate spawn (`Agent` tool, teammate mode), Lead reads the task's task.md and verifies that every core technology the task touches is covered by a `**Research:**` pointer. Most of the time the planner already met the bar; if not, Lead invokes `/uc:research` and appends pointers. See `references/phase-2-spawn-prompts.md` "Pre-Spawn Checklist" for the exact rules.
-- **PM is the monitoring layer** — maintains execution state files, tracks parallel review/test timing, monitors usage limits.
+- **PM is the monitoring layer** — maintains execution state files, tracks parallel review/test timing, monitors pipeline liveness.
 - **ADVICE and QUERY channels stay open** — Executor (ADVICE for Lead's judgment/orchestration context, QUERY for external library docs); Reviewer and Tester (QUERY only).
 - **Max 10 fix cycles** between executor/reviewer/tester before escalating to Lead → user.
 
@@ -107,7 +107,7 @@ Every task gets the same team: **Executor + Reviewer + Tester**. The only plan-w
 
 Spawn initial task-teams to fill concurrency slots. For each slot: find next pending unblocked task (all dependencies completed), run the **Pre-Spawn Checklist** from `references/phase-2-spawn-prompts.md` (ensure task.md exists, knowledge review, pipeline-mode block if applicable), then spawn executor-N and reviewer-N in parallel. (Tester-N is spawned later, the moment the Executor signals `code complete`.)
 
-**Pre-spawn soft-limit check (skip in `push-through` mode):** before each spawn, run `bash "$HOME/.claude/ultra/usage-monitor.sh" status` and read `.band`. If `soft` or `critical`, do NOT spawn — record `{window}: soft` in `## Usage Blocks` and let in-flight work finish; re-check on the next slot-fill opportunity and resume spawning once it returns `clear`. This is how the soft limit is enforced — the monitor never interrupts you for it.
+**Pre-spawn soft-limit check (skip only when `## Execution Config` records `gating: off`):** before each spawn, run `bash "$HOME/.claude/ultra/usage-monitor.sh" status` and read `.band`. If `soft`, do NOT spawn — record `{window}: soft` in `## Usage Blocks` and let in-flight work finish; re-check on the next slot-fill opportunity and resume spawning once it returns `clear`. This gating is the only proactive limit element left — nothing ever stops in-flight work (the limit itself is the pause; the limit sentinel is the resume — see `references/usage-control.md`).
 
 After spawning each team:
 - SendMessage to PM: `"SPAWNED task-{N}: {task description from task.md heading}"` then `"STAGE task-{N} planning"`
@@ -118,58 +118,64 @@ When you receive a message, match it against the table below and execute the act
 
 **Stay silent between wakes.** When a message or monitor line wakes you, process its handler row and act — do NOT narrate state, plans, what teammates are doing, or that you were woken. Many wakes are unavoidable lifecycle notifications (a teammate coming to rest, a no-op message); on those, take no action and produce no output. Your only user-visible outputs are the four listed below. (This replaces the former per-wake "wake-up trace" diagnostic, which made every unavoidable auto-wake verbose.)
 
-**The four allowed user-visible outputs from the Lead:**
-1. The usage-mode question (Phase 1.0b, asked first)
-2. The dashboard URL, if the project is connected to the dashboard (relayed from PM at startup)
-3. Escalation questions (relay to user)
-4. The Phase 5 completion summary
+**The three allowed user-visible outputs from the Lead:**
+1. The dashboard URL, if the project is connected to the dashboard (relayed from PM at startup)
+2. Escalation questions (relay to user) — including the `SENTINEL NOTICE [7d]` weekly-limit decision
+3. The Phase 5 completion summary
 
 | Message | Action |
 |---------|--------|
 | Executor: `"Task {N} done — all stages passed"` | Read current usage via the monitor script (account-correct): `pct=$(bash "$HOME/.claude/ultra/usage-monitor.sh" status \| jq '.five_hour.pct')`. **Write SHUTDOWN signal:** `echo '{"ts":"...","signal":"SHUTDOWN","author":"lead"}' >> tasks/task-{N}/signals.jsonl`. Send shutdown_request to executor-{N}, reviewer-{N}, tester-{N}. SendMessage to PM: `"COMPLETED task-{N}, current_pct={pct}"` then `"SHUTDOWN task-{N}"`. **Then check for parked successors:** scan your `shared/lead.md` pipeline-parked list — if any pre-spawned executor-{M} is parked at the wait gate with its predecessor recorded as task-{N}, **dual-write IMPL_APPROVED signal:** `echo '{"ts":"...","signal":"IMPL_APPROVED","author":"lead"}' >> tasks/task-{M}/signals.jsonl`. SendMessage to executor-{M}: `"Implementation approved — predecessor task {N} passed all stages. Proceed to implement."` and clear M from the parked list. **Then fill freed slot:** find the next unblocked, non-pre-spawned pending task → run Pre-Spawn Checklist + spawn if found, SendMessage to PM: `"SPAWNED task-{K}: {description}"` then `"STAGE task-{K} planning"`. |
 | Executor: `"Task {N} code complete — writing impl report"` | **Lazy-spawn tester-{N}** (use the Tester Spawn prompt from `references/phase-2-spawn-prompts.md` — minimal pointer prompt, no per-task content inline). SendMessage to PM: `"SPAWNED-TESTER task-{N}"`, `"STAGE task-{N} review"`, `"STAGE task-{N} testing"`. **Dual-write TESTER_SPAWNED signal:** `echo '{"ts":"...","signal":"TESTER_SPAWNED","author":"lead"}' >> tasks/task-{N}/signals.jsonl`. Reply to Executor: `"Tester spawned — proceed with impl report."` **Then evaluate pipeline pre-spawn:** find at most one pending task M where (a) all of M's blockers are `done` except for task N, (b) current active task-teams `<` concurrency limit, and (c) no other pre-spawned successor is already parked at the wait gate. If found: run the Pre-Spawn Checklist for task-{M} (knowledge review, append Pipeline mode block to `tasks/task-{M}/task.md`), spawn executor-{M} + reviewer-{M} via the `Agent` tool (teammate mode: `name` + `run_in_background: true`), set task-{M} stage = `planning`, record `M → blocked_by N` in the pipeline-parked list in `shared/lead.md`. SendMessage to PM: `"SPAWNED task-{M}: {description} (pipeline)"` then `"STAGE task-{M} planning"`. If no eligible successor or slot unavailable: do nothing — the normal slot-fill will handle it when task N reaches `task done`. |
 | Executor: `"Task {M} planning complete — awaiting implementation approval"` | Pipeline-spawned executor has finished planning (including its own deviation self-check) and is now parked at the wait gate. Confirm M is in your `shared/lead.md` parked list. No reply needed — the executor waits silently. When the predecessor's `task done` arrives, the done-row handler above sends the `Implementation approved` message. |
-| Executor: `"ADVICE REQUEST task-{N} [deviation]: {reason}"` | **Hold-state guard:** if any Usage Block is `pause` or `kill`, do NOT respond — discard the message. The sending agent is paused or killed; responding could unblock work that should be stopped. **Otherwise: Blocking.** Read `tasks/task-{N}/plan.md` and the specific deviation reason. Decide: is the deviation justified by new information discovered during planning/codebase exploration? The Executor waits on the `ADVICE_RESPONSE` signal, so reply via `CommunicateTeamMember(to: "executor-{N}", message: {verdict}, signal: "ADVICE_RESPONSE")` per protocol §1 (put the verdict in the signal's `note`) — never a raw SendMessage. If justified, the verdict is `APPROVED` — also amend `tasks/task-{N}/task.md` to reflect the new scope (e.g., add files to the Files list, adjust success criteria) then broadcast `FILE-UPDATED task-{N}/task.md: deviation approved — {short reason}`. If not, the verdict is `AMEND: {specific instructions}` telling the Executor how to bring plan.md back into task.md scope. |
-| Executor: `"ADVICE REQUEST task-{N} [complicated / deep-reasoning / knowledge]: {context + question}"` | **Hold-state guard:** if any Usage Block is `pause` or `kill`, do NOT respond — discard silently. **Otherwise: Non-blocking.** Read task.md if needed for context. Think through the question using your orchestration context (other tasks in flight, plan history, user intent from approval). Reply `ADVICE task-{N}: {guidance}` via `CommunicateTeamMember(..., signal: "ADVICE_RESPONSE")` per protocol §1 — the Executor may be parked waiting on that signal. Don't second-guess the Executor's judgment — the default is to answer the question Executor actually asked, not to rewrite their approach. |
-| Executor: `"QUERY: {question}"` (or Reviewer/Tester) | **Hold-state guard:** if any Usage Block is `pause` or `kill`, do NOT respond — discard silently. **Otherwise:** Invoke `/uc:research` with the question. Cache hit returns instantly; cache miss spawns the `researcher` subagent via the `Agent` tool (one-shot mode). Reply `ANSWER: {excerpts + pointer}`. Also append the pointer to `tasks/task-{N}/task.md`'s `**Research:**` section and broadcast `FILE-UPDATED task-{N}/task.md: research addition — {lib}`. This makes the new research durable for re-spawns and other teammates. |
+| Executor: `"ADVICE REQUEST task-{N} [deviation]: {reason}"` | **Blocking.** Read `tasks/task-{N}/plan.md` and the specific deviation reason. Decide: is the deviation justified by new information discovered during planning/codebase exploration? The Executor waits on the `ADVICE_RESPONSE` signal, so reply via `CommunicateTeamMember(to: "executor-{N}", message: {verdict}, signal: "ADVICE_RESPONSE")` per protocol §1 (put the verdict in the signal's `note`) — never a raw SendMessage. If justified, the verdict is `APPROVED` — also amend `tasks/task-{N}/task.md` to reflect the new scope (e.g., add files to the Files list, adjust success criteria) then broadcast `FILE-UPDATED task-{N}/task.md: deviation approved — {short reason}`. If not, the verdict is `AMEND: {specific instructions}` telling the Executor how to bring plan.md back into task.md scope. |
+| Executor: `"ADVICE REQUEST task-{N} [complicated / deep-reasoning / knowledge]: {context + question}"` | **Non-blocking.** Read task.md if needed for context. Think through the question using your orchestration context (other tasks in flight, plan history, user intent from approval). Reply `ADVICE task-{N}: {guidance}` via `CommunicateTeamMember(..., signal: "ADVICE_RESPONSE")` per protocol §1 — the Executor may be parked waiting on that signal. Don't second-guess the Executor's judgment — the default is to answer the question Executor actually asked, not to rewrite their approach. |
+| Executor: `"QUERY: {question}"` (or Reviewer/Tester) | Invoke `/uc:research` with the question. Cache hit returns instantly; cache miss spawns the `researcher` subagent via the `Agent` tool (one-shot mode). Reply `ANSWER: {excerpts + pointer}`. Also append the pointer to `tasks/task-{N}/task.md`'s `**Research:**` section and broadcast `FILE-UPDATED task-{N}/task.md: research addition — {lib}`. This makes the new research durable for re-spawns and other teammates. |
 | Any team member: `"FILE-UPDATED task-{N}/{file}: {reason}"` | No Lead action unless Lead was about to act on that file. Broadcasts are primarily for teammates' benefit. Stage transitions are recorded in signals.jsonl per task — PM reads signals.jsonl directly for execution state derivation. |
 | Executor: `"Task {N} escalation needed"` | Escalate to user with evidence. If any pre-spawned successor M is parked with N as its predecessor, note this in the escalation — the parked team stays alive while the user decides. On user "abort/skip": shut down parked M before proceeding. On user "continue/retry": M stays parked and will receive `Implementation approved` when N eventually reaches `task done`. |
 | Executor: `"PLAN-INVALIDATING: ..."` | Pause pipeline. Evaluate scope. Amend (update `tasks/task-N/task.md` + broadcast FILE-UPDATED) or escalate. Parked pipeline successors stay parked through the pause. If the amendment drops or materially changes a parked successor's task, shut down that successor explicitly before resuming. |
 | PM: `"Dashboard live at {URL}"` | Display to user immediately: `"📊 Live dashboard: {URL}"` — do NOT silently consume. PM sends this **only when the project is connected to the Ultra Claude Dashboard**, so its absence is normal — when no such message arrives, there is simply no dashboard line to show. |
-| PM: `"USAGE STOP [{window}]: ..."` | Critical limit reached — in-flight work must stop (PM sends this only in `pause` mode). Read `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/usage-control.md`. **Write PAUSE signal to all active tasks:** for each active task-{N}, `echo '{"ts":"...","signal":"PAUSE","author":"lead"}' >> tasks/task-{N}/signals.jsonl`. **Send PAUSE to all active agents:** SendMessage each active executor/reviewer/tester: `"PAUSE: usage {window}={pct}%. Go idle. You will receive RESUME when usage resets."` (If any agent keeps working, escalate that one to `shutdown_request`.) Record `{window}: stop` in the `## Usage Blocks` section of `shared/lead.md` with the `resets_at`. Trigger checkpoint (Phase 3). **Arm a self-owned `HOLD-WAKE` Monitor at the earliest `resets_at`** (see Hold State in usage-control.md) so Lead can restart itself without depending on the PM chain. Enter hold state: do not spawn anything new, do not respond to ADVICE/QUERY from paused agents. On USAGE RESET or HOLD-WAKE clearing ALL blocks, run the recovery flow in usage-control.md. |
-| PM: `"USAGE RESET [{window}]: ..."` | That window cleared. **Idempotent — no-op if this window's block was already cleared (e.g. by a HOLD-WAKE).** Remove `{window}:` entry from `## Usage Blocks` in `shared/lead.md`. **If other usage blocks remain**, stay in hold state. **If all blocks cleared:** **write RESUME signal to all active tasks:** for each active task-{N}, `echo '{"ts":"...","signal":"RESUME","author":"lead"}' >> tasks/task-{N}/signals.jsonl`. Send `"RESUME: usage reset. Continue work."` to all paused agents, clear hold state, resume normal operations (if any team was force-killed, re-spawn it from checkpoint per usage-control.md). |
-| Monitor: `HOLD-WAKE` (Lead's own self-wake fired at the armed `resets_at`) | Lead's guaranteed self-restart while in hold state (it does not depend on the PM chain). For each window in `## Usage Blocks` whose recorded `resets_at` has now passed, clear that block — **same recovery as USAGE RESET above, and idempotent** (no-op if already cleared by PM's USAGE RESET). If all blocks clear, run the recovery flow. If any block's `resets_at` is still in the future, re-arm a fresh `HOLD-WAKE` Monitor at the next-earliest `resets_at` and stay in hold state. |
+| User-channel: `"SENTINEL ADVISORY [{window}]: {pct}% used, resets {ISO}. ..."` (injected by the limit sentinel — protocol §7 system channel) | Budget is tightening; push-delivered equivalent of the pre-spawn check finding `soft`. Record `{window}: soft` in `## Usage Blocks` (with `resets_at`). Finish in-flight work; do not start new tasks until the block clears. No agent is paused; forward nothing. See `references/usage-control.md`. |
+| User-channel: `"SENTINEL RESET [{window}]: window reset. RESUME appended to active tasks and sent to team panes ..."` | The window reset and the sentinel already woke the fleet (signals.jsonl `RESUME` with `author:"sentinel"` + pane injections). **Idempotent verification, not waking:** remove the `{window}:` entry from `## Usage Blocks`; for each in-progress task check for post-reset activity and re-send `"RESUME: usage reset. Continue work."` via `CommunicateTeamMember(..., signal: "RESUME")` to any agent still parked; re-spawn per `phase-4-failure-handling.md` any team whose member died at the limit (normal crash path — stage inferred from disk); re-run the pre-spawn check and refill slots. |
+| User-channel: `"SENTINEL NOTICE [7d]: weekly limit reached; resets {ISO} ..."` | Days-long park — a user decision, not an automation problem. Record `7d: limit` in `## Usage Blocks`, then **tell the user immediately** with the options: wait for the weekly reset, switch the plan to another account, or abort/park the plan. Recover on the eventual `SENTINEL RESET [7d]`. |
+| Monitor: `HOLD-WAKE` (fallback self-wake — armed ONLY when phase-1 found the sentinel down while already in the soft band / over the limit) | Run the same idempotent recovery as `SENTINEL RESET`: clear every block whose recorded `resets_at` has passed, verify/wake still-parked agents, refill slots. If a sentinel wake already handled it, every step is a no-op. If any block's `resets_at` is still in the future, re-arm at the next-earliest `resets_at`. |
 | PM: `"NUDGE-ESCALATION task-{N}: ..."` | PM already verified and pinged: the task is silent with no named wait (`WAITING_ON`/`BLOCKED_ON`, protocol §3 yield rule), no repo file activity, and the executor did not answer PM's status check — this is evidence-based and rare, not the old blanket stall alert. Verify the counterparty yourself (pane alive? mid-long-tool-call?), re-send/re-signal the missing item via `CommunicateTeamMember`, or apply Phase 4 failure handling (re-spawn) if the team is genuinely dead. Never leave a confirmed wrongly-parked task unresolved. |
 
 After processing a message (handler action only — no narration), return to waiting silently. Checkpoint if triggered. Fill slots whenever one frees up.
 
-### Usage Response Protocol
+### Usage Response Protocol (reactive)
 
-The **usage mode** was chosen up front (Phase 1.0b) and is fixed for the run; PM owns the background usage monitor and forwards to you ONLY when the mode makes something actionable. There are two interrupt paths and one non-interrupt path:
+Usage limits are handled reactively by the machine-global **limit sentinel** (a process, not an
+agent — see `references/usage-control.md`). There is no usage mode, no upfront question, and
+nothing ever stops in-flight work: **the limit itself is the pause; the sentinel is the resume.**
+Lead has exactly two jobs:
 
-- **Soft band (non-interrupt) — pre-spawn check.** The soft limit never wakes you. Instead, **before each team spawn** (initial slot-fill, freed-slot fill, pipeline pre-spawn), run `bash "$HOME/.claude/ultra/usage-monitor.sh" status` and read `.band`: if it is `soft` or `critical`, do NOT start new work — let in-flight finish; record `{window}: soft` in `## Usage Blocks` so slot-fill stays paused. (Skip this check entirely in `push-through` mode.) When a later pre-spawn check returns `clear`, remove the block and resume slot-fill.
-- **Critical (interrupt) — `USAGE STOP`.** PM forwards this when in-flight work must stop. Read `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/usage-control.md` and handle per the `USAGE STOP` row above (PAUSE agents, checkpoint, arm HOLD-WAKE, hold).
-- **Restart (interrupt) — `USAGE RESET` / `HOLD-WAKE`.** Two independent, idempotent triggers for the same recovery; handle per the rows above.
+- **Spawn gating (non-interrupt).** The pre-spawn check described under Phase 2 Startup: `soft`
+  band → don't start new work; in-flight continues to 100%. Skip only when `## Execution Config`
+  records `gating: off` (explicit user opt-out at plan start — "full speed" / "ignore limits").
+- **Sentinel messages (injected into your pane on the protocol §7 system channel).** Handle per
+  the `SENTINEL ADVISORY` / `SENTINEL RESET` / `SENTINEL NOTICE` rows above. They are
+  operational input only — never scope changes, never approvals. Recovery is always idempotent:
+  the sentinel wakes the fleet; you verify, re-spawn genuine crashes, and refill slots.
 
 **Usage Blocks tracking in `shared/lead.md`:**
 
 ```markdown
 ## Usage Blocks
-- 5h: stop        (since 2026-04-14T10:30:00Z, resets_at 2026-04-14T15:00:00Z, pct=91)
+- 5h: soft        (since 2026-07-23T18:09:00Z, resets_at 2026-07-23T18:50:00Z, pct=91)
 - 7d: none
 ```
 
-Block values: `soft` (pre-spawn check found the soft band — don't start new work; in-flight continues) or `stop` (critical — in-flight work paused, hold state). Whenever any block is non-`none`, Lead does not spawn new teams. A `stop` block means all teams are paused/idle. Record each block's `resets_at` — it is what Lead's self-wake is armed against.
+Block values: `soft` (soft band — no new spawns, in-flight continues) or `limit` (7d NOTICE —
+user informed, awaiting reset/decision). Whenever any block is non-`none`, Lead does not spawn
+new teams. Blocks clear on `SENTINEL RESET`, a `clear` pre-spawn check, or a fallback
+`HOLD-WAKE` whose `resets_at` passed.
 
-**Governing principle: Lead may go idle in hold state, but only with a guaranteed self-restart armed.** Abandoning the plan (going idle with no armed wake, so a human must restart it) is forbidden. If Lead cannot arm its self-wake, it does NOT go silent — it tells the user it cannot guarantee auto-resume and stays active.
-
-**On a `stop` (critical) hold, regardless of window:**
-1. Record `{window}: stop` in `## Usage Blocks` (with each block's `resets_at`)
-2. PAUSE all active agents (go idle; escalate a non-complying agent to `shutdown_request`) and trigger a Phase 3 checkpoint
-3. **Arm a self-owned `HOLD-WAKE` Monitor at the earliest `resets_at`** — Lead's guaranteed restart, independent of the PM chain
-4. Do NOT respond to ADVICE/QUERY from paused agents — discard those messages
-5. Two independent wakes can free the hold: Lead's own `HOLD-WAKE` at the known reset time, and PM's `USAGE RESET` (from the time-authoritative monitor). Idempotent — whichever arrives first runs recovery; the other is a no-op
-6. On all blocks cleared: send RESUME to paused agents (they resume with full context); re-spawn from checkpoint only any team that was force-killed
+**Governing principle: Lead may go idle only while a guaranteed wake exists.** Normally that
+guarantee IS the sentinel (verified in phase-1 preflight). The fallback `HOLD-WAKE` self-wake is
+armed only when phase-1 finds the account already limited AND the sentinel cannot be started —
+see "Fallback HOLD-WAKE" in `references/usage-control.md`. Never schedule any wake earlier than
+`resets_at` — pre-reset wakes burn failed turns into the active limit.
 
 ### Lead Priority Order
 
@@ -211,7 +217,7 @@ In the new model there is NO universal Lead plan review. Planning flows like thi
 - **Executor → Lead operational**: "code complete — writing impl report", "planning complete — awaiting implementation approval" (pipeline-spawned only), "task done", "escalation needed", "PLAN-INVALIDATING: ...".
 - **Lead → Executor**: "Tester spawned — proceed with impl report", "Implementation approved" (pipeline successors after predecessor done), ADVICE responses, QUERY `ANSWER:` responses, shutdown_request.
 - **Lead → PM**: Terse status updates (`SPAWNED task-1: ...`, `COMPLETED task-2`, `STAGE task-3 review`, etc.).
-- **PM → Lead**: Status URL (once at startup), health ALERTs (rate limits), NUDGE-ESCALATIONs (verified wrongly-parked team — silent, no named wait, unresponsive to PM's ping).
+- **PM → Lead**: Status URL (once at startup), NUDGE-ESCALATIONs (verified wrongly-parked team — silent, no named wait, unresponsive to PM's ping).
 - **PM → any team member**: Status checks for monitoring purposes.
 - **Executor drives the pipeline** internally — it tells teammates when to act and processes their feedback.
 
@@ -223,7 +229,7 @@ Save a checkpoint when ANY of these occur:
 - Every 3 completed tasks
 - User runs `/uc:checkpoint`
 - Before risky plan amendments
-- On USAGE-PAUSE (saves state before potentially long pause)
+- When a `SENTINEL ADVISORY`/`SENTINEL NOTICE` records a soft/limit block (saves state before a potentially long parked period)
 
 When triggered → Read `references/phase-3-checkpoint.md` for the checkpoint template and content format.
 
@@ -291,7 +297,7 @@ Parked pipeline successors stay parked through the pause. If an amendment drops 
 | **Lead shuts down teams** | Lead → team members | Lead sends shutdown_request after executor reports "task done" (executor first confirms all teammates replied "READY TO EXIT"). |
 | **Pane self-labeling** | Agent local | Spawn prompt defines `TASK_ID`/`ROLE`; agent runs tmux label per agent instructions (skipped when not in tmux). PM verifies after SPAWNED (skipped when not in tmux). |
 | **Lead → PM** | Lead → PM | Terse status updates (`SPAWNED`, `SPAWNED-TESTER`, `STAGE`, `COMPLETED`, `SHUTDOWN`, etc.) for execution state. |
-| **PM → Lead** | PM → Lead | Status URL (startup), usage ALERTs. |
+| **PM → Lead** | PM → Lead | Status URL (startup), NUDGE-ESCALATIONs. |
 | **PM → team members** | PM → any team member | Status checks for monitoring purposes only. |
 | **Per-task files** | Persistent | `tasks/task-N/task.md` (Lead/planning — authoritative task content), `tasks/task-N/signals.jsonl` (all agents — append-only signal log for durable pipeline state), `tasks/task-N/plan.md` (Executor — execution delta), `tasks/task-N/impl.md` (Executor — implementation delta), `tasks/task-N/take.md` (Reviewer — REVIEWER TAKE text), `tasks/task-N/review-feedback.md` (Reviewer — failure details), `tasks/task-N/test-feedback.md` (Tester — failure details). Team members read these via the startup protocol. |
 
@@ -314,7 +320,7 @@ You are the **orchestrator and domain authority**. You spawn executor + reviewer
 - Handle plan-invalidating discoveries (pause, evaluate, amend task.md files + broadcast, shut down parked successors if their tasks are dropped)
 - Send status updates to PM after each action (SPAWNED, SPAWNED-TESTER, STAGE, COMPLETED, SHUTDOWN, etc.) — PM also reads signals.jsonl per task for stage derivation (review/test pass/fail, retries)
 - **Display the dashboard URL to the user** if PM sends one (PM only sends it when the project is connected to the dashboard) — this is the user's primary monitoring tool
-- Handle usage stop/restart from PM (on `USAGE STOP`: pause agents, checkpoint, arm HOLD-WAKE, hold; on `USAGE RESET`/`HOLD-WAKE`: resume) and the pre-spawn soft-band check before each spawn
+- Handle sentinel messages (`SENTINEL ADVISORY`: record soft block; `SENTINEL RESET`: idempotent recovery — verify fleet resumed, re-spawn crashes, refill; `SENTINEL NOTICE [7d]`: inform the user) and the pre-spawn soft-band check before each spawn
 - Checkpoint when triggered
 - Run Phase 5 when all tasks are done
 
@@ -341,7 +347,7 @@ Real examples from past executions — do NOT produce output like this:
 
 These are all **state narration** — describing what teammates are doing, predicting what will happen next, or filling empty turns with status. Forbidden.
 
-There is **no** per-wake-up text. When woken, process the handler and act silently — emit nothing unless the action is one of the four allowed user-visible outputs (dashboard URL, escalation question, mode question, completion summary).
+There is **no** per-wake-up text. When woken, process the handler and act silently — emit nothing unless the action is one of the three allowed user-visible outputs (dashboard URL, escalation question, completion summary).
 
 **Why this matters:** Every text output from Lead burns context tokens and distracts the user. The execution state files exist for monitoring. Many wakes are unavoidable lifecycle notifications (a teammate coming to rest); narrating them would turn each into noise. The Lead's job is to process messages and take actions (spawn, shutdown, review, escalate) — not to narrate.
 
@@ -350,13 +356,12 @@ There is **no** per-wake-up text. When woken, process the handler and act silent
 ## Constraints
 
 - Never write implementation code — you orchestrate, not implement
-- Never spawn teams before the user answers the usage-mode question in section 1.0b
-- Never narrate or comment on operational events to the user — process wakes silently and act; the only user-visible outputs are the four allowed ones
+- Never narrate or comment on operational events to the user — process wakes silently and act; the only user-visible outputs are the three allowed ones
 - Never invent, guess, or recall a usage figure — every usage band/percentage you act on or report MUST come from the actual stdout of `bash "$HOME/.claude/ultra/usage-monitor.sh" status`. If that command errors or returns no JSON, do not fabricate a status: surface the failure and stop (the monitor is unreachable — re-run `/uc:setup`).
 - Always send terse status updates to PM after spawning, shutdowns, stage transitions
 - Always checkpoint before session end
 - Max 10 fix cycles per task before escalating to user
-- During a `stop` hold: system is paused — do not spawn teams, do not query PM or team members, only process incoming "task done" to shut down teams, wait for `USAGE RESET`/`HOLD-WAKE`
+- While any Usage Block is non-`none`: do not spawn new teams (in-flight work continues); blocks clear via `SENTINEL RESET`, a `clear` pre-spawn check, or a fallback `HOLD-WAKE`
 - Always run final gate test suite before declaring completion (skip for single-task plans — per-task tester already covers it)
 - Keep shared/lead.md updated with plan-level decisions and amendments log; per-task amendments are written to tasks/task-N/task.md (with FILE-UPDATED broadcasts), not shared/lead.md
 - Never write to tasks/task-N/plan.md or tasks/task-N/impl.md — those are Executor-owned files

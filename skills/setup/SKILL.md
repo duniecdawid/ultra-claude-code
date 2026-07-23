@@ -121,22 +121,27 @@ PASS if:
 - `jq` is installed
 - The statusLine has `"type": "command"`, `"command": "bash ~/.claude/ultra/statusline.sh"`, and `"refreshInterval": 1`
 
-### 3.7 Session Hooks
+### 3.7 Session Hooks + Limit Sentinel
 
-Check if session tracking hooks are configured and symlinked:
+Check if session tracking hooks, the StopFailure hook, and the limit sentinel are configured:
 
 ```bash
 [ -L ~/.claude/ultra/lib.sh ] && echo "lib exists" || echo "lib missing"
 [ -L ~/.claude/ultra/usage-monitor.sh ] && echo "usage-monitor exists" || echo "usage-monitor missing"
+[ -L ~/.claude/ultra/limit-sentinel.sh ] && echo "sentinel exists" || echo "sentinel missing"
 [ -L ~/.claude/ultra/hooks/session-start.sh ] && echo "start exists" || echo "start missing"
 [ -L ~/.claude/ultra/hooks/session-end.sh ] && echo "end exists" || echo "end missing"
+[ -L ~/.claude/ultra/hooks/stop-failure.sh ] && echo "stop-failure exists" || echo "stop-failure missing"
 jq -r '.hooks.SessionStart // empty' ~/.claude/settings.json 2>/dev/null
 jq -r '.hooks.SessionEnd // empty' ~/.claude/settings.json 2>/dev/null
+jq -r '.hooks.StopFailure // empty' ~/.claude/settings.json 2>/dev/null
+bash ~/.claude/ultra/limit-sentinel.sh status 2>/dev/null | jq -r '.running' 2>/dev/null
 ```
 
 PASS if:
-- All symlinks exist (`lib.sh`, `usage-monitor.sh`, `hooks/session-start.sh`, `hooks/session-end.sh`)
-- `~/.claude/settings.json` has `hooks.SessionStart` and `hooks.SessionEnd` entries
+- All symlinks exist (`lib.sh`, `usage-monitor.sh`, `limit-sentinel.sh`, `hooks/session-start.sh`, `hooks/session-end.sh`, `hooks/stop-failure.sh`)
+- `~/.claude/settings.json` has `hooks.SessionStart`, `hooks.SessionEnd`, and `hooks.StopFailure` entries
+- `limit-sentinel.sh status` reports `running: true`
 
 ### 3.8 Tailscale (optional)
 
@@ -434,9 +439,10 @@ mkdir -p ~/.claude/ultra
 ln -sf "${CLAUDE_PLUGIN_ROOT}/scripts/statusline.sh" ~/.claude/ultra/statusline.sh
 ln -sf "${CLAUDE_PLUGIN_ROOT}/scripts/lib.sh" ~/.claude/ultra/lib.sh
 ln -sf "${CLAUDE_PLUGIN_ROOT}/scripts/usage-monitor.sh" ~/.claude/ultra/usage-monitor.sh
+ln -sf "${CLAUDE_PLUGIN_ROOT}/scripts/limit-sentinel.sh" ~/.claude/ultra/limit-sentinel.sh
 ```
 
-`usage-monitor.sh` is symlinked here so plan-execution can invoke it via a stable absolute path (`~/.claude/ultra/usage-monitor.sh`) that does not depend on `$CLAUDE_PLUGIN_ROOT` being present in the Bash shell.
+`usage-monitor.sh` and `limit-sentinel.sh` are symlinked here so plan-execution, the hooks, and the sentinel itself can be invoked via stable absolute paths (`~/.claude/ultra/<name>.sh`) that do not depend on `$CLAUDE_PLUGIN_ROOT` being present in the Bash shell.
 
 3. **Configure settings.json** — read `~/.claude/settings.json`, add or update the `statusLine` key:
 
@@ -477,21 +483,23 @@ Session hooks establish per-session account identity at session boundaries, elim
 mkdir -p ~/.claude/ultra/hooks
 ln -sf "${CLAUDE_PLUGIN_ROOT}/scripts/hooks/session-start.sh" ~/.claude/ultra/hooks/session-start.sh
 ln -sf "${CLAUDE_PLUGIN_ROOT}/scripts/hooks/session-end.sh" ~/.claude/ultra/hooks/session-end.sh
+ln -sf "${CLAUDE_PLUGIN_ROOT}/scripts/hooks/stop-failure.sh" ~/.claude/ultra/hooks/stop-failure.sh
 ```
 
-2. **Configure hooks in settings.json** — add `SessionStart` and `SessionEnd` hooks:
+2. **Configure hooks in settings.json** — add `SessionStart`, `SessionEnd`, and `StopFailure` hooks:
 
 ```bash
 settings_file="$HOME/.claude/settings.json"
 jq '
   .hooks.SessionStart = [{"matcher": "", "hooks": [{"type": "command", "command": "bash ~/.claude/ultra/hooks/session-start.sh"}]}] |
-  .hooks.SessionEnd = [{"matcher": "", "hooks": [{"type": "command", "command": "bash ~/.claude/ultra/hooks/session-end.sh"}]}]
+  .hooks.SessionEnd = [{"matcher": "", "hooks": [{"type": "command", "command": "bash ~/.claude/ultra/hooks/session-end.sh"}]}] |
+  .hooks.StopFailure = [{"matcher": "rate_limit", "hooks": [{"type": "command", "command": "bash ~/.claude/ultra/hooks/stop-failure.sh", "timeout": 5}]}]
 ' "$settings_file" > "${settings_file}.tmp" && mv "${settings_file}.tmp" "$settings_file"
 ```
 
-Use `jq` to merge into existing settings without overwriting other top-level keys. The `SessionStart` and `SessionEnd` arrays are fully managed by Ultra Claude.
+Use `jq` to merge into existing settings without overwriting other top-level keys. The `SessionStart`, `SessionEnd`, and `StopFailure` arrays are fully managed by Ultra Claude (replace, not append). The StopFailure hook is the limit sentinel's detection channel: it fires when a turn dies on a rate-limit error and spools an event the sentinel consumes to schedule the post-reset wake.
 
-Tell the user: "Session hooks configured — each Claude Code session will now be tracked with its account identity. This eliminates the multi-account race condition."
+Tell the user: "Session hooks configured — each Claude Code session will now be tracked with its account identity, and limit hits are detected for automatic post-reset resume."
 
 3. **Clear legacy usage data** — the usage-status.json format changed from email-keyed to account_id-keyed. Remove the old file so it gets recreated cleanly:
 
@@ -500,6 +508,40 @@ rm -f ~/.claude/ultra/usage-status.json
 ```
 
 **Important:** Always re-create the symlinks during setup. The hook scripts source `~/.claude/ultra/lib.sh` which must be symlinked first (done in 5.6).
+
+### 5.7b Fix: Limit Sentinel
+
+The limit sentinel (`scripts/limit-sentinel.sh`) is ONE global background process per machine
+that handles usage limits reactively: it consumes the StopFailure hook's events, wakes parked
+sessions when their window resets, injects 90% soft-band advisories into plan-execution Lead
+panes, pre-opens fresh windows for mapped accounts, and notifies on weekly-limit parks. It is a
+process, not an agent — plan-execution agents never monitor usage themselves.
+
+1. **Initialize and start it** (the symlink was created in 5.6):
+
+```bash
+mkdir -p ~/.claude/ultra/sentinel
+bash ~/.claude/ultra/limit-sentinel.sh ensure
+sleep 1
+bash ~/.claude/ultra/limit-sentinel.sh status
+```
+
+PASS when `status` reports `running: true`. The sentinel is self-healing after this: the
+SessionStart hook re-runs `ensure` on every new session (lazy reboot survival), and the
+StopFailure hook re-runs it the moment a limit hit is detected.
+
+2. **Machine-context topic (optional but recommended)** — the sentinel reads
+`~/.claude/skills/machine-context/limit-sentinel.md` for machine-specific values, with runtime
+detection as fallback (see the machine-context interview, `references/machine-context-interview.md`):
+
+```markdown
+map: <account-slug> = <profile-dir or "default">   # account → CLAUDE_CONFIG_DIR for window pre-open
+notify: <shell command>                             # gets the message as $1 (weekly-limit alerts)
+standalone-wake: on                                 # wake non-plan sessions after reset (default on)
+```
+
+Tell the user: "Limit sentinel running — sessions that hit a usage limit will resume
+automatically when the window resets. No usage questions will be asked at plan start."
 
 ### 5.8 Fix: Tailscale
 

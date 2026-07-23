@@ -62,5 +62,9 @@ Append to `documentation/plans/$ARGUMENTS/shared/lead.md`:
 1. All task-teams have already self-exited after their tasks passed
 2. Final Gate Tester exits after reporting
 3. Project Manager exits last (after delivering operational report)
-4. Keep plan directory with all artifacts (including `operational-report.md`, `tasks/task-N/task.md`/`plan.md`/`impl.md`, and `shared/lead.md`)
-5. Present summary to user — mention that the operational report is available at `documentation/plans/$ARGUMENTS/operational-report.md`
+4. Remove the sentinel registration (the plan is no longer a wake/advisory target for the limit sentinel):
+   ```bash
+   rm -f ~/.claude/ultra/sentinel/plans/{PLAN_NAME}.json
+   ```
+5. Keep plan directory with all artifacts (including `operational-report.md`, `tasks/task-N/task.md`/`plan.md`/`impl.md`, and `shared/lead.md`)
+6. Present summary to user — mention that the operational report is available at `documentation/plans/$ARGUMENTS/operational-report.md`

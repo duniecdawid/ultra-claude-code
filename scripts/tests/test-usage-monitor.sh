@@ -1,7 +1,9 @@
 #!/bin/bash
-# Test: scripts/usage-monitor.sh — watch-mode milestone logic + status-mode account resolution.
-# Proves the monitor wakes ONLY on the critical-stop crossing and the work-can-restart reset,
-# stays silent on clear/soft/stale ticks, and that status mode reads the resolved account.
+# Test: scripts/usage-monitor.sh — liveness watch (NUDGE/silence) + status-mode account
+# resolution and bands. Usage-limit handling lives in the limit sentinel (see
+# test-limit-sentinel.sh); this script proves the monitor stays in its liveness lane:
+# status reads the resolved account with clear/soft bands (soft >= 90, no critical tier),
+# and watch emits ONLY the protocol §3 NUDGE candidates while tracing silence quietly.
 # Exit 0 = pass, Exit 1 = fail.
 
 set -uo pipefail
@@ -19,49 +21,38 @@ DEBUG_LOG="$TEST_DIR/dbg.log"
 
 pass=0; fail=0
 ck(){ if [ "$2" = "$3" ]; then pass=$((pass+1)); else echo "  FAIL: $1 (exp [$2] got [$3])"; fail=$((fail+1)); fi; }
-fresh_state(){ echo '{"five_hour":{"last_signal":null,"reset_latch":0},"seven_day":{"last_signal":null,"reset_latch":0},"silence_logged":{},"nudge_state":{},"rollover":{}}' > "$STATE_FILE"; }
+fresh_state(){ echo '{"silence_logged":{},"nudge_state":{}}' > "$STATE_FILE"; }
 mkusage(){ jq -nc --arg a "$1" --argjson p5 "$2" --argjson r5 "$3" --argjson p7 "$4" --argjson r7 "$5" \
   '{accounts:{($a):{rate_limits:{five_hour:{used_percentage:$p5,resets_at:$r5},seven_day:{used_percentage:$p7,resets_at:$r7}},updated_at:"2026-01-01T00:00:00Z"}}}' > "$USAGE_FILE"; }
 
 echo "=== Test: usage-monitor.sh ==="
 now=$(date +%s); past=$((now-120)); future=$((now+3600))
 
-# --- watch: check_window ---
-fresh_state; ck "clear → silent" "" "$(check_window five_hour 5h 50 "$future" 90 80)"
-fresh_state; ck "soft → silent (spawn-time only)" "" "$(check_window five_hour 5h 85 "$future" 90 80)"
-fresh_state
-ck "critical crossing → CRITICAL" 1 "$(check_window five_hour 5h 91 "$future" 90 80 | grep -c '"alert":"CRITICAL"')"
-ck "no re-emit while critical" "" "$(check_window five_hour 5h 92 "$future" 90 80)"
-ck "reset-time-passed → USAGE-RESET reason" 1 "$(check_window five_hour 5h 92 "$past" 90 80 | grep -c reset_time_passed)"
-ck "latch suppresses re-CRITICAL on stale data" "" "$(check_window five_hour 5h 92 "$past" 90 80)"
-ck "fresh low data → silent + latch clears" "" "$(check_window five_hour 5h 5 "$future" 90 80)"
-ck "latch cleared" 0 "$(jq -r '.five_hour.reset_latch' "$STATE_FILE")"
-ck "re-cross critical → CRITICAL again" 1 "$(check_window five_hour 5h 91 "$future" 90 80 | grep -c '"alert":"CRITICAL"')"
-fresh_state; jq '.five_hour.last_signal="critical"' "$STATE_FILE" > "$STATE_FILE.t" && mv "$STATE_FILE.t" "$STATE_FILE"
-ck "fresh drop below soft → USAGE-RESET (no reason)" 0 "$(check_window five_hour 5h 10 "$future" 90 80 | grep -c reason)"
-fresh_state; ck "never-critical + reset passed → no spurious reset" "" "$(check_window five_hour 5h 50 "$past" 90 80)"
-
-# --- status: account resolution + bands ---
+# --- status: account resolution + bands (clear/soft only; soft = don't START new work) ---
 mkusage "acct-hot" 91 "$future" 40 "$future"
 jq '.accounts["acct-cold"]={rate_limits:{five_hour:{used_percentage:2,resets_at:'"$future"'},seven_day:{used_percentage:3,resets_at:'"$future"'}},updated_at:"2026-01-01T00:00:00Z"}' \
   "$USAGE_FILE" > "$USAGE_FILE.t" && mv "$USAGE_FILE.t" "$USAGE_FILE"
 js=$(cmd_status "acct-hot")
 ck "status valid json" 0 "$(echo "$js" | jq empty >/dev/null 2>&1; echo $?)"
 ck "reads resolved account (91 not 2)" 91 "$(echo "$js" | jq '.five_hour.pct')"
-ck "overall band critical" critical "$(echo "$js" | jq -r '.band')"
+ck "91% is soft band" soft "$(echo "$js" | jq -r '.five_hour.band')"
+ck "overall band soft" soft "$(echo "$js" | jq -r '.band')"
 ck "different account is clear" clear "$(cmd_status acct-cold | jq -r '.band')"
-mkusage "acct-soft" 84 "$future" 50 "$future"
-ck "soft band classified" soft "$(cmd_status acct-soft | jq -r '.band')"
+mkusage "acct-under" 89 "$future" 50 "$future"
+ck "89% still clear (soft starts at 90)" clear "$(cmd_status acct-under | jq -r '.band')"
+mkusage "acct-7d" 10 "$future" 92 "$future"
+ck "7d soft classified" soft "$(cmd_status acct-7d | jq -r '.seven_day.band')"
 # Time-authoritative status: a STALE high pct whose reset time has passed must read clear
 # (this is the "file has stale data" bug — statusline rewrites updated_at but not the numbers).
-mkusage "acct-stale" 101 "$past" 80 "$past"
+mkusage "acct-stale" 101 "$past" 95 "$past"
 js3=$(cmd_status acct-stale)
 ck "stale-after-reset 5h band clear" clear "$(echo "$js3" | jq -r '.five_hour.band')"
 ck "stale-after-reset reset_elapsed true" true "$(echo "$js3" | jq -r '.five_hour.reset_elapsed')"
 ck "stale-after-reset overall band clear" clear "$(echo "$js3" | jq -r '.band')"
-# Genuinely over (high pct, reset still in the future) must read critical
-mkusage "acct-over" 96 "$future" 50 "$future"
-ck "real over-limit reads critical" critical "$(cmd_status acct-over | jq -r '.five_hour.band')"
+# Genuinely over (high pct, reset still in the future) reads soft — never anything stronger:
+# there is no critical tier; nothing proactively stops in-flight work anymore.
+mkusage "acct-over" 101 "$future" 50 "$future"
+ck "over-limit reads soft (no critical tier)" soft "$(cmd_status acct-over | jq -r '.five_hour.band')"
 
 # --- watch: check_silence — quiet trace + NUDGE ladder (protocol §3 yield-rule violations) ---
 REPO="$TEST_DIR/repo"; PLAN_DIR="$REPO/docs/plans/p1"
@@ -99,21 +90,8 @@ check_silence "$PLAN_DIR"
 ck "silence debounce self-clears on fresh activity" 0 "$(jq '.silence_logged | has("task-1") | if . then 1 else 0 end' "$STATE_FILE")"
 ck "nudge ladder self-clears on fresh activity" 0 "$(jq '.nudge_state | has("task-1") | if . then 1 else 0 end' "$STATE_FILE")"
 
-# --- watch: check_rollover (quiet usage_window_rolled trace — never stdout) ---
-fresh_state
-PLAN2="$TEST_DIR/plan2"; mkdir -p "$PLAN2"
-echo '{"tasks":[{"task_id":"task-1","status":"in_progress"}]}' > "$PLAN2/plan.json"
-echo '{"events":[]}' > "$PLAN2/events.json"
-mkusage "acct-roll" 50 "$future" 40 "$future"
-ck "rollover first sight → no stdout, no event" "" "$(check_rollover "$PLAN2" "acct-roll")"
-ck "rollover first sight stores resets_at" "$future" "$(jq -r '.rollover.five_hour' "$STATE_FILE")"
-mkusage "acct-roll" 5 "$((future+3600))" 40 "$future"
-check_rollover "$PLAN2" "acct-roll"
-ck "resets_at advanced mid-task → usage_window_rolled" 1 "$(jq '[.events[] | select(.type=="usage_window_rolled" and .window=="5h")] | length' "$PLAN2/events.json")"
-ck "unchanged 7d window → no extra event" 1 "$(jq '[.events[] | select(.type=="usage_window_rolled")] | length' "$PLAN2/events.json")"
-echo '{"tasks":[{"task_id":"task-1","status":"completed"}]}' > "$PLAN2/plan.json"
-mkusage "acct-roll" 5 "$((future+7200))" 40 "$future"
-check_rollover "$PLAN2" "acct-roll"
-ck "no in_progress task → rollover not evented" 1 "$(jq '[.events[] | select(.type=="usage_window_rolled")] | length' "$PLAN2/events.json")"
+# --- removed responsibilities stay removed ---
+ck "check_window is gone (sentinel's job)" 1 "$(type check_window >/dev/null 2>&1; echo $?)"
+ck "check_rollover is gone (sentinel's job)" 1 "$(type check_rollover >/dev/null 2>&1; echo $?)"
 
 if [ "$fail" -eq 0 ]; then echo "PASS ($pass checks)"; exit 0; else echo "FAILED ($fail of $((pass+fail)))"; exit 1; fi

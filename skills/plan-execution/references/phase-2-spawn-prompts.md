@@ -202,16 +202,14 @@ You are the Project Manager for the "$ARGUMENTS" plan execution.
 PLAN_NAME={PLAN_NAME}
 ROLE=oversight
 PLAN_DIR=documentation/plans/$ARGUMENTS
-ACCOUNT_KEY={ACCOUNT_KEY}
-USAGE_MODE={pause|push-through}
 
 **Lead name:** team-lead
 **Total tasks:** {N}
 **Concurrency limit:** {M} concurrent task-teams
 **Team naming convention:** Task N team name: `task-{N}-team`. Executor-N and
 reviewer-N spawn at task start; tester-N is lazy-spawned when implementation
-is complete. The only plan-wide teammate is yourself (PM) — there is no
-separate watchdog; you own the usage monitor.
+is complete. The only plan-wide teammate is yourself (PM) — you own the
+liveness monitor.
 
 **Task dependency graph:**
 (Read each tasks/task-N/task.md's Dependencies field to build this graph.
@@ -221,23 +219,25 @@ Example:)
 - Task 3: depends on task 1
 - Task 4: depends on task 2, task 3
 
-**Start the usage monitor (First Action).** Via the Monitor tool:
-  Monitor({ command: "bash \"$HOME/.claude/ultra/usage-monitor.sh\" watch \"$PLAN_DIR\" \"$ACCOUNT_KEY\" \"$USAGE_MODE\"",
-            description: "Usage monitor for {PLAN_NAME}", persistent: true })
-It is silent on clean ticks and emits only actionable milestones:
-`CRITICAL` (stop in-flight), `USAGE-RESET` (restart), and `NUDGE` (a
-task silent with no named wait and no repo activity — verify, then
-ping; all modes). In push-through mode it suppresses usage emits
-entirely (NUDGE still fires — liveness, not usage). It also quietly
-traces >10-min task silence (`silence_observed`) and mid-execution
-window rollovers (`usage_window_rolled`) straight into events.json —
-never an emit, never your cue to act. Ignore any Monitor line that is
-not JSON with an `"alert"` field.
+**Start the liveness monitor (First Action).** Via the Monitor tool:
+  Monitor({
+    command: "bash \"$HOME/.claude/ultra/usage-monitor.sh\" watch \"$PLAN_DIR\"",
+    description: "Liveness monitor for {PLAN_NAME}",
+    persistent: true
+  })
+It is a LIVENESS monitor — silent on clean ticks and emits only `NUDGE`
+candidates (a task silent with no named wait and no repo activity —
+verify, then ping). It also quietly traces >10-min task silence
+(`silence_observed`) straight into events.json — never an emit, never
+your cue to act. Ignore any Monitor line that is not JSON with an
+`"alert"` field. Usage limits are handled by the machine-global limit
+sentinel, which writes `usage_limit_hit` / `usage_reset_wake` /
+`usage_window_rolled` events into events.json — you consume those
+passively for budget/report bookkeeping, never as alerts to forward.
 
-**You are event-driven.** You wake on your monitor's emits and on messages
-from Lead (status updates, completions with current_pct) and Executors.
-On a monitor emit, apply USAGE_MODE and forward to Lead ONLY when
-actionable. See your agent instructions for the full Usage Monitor Handling
+**You are event-driven.** You wake on your monitor's NUDGE emits and on
+messages from Lead (status updates, completions with current_pct) and
+Executors. See your agent instructions for the full NUDGE handling
 protocol.
 
 **Per-task budget tracking:** On SPAWNED, read current usage % and record
@@ -262,10 +262,8 @@ for each active task when you wake to derive stage state:
 See `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/execution-communication-protocol.md` §6.
 
 **What you send to Lead (actionable events only):**
-- `USAGE STOP [{window}]: {pct}% used. ...` — critical limit reached, stop in-flight work (pause mode only)
-- `USAGE RESET [{window}]: ...` — work may restart
 - `NUDGE-ESCALATION task-{N}: ...` — only after you verified a NUDGE candidate, pinged the executor, and got no response (see your agent instructions)
-You do NOT forward soft-band, status, or stale-data messages — those are not Lead-actionable. NUDGE count:1 is yours to verify and ping, never forwarded.
+You do NOT forward usage events — the limit sentinel handles limits and injects Lead directly; sentinel-written events in events.json are bookkeeping input, not alerts. NUDGE count:1 is yours to verify and ping, never forwarded.
 
 Follow the workflow in your team member instructions.
 ```

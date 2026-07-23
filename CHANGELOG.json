@@ -1,5 +1,22 @@
 [
   {
+    "seq": 206,
+    "version": "2026.07.23-1",
+    "date": "2026-07-23",
+    "summary": "Reactive limit sentinel replaces proactive usage-limit machinery: one machine-global process (scripts/limit-sentinel.sh) detects limit-killed turns via a new StopFailure(rate_limit) hook, wakes parked sessions at reset (+90s) with guarded tmux injection + durable sentinel-authored RESUME signals, injects 90% soft-band advisories into plan Lead panes, pre-opens fresh windows for mapped accounts (chain-guarded), and notifies on weekly-limit parks. PM no longer monitors usage (usage-monitor.sh watch is liveness-only: NUDGE + silence; status bands collapse to clear/soft at 90%); the plan-start usage-mode question, USAGE STOP/RESET forwarding, PAUSE choreography, and the 90/95% hard stop are all deleted — execution rides every window to 100% and auto-resumes. New: protocol §7 (sentinel system channel), phase-1 §1.9b sentinel registration, machine-context limit-sentinel topic, mock-limit-rig test harness + limit drill, 90 new test checks. Verified end-to-end against a live session via simulated limit (banner+menu reproduced, hook fired, wake resumed with context intact).",
+    "migration": {
+      "precondition": {
+        "exists": ".claude/ultra"
+      },
+      "actions": [
+        "Re-run /uc:setup on each machine: it symlinks scripts/limit-sentinel.sh and scripts/hooks/stop-failure.sh into ~/.claude/ultra/, adds the StopFailure(rate_limit) hook to ~/.claude/settings.json (fully managed array), initializes ~/.claude/ultra/sentinel/, and starts the sentinel (limit-sentinel.sh ensure).",
+        "Optionally extend ~/.claude/skills/machine-context/ with the new limit-sentinel.md topic (account→profile map for window pre-open, notify command for weekly-limit alerts, standalone-wake toggle) — the setup interview now covers it; the sentinel falls back to runtime detection without it.",
+        "No project-file changes: in-repo plan state formats are unchanged; the retired .watchdog-* dotfiles under old plan dirs are dead tooling and may be deleted if present."
+      ],
+      "conflicts": "Idempotent — symlinks are ln -sf, the StopFailure hook array is replaced (not appended) as an Ultra-Claude-managed key, and sentinel start is a singleton ensure. Users with their OWN hooks.StopFailure entries should merge them manually before re-running setup."
+    }
+  },
+  {
     "seq": 205,
     "version": "2026.07.22-1",
     "date": "2026-07-22",

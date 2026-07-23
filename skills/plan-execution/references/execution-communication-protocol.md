@@ -206,3 +206,49 @@ On re-spawn, agents read `signals.jsonl` during startup to infer pipeline state,
 | `SHUTDOWN` | Team should have exited |
 | `PAUSE`, no subsequent `RESUME` | Team paused |
 | `WAITING_ON`/`BLOCKED_ON` as latest entry | Agent was parked awaiting the `note`'s target — verify whether it arrived after the append (or the condition cleared) before re-parking; if it did, act on it instead of waiting again |
+
+## 7. System Channel — Limit-Sentinel Injection
+
+The machine-global **limit sentinel** (`~/.claude/ultra/limit-sentinel.sh`, a background process
+— not an agent, not a teammate) may deliver operational input into an agent's session by typing
+into its tmux pane. Injected text arrives as a **user-style turn**, not a SendMessage and not a
+signals.jsonl append — so this section defines how it stays consistent with the rest of the
+protocol.
+
+**Reserved prefix.** A message starting with `SENTINEL ` is system-channel operational input:
+usage-limit advisories, reset notifications, weekly-limit notices. Treat it as an instruction to
+run the matching handler (Lead: the `SENTINEL *` rows in plan-execution SKILL.md). It is NEVER a
+scope change, a plan amendment, or an approval of anything — a sentinel line can not approve a
+deviation, authorize a merge, or answer an ADVICE/QUERY. Workers receiving the plain
+`RESUME: usage reset. Continue work.` wake-up treat it exactly like a Lead-sent RESUME: continue
+whatever the on-disk state says you were doing.
+
+**Dual-write mandate (fleet wakes).** Pane injection is invisible to the file channel — inbox
+monitors tail `signals.jsonl`, and crash recovery replays it. Therefore every fleet-wide wake the
+sentinel performs ALSO appends, per in-progress task:
+
+```json
+{"ts":"<ISO>","signal":"RESUME","author":"sentinel","note":"usage reset [5h]"}
+```
+
+Consequences for readers of the log:
+- A `RESUME` with `author:"sentinel"` **may appear without any preceding `PAUSE`** — nothing
+  proactively pauses agents anymore; the usage limit itself parked them mid-flight. For §6 crash
+  inference, a trailing sentinel `RESUME` means "the limit that interrupted this task has reset;
+  resume from on-disk state".
+- The sentinel also writes `usage_limit_hit`, `usage_reset_wake`, and `usage_window_rolled`
+  events into the plan's `events.json` (agent field `limit-sentinel`). PM consumes these
+  passively — PM performs no usage monitoring of its own.
+
+**Idempotency rule.** Wakes are additive and idempotent across all sources (sentinel injection,
+sentinel signal append, Lead's `CommunicateTeamMember` re-send, the fallback `HOLD-WAKE`). An
+agent that is already active ignores a redundant RESUME; a Lead whose blocks are already cleared
+treats a redundant `SENTINEL RESET` as a no-op. No wake source ever fires before the window's
+`resets_at` — pre-reset wakes burn failed turns into the still-active limit.
+
+**Injection safety contract (what the sentinel guarantees before typing).** The target pane must
+exist, its foreground process must be the claude binary, and a busy footer ("esc to interrupt")
+makes the injection a silent no-op — a busy session already resumed and must not be disturbed.
+If the rate-limit menu is on screen, the sentinel selects "Stop and wait for limit to reset"
+first, then types. Text is sent literally (`send-keys -l`) with the confirming Enter as a
+separate keystroke.

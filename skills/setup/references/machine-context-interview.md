@@ -88,6 +88,14 @@ Skip this whole section if the user declines browser automation. Otherwise:
 
 Start empty. The user accumulates warnings over time as they hit gotchas. The interview doesn't try to populate this file — it creates it with a header and the user extends it later.
 
+### 7. Limit sentinel
+
+Inputs for the machine-global limit sentinel (`~/.claude/ultra/limit-sentinel.sh`). Detection-first:
+
+- **Account → profile map** — scan `~/.claude-profiles/*/.claude.json` and `~/.claude/.claude.json` for `.oauthAccount.emailAddress`, slugify each (lib.sh `slugifyEmail`), and PROPOSE the detected map for confirmation rather than asking cold. The map tells the sentinel which `CLAUDE_CONFIG_DIR` to use when pre-opening a fresh usage window for an account. Default-profile accounts map to the literal word `default`.
+- **Notify command** — an optional shell command for weekly-limit alerts (gets the message as `$1`). Examples: a personal push script, `notify-send`, `osascript -e ...`. Skip if the user has none — the sentinel logs instead.
+- **Standalone wake** — should non-plan Claude sessions parked at a limit be auto-woken at reset? Default `on`; the cautious answer is `off` (only plan-execution fleets get woken).
+
 ## File templates
 
 Each topic file gets a consistent structure. Below are the skeletons the interview should write.
@@ -116,6 +124,7 @@ This skill describes **this specific machine** — the one you're running on rig
 - [claude-profiles.md](claude-profiles.md) — Multi-account Claude Code profile management
 - [development.md](development.md) — Shell, editor, runtimes, Claude Code plugin configuration
 - [network.md](network.md) — VM IPs, port conventions, reachability rules
+- [limit-sentinel.md](limit-sentinel.md) — Account→profile map, notify command, standalone-wake toggle for the limit sentinel
 - [warnings.md](warnings.md) — Machine-specific gotchas and hard-learned lessons
 
 ## How other skills use this
@@ -171,6 +180,22 @@ See the full template in the generalized `/uc:chrome-debug` skill's Step 0 secti
 - Native messaging host config: {path based on OS}
 - Wrapper script: $HOME/.claude/chrome/chrome-native-host
 ```
+
+### `limit-sentinel.md`
+
+Grep-able line format — the sentinel parses these lines directly (files are the API):
+
+```markdown
+# Limit Sentinel
+
+map: {account-slug} = {profile-dir or default}
+map: {account-slug-2} = {profile-dir-2}
+notify: {shell command receiving the message as $1}
+standalone-wake: on
+```
+
+Omit `notify:` if the user has no notify command. Omit `map:` lines that could not be confirmed —
+the sentinel falls back to runtime profile detection and skips pre-open for unmapped accounts.
 
 ### `claude-profiles.md`
 

@@ -38,7 +38,7 @@
       <thead><tr><th>Skill</th><th>Command</th><th>Description</th></tr></thead>
       <tbody>
         <tr><td><strong>Plan Execution</strong></td><td><code>/uc:plan-execution</code></td><td>Orchestrates per-task mini-teams (Executor/Reviewer/Tester) with live execution state tracking and checkpoint recovery.</td></tr>
-        <tr><td><strong>Checkpoint</strong></td><td><code>/uc:checkpoint</code></td><td>Saves execution state for session recovery. Triggered automatically every 3 tasks or on usage pause.</td></tr>
+        <tr><td><strong>Checkpoint</strong></td><td><code>/uc:checkpoint</code></td><td>Saves execution state for session recovery. Triggered automatically every 3 tasks or when a usage soft/limit block is recorded.</td></tr>
       </tbody>
     </table>
 
@@ -95,7 +95,7 @@
         <tr><td><strong>Task Executor</strong></td><td>Opus</td><td>Per-task team hub: explores codebase, writes plan, implements code, drives review/test cycles</td></tr>
         <tr><td><strong>Code Reviewer</strong></td><td>Sonnet</td><td>Read-only quality gate: reads standards early, gives plan feedback, formal pass/fail review</td></tr>
         <tr><td><strong>Task Tester</strong></td><td>Sonnet</td><td>Tests against product docs, writes missing coverage, verifies UI in browser</td></tr>
-        <tr><td><strong>Project Manager</strong></td><td>Sonnet</td><td>Event-driven coordinator: maintains execution state files, reads <code>signals.jsonl</code> per task for stage tracking, per-task budget tracking, operational reports. Owns the background usage monitor and forwards only actionable usage events (critical-stop / restart) to Lead; verifies the monitor's liveness NUDGE candidates and pings wrongly-parked agents, escalating to Lead only on confirmed non-response. Wakes only on messages or actionable monitor emits.</td></tr>
+        <tr><td><strong>Project Manager</strong></td><td>Sonnet</td><td>Event-driven coordinator: maintains execution state files, reads <code>signals.jsonl</code> per task for stage tracking, per-task budget tracking, operational reports. Owns the background liveness monitor and verifies its NUDGE candidates, pinging wrongly-parked agents and escalating to Lead only on confirmed non-response. Does not monitor usage &mdash; it consumes the limit sentinel's usage events passively for budget tracking. Wakes only on messages or actionable monitor emits.</td></tr>
         <tr><td><strong>Researcher</strong></td><td>Sonnet</td><td>Stateless one-shot researcher spawned by the <code>/uc:research</code> skill on cache miss. Fetches library/pattern/market docs via Ref.tools or web search, writes to <code>documentation/technology/research/</code> or <code>documentation/product/research/</code>, atomically updates the index. Never reads project source code.</td></tr>
         <tr><td><strong>Checker</strong></td><td>Sonnet</td><td>Single-topic doc-vs-code comparison with severity levels and file:line references</td></tr>
         <tr><td><strong>Code Surveyor</strong></td><td>Sonnet</td><td>Fast structural code scan: catalogs files, components, patterns for orchestrators</td></tr>
@@ -103,6 +103,8 @@
         <tr><td><strong>System Tester</strong></td><td>Sonnet</td><td>Scientific bug reproduction: follows exact steps, tries variations, never fixes code</td></tr>
       </tbody>
     </table>
+
+    <p><strong>Not an agent: the limit sentinel.</strong> Usage limits are handled by one machine-global background process (<code>scripts/limit-sentinel.sh</code>, installed by <code>/uc:setup</code>), not by any agent. It detects limit hits via the <code>StopFailure</code> hook, wakes parked sessions at each window reset (+90s), injects 90% soft-band advisories into Lead panes, pre-opens windows when nothing is wakeable, and notifies you when a weekly (7d) limit is hit.</p>
 
   </main>
 </div>

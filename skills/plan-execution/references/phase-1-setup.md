@@ -16,7 +16,7 @@ ToolSearch("select:SendMessage,Monitor,TaskCreate,TaskUpdate,TaskList")
 
 > "Plan execution needs agent teams enabled (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`). Run `/uc:setup` to configure it, then re-run `/uc:plan-execution`."
 
-Do **not** improvise a subagent-only fallback — a one-shot pipeline silently drops PM (and its usage monitor), peer messaging, signal durability, and pipeline pre-spawn. Stopping with a clear instruction is the correct behavior.
+Do **not** improvise a subagent-only fallback — a one-shot pipeline silently drops PM (and its liveness monitor), peer messaging, signal durability, and pipeline pre-spawn. Stopping with a clear instruction is the correct behavior.
 
 **2b. Teammate backend gate (tmux).** Agent-teams being enabled is necessary but not sufficient: *how* a named teammate runs is governed by the `teammateMode` setting (`tmux` | `in-process` | `auto`), resolved per session. When it defaults to `in-process`, teammates spawn inside your process with **no tmux panes** — the pane-based coordination this skill is built on silently breaks. Check both preconditions:
 
@@ -42,48 +42,28 @@ If `$TMUX` is unset (you are not inside a tmux session) **or** `teammateMode` is
 
 The teammate↔subagent distinction is load-bearing (see SKILL.md) — it is expressed by *which mode of the `Agent` tool* you use, not by different tools.
 
-**4. Ensure the usage-monitor script is reachable at a stable path (self-heal).** All usage checks (this skill and PM) invoke `~/.claude/ultra/usage-monitor.sh` — a stable absolute path that does NOT depend on `$CLAUDE_PLUGIN_ROOT` being present in a Bash shell (it often is not). `/uc:setup` creates this symlink; self-heal it here in case setup wasn't re-run:
+**4. Ensure the usage-monitor and limit-sentinel scripts are reachable at stable paths (self-heal), and the sentinel is running.** All usage checks (this skill and PM) invoke `~/.claude/ultra/usage-monitor.sh` — a stable absolute path that does NOT depend on `$CLAUDE_PLUGIN_ROOT` being present in a Bash shell (it often is not). The machine-global limit sentinel lives at the same kind of stable path. `/uc:setup` creates both symlinks; self-heal them here in case setup wasn't re-run:
 
 ```bash
 mkdir -p ~/.claude/ultra
 [ -e ~/.claude/ultra/usage-monitor.sh ] || ln -sf "${CLAUDE_PLUGIN_ROOT}/scripts/usage-monitor.sh" ~/.claude/ultra/usage-monitor.sh
-# Verify it runs and returns JSON (proves the path + account resolution work BEFORE you rely on it):
+[ -e ~/.claude/ultra/limit-sentinel.sh ] || ln -sf "${CLAUDE_PLUGIN_ROOT}/scripts/limit-sentinel.sh" ~/.claude/ultra/limit-sentinel.sh
+# Verify the monitor runs and returns JSON (proves the path + account resolution work BEFORE you rely on it):
 bash "$HOME/.claude/ultra/usage-monitor.sh" status
+# Start (or confirm) the machine-global limit sentinel, then gate on it actually running:
+bash ~/.claude/ultra/limit-sentinel.sh ensure
+bash ~/.claude/ultra/limit-sentinel.sh status
 ```
 
-The `status` call must print a JSON object with a `band` field. **If it errors or prints no JSON, STOP** — do not proceed into a run where you cannot read usage; tell the user the monitor script is unreachable and to re-run `/uc:setup`. **Never invent or guess a usage status** — every usage figure you act on or report must come from this script's actual stdout.
+The `usage-monitor.sh status` call must print a JSON object with a `band` field. **If it errors or prints no JSON, STOP** — do not proceed into a run where you cannot read usage; tell the user the monitor script is unreachable and to re-run `/uc:setup`. **Never invent or guess a usage status** — every usage figure you act on or report must come from this script's actual stdout.
 
-### 1.0b Usage Mode — ask FIRST (then check limits)
+The `limit-sentinel.sh status` call must report `running:true` — the sentinel is the guaranteed post-limit resume for this run. **If it cannot be started** (`ensure` fails or `status` still reports `running:false`): do NOT stop — warn the user that automatic post-limit resume is unavailable this run, and remember the sentinel is down for §1.0b (the fallback HOLD-WAKE applies only if the account is already limited — see usage-control.md "Fallback HOLD-WAKE").
 
-**Step 1 — ask whether we care about the limits at all.** This is the **first user-facing question** of execution (the 1.0 preflight is an environment gate, not a question). Ask it BEFORE reading any usage data — the mode governs whether usage is even checked. Set once, never re-asked mid-run.
+### 1.0b Usage gating default (no question)
 
-```
-AskUserQuestion({
-  questions: [
-    {
-      question: "Do you want Ultra Claude to respect the rate limits during this run? Tip: plan during the day, execute overnight — most plans complete within the free limit window. Choose full speed only if you need it done as fast as possible (and have extra usage on your account).",
-      header: "Usage mode",
-      multiSelect: false,
-      options: [
-        {
-          label: "Yes — auto-pause at limits (Recommended)",
-          description: "We care about limits: Ultra Claude checks usage and stops/restarts work automatically around the rate limit. Maps to USAGE_MODE=pause."
-        },
-        {
-          label: "No — full speed, ignore limits",
-          description: "We don't care: no usage checking or stopping. If you don't have extra usage on your account, work will hit the rate limit and you'll recover manually. Maps to USAGE_MODE=push-through."
-        }
-      ]
-    }
-  ]
-})
-```
+**There is no usage-mode question.** Limit handling is always-on and reactive (see `usage-control.md`); the only knob is spawn gating, and it defaults ON. Record `gating: on` in `## Execution Config` (written to `shared/lead.md` when that file is created in 1.7) — unless the user's plan-execution invocation explicitly asked to ignore limits ("full speed", "ignore limits", "push through"), in which case record `gating: off`. Never ask; never re-decide mid-run.
 
-Record the answer (held in context now; written to `shared/lead.md` → `## Execution Config` when that file is created in 1.7, and passed to PM at spawn in 1.9):
-- "Yes — auto-pause" → `extra_usage: false`, `USAGE_MODE=pause`
-- "No — full speed" → `extra_usage: true`, `USAGE_MODE=push-through`
-
-**Step 2 — only if `USAGE_MODE=pause`, check whether we are already over the limits.** (In `push-through`, skip this entirely — we don't care.) Read current usage from the single monitor script (self-resolves the account — no `$ACCOUNT_KEY` needed yet):
+Then run **one** status check (self-resolves the account — no `$ACCOUNT_KEY` needed yet):
 
 ```bash
 bash "$HOME/.claude/ultra/usage-monitor.sh" status
@@ -91,8 +71,8 @@ bash "$HOME/.claude/ultra/usage-monitor.sh" status
 
 Read `.band`:
 - `clear` → proceed normally.
-- `soft` → do NOT start task-1 yet; record `{window}: soft` in `## Usage Blocks` (once `shared/lead.md` exists). The pre-spawn check (Phase 2) governs when slot-fill resumes.
-- `critical` → already over the limit. Do NOT spawn into an over-limit window: enter a pre-emptive `stop` hold — record `{window}: stop` with its `resets_at`, arm the self-owned `HOLD-WAKE` (see usage-control.md Hold State), and inform the user (they may prefer to wait for reset, switch accounts, or abort). task-1 spawns when the window resets.
+- `soft` → record `{window}: soft` in `## Usage Blocks` (once `shared/lead.md` exists) and do not spawn until it clears — this is a spawning gate, not a stop. The pre-spawn check (Phase 2) governs when slot-fill resumes.
+- If the account is **already over the limit** AND the sentinel could not be started in §1.0: arm the fallback HOLD-WAKE per usage-control.md ("Fallback HOLD-WAKE") before parking. With a running sentinel, no self-wake is needed — the sentinel wakes this pane at reset.
 
 ### 1.1 Read Entire Plan Directory
 
@@ -165,7 +145,7 @@ Determine how many task-teams can run concurrently:
 | 4-8 tasks | 2-3 |
 | 9+ tasks  | 3-4 |
 
-Max ceiling: **4 concurrent task-teams**. The only plan-wide teammate is the **Project Manager** (which owns the usage monitor) — no separate watchdog and no persistent knowledge teammate exists.
+Max ceiling: **4 concurrent task-teams**. The only plan-wide teammate is the **Project Manager** (which owns the liveness monitor) — no persistent knowledge teammate exists, and usage limits are handled reactively by the machine-global limit sentinel (a process, not an agent).
 
 Each slot = 1 task-team. Executor and Reviewer are spawned when a slot opens. Tester is lazy-spawned when the Executor signals `code complete` — *before* the Executor writes `impl.md`, so the Tester cold-reads context in parallel with the impl-report write. All members exit together when the task is done.
 
@@ -178,7 +158,7 @@ Tasks normally spawn when their slot is available AND all dependencies are compl
 | **Executor** | **opus** | Code generation, architectural decisions, codebase research — highest capability required |
 | Reviewer | sonnet | Pattern recognition, architecture conformance |
 | Tester | sonnet | Test execution, failure diagnosis |
-| Project Manager | sonnet | Event-driven coordination — dashboard, budget tracking, and owns the usage monitor (bash does all checking via Monitor; model wakes only on actionable emits) |
+| Project Manager | sonnet | Event-driven coordination — dashboard, budget tracking, and owns the liveness monitor (bash does all checking via Monitor; model wakes only on NUDGE candidates) |
 | Researcher (subagent) | sonnet | One-shot external documentation retrieval — spawned by Lead via `/uc:research` on cache miss |
 
 ### Permission Modes
@@ -188,12 +168,12 @@ Tasks normally spawn when their slot is available AND all dependencies are compl
 | **Executor** | **`bypassPermissions`** | **Writes code autonomously; plan reviewed by teammates before implementation** |
 | Reviewer | `bypassPermissions` | Read-only analysis, no approval needed |
 | Tester | `bypassPermissions` | Runs tests autonomously, no approval needed |
-| Project Manager | `bypassPermissions` | Event-driven coordination + usage monitor, no approval needed |
+| Project Manager | `bypassPermissions` | Event-driven coordination + liveness monitor, no approval needed |
 | Researcher (subagent) | `bypassPermissions` | Writes to `documentation/technology/research/` and `documentation/product/research/` only, stateless, no approval needed |
 
 ### 1.5 Cost Estimate
 
-The usage mode was already chosen in 1.0b. Present the cost estimate to the user (informational — no confirmation needed, the user already chose to execute by running the command):
+Gating was already recorded in 1.0b (no question asked). Present the cost estimate to the user (informational — no confirmation needed, the user already chose to execute by running the command):
 
 ```
 Plan: $ARGUMENTS
@@ -205,13 +185,13 @@ Cost per task pipeline: ~100K tokens (Executor ~70K + Reviewer ~20K + Tester ~10
   (Reviewer spawns with Executor and immediately sends a REVIEWER TAKE; Tester is lazy-spawned — only active during test phase)
 Pre-spawn knowledge review (per task, at spawn time): ~2K per task for cache hits, up to ~15K if /uc:research fires on a gap — Lead only researches if the planner's Research pointers don't cover the task
 Mid-execution ADVICE + QUERY: ~1K per message (cache hit) or ~15K (cache miss with researcher subagent)
-Project Manager (plan-wide): ~20K tokens (event-driven; owns the usage monitor, wakes only on messages or actionable usage emits)
-Usage monitor (plan-wide): near-zero (bash does all checking inside PM's Monitor; emits only on critical-stop / restart)
+Project Manager (plan-wide): ~20K tokens (event-driven; owns the liveness monitor, wakes only on messages or NUDGE candidates)
+Liveness monitor (plan-wide): near-zero (bash does all checking inside PM's Monitor; emits only NUDGE candidates)
 ```
 
-Usage management is a **two-agent** system: **PM (owns the usage monitor) → Lead.**
-- **If `USAGE_MODE = pause` (extra_usage false):** PM runs `usage-monitor.sh watch` via the Monitor tool (zero AI tokens on clean ticks). It emits only on the critical-stop crossing and the work-can-restart reset. On a critical-stop, PM asks the Lead to stop in-flight work; on reset, the Lead restarts. The **soft band is not an interrupt** — the Lead enforces it with a `usage-monitor.sh status` check before each spawn (don't start new work while soft-or-worse). Lead tracks blocks per window in `shared/lead.md` → `## Usage Blocks`, guided by `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/usage-control.md`.
-- **If `USAGE_MODE = push-through` (extra_usage true):** the monitor suppresses usage emits entirely; the Lead does not stop for usage and does not run pre-spawn soft checks. (In every mode — including push-through — the monitor still emits `NUDGE` liveness candidates to PM, and quietly traces >10-min task silence (`silence_observed`) and window rollovers (`usage_window_rolled`) into events.json — traces are post-mortem data, never an emit.)
+Usage limits are handled reactively by the machine-global **limit sentinel** (a process, not an agent — ensured in §1.0). Nothing stops in-flight work: the limit itself is the pause; the sentinel is the resume. It writes `usage_limit_hit` / `usage_reset_wake` / `usage_window_rolled` events into the plan's events.json (agent field `limit-sentinel`), which PM consumes passively for budget bookkeeping.
+- **If `gating: on` (default):** the **soft band is not an interrupt** — the Lead enforces it with a `usage-monitor.sh status` check before each spawn (don't start new work while `soft`). Lead tracks blocks per window in `shared/lead.md` → `## Usage Blocks`, guided by `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/usage-control.md`.
+- **If `gating: off` (explicit user opt-out):** the Lead skips the pre-spawn soft checks and the sentinel skips advisories; reset wakes always happen regardless. (In both settings, PM's monitor still emits `NUDGE` liveness candidates and quietly traces >10-min task silence (`silence_observed`) into events.json — traces are post-mortem data, never an emit.)
 
 Proceed directly to 1.6.
 
@@ -250,13 +230,13 @@ documentation/plans/$ARGUMENTS/
   checkpoint-*.md
 ```
 
-`tasks/task-N/task.md` files already exist from planning Stage 4 — do NOT re-create them. Do create or update `shared/lead.md` with: plan overview, concurrency decision, key architectural constraints, task dependency graph, critical decisions, execution config (extra_usage setting from 1.5), and the amendments log (initially empty).
+`tasks/task-N/task.md` files already exist from planning Stage 4 — do NOT re-create them. Do create or update `shared/lead.md` with: plan overview, concurrency decision, key architectural constraints, task dependency graph, critical decisions, execution config (`gating: on|off` from 1.0b, `account_key` from 1.8), and the amendments log (initially empty).
 
 `plan.md` and `impl.md` are written later by the Executor during its workflow — do not pre-create them here.
 
 ### 1.8 Resolve Account Identity
 
-Resolve the active account key so the usage monitor and budget checks monitor the correct account (this is the `$ACCOUNT_KEY` passed to PM; the same value `usage-monitor.sh` resolves internally):
+Resolve the active account key so the sentinel registration (§1.9b) and budget checks reference the correct account (the same value `usage-monitor.sh` resolves internally):
 
 ```bash
 ACCOUNT_KEY=$(source "$HOME/.claude/ultra/lib.sh" && slugifyEmail "$(claude auth status --json 2>/dev/null | jq -r '.email // empty')")
@@ -266,9 +246,9 @@ Persist this in `shared/lead.md` under execution config so it's available if the
 
 ### 1.9 Project Manager Spawn
 
-Before spawning any task-teams, spawn the plan-wide coordinator: **PM** (PM now owns the usage monitor — there is no separate watchdog agent).
+Before spawning any task-teams, spawn the plan-wide coordinator: **PM** (PM owns the liveness monitor; usage limits are handled reactively by the machine-global limit sentinel — a process, not an agent).
 
-1. Spawn `pm-{PLAN_NAME}` via the `Agent` tool in teammate mode (`name="pm-{PLAN_NAME}"`, `run_in_background: true`) using the PM spawn prompt in `references/phase-2-spawn-prompts.md`. **Pass the resolved `ACCOUNT_KEY` and `USAGE_MODE`** (`pause` or `push-through`, from 1.0b) into the spawn prompt. PM has Bash + Monitor access, self-labels its pane, and starts `usage-monitor.sh watch` on startup.
+1. Spawn `pm-{PLAN_NAME}` via the `Agent` tool in teammate mode (`name="pm-{PLAN_NAME}"`, `run_in_background: true`) using the PM spawn prompt in `references/phase-2-spawn-prompts.md`. PM has Bash + Monitor access, self-labels its pane, and starts the liveness monitor (`usage-monitor.sh watch "$PLAN_DIR"` — no account or mode arguments) on startup.
 
 PM self-labels its tmux pane when tmux is available (skipped otherwise). No tmux commands needed from you.
 
@@ -284,6 +264,22 @@ PM must show `backendType=tmux` with a real pane id (e.g. `%168`), **not** `back
 
 There is no Knowledge Brief synthesis step. Research lives per-task in each `tasks/task-N/task.md`'s `**Research:**` section (populated by planning Stage 4), and Lead reviews it per-task at spawn time in Phase 2.
 
+### 1.9b Sentinel Registration
+
+Write the sentinel registration file so the machine-global limit sentinel knows this plan's panes and account (which pane to inject `SENTINEL` messages into, which tasks to append `RESUME` to at reset, and whether advisories apply). `$GATING` is the `gating` value from 1.0b (`on` or `off`); `$ACCOUNT_KEY` is from 1.8:
+
+```bash
+PLAN_ABS=$(cd "$PLAN_DIR" && pwd)
+mkdir -p ~/.claude/ultra/sentinel/plans
+jq -n --arg pd "$PLAN_ABS" --arg ak "$ACCOUNT_KEY" --arg g "$GATING" \
+      --arg lp "$TMUX_PANE" --arg ts "$(tmux display-message -p '#{session_name}')" \
+      --arg ca "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+      '{plan_dir:$pd, account_key:$ak, gating:$g, lead_pane:$lp, tmux_session:$ts, created_at:$ca}' \
+      > ~/.claude/ultra/sentinel/plans/{PLAN_NAME}.json
+```
+
+On checkpoint-resume, re-write this file (idempotent) — the Lead pane and tmux session may have changed since the original run. The registration is removed at Phase 5 completion.
+
 ### 1.10 Proceed to Phase 2
 
-Shared setup is done. The usage mode is set (1.0b) and PM (with the usage monitor) is live and confirmed. There is no first-tick STATUS to wait for — the mode/budget decision already happened up front, and the Lead reads usage on demand via `usage-monitor.sh status` at each spawn decision (Phase 2). Task teams can now be spawned per Phase 2.
+Shared setup is done. Gating is recorded (1.0b), PM (with the liveness monitor) is live and confirmed, and the sentinel registration is written (1.9b). There is no first-tick STATUS to wait for — the Lead reads usage on demand via `usage-monitor.sh status` at each spawn decision (Phase 2), and usage limits are handled reactively by the machine-global limit sentinel. Task teams can now be spawned per Phase 2.
