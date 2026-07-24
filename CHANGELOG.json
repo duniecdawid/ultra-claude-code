@@ -1,5 +1,12 @@
 [
   {
+    "seq": 208,
+    "version": "2026.07.24-2",
+    "date": "2026-07-24",
+    "summary": "limit-sentinel: liveness is now flock-derived, not PID-file-derived — fixes the phase-1 preflight split-brain where a stale/deleted PID file made ensure spawn a loser (which correctly exited on the lock) and the status gate reported the sentinel as failed-to-start while the real holder was alive. ensure/status probe the run lock; the holder re-writes its PID note every tick; stop falls back to fuser on the lock when the note is stale. Four new regression checks.",
+    "migration": null
+  },
+  {
     "seq": 207,
     "version": "2026.07.24-1",
     "date": "2026-07-24",

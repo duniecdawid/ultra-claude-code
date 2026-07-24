@@ -434,7 +434,16 @@ tick() {
 }
 
 # ---------------------------------------------------------------------------- lifecycle
-sentinel_pid() {
+# THE LOCK IS THE TRUTH; the PID file is only a note. A stale/deleted PID file while the lock
+# holder lives caused a real split-brain (2026-07-24: ensure deleted the live holder's PID file,
+# spawned a loser that exited on the lock, and the status gate read "not running"). Every
+# liveness decision probes the flock; the holder re-writes its PID note each tick.
+lock_held() { # 0 = a sentinel holds the run lock (running)
+  [ -f "$SENTINEL_DIR/run.lock" ] || return 1
+  ! flock -n "$SENTINEL_DIR/run.lock" true 2>/dev/null
+}
+
+sentinel_pid() { # best-effort pid of the holder, validated against its cmdline
   [ -f "$PID_FILE" ] || return 1
   local pid; pid=$(cat "$PID_FILE" 2>/dev/null)
   [ -n "$pid" ] || return 1
@@ -447,8 +456,7 @@ sentinel_pid() {
 
 cmd_ensure() {
   init_dirs
-  if sentinel_pid >/dev/null; then exit 0; fi
-  rm -f "$PID_FILE"
+  if lock_held; then exit 0; fi
   setsid nohup bash "$0" run >> "$LOG_FILE" 2>&1 < /dev/null &
   log "ensure: spawned run (pid $!)"
 }
@@ -469,6 +477,9 @@ cmd_run() {
   trap 'rm -f "$PID_FILE"; log "run: stopped"; exit 0' TERM INT
   while true; do
     tick
+    # Self-heal the PID note each tick — anything may have deleted or clobbered it; the lock,
+    # not this file, is what makes us the singleton.
+    echo "$$" > "$PID_FILE"
     # Cap the log (mirror of the layout daemon convention).
     if [ -f "$LOG_FILE" ] && [ "$(stat -c %s "$LOG_FILE" 2>/dev/null || echo 0)" -gt 2000000 ]; then
       tail -c 500000 "$LOG_FILE" > "$LOG_FILE.tmp" && mv "$LOG_FILE.tmp" "$LOG_FILE"
@@ -483,7 +494,12 @@ cmd_run() {
 cmd_status() {
   init_dirs
   local pid running=false started="" parked plans
-  if pid=$(sentinel_pid); then running=true; started=$(get_state '.started_at // ""'); else pid=""; fi
+  if lock_held; then
+    running=true; started=$(get_state '.started_at // ""')
+    pid=$(sentinel_pid) || pid=""   # note may lag one tick behind; running is lock-derived
+  else
+    pid=""
+  fi
   parked=$(get_state '[.parked | to_entries[] | select(.value.status=="parked")] | length'); parked=${parked:-0}
   plans=$(ls "$PLANS_DIR"/*.json 2>/dev/null | wc -l)
   jq -nc --argjson running "$running" --arg pid "$pid" --arg started "$started" \
@@ -496,7 +512,9 @@ cmd_status() {
 
 cmd_stop() {
   local pid
-  if pid=$(sentinel_pid); then kill "$pid" 2>/dev/null; rm -f "$PID_FILE"; echo "stopped $pid"
+  pid=$(sentinel_pid) || pid=$(fuser "$SENTINEL_DIR/run.lock" 2>/dev/null | awk '{print $1}')
+  if [ -n "$pid" ]; then kill "$pid" 2>/dev/null; rm -f "$PID_FILE"; echo "stopped $pid"
+  elif lock_held; then echo "running but holder pid unknown (no /proc match, no fuser) — not stopped" >&2; exit 1
   else echo "not running"; fi
 }
 

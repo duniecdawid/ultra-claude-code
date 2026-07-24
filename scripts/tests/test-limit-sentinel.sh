@@ -229,6 +229,18 @@ ck "status running after ensure" '[ "$(bash "$SENTINEL_SRC" status | jq -r .runn
 pid1=$(bash "$SENTINEL_SRC" status | jq -r .pid)
 UC_TICK_SECONDS=1 bash "$SENTINEL_SRC" ensure
 ck "ensure is a singleton"       '[ "$(bash "$SENTINEL_SRC" status | jq -r .pid)" = "$pid1" ]'
+# Split-brain regression (2026-07-24): a stale/deleted PID file while the holder lives must NOT
+# make status read "not running", and ensure must not disturb the live holder. The lock is the
+# truth; the holder re-writes its PID note each tick.
+rm -f "$UC_SENTINEL_DIR/sentinel.pid"
+ck "running despite deleted pid file" '[ "$(bash "$SENTINEL_SRC" status | jq -r .running)" = "true" ]'
+UC_TICK_SECONDS=1 bash "$SENTINEL_SRC" ensure
+sleep 1.5
+ck "ensure kept the live holder"      '[ "$(bash "$SENTINEL_SRC" status | jq -r .running)" = "true" ]'
+ck "pid note self-healed by tick"     '[ "$(bash "$SENTINEL_SRC" status | jq -r .pid)" = "$pid1" ]'
+echo "999999" > "$UC_SENTINEL_DIR/sentinel.pid"   # bogus note
+ck "running despite bogus pid file"   '[ "$(bash "$SENTINEL_SRC" status | jq -r .running)" = "true" ]'
+sleep 1.2
 bash "$SENTINEL_SRC" stop >/dev/null
 sleep 0.3
 ck "stop works"                  '[ "$(bash "$SENTINEL_SRC" status | jq -r .running)" = "false" ]'
