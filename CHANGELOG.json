@@ -1,5 +1,12 @@
 [
   {
+    "seq": 207,
+    "version": "2026.07.24-1",
+    "date": "2026-07-24",
+    "summary": "limit-sentinel: close the singleton lock fd (200>&-) in all run-loop children — an orphaned tick sleep or pre-open spawn inherited the flock and blocked the next ensure for up to a tick after stop (found during live pre-open verification). Also documents the first production validation: real fleet recovery on 2026-07-24 (4 parked sessions, 5 panes woken at reset, advisories delivered at 90%) and a live-verified window pre-open (haiku request under the mapped profile).",
+    "migration": null
+  },
+  {
     "seq": 206,
     "version": "2026.07.23-1",
     "date": "2026-07-23",

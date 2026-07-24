@@ -101,7 +101,7 @@ mc_standalone_wake() { # default on
 
 notify_user() { # message — best-effort, machine-context command only
   local cmd; cmd=$(mc_notify_cmd)
-  [ -n "$cmd" ] && (eval "$cmd \"\$1\"" >/dev/null 2>&1 &) 2>/dev/null
+  [ -n "$cmd" ] && (eval "$cmd \"\$1\"" >/dev/null 2>&1 &) 200>&- 2>/dev/null
   log "NOTIFY: $1"
 }
 
@@ -248,9 +248,9 @@ do_preopen() { # account
   profile=$(mc_get_profile "$acct")
   [ -z "$profile" ] && { log "preopen skip $acct: unmapped"; return 1; }
   if [ "$profile" = "default" ]; then
-    (env -u CLAUDE_CONFIG_DIR timeout 120 "$CLAUDE_BIN" -p "ok" --model haiku >/dev/null 2>&1 &)
+    (env -u CLAUDE_CONFIG_DIR timeout 120 "$CLAUDE_BIN" -p "ok" --model haiku >/dev/null 2>&1 &) 200>&-
   else
-    (CLAUDE_CONFIG_DIR="$profile" timeout 120 "$CLAUDE_BIN" -p "ok" --model haiku >/dev/null 2>&1 &)
+    (CLAUDE_CONFIG_DIR="$profile" timeout 120 "$CLAUDE_BIN" -p "ok" --model haiku >/dev/null 2>&1 &) 200>&-
   fi
   log "preopen $acct via profile=$profile"
   return 0
@@ -474,7 +474,9 @@ cmd_run() {
       tail -c 500000 "$LOG_FILE" > "$LOG_FILE.tmp" && mv "$LOG_FILE.tmp" "$LOG_FILE"
     fi
     # Backgrounded sleep keeps the TERM trap responsive (a foreground sleep defers it a full tick).
-    sleep "$TICK" & wait $!
+    # 200>&- : children must NOT inherit the singleton lock fd, or an orphaned sleep/pre-open
+    # holds the lock past our death and blocks the next ensure (found live 2026-07-24).
+    sleep "$TICK" 200>&- & wait $!
   done
 }
 
