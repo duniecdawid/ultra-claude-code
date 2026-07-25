@@ -1,5 +1,12 @@
 [
   {
+    "seq": 212,
+    "version": "2026.07.25-4",
+    "date": "2026-07-25",
+    "summary": "Switch the default Opus model from Opus 4.8 to Opus 5, mirroring the earlier Sonnet 4.6 -> Sonnet 5 bump. Bumped the ANTHROPIC_DEFAULT_OPUS_MODEL export written by /uc:setup (canonical pins in §3.3 and the append block in §5.3) from 'claude-opus-4-8[1m]' to 'claude-opus-5[1m]'; Sonnet stays on 'claude-sonnet-5[1m]'. This env var is the single control point for the Opus tier: every 'model: opus' spawn resolves through the alias (Task Executor, caveman-reviewer, plan-execution executors, migrate batch executors, fresh-init/executor-prompts fan-out), so they all pick up Opus 5 once the pin is in place — no per-agent frontmatter edits needed. A /uc:setup re-run auto-migrates an already-set-up machine: §3.3 classifies the existing 'claude-opus-4-8[1m]' as outdated and §5.3 rewrites it in place via sed (with a .uc-bak backup and a printed before->after). Refreshed the §5.3 in-place-upgrade example and the Step-4 'will upgrade' status example to reference the now-live Opus bump. No project-template files change (this only affects what /uc:setup writes to the user's shell config), so migration is null.",
+    "migration": null
+  },
+  {
     "seq": 211,
     "version": "2026.07.25-3",
     "date": "2026-07-25",

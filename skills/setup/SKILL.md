@@ -73,7 +73,7 @@ Grep shell config for `ANTHROPIC_DEFAULT_OPUS_MODEL` and `ANTHROPIC_DEFAULT_SONN
 
 | Var | Canonical value |
 |-----|-----------------|
-| `ANTHROPIC_DEFAULT_OPUS_MODEL` | `claude-opus-4-8[1m]` |
+| `ANTHROPIC_DEFAULT_OPUS_MODEL` | `claude-opus-5[1m]` |
 | `ANTHROPIC_DEFAULT_SONNET_MODEL` | `claude-sonnet-5[1m]` |
 
 Classify **each** var independently into one of three states:
@@ -252,7 +252,7 @@ Ultra Claude Environment Check (plugin v{version})
   tmux mode                 ✓ per-project (recommended)   # or "— none (no tmux)" / "— custom (user-managed)" / "✓ per-terminal (legacy)" / "✗ not configured"
   tmux.conf                 ✓ passthrough enabled          # or "— skipped" if mode is none/custom
   Agent teams env var       ✗ missing
-  1M context env vars       ✗ missing                       # or "✓ current" / "⤴ outdated → will upgrade to claude-sonnet-5[1m]"
+  1M context env vars       ✗ missing                       # or "✓ current" / "⤴ outdated → will upgrade to claude-opus-5[1m]"
   Node.js                   ✓ v22.0.0
   Statusline                ✗ not configured
   Session Hooks             ✗ not configured
@@ -340,16 +340,16 @@ Act on the state each var was classified into in §3.3. Handle the two vars **in
 
 ```bash
 # Ultra Claude: enable 1M context window for all opus/sonnet usage (including subagents)
-export ANTHROPIC_DEFAULT_OPUS_MODEL='claude-opus-4-8[1m]'
+export ANTHROPIC_DEFAULT_OPUS_MODEL='claude-opus-5[1m]'
 export ANTHROPIC_DEFAULT_SONNET_MODEL='claude-sonnet-5[1m]'
 ```
 
-**outdated** → rewrite the existing line **in place** to the canonical value. This is the path that upgrades an already-set-up machine across a model bump (e.g. Sonnet 4.6 → Sonnet 5) — a bare append would create a duplicate export and the last one wins unpredictably, so you MUST edit in place. Back up first, replace the whole `export VAR=…` line, then print the before→after so the change is visible (`$SHELL_CONFIG` = the file detected in Step 2, `~/.bashrc` or `~/.zshrc`):
+**outdated** → rewrite the existing line **in place** to the canonical value. This is the path that upgrades an already-set-up machine across a model bump (e.g. Opus 4.8 → Opus 5) — a bare append would create a duplicate export and the last one wins unpredictably, so you MUST edit in place. Back up first, replace the whole `export VAR=…` line, then print the before→after so the change is visible (`$SHELL_CONFIG` = the file detected in Step 2, `~/.bashrc` or `~/.zshrc`):
 
 ```bash
 config="$SHELL_CONFIG"
-# Sonnet — repeat the same substitution for ANTHROPIC_DEFAULT_OPUS_MODEL if it too is outdated:
-sed -i.uc-bak -E "s|^([[:space:]]*export[[:space:]]+ANTHROPIC_DEFAULT_SONNET_MODEL=).*|\1'claude-sonnet-5[1m]'|" "$config"
+# Opus — repeat the same substitution for ANTHROPIC_DEFAULT_SONNET_MODEL if it too is outdated:
+sed -i.uc-bak -E "s|^([[:space:]]*export[[:space:]]+ANTHROPIC_DEFAULT_OPUS_MODEL=).*|\1'claude-opus-5[1m]'|" "$config"
 ```
 
 - Upgrading an Ultra-Claude-written default (any `claude-{opus,sonnet,haiku}-…[1m]` Anthropic pin) is the expected non-destructive path — just do it and report before→after; no need to ask.
