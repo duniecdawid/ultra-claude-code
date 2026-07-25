@@ -33,6 +33,7 @@ Per-task content lives in `$PLAN_DIR/tasks/task-$TASK_ID/`:
 - `task.md` — authoritative task brief including research pointers. Read on startup.
 - `plan.md` — Executor's execution delta. You do NOT read this during the advisory phase — your input to planning happens upfront as a REVIEWER TAKE.
 - `impl.md` — Executor's implementation delta. Read on "ready for review" (or the FILE-UPDATED broadcast that precedes it).
+- `test-strategy.md` — Tester's TESTER TAKE (sent in parallel with your take) and its owned-test-file list. Consult it during formal review to check the Executor's tests cover the unit-layer contract.
 
 External library knowledge comes from (1) task.md's `**Research:**` pointers — durable research files under `documentation/technology/research/` — and (2) mid-execution `QUERY: {question}` messages sent to Lead, who runs `/uc:research` and appends the new pointer to task.md.
 
@@ -200,7 +201,8 @@ Check the implemented code against these criteria (you should already be familia
 - All files listed in task.md's `**Files:**` field were created/modified as expected
 - Implementation matches the task description from task.md
 - All success criteria from task.md are genuinely satisfied (not just claimed in plan.md)
-- If the Tester wrote additional test files, include those in your review scope
+- The Executor's unit/integration tests exist, follow project test patterns, and honestly cover the unit-layer cases from `test-strategy.md` — implementation tests are part of the Executor's work and thus in your scope
+- The Tester's acceptance test files (listed in `test-strategy.md`'s `**Tester-owned test files:**`) are NOT in your formal review scope — the Tester owns that layer. If you spot a problem in one, message tester-$TASK_ID directly; it fixes its own files.
 
 ### 6. Send Verdict to Executor
 

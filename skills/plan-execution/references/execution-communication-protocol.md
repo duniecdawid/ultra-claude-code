@@ -41,7 +41,7 @@ Broadcast to all active teammates AND Lead. Same 3-step ordering as `Communicate
 2. **If `signal`** — append to `signals.jsonl` once (not per recipient).
 3. **SendMessage** to each active teammate AND Lead individually (best-effort per recipient).
 
-Active teammates are those listed in your spawn prompt that haven't exited. Tester joins mid-task (lazy-spawned) — include them in broadcasts only after `TESTER_SPAWNED` has been received.
+Active teammates are those listed in your spawn prompt that haven't exited. The full task team (Executor, Reviewer, Tester) spawns together at task start — include all of them from the first broadcast.
 
 ## 3. WaitForTeamMember(signal, from?)
 
@@ -69,7 +69,7 @@ Monitor:
 
 | Role | `<YOUR_ALTERNATION>` |
 |------|----------------------|
-| Executor | `REVIEWER_TAKE_READY\|ADVICE_RESPONSE\|IMPL_APPROVED\|TESTER_SPAWNED\|REVIEW_PASS\|REVIEW_FAIL\|TEST_PASS\|TEST_FAIL\|REVIEWER_READY_TO_EXIT\|TESTER_READY_TO_EXIT\|SHUTDOWN\|PAUSE\|RESUME` |
+| Executor | `REVIEWER_TAKE_READY\|TESTER_TAKE_READY\|ADVICE_RESPONSE\|IMPL_APPROVED\|REVIEW_PASS\|REVIEW_FAIL\|TEST_PASS\|TEST_FAIL\|REVIEWER_READY_TO_EXIT\|TESTER_READY_TO_EXIT\|SHUTDOWN\|PAUSE\|RESUME` |
 | Reviewer | `REVIEW_REQUESTED\|REREVIEW_REQUESTED\|EXIT_REQUESTED\|SHUTDOWN\|PAUSE\|RESUME` |
 | Tester | `TEST_REQUESTED\|RETEST_REQUESTED\|EXIT_REQUESTED\|SHUTDOWN\|PAUSE\|RESUME` |
 
@@ -149,6 +149,7 @@ touch "$PLAN_DIR/tasks/task-$TASK_ID/signals.jsonl"
 | File | Written by | Flagged by signal |
 |------|-----------|-------------------|
 | `take.md` | Reviewer | `REVIEWER_TAKE_READY` |
+| `test-strategy.md` | Tester | `TESTER_TAKE_READY` |
 | `review-feedback.md` | Reviewer | `REVIEW_FAIL` |
 | `test-feedback.md` | Tester | `TEST_FAIL` |
 
@@ -163,8 +164,9 @@ On re-review/re-test cycles, overwrite the feedback file with the new cycle's co
 | Signal | Writer | Purpose |
 |--------|--------|---------|
 | `REVIEWER_TAKE_READY` | Reviewer | Take written to `take.md`, ready for Executor |
+| `TESTER_TAKE_READY` | Tester | Test strategy written to `test-strategy.md`, ready for Executor |
 | `PLAN_READY` | Executor | `plan.md` written, entering implementation |
-| `CODE_COMPLETE` | Executor | All source code done, requesting tester spawn |
+| `CODE_COMPLETE` | Executor | All source code done (fire-and-forget notify to Lead: pipeline pre-spawn + PM stages) |
 | `REVIEW_REQUESTED` | Executor | Implementation done, requesting review |
 | `TEST_REQUESTED` | Executor | Implementation done, requesting test |
 | `REREVIEW_REQUESTED` | Executor | Fix applied, requesting re-review |
@@ -176,7 +178,6 @@ On re-review/re-test cycles, overwrite the feedback file with the new cycle's co
 | `EXIT_REQUESTED` | Executor | All stages passed, requesting exit confirmation |
 | `REVIEWER_READY_TO_EXIT` | Reviewer | Confirms ready to exit |
 | `TESTER_READY_TO_EXIT` | Tester | Confirms ready to exit |
-| `TESTER_SPAWNED` | Lead | Tester has been lazy-spawned |
 | `IMPL_APPROVED` | Lead | Pipeline predecessor passed, proceed to implement |
 | `ADVICE_RESPONSE` | Lead | Response to an ADVICE REQUEST from Executor |
 | `SHUTDOWN` | Lead | Team must exit |
@@ -186,7 +187,7 @@ On re-review/re-test cycles, overwrite the feedback file with the new cycle's co
 | `BLOCKED_ON` | any | Blocked on an external condition, not a specific signal (another task's file hold, collision arbitration): `note` names the condition and the unblocking event. File-only append |
 | `PROGRESS` | any | Optional one-line heartbeat before an anticipated long quiet phase with no file writes (pure exploration/reading); resets the silence clock. File-only append |
 
-**impl.md audit note:** `CODE_COMPLETE` means *source is done*, NOT *impl.md is on disk* — the gap between the signal and the report write is deliberate (tester cold-start overlap). The report-on-disk flag is the `FILE-UPDATED task-N/impl.md` broadcast; never audit a task for a missing impl.md before it.
+**impl.md audit note:** `CODE_COMPLETE` means *source is done*, NOT *impl.md is on disk* — the gap between the signal and the report write is deliberate (Lead's pipeline pre-spawn evaluation overlaps the impl-report write). The report-on-disk flag is the `FILE-UPDATED task-N/impl.md` broadcast; never audit a task for a missing impl.md before it.
 
 ## 6. Crash Recovery
 
@@ -194,9 +195,9 @@ On re-spawn, agents read `signals.jsonl` during startup to infer pipeline state,
 
 | Signal pattern | Inferred state |
 |---------------|----------------|
-| `REVIEWER_TAKE_READY`, no `PLAN_READY` | Take sent, planning not started |
+| `REVIEWER_TAKE_READY` and/or `TESTER_TAKE_READY`, no `PLAN_READY` | Take(s) sent, planning not started (Executor needs BOTH before plan.md) |
 | `PLAN_READY`, no `REVIEW_REQUESTED` | Implementation in progress (check impl.md) |
-| `CODE_COMPLETE`, no `REVIEW_REQUESTED` | Writing impl.md or waiting for tester |
+| `CODE_COMPLETE`, no `REVIEW_REQUESTED` | Writing impl.md |
 | `REVIEW_REQUESTED`, no `REVIEW_PASS`/`REVIEW_FAIL` | Review in progress |
 | `TEST_REQUESTED`, no `TEST_PASS`/`TEST_FAIL` | Test in progress |
 | `REVIEW_FAIL`/`TEST_FAIL`, no `REREVIEW_REQUESTED`/`RETEST_REQUESTED` | Fix cycle interrupted |

@@ -12,7 +12,7 @@ user-invocable: true
 >
 > **Never** use one-shot mode for execution roles (Executor/Reviewer/Tester/PM) — those are teammates, period. **Always** use one-shot mode for stateless research — trying to make research a persistent teammate wastes tokens and couples unrelated lifecycles. The distinction is load-bearing: it keeps the team graph focused on real pipeline work while allowing cheap, isolated research lookups.
 >
-> **File-based team context.** Spawn prompts are minimal pointers. Per-task content (description, success criteria, patterns, research, files, dependencies) lives in `documentation/plans/{plan}/tasks/task-N/task.md`, written by the planning mode at Stage 4. Every team member — including lazy-spawned Testers, pipeline successors, and crash re-spawns — reads its task directory as its First Action via `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/task-team-startup.md`. File writes broadcast `FILE-UPDATED task-N/{file}: reason` to active teammates so state stays in sync without verbose messages.
+> **File-based team context.** Spawn prompts are minimal pointers. Per-task content (description, success criteria, patterns, research, files, dependencies) lives in `documentation/plans/{plan}/tasks/task-N/task.md`, written by the planning mode at Stage 4. Every team member — including pipeline successors and crash re-spawns — reads its task directory as its First Action via `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/task-team-startup.md`. File writes broadcast `FILE-UPDATED task-N/{file}: reason` to active teammates so state stays in sync without verbose messages.
 
 # Plan Execution
 
@@ -59,40 +59,44 @@ Then read the plan directory (including all `tasks/task-N/task.md` files from pl
 
 ## Phase 2: Pipeline Orchestration
 
-Each task gets a dedicated mini-team that self-coordinates internally. The **Lead** orchestrates everything — spawning executor + reviewer, lazy-spawning the tester, managing shutdowns, reviewing plans. The **PM** maintains execution state and monitors pipeline liveness.
+Each task gets a dedicated mini-team that self-coordinates internally. The **Lead** orchestrates everything — spawning the full executor + reviewer + tester team, managing shutdowns, reviewing plans. The **PM** maintains execution state and monitors pipeline liveness.
 
 ### How a Task-Team Works
 
-Executor and Reviewer spawn together at task start. Tester is lazy-spawned when implementation is complete:
+Executor, Reviewer, and Tester spawn together at task start:
 
 ```
 Reviewer:   reads task.md + standards + architecture + patterns → synthesizes REVIEWER TAKE
             → sends to Executor IMMEDIATELY (before Executor plans) → reads files as Executor progresses
             → formal review on "ready for review" → sends PASS/FAIL to Executor
-Executor:   reads task.md (startup) → explores codebase → BLOCKS until REVIEWER TAKE arrives
+Tester:     reads task.md + product docs + testing config → writes test-strategy.md
+            → sends TESTER TAKE to Executor (acceptance-case list + unit-layer cases the
+              Executor's tests must cover) in parallel with the REVIEWER TAKE
+            → drafts black-box acceptance tests against task.md-declared interfaces while code is written
+            → on "ready for test": verifies independently against success criteria + product docs
+              → sends PASS/FAIL to Executor (unit-coverage gaps = FAIL naming missing cases, never patched)
+Executor:   reads task.md (startup) → explores codebase → BLOCKS until BOTH takes arrive
             → writes plan.md (thin execution delta that extends task.md — does not restate it)
             → runs deviation self-check → if clean, proceeds to implement (no Lead gate)
             → if deviation: sends ADVICE REQUEST task-N [deviation] to Lead, waits for APPROVED/AMEND
-            → writes code, broadcasts FILE-UPDATED on save points
-            → signals Lead "code complete — writing impl report" BEFORE writing impl.md
-              (Lead spawns Tester + may pre-spawn the next dependent team in parallel)
-            → writes tasks/task-N/impl.md while tester-N is cold-reading context
+            → writes code AND its unit/integration tests, broadcasts FILE-UPDATED on save points
+            → signals Lead "code complete — writing impl report" BEFORE writing impl.md (fire-and-forget;
+              Lead may pre-spawn the next dependent team in parallel)
+            → writes tasks/task-N/impl.md
             → tells Reviewer "ready for review" AND Tester "ready for test" simultaneously (dual-write: signal + SendMessage)
             → PM reads signals.jsonl for execution state tracking (no STAGE-DONE/RETRY messages)
-Tester:     (lazy-spawned the moment code is done, before impl.md is written)
-            → startup read (task.md + product docs + testing config) while Executor finishes impl.md
-            → tests against task.md's success criteria + product docs → sends PASS/FAIL to Executor
             → if FAIL: Executor fixes → "Ready for re-review" + "Ready for re-test" sent to both simultaneously
-Both PASS:  Executor confirms teammates ready to exit → tells Lead "task done" → Lead sends shutdown_request → team exits
+Both PASS:  Executor commits tester-owned acceptance test files → confirms teammates ready to exit
+            → tells Lead "task done" → Lead sends shutdown_request → team exits
 ```
 
 **Key principles:**
 - **ONE dedicated team per task, NO sharing.** Task 1 gets its own Executor-1, Reviewer-1, Tester-1. Task 2 gets its own set. They never cross.
-- **File-based team context** — spawn prompts are minimal. Per-task content lives in `tasks/task-N/task.md` (Lead-authored at planning time, amended by Lead during execution), `plan.md` (Executor's execution delta), and `impl.md` (Executor's implementation notes). Agents read the task directory as their first action on startup.
+- **File-based team context** — spawn prompts are minimal. Per-task content lives in `tasks/task-N/task.md` (Lead-authored at planning time, amended by Lead during execution), `plan.md` (Executor's execution delta), `impl.md` (Executor's implementation notes), and `test-strategy.md` (Tester's take + owned-test-file list). Agents read the task directory as their first action on startup.
 - **Reviewer speaks first** — Reviewer's unique standards/architecture knowledge is front-loaded as a `REVIEWER TAKE` message sent to Executor immediately after Reviewer's startup read, BEFORE Executor writes plan.md. **Executor cannot call `Write` on plan.md until the take arrives** — while waiting it continues codebase exploration and mental drafting, so the wait is productive not idle. If the take stalls, Executor escalates to Lead via `ADVICE REQUEST [knowledge]`. This replaces the old advisory plan-review round-trip. Reviewer's formal code review later is unchanged.
-- **Executor's plan.md is a thin extension, not a replan.** It records only what task.md doesn't already contain — concrete function/class/signature choices, criterion-to-approach mapping by ID, reviewer-take incorporation, risks. task.md stays authoritative.
+- **Executor's plan.md is a thin extension, not a replan.** It records only what task.md doesn't already contain — concrete function/class/signature choices, criterion-to-approach mapping by ID, take incorporation (reviewer + tester), risks. task.md stays authoritative.
 - **Lead plan review is replaced by deviation-check + ADVICE.** Default happy path: Executor writes plan.md, self-checks for deviation from task.md, and proceeds directly to implementation. Lead only sees plan.md if Executor self-detects a deviation (new files, skipped criterion, reviewer-take contradiction) and sends `ADVICE REQUEST task-N [deviation]`. Non-deviation ADVICE cases (complicated, deep-reasoning, knowledge) are optional and non-blocking — Executor can pull Lead's judgment at any time.
-- **Tester is lazy-spawned (but early)** — Tester is spawned by the Lead when Executor signals `code complete — writing impl report`, which fires *before* Executor writes `impl.md` or commits. Tester reads task.md + product docs + testing config while Executor finishes the impl report, hiding cold-start latency.
+- **Tester speaks first too — and owns the acceptance layer.** Tester spawns with the team, front-loads a `TESTER TAKE` (per-criterion verification methods + the unit-layer cases the Executor's tests must cover, persisted as `test-strategy.md`), and authors black-box acceptance tests derived from success criteria and product docs. Test authorship splits by layer (dev/QA): Executor writes unit/integration tests with the code; Tester writes acceptance tests in files it owns (listed in test-strategy.md — Executor never edits them, and commits them verbatim at task end). Unit-coverage gaps are demanded via `TEST_FAIL`, never patched by the Tester.
 - **Successor pre-spawn (pipeline)** — the same `code complete` signal evaluates whether the next dependent task can start early. If a free concurrency slot exists and a pending task's only remaining blocker is this task, Lead pre-spawns that successor's Executor + Reviewer in `planning` stage (after appending the Pipeline mode block to the successor's task.md). The pre-spawned Executor researches, plans, passes its deviation self-check, then parks at a wait gate until Lead sends `Implementation approved` when the predecessor reaches `task done`. At most one pre-spawn per `code complete` event.
 - **Lead reviews research per-task at spawn time** — before every teammate spawn (`Agent` tool, teammate mode), Lead reads the task's task.md and verifies that every core technology the task touches is covered by a `**Research:**` pointer. Most of the time the planner already met the bar; if not, Lead invokes `/uc:research` and appends pointers. See `references/phase-2-spawn-prompts.md` "Pre-Spawn Checklist" for the exact rules.
 - **PM is the monitoring layer** — maintains execution state files, tracks parallel review/test timing, monitors pipeline liveness.
@@ -105,7 +109,7 @@ Every task gets the same team: **Executor + Reviewer + Tester**. The only plan-w
 
 ### Phase 2 Startup
 
-Spawn initial task-teams to fill concurrency slots. For each slot: find next pending unblocked task (all dependencies completed), run the **Pre-Spawn Checklist** from `references/phase-2-spawn-prompts.md` (ensure task.md exists, knowledge review, pipeline-mode block if applicable), then spawn executor-N and reviewer-N in parallel. (Tester-N is spawned later, the moment the Executor signals `code complete`.)
+Spawn initial task-teams to fill concurrency slots. For each slot: find next pending unblocked task (all dependencies completed), run the **Pre-Spawn Checklist** from `references/phase-2-spawn-prompts.md` (ensure task.md exists, knowledge review, pipeline-mode block if applicable), then spawn executor-N, reviewer-N, and tester-N in parallel.
 
 **Pre-spawn soft-limit check (skip only when `## Execution Config` records `gating: off`):** before each spawn, run `bash "$HOME/.claude/ultra/usage-monitor.sh" status` and read `.band`. If `soft`, do NOT spawn — record `{window}: soft` in `## Usage Blocks` and let in-flight work finish; re-check on the next slot-fill opportunity and resume spawning once it returns `clear`. This gating is the only proactive limit element left — nothing ever stops in-flight work (the limit itself is the pause; the limit sentinel is the resume — see `references/usage-control.md`).
 
@@ -126,7 +130,7 @@ When you receive a message, match it against the table below and execute the act
 | Message | Action |
 |---------|--------|
 | Executor: `"Task {N} done — all stages passed"` | Read current usage via the monitor script (account-correct): `pct=$(bash "$HOME/.claude/ultra/usage-monitor.sh" status \| jq '.five_hour.pct')`. **Write SHUTDOWN signal:** `echo '{"ts":"...","signal":"SHUTDOWN","author":"lead"}' >> tasks/task-{N}/signals.jsonl`. Send shutdown_request to executor-{N}, reviewer-{N}, tester-{N}. SendMessage to PM: `"COMPLETED task-{N}, current_pct={pct}"` then `"SHUTDOWN task-{N}"`. **Then check for parked successors:** scan your `shared/lead.md` pipeline-parked list — if any pre-spawned executor-{M} is parked at the wait gate with its predecessor recorded as task-{N}, **dual-write IMPL_APPROVED signal:** `echo '{"ts":"...","signal":"IMPL_APPROVED","author":"lead"}' >> tasks/task-{M}/signals.jsonl`. SendMessage to executor-{M}: `"Implementation approved — predecessor task {N} passed all stages. Proceed to implement."` and clear M from the parked list. **Then fill freed slot:** find the next unblocked, non-pre-spawned pending task → run Pre-Spawn Checklist + spawn if found, SendMessage to PM: `"SPAWNED task-{K}: {description}"` then `"STAGE task-{K} planning"`. |
-| Executor: `"Task {N} code complete — writing impl report"` | **Lazy-spawn tester-{N}** (use the Tester Spawn prompt from `references/phase-2-spawn-prompts.md` — minimal pointer prompt, no per-task content inline). SendMessage to PM: `"SPAWNED-TESTER task-{N}"`, `"STAGE task-{N} review"`, `"STAGE task-{N} testing"`. **Dual-write TESTER_SPAWNED signal:** `echo '{"ts":"...","signal":"TESTER_SPAWNED","author":"lead"}' >> tasks/task-{N}/signals.jsonl`. Reply to Executor: `"Tester spawned — proceed with impl report."` **Then evaluate pipeline pre-spawn:** find at most one pending task M where (a) all of M's blockers are `done` except for task N, (b) current active task-teams `<` concurrency limit, and (c) no other pre-spawned successor is already parked at the wait gate. If found: run the Pre-Spawn Checklist for task-{M} (knowledge review, append Pipeline mode block to `tasks/task-{M}/task.md`), spawn executor-{M} + reviewer-{M} via the `Agent` tool (teammate mode: `name` + `run_in_background: true`), set task-{M} stage = `planning`, record `M → blocked_by N` in the pipeline-parked list in `shared/lead.md`. SendMessage to PM: `"SPAWNED task-{M}: {description} (pipeline)"` then `"STAGE task-{M} planning"`. If no eligible successor or slot unavailable: do nothing — the normal slot-fill will handle it when task N reaches `task done`. |
+| Executor: `"Task {N} code complete — writing impl report"` | SendMessage to PM: `"STAGE task-{N} review"`, `"STAGE task-{N} testing"`. No reply to the Executor — the signal is fire-and-forget (the full team, including tester-{N}, has been alive since task start). **Then evaluate pipeline pre-spawn:** find at most one pending task M where (a) all of M's blockers are `done` except for task N, (b) current active task-teams `<` concurrency limit, and (c) no other pre-spawned successor is already parked at the wait gate. If found: run the Pre-Spawn Checklist for task-{M} (knowledge review, append Pipeline mode block to `tasks/task-{M}/task.md`), spawn executor-{M} + reviewer-{M} + tester-{M} via the `Agent` tool (teammate mode: `name` + `run_in_background: true`), set task-{M} stage = `planning`, record `M → blocked_by N` in the pipeline-parked list in `shared/lead.md`. SendMessage to PM: `"SPAWNED task-{M}: {description} (pipeline)"` then `"STAGE task-{M} planning"`. If no eligible successor or slot unavailable: do nothing — the normal slot-fill will handle it when task N reaches `task done`. |
 | Executor: `"Task {M} planning complete — awaiting implementation approval"` | Pipeline-spawned executor has finished planning (including its own deviation self-check) and is now parked at the wait gate. Confirm M is in your `shared/lead.md` parked list. No reply needed — the executor waits silently. When the predecessor's `task done` arrives, the done-row handler above sends the `Implementation approved` message. |
 | Executor: `"ADVICE REQUEST task-{N} [deviation]: {reason}"` | **Blocking.** Read `tasks/task-{N}/plan.md` and the specific deviation reason. Decide: is the deviation justified by new information discovered during planning/codebase exploration? The Executor waits on the `ADVICE_RESPONSE` signal, so reply via `CommunicateTeamMember(to: "executor-{N}", message: {verdict}, signal: "ADVICE_RESPONSE")` per protocol §1 (put the verdict in the signal's `note`) — never a raw SendMessage. If justified, the verdict is `APPROVED` — also amend `tasks/task-{N}/task.md` to reflect the new scope (e.g., add files to the Files list, adjust success criteria) then broadcast `FILE-UPDATED task-{N}/task.md: deviation approved — {short reason}`. If not, the verdict is `AMEND: {specific instructions}` telling the Executor how to bring plan.md back into task.md scope. |
 | Executor: `"ADVICE REQUEST task-{N} [complicated / deep-reasoning / knowledge]: {context + question}"` | **Non-blocking.** Read task.md if needed for context. Think through the question using your orchestration context (other tasks in flight, plan history, user intent from approval). Reply `ADVICE task-{N}: {guidance}` via `CommunicateTeamMember(..., signal: "ADVICE_RESPONSE")` per protocol §1 — the Executor may be parked waiting on that signal. Don't second-guess the Executor's judgment — the default is to answer the question Executor actually asked, not to rewrite their approach. |
@@ -181,7 +185,7 @@ see "Fallback HOLD-WAKE" in `references/usage-control.md`. Never schedule any wa
 
 1. **Executor "task done"** — shutdown team, send `Implementation approved` to any parked successor, fill slots with next unblocked task.
 2. **Executor ADVICE REQUEST [deviation]** — blocking. Read plan.md, decide APPROVED/AMEND, amend task.md + broadcast if approved.
-3. **Executor "code complete"** — lazy-spawn tester + evaluate pipeline pre-spawn of the next dependent task.
+3. **Executor "code complete"** — advance PM stage bookkeeping + evaluate pipeline pre-spawn of the next dependent task.
 4. **Executor ADVICE REQUEST [complicated/deep-reasoning/knowledge]** — non-blocking from Executor's side but should still be answered promptly.
 5. **QUERY messages** (any teammate) — run /uc:research, reply, amend task.md.
 6. **PM alerts** — act on recommendations.
@@ -211,11 +215,12 @@ In the new model there is NO universal Lead plan review. Planning flows like thi
 - **Execution communication protocol**: all inter-agent communication uses three **procedures** (not tools) — `CommunicateTeamMember` (direct), `CommunicateTeam` (broadcast), and `WaitForTeamMember` (receive). Each is a fixed sequence of `SendMessage` + an `echo >>` append to the per-task `signals.jsonl` + (for waits) `Monitor`. Do not look for a tool by these names. See `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/execution-communication-protocol.md`.
 - **Team-internal**: Executor↔Reviewer, Executor↔Tester — direct peer-to-peer.
 - **REVIEWER TAKE**: Reviewer → Executor — standards/architecture perspective sent immediately after Reviewer's startup read, BEFORE Executor plans. Written to `take.md` (persistent artifact) and flagged via `REVIEWER_TAKE_READY` signal. Replaces the old advisory plan-review round-trip.
+- **TESTER TAKE**: Tester → Executor — acceptance-case list and unit-layer test contract sent immediately after Tester's startup read, BEFORE Executor plans. Written to `test-strategy.md` (persistent artifact) and flagged via `TESTER_TAKE_READY` signal.
 - **FILE-UPDATED broadcasts**: any agent → active teammates (+ Lead) — `FILE-UPDATED task-N/{file}: reason` after writing task.md / plan.md / impl.md at a save point. Fire-and-forget; recipients re-read before next action.
 - **ADVICE**: Executor → Lead — `ADVICE REQUEST task-N [{case}]: ...` where case is `complicated`, `deep-reasoning`, `knowledge`, or `deviation`. Deviation is blocking; others are non-blocking and at Executor's discretion. Lead replies `ADVICE task-N: {guidance}` or `APPROVED`/`AMEND` for deviation.
 - **QUERY**: any team member → Lead — "QUERY: {question}" for external library/framework/API/pattern docs. Lead routes to `/uc:research`, replies `ANSWER: ...`, and appends the new pointer to task.md's Research section with a FILE-UPDATED broadcast.
 - **Executor → Lead operational**: "code complete — writing impl report", "planning complete — awaiting implementation approval" (pipeline-spawned only), "task done", "escalation needed", "PLAN-INVALIDATING: ...".
-- **Lead → Executor**: "Tester spawned — proceed with impl report", "Implementation approved" (pipeline successors after predecessor done), ADVICE responses, QUERY `ANSWER:` responses, shutdown_request.
+- **Lead → Executor**: "Implementation approved" (pipeline successors after predecessor done), ADVICE responses, QUERY `ANSWER:` responses, shutdown_request.
 - **Lead → PM**: Terse status updates (`SPAWNED task-1: ...`, `COMPLETED task-2`, `STAGE task-3 review`, etc.).
 - **PM → Lead**: Status URL (once at startup), NUDGE-ESCALATIONs (verified wrongly-parked team — silent, no named wait, unresponsive to PM's ping).
 - **PM → any team member**: Status checks for monitoring purposes.
@@ -284,33 +289,34 @@ Parked pipeline successors stay parked through the pause. If an amendment drops 
 |---------|-----------|---------|
 | **Team-internal** | Executor↔Reviewer, Executor↔Tester | Direct peer-to-peer within the task team. Technical collaboration. |
 | **REVIEWER TAKE** | Reviewer → Executor | Upfront standards/architecture perspective sent immediately after Reviewer's startup read, BEFORE Executor writes plan.md. Written to `take.md` (persistent artifact) and flagged via `REVIEWER_TAKE_READY` signal. Input to Executor's plan. Replaces the old advisory plan-review round-trip. |
+| **TESTER TAKE** | Tester → Executor | Upfront acceptance-case list + unit-layer test contract sent immediately after Tester's startup read, BEFORE Executor writes plan.md. Written to `test-strategy.md` (persistent artifact, also holds the tester-owned test-file list) and flagged via `TESTER_TAKE_READY` signal. Input to Executor's plan. |
 | **FILE-UPDATED broadcast** | Any agent → active teammates + Lead | `FILE-UPDATED task-N/{file}: reason` after writing task.md / plan.md / impl.md at a deliberate save point. Fire-and-forget, recipients re-read the named file before next action. |
 | **ADVICE** | Executor → Lead | `ADVICE REQUEST task-N [{case}]: {context + question}` where case is `complicated` / `deep-reasoning` / `knowledge` / `deviation`. Lead replies `ADVICE task-N: {guidance}` (or `APPROVED` / `AMEND` for deviation). Deviation is mandatory and blocking; others are optional with Executor-decided waiting. |
 | **QUERY** | Any team member → Lead | `QUERY: {question}` for external library/API/pattern docs. Lead runs `/uc:research` — cache hit returns immediately, cache miss spawns the `researcher` subagent via the `Agent` tool (one-shot mode). Lead replies `ANSWER: ...` AND appends the pointer to the task's task.md Research section with a FILE-UPDATED broadcast. |
 | **Task file amendment** | Lead → `tasks/task-N/task.md` | Lead updates task.md for mid-execution amendments, deviation approvals, research additions, and pipeline-mode block appending. Every write triggers a FILE-UPDATED broadcast. |
 | **Operational status** | Executor → Lead | "Code complete — writing impl report", "planning complete — awaiting implementation approval" (pipeline-spawned), "task done", "escalation needed", "PLAN-INVALIDATING: ...". Lead acts on these. |
-| **Pipeline pre-spawn** | Lead → `Agent` (teammate mode) | Lead pre-spawns the next dependent task's executor + reviewer when the predecessor signals `code complete` and a concurrency slot is free. Lead appends the Pipeline mode block to the successor's task.md before spawning; the successor's Executor reads it during startup and parks at the wait gate after its deviation self-check. |
+| **Pipeline pre-spawn** | Lead → `Agent` (teammate mode) | Lead pre-spawns the next dependent task's executor + reviewer + tester when the predecessor signals `code complete` and a concurrency slot is free. Lead appends the Pipeline mode block to the successor's task.md before spawning; the successor's Executor reads it during startup and parks at the wait gate after its deviation self-check. |
 | **Implementation approval** | Lead → Executor (pipeline-spawned) | `"Implementation approved — predecessor task {N} passed all stages. Proceed to implement."` — sent to a parked executor when its predecessor reaches `task done`. |
 | **Communication protocol** | All agents → `signals.jsonl` + SendMessage | Unified protocol with three procedures (not tools): `CommunicateTeamMember` (direct), `CommunicateTeam` (broadcast), `WaitForTeamMember` (receive). Each wraps SendMessage with a durable signal layer. See `execution-communication-protocol.md`. |
-| **Lead spawns executor + reviewer** | Lead → `Agent` (teammate mode) | Lead spawns executor and reviewer when slot opens (after running the Pre-Spawn Checklist). |
-| **Lead lazy-spawns tester** | Lead → `Agent` (teammate mode) | Lead spawns tester when executor signals "code complete — writing impl report" — before the executor writes `impl.md`, so the tester cold-reads context in parallel with the impl-report write. |
+| **Lead spawns the task team** | Lead → `Agent` (teammate mode) | Lead spawns executor, reviewer, and tester together when a slot opens (after running the Pre-Spawn Checklist). |
+| **Takes before plan** | Reviewer → Executor, Tester → Executor | REVIEWER TAKE and TESTER TAKE sent in parallel right after each agent's startup read; the Executor blocks plan.md until both arrive. |
 | **Lead shuts down teams** | Lead → team members | Lead sends shutdown_request after executor reports "task done" (executor first confirms all teammates replied "READY TO EXIT"). |
 | **Pane self-labeling** | Agent local | Spawn prompt defines `TASK_ID`/`ROLE`; agent runs tmux label per agent instructions (skipped when not in tmux). PM verifies after SPAWNED (skipped when not in tmux). |
-| **Lead → PM** | Lead → PM | Terse status updates (`SPAWNED`, `SPAWNED-TESTER`, `STAGE`, `COMPLETED`, `SHUTDOWN`, etc.) for execution state. |
+| **Lead → PM** | Lead → PM | Terse status updates (`SPAWNED`, `STAGE`, `COMPLETED`, `SHUTDOWN`, etc.) for execution state. |
 | **PM → Lead** | PM → Lead | Status URL (startup), NUDGE-ESCALATIONs. |
 | **PM → team members** | PM → any team member | Status checks for monitoring purposes only. |
-| **Per-task files** | Persistent | `tasks/task-N/task.md` (Lead/planning — authoritative task content), `tasks/task-N/signals.jsonl` (all agents — append-only signal log for durable pipeline state), `tasks/task-N/plan.md` (Executor — execution delta), `tasks/task-N/impl.md` (Executor — implementation delta), `tasks/task-N/take.md` (Reviewer — REVIEWER TAKE text), `tasks/task-N/review-feedback.md` (Reviewer — failure details), `tasks/task-N/test-feedback.md` (Tester — failure details). Team members read these via the startup protocol. |
+| **Per-task files** | Persistent | `tasks/task-N/task.md` (Lead/planning — authoritative task content), `tasks/task-N/signals.jsonl` (all agents — append-only signal log for durable pipeline state), `tasks/task-N/plan.md` (Executor — execution delta), `tasks/task-N/impl.md` (Executor — implementation delta), `tasks/task-N/take.md` (Reviewer — REVIEWER TAKE text), `tasks/task-N/test-strategy.md` (Tester — TESTER TAKE + owned-test-file list), `tasks/task-N/review-feedback.md` (Reviewer — failure details), `tasks/task-N/test-feedback.md` (Tester — failure details). Team members read these via the startup protocol. |
 
 ---
 
 ## Lead Behavior
 
-You are the **orchestrator and domain authority**. You spawn executor + reviewer pairs, lazy-spawn testers, manage shutdowns, review plans, and handle escalations. You send terse status updates to PM after each action so it keeps execution state current.
+You are the **orchestrator and domain authority**. You spawn full executor + reviewer + tester teams, manage shutdowns, review plans, and handle escalations. You send terse status updates to PM after each action so it keeps execution state current.
 
 ### What You Do
 - **Run the Pre-Spawn Checklist for every task** before spawning a teammate — ensure task.md exists, review research coverage (invoking /uc:research for gaps or staleness), append Pipeline mode block if pipeline-spawning. See `references/phase-2-spawn-prompts.md`.
-- Spawn executor + reviewer to fill concurrency slots (tasks normally spawn only when all deps are completed)
-- Lazy-spawn tester the moment an Executor signals `code complete — writing impl report` (before impl.md is written)
+- Spawn executor + reviewer + tester to fill concurrency slots (tasks normally spawn only when all deps are completed)
+- On an Executor's `code complete — writing impl report` signal: advance PM stages and evaluate pipeline pre-spawn (no reply owed — the signal is fire-and-forget)
 - **Pre-spawn the next dependent task team** when an Executor signals `code complete` and a concurrency slot is free (pipeline mode) — at most one pre-spawn per event
 - **Send `Implementation approved`** to a parked pipeline successor when its predecessor's `task done` arrives
 - Shut down completed teams (send shutdown_request to all members)
@@ -318,7 +324,7 @@ You are the **orchestrator and domain authority**. You spawn executor + reviewer
 - **Broker QUERY messages** from any teammate — invoke `/uc:research` with the question, reply with `ANSWER:`, append the pointer to the task's task.md Research section, broadcast FILE-UPDATED.
 - Handle escalations (relay to user, keep parked successors alive unless user aborts)
 - Handle plan-invalidating discoveries (pause, evaluate, amend task.md files + broadcast, shut down parked successors if their tasks are dropped)
-- Send status updates to PM after each action (SPAWNED, SPAWNED-TESTER, STAGE, COMPLETED, SHUTDOWN, etc.) — PM also reads signals.jsonl per task for stage derivation (review/test pass/fail, retries)
+- Send status updates to PM after each action (SPAWNED, STAGE, COMPLETED, SHUTDOWN, etc.) — PM also reads signals.jsonl per task for stage derivation (review/test pass/fail, retries)
 - **Display the dashboard URL to the user** if PM sends one (PM only sends it when the project is connected to the dashboard) — this is the user's primary monitoring tool
 - Handle sentinel messages (`SENTINEL ADVISORY`: record soft block; `SENTINEL RESET`: idempotent recovery — verify fleet resumed, re-spawn crashes, refill; `SENTINEL NOTICE [7d]`: inform the user) and the pre-spawn soft-band check before each spawn
 - Checkpoint when triggered

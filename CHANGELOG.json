@@ -1,5 +1,12 @@
 [
   {
+    "seq": 210,
+    "version": "2026.07.25-2",
+    "date": "2026-07-25",
+    "summary": "plan-execution: tester role redesign — eager spawn + dev/QA test-layer split. The Tester now spawns with the Executor and Reviewer at task start (lazy-spawn removed: idle waiting costs nothing under the persistent-inbox protocol, while the CODE_COMPLETE→TESTER_SPAWNED handshake blocked the executor at the hottest pipeline point) and sends an upfront TESTER TAKE (acceptance-case list + unit-layer test contract, persisted as tasks/task-N/test-strategy.md); the Executor blocks plan.md on both takes. Test authorship now splits by layer: Executor writes unit/integration tests with the code (previously unassigned); Tester authors black-box acceptance tests in files it owns (Executor never edits them, commits them verbatim at task end) and demands missing unit coverage via TEST_FAIL naming exact cases instead of patching it. Reviewer scope narrows to the Executor's work incl. its tests. Signals: TESTER_SPAWNED removed, TESTER_TAKE_READY added; PM message SPAWNED-TESTER removed. Updated task-tester/task-executor/code-review/project-manager agents, plan-execution SKILL + phase-1/2, startup + communication protocol references, help skill, and docs site (plan-execution, token-efficiency, reference).",
+    "migration": null
+  },
+  {
     "seq": 209,
     "version": "2026.07.25-1",
     "date": "2026-07-25",

@@ -69,7 +69,7 @@ If this is a pipeline pre-spawn (Executor's `code complete` on predecessor task 
 
 ### 4. Spawn the team
 
-Spawn the task team using the minimal spawn prompts below — each via the `Agent` tool in teammate mode (`name`, `run_in_background: true`, plus the role's agent file / `model` / `mode`). Executor and Reviewer are spawned together **in parallel** (single message with multiple `Agent` calls); the Tester is lazy-spawned later. Each agent self-labels its pane on startup — no PM intervention needed.
+Spawn the task team using the minimal spawn prompts below — each via the `Agent` tool in teammate mode (`name`, `run_in_background: true`, plus the role's agent file / `model` / `mode`). Executor, Reviewer, and Tester are spawned together **in parallel** (single message with multiple `Agent` calls). Each agent self-labels its pane on startup — no PM intervention needed.
 
 After spawning, send to PM:
 
@@ -92,9 +92,9 @@ SIGNAL_FILE=documentation/plans/$ARGUMENTS/tasks/task-{N}/signals.jsonl
 
 **Teammates (SendMessage):**
 - Reviewer: reviewer-{N} (spawned with you — will send you a REVIEWER TAKE shortly)
+- Tester: tester-{N} (spawned with you — will send you a TESTER TAKE shortly)
 - Lead: team-lead (ADVICE channel — send `ADVICE REQUEST task-{N} [{case}]: ...` for complicated / deep-reasoning / knowledge / deviation cases. QUERY channel — send `QUERY: {question}` for external library docs.)
 - Project Manager: pm-{PLAN_NAME} (reads signals.jsonl for stage tracking — no direct messages needed)
-- Tester: tester-{N} (lazy-spawned by Lead when you signal "code complete")
 
 Your first action is the startup read — follow
 ${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/task-team-startup.md.
@@ -147,12 +147,12 @@ SIGNAL_FILE=documentation/plans/$ARGUMENTS/tasks/task-{N}/signals.jsonl
 - Lead: team-lead (ADVICE + QUERY channels, same as Executor)
 - Project Manager: pm-{PLAN_NAME}
 
-You were lazy-spawned when the Executor signaled "code complete" — its
-impl.md is being written in parallel with your startup. Your first action
-is the startup read — follow
+Your first action is the startup read — follow
 ${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/task-team-startup.md.
-Then run your agent workflow. The Executor will send you "ready for test"
-shortly after spawn.
+Then run your agent workflow — note that your step 1 is to build a test
+strategy and send a TESTER TAKE to the Executor BEFORE it writes plan.md
+(the Executor is blocked on it). While implementation runs you may draft
+black-box acceptance tests; "ready for test" arrives when code is done.
 
 IMPORTANT: Test against task.md's success criteria and product docs, NOT
 against impl.md. You may read impl.md only for the file list.
@@ -206,10 +206,9 @@ PLAN_DIR=documentation/plans/$ARGUMENTS
 **Lead name:** team-lead
 **Total tasks:** {N}
 **Concurrency limit:** {M} concurrent task-teams
-**Team naming convention:** Task N team name: `task-{N}-team`. Executor-N and
-reviewer-N spawn at task start; tester-N is lazy-spawned when implementation
-is complete. The only plan-wide teammate is yourself (PM) — you own the
-liveness monitor.
+**Team naming convention:** Task N team name: `task-{N}-team`. Executor-N,
+reviewer-N, and tester-N all spawn together at task start. The only
+plan-wide teammate is yourself (PM) — you own the liveness monitor.
 
 **Task dependency graph:**
 (Read each tasks/task-N/task.md's Dependencies field to build this graph.
@@ -248,8 +247,7 @@ cost_pct = end_pct - start_pct and persist to plan.json.
 agent instructions. After each SPAWNED message from Lead, verify labels.
 
 **What Lead sends you (process into dashboard):**
-- `SPAWNED task-{N}: {description}` — create team JSON, update counts, event, record budget.start_pct
-- `SPAWNED-TESTER task-{N}` — add tester member, event
+- `SPAWNED task-{N}: {description}` — create team JSON (all three members), update counts, event, record budget.start_pct
 - `STAGE task-{N} {stage}` — update team status + timestamps, event
 - `COMPLETED task-{N}, current_pct={pct}` — team completed, counts, event, compute budget.cost_pct
 - `SHUTDOWN task-{N}` — member ended_at timestamps, event

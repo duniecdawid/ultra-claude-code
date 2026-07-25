@@ -147,7 +147,7 @@ Determine how many task-teams can run concurrently:
 
 Max ceiling: **4 concurrent task-teams**. The only plan-wide teammate is the **Project Manager** (which owns the liveness monitor) — no persistent knowledge teammate exists, and usage limits are handled reactively by the machine-global limit sentinel (a process, not an agent).
 
-Each slot = 1 task-team. Executor and Reviewer are spawned when a slot opens. Tester is lazy-spawned when the Executor signals `code complete` — *before* the Executor writes `impl.md`, so the Tester cold-reads context in parallel with the impl-report write. All members exit together when the task is done.
+Each slot = 1 task-team. Executor, Reviewer, and Tester are all spawned together when a slot opens — the Reviewer and Tester front-load their takes (REVIEWER TAKE, TESTER TAKE) before the Executor plans. All members exit together when the task is done.
 
 Tasks normally spawn when their slot is available AND all dependencies are completed. **Exception — pipeline pre-spawn:** when an Executor signals `code complete`, Lead may pre-spawn the next dependent task into a `planning` stage if a concurrency slot is free — see SKILL.md "How a Task-Team Works" and the message handler table for the rules. Pre-spawned successors count toward the concurrency limit and wait at a new gate for `Implementation approved` before writing code. At most one pre-spawn per `code complete` event.
 
@@ -182,7 +182,7 @@ Concurrency: up to M task-teams in parallel
 Estimated cost: ~[N * 120]K tokens
 
 Cost per task pipeline: ~100K tokens (Executor ~70K + Reviewer ~20K + Tester ~10K)
-  (Reviewer spawns with Executor and immediately sends a REVIEWER TAKE; Tester is lazy-spawned — only active during test phase)
+  (all three spawn together; Reviewer and Tester front-load their takes, then wake per-event — idle waiting costs nothing)
 Pre-spawn knowledge review (per task, at spawn time): ~2K per task for cache hits, up to ~15K if /uc:research fires on a gap — Lead only researches if the planner's Research pointers don't cover the task
 Mid-execution ADVICE + QUERY: ~1K per message (cache hit) or ~15K (cache miss with researcher subagent)
 Project Manager (plan-wide): ~20K tokens (event-driven; owns the liveness monitor, wakes only on messages or NUDGE candidates)

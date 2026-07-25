@@ -234,7 +234,7 @@ At the very beginning of execution (before spawning any teams):
 
 ```
 team_spawned          — new team created (executor + reviewer)
-member_spawned        — tester added to existing team after implementation
+member_spawned        — member added to an existing team (e.g. a crash re-spawn)
 team_shutdown         — team decommissioned
 stage_entered         — task entered a new pipeline stage
 stage_done            — parallel stage (review or testing) completed
@@ -274,7 +274,7 @@ All updates write to `plan.json` (a single file). Re-write the entire file on ea
 |-------|--------------------------|---------------|
 | Team spawned | Find task in `tasks` array → set status `in_progress`, populate `started_at`, `stages`, `members`. Update `active_tasks++`, `pending_tasks--` | `events.json` |
 | Stage transition | Find task → close previous stage timestamps, open new stage in `stages` object | `events.json` |
-| Member spawned | Find task → add tester member to `members` array | `events.json` |
+| Member spawned | Find task → add the member to `members` array | `events.json` |
 | Stage done | Find task → close one parallel stage independently (set `ended_at`) | `events.json` |
 | Member status change | Find task → update member's `status` field | — |
 | Task completed | Find task → status=`completed`, set `ended_at`, all members=`completed`. Update `completed_tasks++`, `active_tasks--` | `events.json` |
@@ -295,9 +295,8 @@ The Lead sends you terse status messages as it orchestrates. Process each into t
 
 | Message | Source | PM Action |
 |---|---|---|
-| `SPAWNED task-{N}: {description}` | Lead | In `plan.json`: find task-{N} in tasks array → set status `in_progress`, populate `started_at`, `stages`, `members` (executor + reviewer). Update `active_tasks++`, `pending_tasks--`. Append `team_spawned` event to `events.json` |
+| `SPAWNED task-{N}: {description}` | Lead | In `plan.json`: find task-{N} in tasks array → set status `in_progress`, populate `started_at`, `stages`, `members` (executor + reviewer + tester — the full team spawns together). Update `active_tasks++`, `pending_tasks--`. Append `team_spawned` event to `events.json` |
 | `SPAWNED task-{N}: {description} (pipeline)` | Lead | Same as the regular SPAWNED handler above, but this task was pre-spawned while its predecessor is still in review/test (pipeline mode). The executor will research, plan, get Lead plan approval, and then park at a wait gate until its predecessor reaches `task done`. For state tracking, treat it identically for now — the `(pipeline)` suffix is informational and can be used later for a visual badge. Append `team_spawned` event with `message: "Pipeline pre-spawn: {description}"`. |
-| `SPAWNED-TESTER task-{N}` | Lead | In `plan.json`: find task-{N} → add tester member to `members` array. Append `member_spawned` event to `events.json` |
 | `STAGE task-{N} {stage}` | Lead | In `plan.json`: find task-{N} → close previous stage timestamps, open new stage in `stages` object. Append `stage_entered` event. For `review` and `testing`: both can be open simultaneously (parallel stages). |
 | `COMPLETED task-{N}` | Lead | **Before updating state files, read signals.jsonl** for task-{N} to derive final stage state (see signals.jsonl reading below). In `plan.json`: find task-{N} → status=`completed`, set `ended_at`, all members=`completed`. Update `completed_tasks++`, `active_tasks--`. Append `task_completed` event to `events.json`. **Update plan README:** find `### Task {N}:` heading, change `<!-- status:pending -->` to `<!-- status:completed -->` and `- [ ] **Complete**` to `- [x] **Complete**` |
 | `SHUTDOWN task-{N}` | Lead | In `plan.json`: find task-{N} → set all member `ended_at` timestamps. Append `team_shutdown` event to `events.json` |
@@ -420,7 +419,7 @@ While running the active monitoring loop, also track these for the final report:
 **Token Efficiency:**
 Every agent burns tokens — your job is to assess whether those tokens produced value. Track these patterns:
 
-- **Idle agents burning context**: Reviewer and Tester are spawned at the same time as Executor, but they sit idle until "ready for review"/"ready for test". During that wait they're reading context files, which is useful — but if a task has a 30-minute implementation phase, that's a long time for two agents to hold context. Note the idle duration per role.
+- **Idle agents burning context**: Reviewer and Tester spawn with the Executor and front-load their takes (REVIEWER TAKE, TESTER TAKE + acceptance-test drafts), then wait for "ready for review"/"ready for test". Waiting itself is free (inbox monitor, wake-per-event) — what costs is each wake replaying a grown context. Note wakes-while-idle per role and whether the front-loaded work was used.
 - **Review/test cycles as token cost**: Each retry cycle burns tokens across 3 agents (executor fixes, reviewer re-reviews, tester re-tests). A task with 5 retries might have cost 3x a task that passed first try. Were those retries catching real bugs or were they caused by unclear criteria?
 - **Knowledge agent utilization**: Track how often the knowledge agent was queried, by which executors, and how many NOT FOUND responses occurred. NOT FOUND responses indicate gaps in the Tech Stack section of the plan — topics that should have been listed but weren't.
 - **Verbose artifacts**: Are plan.md files excessively long? Verbose plans burn tokens for everyone who reads them.
@@ -564,7 +563,7 @@ Assessments: efficient / acceptable / wasteful — with brief reason.
 ### Cost Reduction Recommendations
 
 {Concrete, actionable suggestions ranked by estimated token savings. Examples:}
-1. **Lazy reviewer/tester spawn** (~{X}K tokens/plan): Don't spawn reviewer and tester at task start. Spawn reviewer when executor sends first progress update. Spawn tester when "ready for test" arrives. Eliminates idle context burn.
+1. **Trim oversized artifacts** (~{X}K tokens/plan): Research, plan.md, and take files that far exceed what teammates actually used inflate every startup read. Flag the specific files and the unused sections.
 2. **Knowledge agent Tech Stack completeness** (~{X}K tokens/plan): Ensure all external technologies are listed in the plan's Tech Stack section. NOT FOUND responses waste executor time and force fallback to slower research methods.
 3. **Task complexity classification** (~{X}K tokens/plan): Simple tasks (config, minor refactor) don't need the full 3-agent team. A lightweight pipeline (executor + tester, Sonnet model) would suffice.
 
