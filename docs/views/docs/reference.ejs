@@ -66,6 +66,7 @@
     <table>
       <thead><tr><th>Skill</th><th>Command</th><th>Description</th></tr></thead>
       <tbody>
+        <tr><td><strong>Harness Builder</strong></td><td><code>/uc:harness-builder</code></td><td>Knowledge base for building harness components (skills, agents, hooks, protocols): description budgets, efficient communication via the dormant caveman engine, session context-cost auditing, before/after refactor testing, agent-building knowledge. Knowledge, not process.</td></tr>
         <tr><td><strong>Rename Window</strong></td><td><code>/uc:rename-window</code></td><td>Renames the current tmux window. Applies the <code>UC::P-NNN::&lt;plan&gt;</code> / <code>UC::&lt;Mode&gt;::&lt;subject&gt;</code> convention that planning modes and plan-execution set automatically (plan ID takes priority).</td></tr>
         <tr><td><strong>Railway</strong></td><td><code>/uc:railway</code></td><td>Manages Railway.com deployments via CLI with multi-account token switching and config-as-code.</td></tr>
         <tr><td><strong>Tailscale Setup</strong></td><td><code>/uc:tailscale-setup</code></td><td>Exposes local services via Tailscale serve/funnel with HTTPS wrapping.</td></tr>
@@ -101,6 +102,7 @@
         <tr><td><strong>Code Surveyor</strong></td><td>Sonnet</td><td>Fast structural code scan: catalogs files, components, patterns for orchestrators</td></tr>
         <tr><td><strong>Doc Surveyor</strong></td><td>Sonnet</td><td>Documentation section exploration: identifies content types, topics, specs</td></tr>
         <tr><td><strong>System Tester</strong></td><td>Sonnet</td><td>Scientific bug reproduction: follows exact steps, tries variations, never fixes code</td></tr>
+        <tr><td><strong>Caveman Reviewer</strong></td><td>Opus</td><td>Proposition-only compression review of persistent harness text (descriptions, prompts, protocol formats). Uses the installed caveman plugin as engine; flags dropped key terms as RISKs; never edits &mdash; parent decides. Spawned after writing harness text via <code>/uc:harness-builder</code>.</td></tr>
       </tbody>
     </table>
 

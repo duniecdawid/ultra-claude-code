@@ -1,5 +1,12 @@
 [
   {
+    "seq": 211,
+    "version": "2026.07.25-3",
+    "date": "2026-07-25",
+    "summary": "New skill: harness-builder — an accumulating knowledge base (knowledge, not process) for building harness components: skills, agents, hooks, protocols. Non-negotiables: Opus model floor for harness work, engines by invocation (skill-creator for skills, the caveman plugin for compression — installed dormant, defaultMode off, enabled selectively), description budgets (skills ~20-50 words, agents one sentence), and before/after evidence for every refactor. Ships five single-topic references (description-writing with research-backed budgets and the trigger-phrase-list verdict; efficient-communication with the three sanctioned caveman enablement patterns; context-audit; testing-refactors; agent-building) plus scripts/context_audit.py — a ranked resident-context cost attribution table (chars/4 estimate; /context stays authoritative). New agent: caveman-reviewer (Opus) — proposition-only compression review of persistent harness text using the installed caveman engine, with key-term-preservation RISK flags; never edits. Also syncs the stale marketplace.json plugins[0].version. Updated help catalog and docs reference page.",
+    "migration": null
+  },
+  {
     "seq": 210,
     "version": "2026.07.25-2",
     "date": "2026-07-25",

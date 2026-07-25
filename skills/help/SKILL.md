@@ -94,6 +94,9 @@ Scans all plans, infers actual status from execution artifacts (operational repo
 
 ### Infrastructure
 
+**Harness Builder** (`/uc:harness-builder`)
+Knowledge base for building harness components — skills, agents, hooks, protocols. Use when creating or refactoring a skill or agent, writing descriptions or prompts, auditing session context cost (`scripts/context_audit.py`), or compressing resident text via the dormant caveman engine. Knowledge, not process: non-negotiables (Opus floor, engines-by-invocation, description budgets, before/after refactor testing) plus single-topic references.
+
 **Chrome Debug** (`/uc:chrome-debug`)
 Diagnoses and auto-recovers Claude-in-Chrome browser connection failures — stale native host after auto-updates, suspended service workers, bridge pairing races, profile-scoped manifest paths, and `switch_browser` naming-prompt timeouts. Use on any `mcp__claude-in-chrome__*` failure or as a pre-flight health check before browser automation; supports single-browser and dual-browser setups. Reads machine-specific paths and preferences from `~/.claude/skills/machine-context/chrome-debug.md` when present and falls back to runtime detection via `$HOME`/`whoami`/`jq` otherwise.
 
@@ -119,6 +122,9 @@ Defines the 4-stage planning flow (Understand → Research → Discuss → Write
 ## Agents
 
 Agents are spawned as subagents by skills. They don't run independently — skills orchestrate them.
+
+**Caveman Reviewer**
+Proposes token-compressed rewrites of persistent harness text (descriptions, agent prompts, protocol formats, CLAUDE.md sections) — proposition-only, never edits. Uses the installed caveman plugin as its compression engine and layers harness safeguards on top: description budgets, discriminating-key-term preservation with explicit RISK flags, byte-exact code/commands. Spawned after writing persistent harness text; parent accepts or rejects per item (description changes additionally require the before/after trigger test).
 
 **Checker**
 Compares specific code against documentation claims for a single topic, returning discrepancies with severity levels and exact file:line references. Spawned by doc-code verification to verify isolated aspects of the system. Produces structured verification reports identifying factual differences between docs and implementation.
