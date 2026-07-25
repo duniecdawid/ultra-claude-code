@@ -1,5 +1,12 @@
 [
   {
+    "seq": 209,
+    "version": "2026.07.25-1",
+    "date": "2026-07-25",
+    "summary": "plan-execution: single-task final-gate skip is now conditional on the project's final-gate schema. Previously a 1-task plan always skipped the final gate ('per-task tester already ran the full suite'), but the per-task tester deliberately skips documentation/technology/testing/final-gate.md — so a project's final-gate-only criteria (thresholds, smoke targets, cross-task regression checklist) were evaluated by nobody on single-task plans. The Lead now skips the final gate for a 1-task plan only when final-gate.md is absent; if it exists, the gate always runs. Updated phase-5-completion.md §5.2 and the SKILL.md gate rule.",
+    "migration": null
+  },
+  {
     "seq": 208,
     "version": "2026.07.24-2",
     "date": "2026-07-24",

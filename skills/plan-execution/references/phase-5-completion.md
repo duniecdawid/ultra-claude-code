@@ -6,7 +6,7 @@ When all tasks reach "done" stage (all task-teams have exited).
 
 ### 5.2 Final Gate
 
-**Skip this step if the plan has only 1 task** — the per-task tester already ran the full suite. Proceed directly to 5.3.
+**Skip this step only if the plan has 1 task AND `documentation/technology/testing/final-gate.md` does not exist** (`[ -f documentation/technology/testing/final-gate.md ]`) — in that case the per-task tester already ran the full suite, so proceed directly to 5.3. If `final-gate.md` exists, always run the final gate even for a single-task plan: its gate-specific criteria (thresholds, smoke targets, cross-task regression checklist) are deliberately skipped during per-task testing, so this is the only place they are evaluated.
 
 Spawn a single Final Gate Tester (fresh team member) for full regression suite:
 - The Final Gate Tester self-labels its pane on startup — no labeling needed from you.

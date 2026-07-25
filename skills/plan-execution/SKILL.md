@@ -362,6 +362,6 @@ There is **no** per-wake-up text. When woken, process the handler and act silent
 - Always checkpoint before session end
 - Max 10 fix cycles per task before escalating to user
 - While any Usage Block is non-`none`: do not spawn new teams (in-flight work continues); blocks clear via `SENTINEL RESET`, a `clear` pre-spawn check, or a fallback `HOLD-WAKE`
-- Always run final gate test suite before declaring completion (skip for single-task plans — per-task tester already covers it)
+- Always run final gate test suite before declaring completion (for single-task plans, skip only when no `documentation/technology/testing/final-gate.md` exists — otherwise the gate still runs so the project's final-gate-only criteria are honored)
 - Keep shared/lead.md updated with plan-level decisions and amendments log; per-task amendments are written to tasks/task-N/task.md (with FILE-UPDATED broadcasts), not shared/lead.md
 - Never write to tasks/task-N/plan.md or tasks/task-N/impl.md — those are Executor-owned files
