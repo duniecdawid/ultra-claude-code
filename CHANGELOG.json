@@ -1,5 +1,12 @@
 [
   {
+    "seq": 214,
+    "version": "2026.07.25-7",
+    "date": "2026-07-25",
+    "summary": "Remove the /uc:chrome-debug skill and every reference to it. The skill's substance was machine-specific — it read primary-browser, dual-browser, extension-ID and path values from ~/.claude/skills/machine-context/chrome-debug.md — and browser selection plus connection troubleshooting for the reference machine now live outside Ultra Claude entirely. Deletes skills/chrome-debug/, drops its help-skill entry, and removes chrome-debug.md from the machine-context contract: the setup interview no longer generates that topic file, no longer asks the Chrome install / dual-browser questions that only fed it, and no longer detects the native-messaging extension ID; its VM-to-host dev-server routing question moved to the network section, where it always belonged. task-tester's browser-failure protocol previously mandated /uc:chrome-debug as first recourse and gated the code-level fallback on it; it now escalates directly to the PM agent or user with the concrete physical action needed, retrying once first, and still forbids silently downgrading to code-only verification. CLAUDE.md's machine-context pattern now cites the limit-sentinel wiring in skills/setup/SKILL.md as the canonical consumer-side implementation. Machines that previously ran /uc:setup keep an orphaned ~/.claude/skills/machine-context/chrome-debug.md with no consumer — harmless, deletable by hand.",
+    "migration": null
+  },
+  {
     "seq": 213,
     "version": "2026.07.25-5",
     "date": "2026-07-25",

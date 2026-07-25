@@ -25,23 +25,17 @@ TMUX_VERSION=$(tmux -V 2>/dev/null | awk '{print $2}')
 ACTIVE_PROFILE=$(cat "$HOME/.claude-profiles/.active" 2>/dev/null)
 AVAILABLE_PROFILES=$(ls -1 "$HOME/.claude-profiles/" 2>/dev/null | grep -v '^\.' | tr '\n' ',' | sed 's/,$//')
 
-CHROMIUM_NMH="$HOME/.config/chromium/NativeMessagingHosts/com.anthropic.claude_code_browser_extension.json"
-CHROME_NMH="$HOME/.config/google-chrome/NativeMessagingHosts/com.anthropic.claude_code_browser_extension.json"
-EXT_ID=""
-[ -f "$CHROMIUM_NMH" ] && EXT_ID=$(jq -r '.allowed_origins[0]' "$CHROMIUM_NMH" 2>/dev/null | sed 's|chrome-extension://||;s|/.*||')
-[ -z "$EXT_ID" ] && [ -f "$CHROME_NMH" ] && EXT_ID=$(jq -r '.allowed_origins[0]' "$CHROME_NMH" 2>/dev/null | sed 's|chrome-extension://||;s|/.*||')
-
 PLUGIN_DIRS=$(cat "$HOME/.claude/plugin-dirs.txt" 2>/dev/null | grep -v '^#' | grep -v '^$')
 ```
 
-Most defaults should be accepted without user confirmation. Only prompt when a value genuinely requires judgment (is this machine a VM? what's the primary browser? is there a "never use localhost" rule?).
+Most defaults should be accepted without user confirmation. Only prompt when a value genuinely requires judgment (is this machine a VM? is there a "never use localhost" rule?).
 
 ## Existing skill — rerun behavior
 
 If `~/.claude/skills/machine-context/SKILL.md` already exists, ask the user:
 
 1. **Skip** — don't touch the skill at all. Useful when the user has hand-edited it and just wants setup to check other prerequisites.
-2. **Update specific topic files** — list the 6 topic files (environment, chrome-debug, claude-profiles, development, network, warnings) and let the user pick which to regenerate. Unpicked files are left untouched.
+2. **Update specific topic files** — list the topic files (environment, claude-profiles, development, network, limit-sentinel, warnings) and let the user pick which to regenerate. Unpicked files are left untouched.
 3. **Regenerate from scratch** — delete all existing topic files and re-run the full interview. Warn the user that hand-written content will be lost. Require a second explicit confirmation.
 
 Default behavior: **skip**. Never clobber without explicit user confirmation.
@@ -57,38 +51,30 @@ Default behavior: **skip**. Never clobber without explicit user confirmation.
 
 - **Hostname, primary user, home directory** — use detected defaults without asking.
 
-### 2. Chrome / Claude in Chrome
-
-Skip this whole section if the user declines browser automation. Otherwise:
-
-- **Is Claude in Chrome installed?** Check for the native messaging config file existence. If neither `$CHROMIUM_NMH` nor `$CHROME_NMH` exists, skip the rest of this section and leave `chrome-debug.md` empty with a note that the extension isn't installed yet.
-- **Primary Chrome install** — Mac Chrome / VM Chromium / host Chrome / host Chromium / other. If multiple are present, ask which is the default target for automation.
-- **Dual-browser setup** — yes/no. If yes, list the alternate browser. Dual-browser enables `switch_browser` paths in `/uc:chrome-debug`.
-- **VM-to-host routing** (only if machine topology is `vm` or `wsl`) — ask for the dev server port convention. Typically "dev servers bind `0.0.0.0`, reach them via `{VM_IP}:PORT`, never `localhost`".
-
-### 3. Claude Code profile management
+### 2. Claude Code profile management
 
 - **Is `~/.claude-profiles/` in use?** Check for the directory.
 - If yes: list detected profiles, show the active one, ask if the user wants extra context in `claude-profiles.md` (e.g., a note about which account each profile maps to).
 - If no: ask if the user wants multi-account profile isolation set up. If yes, point them at the `profiled-claude` pattern (reference: https://github.com/duniecdawid/ClaudeProfileSwitcher or wherever the canonical reference lives at the time). Do NOT install it automatically — that's out of scope for `/uc:setup`.
 
-### 4. Development environment
+### 3. Development environment
 
 - **Editor** — VS Code (remote or local) / JetBrains / vim / emacs / other. Ask.
 - **Shell** — detected. Confirm.
 - **Runtimes** — Node, Python, Go, Rust versions are already detected. Ask only if the user wants to override or add info about version managers (nvm, pyenv, mise, asdf).
 - **Claude Code plugin configuration** — auto-populate from `~/.claude/plugin-dirs.txt`. If the file is empty or missing, note that Ultra Claude is loaded from the default marketplace cache (not via `--plugin-dir`) and that `/uc:update` is the update path. If `ultra-claude` is in plugin-dirs, note that `/uc:update` should NOT be run on this machine because the plugin is loaded from a local source clone.
 
-### 5. Network conventions
+### 4. Network conventions
 
+- **VM-to-host routing** (only if machine topology is `vm` or `wsl`) — ask for the dev server port convention. Typically "dev servers bind `0.0.0.0`, reach them via `{VM_HOST}:PORT`, never `localhost`".
 - **Default network reachability** — `localhost` works (standalone), or `localhost` is a host loopback and dev servers need an external IP (VM/WSL with dev servers reachable from host browser).
 - **Tailscale** — installed? If yes, capture the tailnet domain and any `tailscale serve` / `funnel` setups.
 
-### 6. Warnings
+### 5. Warnings
 
 Start empty. The user accumulates warnings over time as they hit gotchas. The interview doesn't try to populate this file — it creates it with a header and the user extends it later.
 
-### 7. Limit sentinel
+### 6. Limit sentinel
 
 Inputs for the machine-global limit sentinel (`~/.claude/ultra/limit-sentinel.sh`). Detection-first:
 
@@ -107,8 +93,8 @@ Each topic file gets a consistent structure. Below are the skeletons the intervi
 name: machine-context
 description: >
   Machine-local context describing this specific machine's setup — OS, VM/host topology,
-  Chrome/Chromium configuration for /uc:chrome-debug, Claude Code profile management,
-  development environment, network conventions, and accumulated warnings. Other skills
+  Claude Code profile management, development environment, network conventions, and
+  accumulated warnings. Other skills
   read the topic files in this directory at runtime for per-machine values.
   Triggers on questions about this machine's environment.
 ---
@@ -120,7 +106,6 @@ This skill describes **this specific machine** — the one you're running on rig
 ## Topic files
 
 - [environment.md](environment.md) — OS, hardware, usernames, hostname, VM/host topology
-- [chrome-debug.md](chrome-debug.md) — Inputs for /uc:chrome-debug
 - [claude-profiles.md](claude-profiles.md) — Multi-account Claude Code profile management
 - [development.md](development.md) — Shell, editor, runtimes, Claude Code plugin configuration
 - [network.md](network.md) — VM IPs, port conventions, reachability rules
@@ -158,27 +143,6 @@ Files are the API. `/machine-context` invocation is optional.
 Host OS: {asked}
 Reachable VM IP from host: {asked}
 {endif}
-```
-
-### `chrome-debug.md`
-
-See the full template in the generalized `/uc:chrome-debug` skill's Step 0 section for what fields this file should provide. Minimum shape:
-
-```markdown
-# Chrome Debug — Machine Context
-
-## Primary Chrome install
-{Mac Chrome / VM Chromium / etc.}
-
-## Dual-browser setup
-{yes with alternate: ... / no}
-
-## Extension ID
-{EXT_ID or "detect at runtime"}
-
-## Key paths
-- Native messaging host config: {path based on OS}
-- Wrapper script: $HOME/.claude/chrome/chrome-native-host
 ```
 
 ### `limit-sentinel.md`
@@ -274,14 +238,13 @@ Machine context scaffolded at ~/.claude/skills/machine-context/
 
   SKILL.md                  created
   environment.md            {N} fields populated
-  chrome-debug.md           {populated/empty — no chrome detected}
   claude-profiles.md        {populated/empty — no profiles detected}
   development.md            {N} fields populated
   network.md                {populated/empty}
   warnings.md               empty (extend as you hit gotchas)
 
-Edit any of these files directly at any time. Other Ultra Claude skills (/uc:chrome-debug, and future
-additions) read them at runtime — improvements take effect on the next invocation, no rebuild needed.
+Edit any of these files directly at any time. Other Ultra Claude skills read them at runtime —
+improvements take effect on the next invocation, no rebuild needed.
 ```
 
 Mark `checks.machineContext = true` in `~/.claude/ultra/uc-setup.json`.

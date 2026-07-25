@@ -46,14 +46,14 @@ This repo is the **portable** half of a two-layer system. It must not contain an
 
 **The pattern**:
 
-1. **Skills read machine context opt-in, never required.** At the start of a skill that might need per-machine values, check for the relevant topic file (e.g. `~/.claude/skills/machine-context/chrome-debug.md`). If present, use its values. If absent, fall back to pure runtime detection (`$HOME`, `whoami`, `jq` over known config files) and still complete the task. Never hard-fail because machine-context is missing.
-2. **Files are the API.** Skills read the topic files directly. Do not invoke `/machine-context` as a skill call. Topic files are scoped by concern: `environment.md`, `chrome-debug.md`, `claude-profiles.md`, `development.md`, `network.md`, `warnings.md`. Add a new topic file when introducing a new class of machine-local values — don't cram everything into one file.
+1. **Skills read machine context opt-in, never required.** At the start of a skill that might need per-machine values, check for the relevant topic file (e.g. `~/.claude/skills/machine-context/network.md`). If present, use its values. If absent, fall back to pure runtime detection (`$HOME`, `whoami`, `jq` over known config files) and still complete the task. Never hard-fail because machine-context is missing.
+2. **Files are the API.** Skills read the topic files directly. Do not invoke `/machine-context` as a skill call. Topic files are scoped by concern: `environment.md`, `claude-profiles.md`, `development.md`, `network.md`, `limit-sentinel.md`, `warnings.md`. Add a new topic file when introducing a new class of machine-local values — don't cram everything into one file.
 3. **`/uc:setup` is the producer.** The setup skill scaffolds `~/.claude/skills/machine-context/` via the interview at `skills/setup/references/machine-context-interview.md`. Detection-first: the interview only asks what can't be auto-detected. Rerun-safe: never clobber user edits without explicit confirmation.
 4. **When extending**: if a new skill or agent needs a machine-specific value, (a) add a question to the setup interview that writes it to the appropriate topic file, (b) have the consuming skill read that file with a runtime-detection fallback, and (c) reference the topic file by path in the consuming skill's documentation. Never inline the value here.
 
 Before committing, scan your changes for anything that only works on your own machine. If you find it, move it to `machine-context` and read it from there.
 
-See `skills/chrome-debug/SKILL.md` (Step 0: Load Machine Context) for the canonical consumer-side implementation.
+See the limit-sentinel wiring in `skills/setup/SKILL.md` (§ "Machine-context topic (optional but recommended)") for the canonical consumer-side implementation: read the topic file when present, fall back to runtime detection when absent.
 
 ## Documentation Site Sync — MANDATORY
 

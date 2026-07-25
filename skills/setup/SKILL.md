@@ -180,7 +180,7 @@ Check whether the user's local `~/.claude/skills/machine-context/` skill exists:
 test -f ~/.claude/skills/machine-context/SKILL.md && echo present || echo missing
 ```
 
-Record status but don't mark as MISSING — this is optional. The `machine-context` skill holds per-machine values (Chrome install, VM/host topology, dev runtimes, network conventions, warnings) that other Ultra Claude skills read at runtime. Skills like `/uc:chrome-debug` fall back to pure runtime detection when it's absent, so the skill is not strictly required, but populating it makes future diagnostics and workflows more targeted.
+Record status but don't mark as MISSING — this is optional. The `machine-context` skill holds per-machine values (VM/host topology, dev runtimes, network conventions, warnings) that other Ultra Claude skills read at runtime. Consuming skills fall back to pure runtime detection when it's absent, so the skill is not strictly required, but populating it makes future diagnostics and workflows more targeted.
 
 ### 3.12 Dashboard (optional)
 
@@ -573,7 +573,7 @@ If `npm update` fails (permission errors, registry unreachable), print the exact
 
 ### 5.10 Fix: Machine Context
 
-If the user selected Machine Context, run the interview-driven scaffolding procedure defined in `references/machine-context-interview.md`. The procedure creates `~/.claude/skills/machine-context/SKILL.md` plus topic files (`environment.md`, `chrome-debug.md`, `claude-profiles.md`, `development.md`, `network.md`, `warnings.md`). Each topic file is populated from targeted questions with sensible defaults from runtime detection.
+If the user selected Machine Context, run the interview-driven scaffolding procedure defined in `references/machine-context-interview.md`. The procedure creates `~/.claude/skills/machine-context/SKILL.md` plus topic files (`environment.md`, `claude-profiles.md`, `development.md`, `network.md`, `limit-sentinel.md`, `warnings.md`). Each topic file is populated from targeted questions with sensible defaults from runtime detection.
 
 **Detection-first defaults** the interview uses without asking the user:
 - OS from `/etc/os-release` (Linux) or `uname -s` (macOS/others)
@@ -583,7 +583,6 @@ If the user selected Machine Context, run the interview-driven scaffolding proce
 - Python version from `python3 --version 2>/dev/null`
 - Active Claude profile from `cat ~/.claude-profiles/.active 2>/dev/null`
 - Available profiles from `ls -1 ~/.claude-profiles/ 2>/dev/null | grep -v '^\.'`
-- Chrome extension ID from `jq -r '.allowed_origins[0]' ~/.config/chromium/NativeMessagingHosts/com.anthropic.claude_code_browser_extension.json 2>/dev/null`
 - Plugin-dir entries from `~/.claude/plugin-dirs.txt`
 
 **Rerun-safe behavior**: if `~/.claude/skills/machine-context/` already exists, ask whether to skip, update specific topic files, or regenerate from scratch. **Never clobber user-written content** without an explicit confirmation.

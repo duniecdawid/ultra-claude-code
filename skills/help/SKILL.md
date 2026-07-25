@@ -97,9 +97,6 @@ Scans all plans, infers actual status from execution artifacts (operational repo
 **Harness Builder** (`/uc:harness-builder`)
 Knowledge base for building harness components — skills, agents, hooks, protocols. Use when creating or refactoring a skill or agent, writing descriptions or prompts, auditing session context cost (`scripts/context_audit.py`), or compressing resident text via the dormant caveman engine. Knowledge, not process: non-negotiables (Opus floor, engines-by-invocation, description budgets, before/after refactor testing) plus single-topic references.
 
-**Chrome Debug** (`/uc:chrome-debug`)
-Diagnoses and auto-recovers Claude-in-Chrome browser connection failures — stale native host after auto-updates, suspended service workers, bridge pairing races, profile-scoped manifest paths, and `switch_browser` naming-prompt timeouts. Use on any `mcp__claude-in-chrome__*` failure or as a pre-flight health check before browser automation; supports single-browser and dual-browser setups. Reads machine-specific paths and preferences from `~/.claude/skills/machine-context/chrome-debug.md` when present and falls back to runtime detection via `$HOME`/`whoami`/`jq` otherwise.
-
 **Rename Window** (`/uc:rename-window`)
 Renames the current tmux window via the shared `scripts/tmux-window-name.sh` primitive (sanitizes, truncates for the status bar, and disables tmux automatic-rename so the name sticks). Use to label a window by what it is working on, or to apply Ultra Claude's `UC::P-NNN::<plan>` / `UC::<Mode>::<subject>` convention by hand — planning modes and plan-execution apply it automatically, with the plan ID taking priority. Produces a renamed window that survives shell-prompt redraws; no-ops outside tmux.
 
