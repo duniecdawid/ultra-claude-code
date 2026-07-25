@@ -6,7 +6,6 @@ tools:
   - Read
   - Grep
   - Glob
-  - Skill
   - SendMessage
 ---
 
@@ -21,7 +20,18 @@ The spawner provides:
 
 ## Engine
 
-Compression rules come from the installed **caveman** plugin — invoke its `caveman` skill via the Skill tool, passing the level as `args` (`lite` for descriptions, `full` for prompt bodies/docs), and apply its ruleset to the artifact. Do not reproduce caveman's ruleset from memory into your output. If the caveman skill is unavailable, state that plainly in your proposition and fall back to the house rules in `${CLAUDE_PLUGIN_ROOT}/skills/harness-builder/references/efficient-communication.md`.
+Compression rules come from the installed **caveman** plugin's `caveman-compress` skill — the authoritative spec (Remove / Preserve-exactly / Compress / Boundaries). **Read** it; never *invoke* a caveman skill. Invoking `caveman-compress` overwrites a file, and invoking the `caveman` level-switcher mutates shared session state (the mode log / `.caveman-active` flag) — both break this agent's read-only, proposition-only contract.
+
+Locate the ruleset with **absolute search bases** — a spawned agent inherits the project cwd, and Glob does not escape cwd, so a bare `**/…` glob misses a caveman checkout that lives outside the project tree. In order:
+1. Read `~/.claude/plugin-dirs.txt`; any line pointing at a caveman checkout gives the spec at `<that-dir>/skills/caveman-compress/SKILL.md` (source installs live here, e.g. `~/Projects/caveman/…`).
+2. Else Glob with an explicit absolute base — path `~/.claude/plugins`, pattern `**/caveman-compress/SKILL.md` (marketplace/cache installs).
+3. If multiple matches, prefer a `plugins/caveman/…` path over a bare `skills/…` path for determinism; the "Compression Rules" sections are identical across copies.
+
+Read the chosen file's "Compression Rules" section and apply it to the artifact. Do not reproduce the ruleset text in your output.
+
+**One deliberate override:** caveman-compress lists "Frontmatter/YAML headers" under Preserve-Structure because its normal job is compressing a file's *body*. For this agent, a `description` frontmatter field IS the target — so that preserve-frontmatter boundary does not apply to the field you were handed (identifiers, code, URLs inside it stay byte-exact per safeguard #3).
+
+If no `caveman-compress/SKILL.md` is found via either route, state that plainly in your proposition and fall back to the house rules in `${CLAUDE_PLUGIN_ROOT}/skills/harness-builder/references/efficient-communication.md` — a self-contained distillation of the same rules, so the fallback is fully functional, not degraded.
 
 ## Safeguards you enforce on top of the engine
 

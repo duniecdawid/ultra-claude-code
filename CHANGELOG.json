@@ -1,5 +1,12 @@
 [
   {
+    "seq": 213,
+    "version": "2026.07.25-5",
+    "date": "2026-07-25",
+    "summary": "caveman-reviewer engine fix: read caveman-compress's Compression Rules spec instead of invoking a caveman skill. Invoking caveman-compress overwrites files and invoking the caveman level-switcher mutates shared session state (mode log / .caveman-active flag) — both broke the agent's read-only, proposition-only contract. Now a pure Read of the authoritative ruleset, located via absolute search bases (plugin-dirs.txt source installs, then an absolute-based Glob of ~/.claude/plugins) because a spawned agent's cwd-scoped Glob misses a caveman checkout outside the project tree. Dropped the now-unused Skill tool from the agent's allowlist (minimal-allowlist rule). Fallback to the self-contained house rules in efficient-communication.md unchanged. Documented the deliberate preserve-frontmatter override (the description field IS the target).",
+    "migration": null
+  },
+  {
     "seq": 212,
     "version": "2026.07.25-4",
     "date": "2026-07-25",
