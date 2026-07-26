@@ -172,26 +172,41 @@ check_account acct-b
 ck "busy pane skipped"           '! grep -q -- "-t %S -l" "$CALLS"'
 rm -f "$TEST_DIR/tmux-screen-%S"
 
-# ---------------------------------------------------------------- 5. pre-open + chain-guards
-write_usage \
-  "$(usage_entry acct-c 3 $((NOW - 300)) 10 $((NOW + 86400)) "$(iso $((NOW - 3600)))")" \
-  "$(usage_entry acct-d 1 $((NOW - 300)) 10 $((NOW + 86400)) "$(iso $((NOW - 3600)))")" \
-  "$(usage_entry acct-e 50 $((NOW - 300)) 10 $((NOW + 86400)) "$(iso "$NOW")")"
-set_state '.accounts["acct-c"].last_window = {resets_at: 1, pct: 50}'
-set_state '.accounts["acct-d"].last_window = {resets_at: 1, pct: 1}'
-set_state '.accounts["acct-e"].last_window = {resets_at: 1, pct: 50}'
-check_account acct-c; check_account acct-d; check_account acct-e
-sleep 0.5
-ck "preopen fired for mapped active-window acct" 'grep -q "CLAUDE_CONFIG_DIR=$TEST_DIR/profC args=-p ok --model haiku" "$TEST_DIR/preopen.log"'
-ck "chain-guard: idle window skipped"  '! grep -q "profD" "$TEST_DIR/preopen.log" && grep -q "preopen skip acct-d: last window pct=1" "$LOG_FILE"'
-ck "active account skipped"            '! grep -q "profE" "$TEST_DIR/preopen.log" && grep -q "preopen skip acct-e: account active" "$LOG_FILE"'
-ck "preopen once per window"           '[ "$(grep -c profC "$TEST_DIR/preopen.log")" -eq 1 ]'
+# ---------------------------------------------------------------- 5. window heartbeat
+# The heartbeat is deliberately blind to usage data: it must fire on cadence alone, for accounts
+# that usage-status.json has never heard of, and it must NOT fire from the reset-wake path.
+: > "$TEST_DIR/preopen.log"
 
-# unmapped account: wake latch still set, no preopen call
-write_usage "$(usage_entry acct-x 80 $((NOW - 300)) 10 $((NOW + 86400)) "$(iso $((NOW - 3600)))")"
-set_state '.accounts["acct-x"].last_window = {resets_at: 1, pct: 80}'
-check_account acct-x; sleep 0.3
-ck "unmapped account: no preopen"      '! grep -q "acct-x" "$TEST_DIR/preopen.log" && grep -q "preopen skip acct-x: unmapped" "$LOG_FILE"'
+# reset-wake no longer pre-opens: nothing wakeable, window expired, yet no pre-open from that path
+write_usage "$(usage_entry acct-c 3 $((NOW - 300)) 10 $((NOW + 86400)) "$(iso $((NOW - 3600)))")"
+set_state '.accounts["acct-c"].last_window = {resets_at: 1, pct: 50}'
+set_state '.accounts["acct-c"].last_preopen = '"$NOW"
+check_account acct-c; sleep 0.3
+ck "reset-wake does not pre-open"   '[ ! -s "$TEST_DIR/preopen.log" ]'
+
+# heartbeat fires for a mapped account whose interval has elapsed
+set_state '.accounts["acct-c"].last_preopen = '"$((NOW - 1900))"
+heartbeat; sleep 0.3
+ck "heartbeat fired past interval"  'grep -q "CLAUDE_CONFIG_DIR=$TEST_DIR/profC args=-p ok --model haiku" "$TEST_DIR/preopen.log"'
+ck "heartbeat stamped last_preopen" '[ "$(get_state ".accounts[\"acct-c\"].last_preopen")" -ge "$((NOW - 60))" ]'
+
+# ...and is rate-limited to one fire per interval
+heartbeat; sleep 0.3
+ck "heartbeat throttled in window"  '[ "$(grep -c profC "$TEST_DIR/preopen.log")" -eq 1 ]'
+
+# a used previous window must NOT suppress the next fire (the old chain-guard did exactly that)
+set_state '.accounts["acct-c"].last_window = {resets_at: 1, pct: 0}'
+set_state '.accounts["acct-c"].last_preopen = '"$((NOW - 1900))"
+heartbeat; sleep 0.3
+ck "no chain-guard on idle window"  '[ "$(grep -c profC "$TEST_DIR/preopen.log")" -eq 2 ]'
+
+# heartbeat covers accounts absent from usage-status.json entirely
+write_usage "$(usage_entry acct-z 0 0 0 0 "$(iso "$NOW")")"
+heartbeat; sleep 0.3
+ck "heartbeat ignores usage file"   'grep -q "profD" "$TEST_DIR/preopen.log"'
+
+# unmapped/unresolvable accounts are still skipped
+ck "unmapped account: no preopen"   '! grep -q "acct-x" "$TEST_DIR/preopen.log"'
 
 # stale-resets_at guard: resets_at PREDATES the parked event (idle account, stale statusline
 # data) — the wake must NOT fire now; wake_at falls back to event+5h.

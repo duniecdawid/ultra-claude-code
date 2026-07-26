@@ -3,7 +3,7 @@
 #
 # USAGE LIMITS ARE NOT HANDLED HERE. The limit sentinel (scripts/limit-sentinel.sh, one global
 # process per machine) owns everything reactive: soft-band advisories, post-limit wake-ups,
-# window pre-open, and rollover tracing. This script keeps two jobs:
+# the window heartbeat, and rollover tracing. This script keeps two jobs:
 #
 #   status [ACCOUNT_KEY]     one-shot: current usage JSON + band for the resolved account.
 #                            Consumed by Lead's pre-spawn gating and completion bookkeeping.

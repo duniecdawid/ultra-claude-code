@@ -514,7 +514,8 @@ rm -f ~/.claude/ultra/usage-status.json
 The limit sentinel (`scripts/limit-sentinel.sh`) is ONE global background process per machine
 that handles usage limits reactively: it consumes the StopFailure hook's events, wakes parked
 sessions when their window resets, injects 90% soft-band advisories into plan-execution Lead
-panes, pre-opens fresh windows for mapped accounts, and notifies on weekly-limit parks. It is a
+panes, keeps a 5h window open continuously for mapped accounts via a heartbeat (one tiny headless
+prompt every `UC_PREOPEN_INTERVAL`, default 30 min), and notifies on weekly-limit parks. It is a
 process, not an agent — plan-execution agents never monitor usage themselves.
 
 1. **Initialize and start it** (the symlink was created in 5.6):

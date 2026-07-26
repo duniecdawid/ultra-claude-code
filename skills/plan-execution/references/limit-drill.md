@@ -64,13 +64,25 @@ survived the limit, and nothing else touched the session. Check
 `grep inject ~/.claude/ultra/sentinel/sentinel.log` shows no entry for this pane before
 RESET_EPOCH+90s. Early wakes burn failed turns; this is a hard rule.
 
-## Variant A — pre-open path
+## Variant A — window heartbeat
 
-Re-run steps 1–4 but `tmux kill-session -t limit-drill` right after the park (step 3's banner).
-With the pane gone and nothing else wakeable for that account, the sentinel should instead fire
-exactly one `claude -p "ok" --model haiku` under the account's mapped profile at reset
-(`preopen` line in sentinel.log) — provided the account is mapped in
-`~/.claude/skills/machine-context/limit-sentinel.md` and its expiring window had real usage.
+The heartbeat is independent of the wake path and of usage data: it fires on cadence alone so a
+5h window is always open. Force one without waiting for a reset:
+
+```bash
+# clear the throttle stamp for the account, then run a single tick
+jq '.accounts["<account-slug>"].last_preopen = 0' ~/.claude/ultra/sentinel/state.json > /tmp/s \
+  && mv /tmp/s ~/.claude/ultra/sentinel/state.json
+UC_PREOPEN_INTERVAL=1 bash ~/.claude/ultra/limit-sentinel.sh tick
+grep preopen ~/.claude/ultra/sentinel/sentinel.log | tail -2
+```
+
+Expect exactly one `claude -p "ok" --model haiku` under the account's profile, and a
+`last_preopen` stamp that suppresses the next fire until `PREOPEN_INTERVAL` (default 1800s) has
+elapsed. Accounts that neither appear in `map:` in
+`~/.claude/skills/machine-context/limit-sentinel.md` nor resolve by profile scan are skipped
+(`preopen skip … unmapped`). Note the reset-wake path no longer pre-opens at all — a killed
+session produces a wake attempt only.
 
 ## Variant B — advisory injection
 
@@ -93,5 +105,5 @@ pkill -f "gateway.py 8399"; rm -rf "$DRILL"
 1. Hook event spooled with `error:"rate_limit"` + pane id at limit hit.
 2. No injection before RESET_EPOCH + 90s.
 3. Parked pane woken exactly once; menu dismissed if present; codeword answer proves context.
-4. Variant A: exactly one pre-open, correct profile, only when nothing was wakeable.
+4. Variant A: exactly one pre-open per interval, correct profile, independent of the wake path.
 5. Variant B: exactly one advisory per window into the Lead pane only.

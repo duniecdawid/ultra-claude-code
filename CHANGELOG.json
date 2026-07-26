@@ -1,5 +1,22 @@
 [
   {
+    "seq": 215,
+    "version": "2026.07.26-1",
+    "date": "2026-07-26",
+    "summary": "Replace the limit sentinel's reset-triggered window pre-open with a stateless heartbeat that keeps a 5h usage window open continuously, so windows tile back-to-back — every window boundary that falls inside working hours is a fresh quota grant, and gaps between windows cost throughput. The old path fired only at a window reset, only when nothing was wakeable, and only if the expiring window had seen >=5% usage; that chain-guard (PREOPEN_FLOOR) structurally capped tiling at one hop, because a window opened by a pre-open always reads ~0% at its own reset and therefore suppressed the next one. The path was also blind: a headless `claude -p` does not refresh usage-status.json (no statusline runs in -p mode), so the sentinel could never observe a window it had opened itself, and anything scheduled off resets_at was guessing. The new heartbeat reads no usage data at all — it fires one tiny `claude -p \"ok\" --model haiku` per mapped account every UC_PREOPEN_INTERVAL (default 1800s), throttled by a last_preopen stamp in sentinel state — and is self-correcting by construction: a fire inside an already-open window is a free no-op, a fire in a gap opens the next window, so no phase tracking is needed. Accounts to pre-open for now come from the machine-context map union runtime profile detection (new mc_list_accounts) instead of usage-status.json, so accounts that are idle or have never been reported by a statusline are still covered. Removes PREOPEN_FLOOR and the account-active skip. The wake/parked-session path, plan and standalone wakes, soft-band advisories, rollover tracing and the 7d weekly-limit notice are all unchanged.",
+    "migration": {
+      "precondition": {
+        "exists": ".claude/ultra"
+      },
+      "actions": [
+        "Restart the limit sentinel on each machine so the long-running process picks up the new heartbeat code: `bash ~/.claude/ultra/limit-sentinel.sh stop && bash ~/.claude/ultra/limit-sentinel.sh ensure`. The symlink itself needs no action, but a sentinel started before this version keeps running the old reset-triggered pre-open until restarted.",
+        "Optional: tune the heartbeat cadence by exporting UC_PREOPEN_INTERVAL (seconds, default 1800) in the environment the sentinel is started from. Shorter means a smaller worst-case gap between windows at the cost of more tiny headless calls.",
+        "No project-file changes. Sentinel state gains a per-account last_preopen field, created on demand; existing state files need no conversion."
+      ],
+      "conflicts": "The heartbeat pre-opens a window for every account resolvable via the machine-context map or profile scan, including accounts that were previously skipped as idle. On an account where the 7-day limit is the binding constraint rather than the 5h window, this adds negligible token spend and no benefit — omit its `map:` line (and its profile from detection) if you want it left alone."
+    }
+  },
+  {
     "seq": 214,
     "version": "2026.07.25-7",
     "date": "2026-07-25",

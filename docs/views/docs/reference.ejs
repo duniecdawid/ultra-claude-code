@@ -106,7 +106,7 @@
       </tbody>
     </table>
 
-    <p><strong>Not an agent: the limit sentinel.</strong> Usage limits are handled by one machine-global background process (<code>scripts/limit-sentinel.sh</code>, installed by <code>/uc:setup</code>), not by any agent. It detects limit hits via the <code>StopFailure</code> hook, wakes parked sessions at each window reset (+90s), injects 90% soft-band advisories into Lead panes, pre-opens windows when nothing is wakeable, and notifies you when a weekly (7d) limit is hit.</p>
+    <p><strong>Not an agent: the limit sentinel.</strong> Usage limits are handled by one machine-global background process (<code>scripts/limit-sentinel.sh</code>, installed by <code>/uc:setup</code>), not by any agent. It detects limit hits via the <code>StopFailure</code> hook, wakes parked sessions at each window reset (+90s), injects 90% soft-band advisories into Lead panes, keeps a 5h usage window open continuously via a low-cost heartbeat so windows tile back-to-back, and notifies you when a weekly (7d) limit is hit.</p>
 
   </main>
 </div>

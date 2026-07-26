@@ -17,9 +17,10 @@
 #      - ADVISORY: >= soft band -> inject one advisory line into registered Lead panes (once/window)
 #      - RESET WAKE at resets_at + margin: dual-write RESUME to active tasks' signals.jsonl +
 #        send-keys to worker panes, Lead pane last; wake parked standalone panes; once/window
-#      - PRE-OPEN: nothing wakeable -> one tiny headless prompt to start the new window
-#        (mapped accounts only, chain-guarded so an idle account never self-feeds)
 #      - 7d NOTICE: weekly-limit park is days-long -> tell the Lead pane + machine-context notify
+#   3. WINDOW HEARTBEAT: per mapped account, one tiny headless prompt every PREOPEN_INTERVAL so a
+#      5h window is always open and windows tile back-to-back (see heartbeat() for why it reads
+#      no usage data at all).
 #
 # Multi-account first-class: every latch is keyed (account, resets_at) so each action fires
 # exactly once per window and restarts are idempotent. Injection is guarded: pane must exist,
@@ -31,7 +32,7 @@
 # fallback. Nothing in this script is machine-specific.
 #
 # Env overrides (tests): UC_SENTINEL_DIR, UC_USAGE_FILE, UC_SENTINEL_MC, UC_TEAMS_DIR,
-# SENTINEL_TMUX (e.g. "tmux -L test"), CLAUDE_BIN, UC_TICK_SECONDS.
+# SENTINEL_TMUX (e.g. "tmux -L test"), CLAUDE_BIN, UC_TICK_SECONDS, UC_PREOPEN_INTERVAL.
 
 set -uo pipefail
 
@@ -51,7 +52,7 @@ PLANS_DIR="$SENTINEL_DIR/plans"
 
 SOFT_5H=90; SOFT_7D=90       # soft band: advisory + Lead pre-spawn gating; there is no hard stop
 WAKE_MARGIN=90               # fire wakes at resets_at + margin (never early — early wakes burn turns)
-PREOPEN_FLOOR=5              # chain-guard: pre-open only if the expiring window saw real usage (%)
+PREOPEN_INTERVAL="${UC_PREOPEN_INTERVAL:-1800}"  # window-heartbeat cadence (s); worst-case gap
 EVENT_RETENTION_H=48
 
 log() { echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] $*" >> "$LOG_FILE" 2>/dev/null; return 0; }
@@ -92,6 +93,21 @@ mc_get_profile() { # account -> profile dir ("" if unmapped, "default" for the d
     fi
   done
   echo ""
+}
+mc_list_accounts() { # every account the sentinel can pre-open for (map ∪ runtime detection)
+  # Deliberately NOT sourced from usage-status.json: that file only lists accounts a statusline
+  # has already reported, and the heartbeat must work for an account that has been idle for days.
+  { [ -f "$MC_FILE" ] && grep -E "^map:" "$MC_FILE" 2>/dev/null | sed 's/^map:[[:space:]]*//; s/[[:space:]]*=.*//'
+    local lib="$HOME/.claude/ultra/lib.sh" d email
+    if [ -f "$lib" ]; then
+      for d in "$HOME/.claude-profiles"/*/ "$HOME/.claude/"; do
+        [ -f "$d/.claude.json" ] || continue
+        email=$(jq -r '.oauthAccount.emailAddress // empty' "$d/.claude.json" 2>/dev/null)
+        [ -n "$email" ] || continue
+        ( source "$lib" 2>/dev/null && slugifyEmail "$email" ) 2>/dev/null
+      done
+    fi
+  } | awk 'NF && !seen[$0]++'
 }
 mc_notify_cmd() { [ -f "$MC_FILE" ] && grep -E "^notify:" "$MC_FILE" 2>/dev/null | head -1 | sed 's/^notify:\s*//'; return 0; }
 mc_standalone_wake() { # default on
@@ -241,8 +257,8 @@ wake_standalone() { # account window -> count woken
   echo "$woke"
 }
 
-# Window pre-open: one tiny headless prompt to start the new window at reset time (user call:
-# every mapped account), chain-guarded so an idle account never self-feeds a 24/7 keep-alive.
+# Window pre-open: one tiny headless prompt, which starts a 5h window if none is open and is a
+# no-op inside one that already is. Cheap enough (a haiku "ok") to fire on a blind cadence.
 do_preopen() { # account
   local acct="$1" profile
   profile=$(mc_get_profile "$acct")
@@ -254,6 +270,25 @@ do_preopen() { # account
   fi
   log "preopen $acct via profile=$profile"
   return 0
+}
+
+# Window heartbeat: keep a 5h window open at all times so windows tile back-to-back — every
+# boundary that falls inside working hours is a fresh quota grant, so gaps cost throughput.
+#
+# This reads NO usage data, by design. A headless `claude -p` does not refresh usage-status.json
+# (no statusline runs in -p mode), so the sentinel can never observe a window it opened itself;
+# anything scheduled off resets_at is structurally blind, and a chain-guard keyed on last-window
+# usage caps the chain at one hop because a pre-opened window always reads ~0%. A fixed cadence
+# is self-correcting instead: a fire inside an open window is a free no-op, a fire in a gap opens
+# the next window. No phase tracking, no limit read, worst-case gap = PREOPEN_INTERVAL.
+heartbeat() {
+  local acct last now; now=$(now_epoch)
+  for acct in $(mc_list_accounts); do
+    last=$(get_state ".accounts[\"$acct\"].last_preopen // 0")
+    [ "$last" -gt 0 ] 2>/dev/null && [ $((now - last)) -lt "$PREOPEN_INTERVAL" ] 2>/dev/null && continue
+    do_preopen "$acct" || continue
+    set_state '.accounts[$a].last_preopen = ($t|tonumber)' --arg a "$acct" --arg t "$now"
+  done
 }
 
 # ---------------------------------------------------------------------------- spool + registry
@@ -326,7 +361,7 @@ check_account() { # account
   [ "$res5" = "null" ] || [ -z "$res5" ] && res5=0
   [ "$res7" = "null" ] || [ -z "$res7" ] && res7=0
 
-  # -- rollover trace + last-window usage snapshot (chain-guard input) -----------------------
+  # -- rollover trace + last-window usage snapshot (wake-gating input) ------------------------
   local prev5; prev5=$(get_state ".accounts[\"$acct\"].win5h.resets_at // 0")
   if [ "$res5" -gt 0 ] 2>/dev/null && [ "$prev5" -gt 0 ] 2>/dev/null && [ "$res5" -gt "$prev5" ] 2>/dev/null; then
     local prev_pct; prev_pct=$(get_state ".accounts[\"$acct\"].win5h.pct // 0")
@@ -364,7 +399,7 @@ check_account() { # account
     set_state '.accounts[$a].advisory_7d_latch = ($r|tonumber)' --arg a "$acct" --arg r "$res7"
   fi
 
-  # -- RESET WAKE + PRE-OPEN (resets_at + margin passed, once per window) ---------------------
+  # -- RESET WAKE (resets_at + margin passed, once per window) --------------------------------
   # Wake time source: resets_at is API-authoritative for the window it describes — but it must
   # POSTDATE the limit hit it is supposed to clear. A stale resets_at (account idle since a
   # previous window, statusline never refreshed) would otherwise fire the wake immediately into
@@ -397,25 +432,7 @@ check_account() { # account
       fi
     done
     [ "$had_limit" = true ] && { local sw; sw=$(wake_standalone "$acct" 5h); woke=$((woke+sw)); }
-    if [ "$woke" -eq 0 ]; then
-      # Nothing wakeable: pre-open the new window for mapped accounts. Two chain-guards:
-      # (a) the expiring window must have seen real usage (an idle account must never self-feed
-      #     a perpetual keep-alive), and (b) the account must not be actively in use right now
-      #     (fresh statusline data = live sessions will open the window themselves).
-      local upd upd_epoch stale_min=9999
-      upd=$(jq -r --arg k "$acct" '.accounts[$k].updated_at // ""' "$USAGE_FILE" 2>/dev/null)
-      if [ -n "$upd" ] && [ "$upd" != "null" ]; then
-        upd_epoch=$(date -d "$upd" +%s 2>/dev/null || echo 0)
-        [ "$upd_epoch" -gt 0 ] 2>/dev/null && stale_min=$(( (now - upd_epoch) / 60 ))
-      fi
-      if [ "$stale_min" -lt 10 ] 2>/dev/null; then
-        log "preopen skip $acct: account active (data ${stale_min}m old)"
-      elif [ "$lastw_pct" -ge "$PREOPEN_FLOOR" ] 2>/dev/null || [ "$had_limit" = true ]; then
-        do_preopen "$acct" || true
-      else
-        log "preopen skip $acct: last window pct=$lastw_pct < $PREOPEN_FLOOR (chain-guard)"
-      fi
-    fi
+    # Nothing to pre-open here: the window heartbeat owns that, on its own cadence.
     set_state '.accounts[$a].wake_done = ($w|tonumber)' --arg a "$acct" --arg w "$wake_at"
     log "reset handled $acct: wake_at=$wake_at woke=$woke parked=$parked_n"
   fi
@@ -430,6 +447,7 @@ tick() {
       check_account "$acct"
     done
   fi
+  heartbeat   # outside the usage-file gate on purpose — it must run for idle/unreported accounts
   prune
 }
 
