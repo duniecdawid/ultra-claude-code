@@ -35,7 +35,39 @@ Options:
 
 Lead detects: idle notification without preceding "task done" message, or extended silence.
 
-Recovery:
+### Liveness probe — MANDATORY before any re-spawn
+
+A missing *message* is not a missing *agent*. A usage limit **parks** teammates at their composer
+with full context — it never kills them — and a long tool call or a silently dropped SendMessage
+looks identical to death from outside. Re-spawning over a live agent puts two writers on one task
+under one name. Probe in this order and re-spawn only when a step proves the agent gone:
+
+1. **Team config** — the harness's own record of the member (`{name}` = `executor-{N}` etc.):
+   ```bash
+   TEAM_CFG=$(grep -rl '"{name}"' "$HOME/.claude/teams"/*/config.json 2>/dev/null | head -1)
+   jq -r '.members[] | select(.name=="{name}") | "\(.backendType) \(.tmuxPaneId)"' "$TEAM_CFG"
+   ```
+   No entry → gone, re-spawn. Entry → carry its `tmuxPaneId` to step 2.
+2. **Pane** — with `%NNN` the `tmuxPaneId` from step 1:
+   ```bash
+   tmux list-panes -a -F '#{pane_id} #{pane_current_command}' | grep '^%NNN '
+   ```
+   No line → gone, re-spawn. Line showing claude → **alive** (parked or mid-tool-call); do not
+   re-spawn — re-send the missing item via `CommunicateTeamMember` instead. Line showing another
+   command → inconclusive, go to step 3.
+3. **Ping** — `SendMessage(to: "{name}", message: "STATUS CHECK — reply with your current
+   stage")`, then yield for one bounded `Monitor` round (~120s) over that task's `signals.jsonl`.
+   A reply or any new signal line means alive, and the ping itself cures a wrongly-parked-but-alive
+   agent. Silence after the round → treat as crashed.
+
+Record the probe outcome in `shared/lead.md` alongside the crash entry.
+
+**Exception — session death (Phase 1.2 resume).** Teammates of a *previous* Lead session are
+unreachable: the new session has a new team config, so a surviving pane can neither be addressed
+nor adopted. Skip the probe there, re-spawn per the Session Death section below, and tell the user
+about any orphaned panes left behind.
+
+Recovery (after the probe confirms death):
 1. Re-spawn the crashed role into the existing team using the SAME minimal spawn prompt from `phase-2-spawn-prompts.md`. No context is rebuilt — the re-spawned agent runs the startup protocol (`task-team-startup.md`) and reads `tasks/task-$TASK_ID/task.md`, `signals.jsonl`, `plan.md` (if present), `impl.md` (if present) plus `shared/lead.md` directly from disk.
 2. Include names of surviving teammates in the spawn prompt (the standard teammate list).
 3. Surviving teammates continue — Executor drives re-coordination.

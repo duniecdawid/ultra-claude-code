@@ -1,5 +1,12 @@
 [
   {
+    "seq": 218,
+    "version": "2026.07.27-3",
+    "date": "2026-07-27",
+    "summary": "plan-execution: probe for the previous agents before re-spawning them after a limit reset, and compress usage-control.md. A usage limit parks teammates at their composer with full context — it never kills them — but the SENTINEL RESET handler let Lead move straight from 'this task looks quiet' to the phase-4 crash re-spawn, which under one team-member name puts two writers on the same task. Phase 4 now defines a mandatory Liveness probe as the canonical pre-re-spawn gate: (1) look the member up in the harness's own record, ~/.claude/teams/*/config.json, and take its tmuxPaneId; (2) check that pane is still present with claude running — present means alive (parked or mid-tool-call), so re-send the missing item via CommunicateTeamMember instead of re-spawning; (3) only if the first two are inconclusive, SendMessage a STATUS CHECK and yield one bounded ~120s Monitor round over the task's signals.jsonl, where a reply or any new signal line means alive and the ping itself cures a wrongly-parked agent. Probe outcome is recorded in shared/lead.md next to the crash entry. Session death is the documented exception — a previous Lead session's teammates are unreachable from a new team config, so the probe is skipped there and orphan panes are reported to the user. usage-control.md SENTINEL RESET step 3, the SKILL.md SENTINEL RESET and NUDGE-ESCALATION handler rows, and the Usage Response Protocol summary all reference the probe rather than restating it. usage-control.md was compressed in the same pass — 155 to 146 lines, 7916 to 7637 characters, and that is net of roughly 500 characters of new probe text, so the prose itself lost ~10% — with no behaviour dropped: the model paragraph, band table, gating steps, the three sentinel handlers, completion bookkeeping, HOLD-WAKE fallback, block tracking, and the do-not-reintroduce list all survive, and that list gains a fifth entry forbidding blind re-spawn of an agent that went quiet at the limit. Docs site plan-execution page updated on both the failure-handling and usage-management panels.",
+    "migration": null
+  },
+  {
     "seq": 217,
     "version": "2026.07.27-2",
     "date": "2026-07-27",
