@@ -7,6 +7,7 @@ allowed-tools:
   - Grep
   - Glob
   - Bash
+  - Agent
 ---
 
 # Harness Builder
@@ -19,6 +20,29 @@ Accumulated knowledge for building the harness — the skills, agents, hooks, an
 2. **Engines are invoked, never copied.** Skills are built through `/skill-creator:skill-creator` (the official eval-driven engine); text compression goes through the installed caveman plugin. Do not inline either engine's content into other skills, prompts, or docs — invoke them so upstream improvements propagate.
 3. **Descriptions are routers, not documentation.** Budgets: skill description 1–3 sentences (~20–50 words); agent description 1 sentence (~10–25 words). The body carries detail; the description pays an always-resident price in every session.
 4. **Refactors require before/after evidence.** Never accept a skill/agent refactor that lowers trigger accuracy or eval pass-rate — brevity that breaks routing is a regression, not a win.
+5. **Compression review is a gate, not an option.** See below — it runs on every persistent artifact this skill touches.
+
+## Mandatory gate — spawn `uc:caveman-reviewer` on every artifact
+
+Every persistent harness artifact you write or rewrite while this skill is active goes through the `uc:caveman-reviewer` agent **before you report the work done**: skill `description`, agent `description`, agent prompt body, protocol message format, CLAUDE.md section, resident reference text. One spawn per artifact; when there are several, put all the spawns in one message so they run concurrently.
+
+```
+Agent(
+  subagent_type: "uc:caveman-reviewer",
+  run_in_background: false,          # it is a gate — you need the proposition before shipping
+  description: "compress <artifact>",
+  prompt: "Artifact: <absolute path, or the inline text>.
+           Kind: skill-description | agent-description | prompt-body | protocol-format | doc-section.
+           Siblings it must stay distinguishable from: <paths, or none>."
+)
+```
+
+Rules that make this deterministic:
+
+- **No self-assessment substitutes for the spawn.** "Already terse", "only a small edit", "I applied the compression rules myself", "the text is short" are not exemptions. The reviewer's own `do-not-recommend` verdict is the only sanctioned no-op — it is cheap and it is the escape valve.
+- **Out of scope:** ephemeral text — chat answers, one-off analysis, commit messages, code comments, anything not loaded into future sessions.
+- **You decide, the reviewer proposes.** Accept or reject each cut per item; accepted description changes additionally require the before/after trigger test (`references/testing-refactors.md`).
+- **If the agent cannot be spawned** (not installed in this session), say so explicitly, then apply the house rules in `references/efficient-communication.md` by hand — never silently skip the step.
 
 ## Routing
 
@@ -36,7 +60,7 @@ References live at `${CLAUDE_PLUGIN_ROOT}/skills/harness-builder/references/`.
 
 - `/skill-creator:skill-creator` — creation + eval engine for skills (official plugin; includes a description-trigger optimizer).
 - caveman plugin — compression engine, installed dormant (`defaultMode: off`), enabled selectively; see `references/efficient-communication.md`.
-- `caveman-reviewer` agent (this plugin) — proposition-only compression review of persistent harness text.
+- `uc:caveman-reviewer` agent (this plugin) — proposition-only compression review of persistent harness text; spawned per the mandatory gate above, not at discretion.
 
 ## Accumulating knowledge here
 

@@ -95,7 +95,7 @@ Scans all plans, infers actual status from execution artifacts (operational repo
 ### Infrastructure
 
 **Harness Builder** (`/uc:harness-builder`)
-Knowledge base for building harness components — skills, agents, hooks, protocols. Use when creating or refactoring a skill or agent, writing descriptions or prompts, auditing session context cost (`scripts/context_audit.py`), or compressing resident text via the dormant caveman engine. Knowledge, not process: non-negotiables (Opus floor, engines-by-invocation, description budgets, before/after refactor testing) plus single-topic references.
+Knowledge base for building harness components — skills, agents, hooks, protocols. Use when creating or refactoring a skill or agent, writing descriptions or prompts, auditing session context cost (`scripts/context_audit.py`), or compressing resident text via the dormant caveman engine. Knowledge, not process: non-negotiables (Opus floor, engines-by-invocation, description budgets, before/after refactor testing) plus single-topic references, and a mandatory gate that spawns `uc:caveman-reviewer` on every persistent artifact it touches.
 
 **Rename Window** (`/uc:rename-window`)
 Renames the current tmux window via the shared `scripts/tmux-window-name.sh` primitive (sanitizes, truncates for the status bar, and disables tmux automatic-rename so the name sticks). Use to label a window by what it is working on, or to apply Ultra Claude's `UC::P-NNN::<plan>` / `UC::<Mode>::<subject>` convention by hand — planning modes and plan-execution apply it automatically, with the plan ID taking priority. Produces a renamed window that survives shell-prompt redraws; no-ops outside tmux.
@@ -121,7 +121,7 @@ Defines the 4-stage planning flow (Understand → Research → Discuss → Write
 Agents are spawned as subagents by skills. They don't run independently — skills orchestrate them.
 
 **Caveman Reviewer**
-Proposes token-compressed rewrites of persistent harness text (descriptions, agent prompts, protocol formats, CLAUDE.md sections) — proposition-only, never edits. Uses the installed caveman plugin as its compression engine and layers harness safeguards on top: description budgets, discriminating-key-term preservation with explicit RISK flags, byte-exact code/commands. Spawned after writing persistent harness text; parent accepts or rejects per item (description changes additionally require the before/after trigger test).
+Proposes token-compressed rewrites of persistent harness text (descriptions, agent prompts, protocol formats, CLAUDE.md sections) — proposition-only, never edits. Routes by artifact kind: prose bodies are compressed by invoking the caveman-compress CLI on a scratch copy (so its programmatic validator and retry loop do the work), while descriptions use first-party `description-writing.md` rules because the engine preserves frontmatter verbatim and its stemmed-verb style destroys routing key terms. Spawned unconditionally by `/uc:harness-builder`'s mandatory gate — one synchronous spawn per persistent artifact written, before the work is reported done; parent accepts or rejects per item (description changes additionally require the before/after trigger test).
 
 **Checker**
 Compares specific code against documentation claims for a single topic, returning discrepancies with severity levels and exact file:line references. Spawned by doc-code verification to verify isolated aspects of the system. Produces structured verification reports identifying factual differences between docs and implementation.
