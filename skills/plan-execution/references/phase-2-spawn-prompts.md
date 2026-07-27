@@ -55,7 +55,7 @@ This must happen before the teammate spawn so agents can read and append to it f
 
 ### 2.6. Re-assert the main-context pane label
 
-The layout daemon only manages a window once its Lead pane carries `@agent-name=main-context`; a window whose Lead pane is unlabelled is skipped (teammate panes pile up un-gridded). Phase 1 §1.1b sets this once, but a one-shot is fragile — if the Lead's controlling pane differs from `$TMUX_PANE` at startup, or `/uc:plan-execution` was invoked mid-session, the label may never land on the pane teammates spawn beside. Re-run the same idempotent setup script here, on every spawn, so the main pane is guaranteed labelled before the first teammate pane appears:
+The layout daemon manages a window only while two things hold: its Lead pane carries `@agent-name=main-context`, **and** the window contains at least one teammate pane (PM, a task pane, or the final gate). A window whose Lead pane is unlabelled is skipped (teammate panes pile up un-gridded); a window with no teammates left is released untouched, so panes you split by hand after execution are never rearranged. Phase 1 §1.1b sets this once, but a one-shot is fragile — if the Lead's controlling pane differs from `$TMUX_PANE` at startup, or `/uc:plan-execution` was invoked mid-session, the label may never land on the pane teammates spawn beside. Re-run the same idempotent setup script here, on every spawn, so the main pane is guaranteed labelled before the first teammate pane appears:
 
 ```bash
 bash "${CLAUDE_PLUGIN_ROOT}/scripts/tmux-layout-setup.sh"

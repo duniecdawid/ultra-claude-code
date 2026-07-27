@@ -102,7 +102,7 @@ Check that:
 
 #### Lead label sanity check
 
-The layout daemon treats `main-context` as the anchor for every window — if it is missing, the daemon skips the window entirely and your team grid stops updating. Detect and fix this on every verification pass:
+The layout daemon treats `main-context` as the anchor for every window — if it is missing, the daemon skips the window entirely and your team grid stops updating. (The daemon also requires at least one teammate pane — you, a task pane, or the final gate — before it manages a window at all; that gate keeps it off windows where no team is running, and is satisfied by your own pane for as long as you are alive.) Detect and fix this on every verification pass:
 
 ```bash
 # Count panes labeled main-context in the current window

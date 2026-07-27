@@ -456,9 +456,29 @@ function tick() {
   for (const [windowId, panes] of windows) {
     const classified = classifyPanes(panes);
 
-    // No main pane (real or inferred) → not an execution window we manage.
-    if (!classified.mainPane) {
-      managedWindows.delete(windowId);
+    // A window is managed only while an execution team is actually in it. Two
+    // gates, both required:
+    //   1. a main/Lead pane (real or inferred), and
+    //   2. at least one teammate pane — PM, a task pane, or the final gate.
+    //
+    // Gate 2 exists because `main-context` is not execution-specific and is
+    // never cleared: planning Stage 1 writes it too (references/planning-
+    // framework/stage-1.md), and no code path ever unsets @agent-name, so a
+    // pane keeps the label for its whole life. On gate 1 alone the daemon would
+    // go on rearranging every window that once hosted planning or a finished
+    // execution — including panes the user later split by hand for unrelated
+    // work. Releasing a window leaves its current layout untouched; the daemon
+    // simply stops driving it, and re-adopts it if a team spawns there again.
+    const hasTeam = Boolean(classified.pmPane) ||
+      Object.keys(classified.tasks).length > 0 ||
+      Boolean(classified.gatePane);
+
+    if (!classified.mainPane || !hasTeam) {
+      if (managedWindows.has(windowId)) {
+        const why = !classified.mainPane ? 'main pane gone' : 'no teammate panes left';
+        log(`RELEASE: ${windowId} (${why}) — layout left as-is`);
+        managedWindows.delete(windowId);
+      }
       continue;
     }
 

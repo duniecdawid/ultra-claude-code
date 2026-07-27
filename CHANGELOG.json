@@ -1,5 +1,12 @@
 [
   {
+    "seq": 219,
+    "version": "2026.07.27-4",
+    "date": "2026-07-27",
+    "summary": "tmux layout daemon: manage a window only while an execution team is actually in it. The daemon's sole adoption gate was a pane labelled @agent-name=main-context, but that label is not execution-specific and is never cleared: planning Stage 1 (references/planning-framework/stage-1.md) writes it too, and no code path unsets @agent-name, so a pane carries it for life. The result was that any window which had once hosted planning or a finished execution stayed under daemon control forever — panes the user split by hand afterwards for unrelated work got folded into a task column and resized by the next select-layout. tick() now requires a second gate alongside the main pane: at least one teammate pane in the window (PM, a task-N pane, or final-gate). The gate includes the final gate so the post-task regression phase is still arranged after the task panes close. A window that fails the gate is released with a RELEASE log line and its layout is left exactly as-is — the daemon simply stops driving it, and re-adopts it if a team spawns there later. Verified against a live tmux server on an isolated socket: a labelled Lead pane plus two hand-made splits is left byte-identical, a Lead+PM window is still arranged, and a window whose team exits mid-daemon-lifetime is released and its subsequent manual split and resize are untouched. Docs updated in agents/project-manager.md, phase-1-setup.md, and phase-2-spawn-prompts.md, which each described the label as the only gate.",
+    "migration": null
+  },
+  {
     "seq": 218,
     "version": "2026.07.27-3",
     "date": "2026-07-27",
