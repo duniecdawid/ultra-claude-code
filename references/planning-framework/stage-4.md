@@ -147,7 +147,7 @@ Before proceeding to Step 5, run the sizing gate against `${CLAUDE_PLUGIN_ROOT}/
 1. **Confirm the task list — including each task's type and model — matches the breakdown agreed in Stage 3.** The task division was proposed and discussed there; Stage 4 writes down what was agreed, it does not re-decide.
 2. **If the list diverged** (scope changed during discussion, tasks appeared or split since), re-run the merge-first algorithm from task-sizing.md on the current list and re-classify changed tasks.
 3. **Apply the hard cap:** if the plan now exceeds 4 tasks and that split was NOT explicitly agreed in Stage 3, STOP and confirm via AskUserQuestion ("This plan splits into N tasks — approve the split, or merge?") before writing any files.
-4. **Confirm any new `fable` assignment:** if a task is now `fable` and that was NOT agreed in Stage 3, STOP and confirm via AskUserQuestion (see task-classification.md) before writing any files.
+4. **`fable` approval gate:** every `fable` assignment needs the user's explicit approval — if it wasn't given in Stage 3, STOP and get it via AskUserQuestion, stating the ~2× opus usage cost (see task-classification.md), before writing any files.
 5. **Produce the final sizing table** (format in task-sizing.md) — it is written into the README in Step 5a and shown in the approval summary in Step 6.
 
 ### Forbidden task patterns

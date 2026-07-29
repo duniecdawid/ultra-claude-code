@@ -23,7 +23,7 @@
     <h2>How the framework saves tokens</h2>
 
     <h3>Model assignment</h3>
-    <p>The Executor's model is chosen <strong>per task during planning</strong> &mdash; Sonnet for mechanical, pattern-following work; Opus as the default for code delivery; Fable for the architectural hard end (proposed with an explicit flag, since Fable draws usage credits). Every other role &mdash; Reviewer, Tester, Project Manager, researcher subagent &mdash; runs on Sonnet. This concentrates cost where capability matters most: writing code.</p>
+    <p>The Executor's model is chosen <strong>per task during planning</strong> &mdash; Sonnet for mechanical, pattern-following work; Opus as the default for code delivery; Fable for the architectural hard end (requires your explicit approval &mdash; it burns usage at roughly 2&times; Opus). Every other role &mdash; Reviewer, Tester, Project Manager, researcher subagent &mdash; runs on Sonnet. This concentrates cost where capability matters most: writing code.</p>
 
     <h3>Waiting is free &mdash; the full team spawns upfront</h3>
     <p>All three team members spawn together at task start. That's affordable because a parked agent costs nothing: each agent arms one persistent inbox monitor and a "wait" is just yielding its turn &mdash; tokens are spent per <em>wake</em>, not per minute of idling. So instead of deferring the Tester to save imaginary idle burn, the framework puts its idle window to work: the Tester front-loads a <code>TESTER TAKE</code> (the acceptance-case list and unit-layer test contract) before the Executor plans, and drafts black-box acceptance tests while implementation runs. The Executor's "code complete" signal is fire-and-forget &mdash; no spawn handshake blocks the pipeline at its hottest point.</p>

@@ -35,7 +35,7 @@ The dotted line visually separates the exit affordance from the discussion conte
 
 ## Proposed Task Breakdown — Mandatory Synthesis Element
 
-The opening synthesis must include a high-level task breakdown built per `task-sizing.md` and `task-classification.md`: the proposed task list with, for each task, its type and executor model (justified in one line when non-default), an estimated file count, and a one-line justification for why it can't merge with a neighbor (the sizing table in conversational form; a single-task plan just says so). A `fable` proposal carries its usage-credit flag here. Task boundaries and classifications are explicitly **up for discussion** — the user can merge, split, or reshape them here, before anything is written. This is where task division gets decided; Stage 4 only confirms it.
+The opening synthesis must include a high-level task breakdown built per `task-sizing.md` and `task-classification.md`: the proposed task list with, for each task, its type and executor model (justified in one line when non-default), an estimated file count, and a one-line justification for why it can't merge with a neighbor (the sizing table in conversational form; a single-task plan just says so). A `fable` proposal states its ~2× opus usage cost and needs the user's explicit approval — obtain it here in discussion. Task boundaries and classifications are explicitly **up for discussion** — the user can merge, split, or reshape them here, before anything is written. This is where task division gets decided; Stage 4 only confirms it.
 
 If the breakdown exceeds 4 tasks, getting the user's explicit agreement to the split is part of this discussion (see `task-sizing.md` Hard cap).
 

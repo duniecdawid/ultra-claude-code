@@ -22,7 +22,7 @@ Only the Executor varies. Reviewer, Tester, PM stay sonnet regardless.
 |-------|------|
 | `sonnet` | Mechanical, pattern-following work: config, applying an established codebase pattern, clear spec, low ambiguity. Default for `ops` |
 | `opus` | Standard code delivery. Default for `code` |
-| `fable` | Hard end: architectural or cross-cutting change, ambiguous or algorithmically hard problem — often the single task a whole plan rides on. **Draws usage credits** — flag explicitly when proposing; never write into a plan the user hasn't seen flagged |
+| `fable` | Hard end: architectural or cross-cutting change, ambiguous or algorithmically hard problem — often the single task a whole plan rides on. **Burns usage at ~2× opus — requires the user's explicit approval** (in Stage 3 discussion or at the Stage 4 gate); never write into a plan without it |
 
 ## Where the classification is recorded
 
