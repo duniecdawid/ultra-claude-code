@@ -1,5 +1,12 @@
 [
   {
+    "seq": 223,
+    "version": "2026.07.29-4",
+    "date": "2026-07-29",
+    "summary": "help: two-stage slim-down of the knowledge base (25.7KB → 19.5KB, −24%) — structural: protocol mechanics hoisted to one Agents-preamble pointer at the execution communication protocol, Setup/Research/Dashboard/Plan Execution/Backlog entries cut to router altitude, Plan Execution gains its missing outcome sentence, Backlog restored to 3 sentences, usage-monitor + limit-sentinel moved under a Scripts (not agents) subheading, task.md invariant hoisted to System Architecture, Extending the System collapsed to a pointer at /uc:harness-builder; lexical: caveman engine pass adopted item by item with reviewer repairs keeping all 34 entries at exactly 3 sentences and every code token byte-exact",
+    "migration": null
+  },
+  {
     "seq": 222,
     "version": "2026.07.29-3",
     "date": "2026-07-29",
