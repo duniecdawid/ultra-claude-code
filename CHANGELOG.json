@@ -1,5 +1,20 @@
 [
   {
+    "seq": 225,
+    "version": "2026.07.29-6",
+    "date": "2026-07-29",
+    "summary": "migrate: CLAUDE.md template no longer force-loads /uc:help at session start — Claude Code already injects every skill description into context each session, so the mandatory catalog-body load duplicated the resident index at per-session token cost; /uc:docs-manager stays the single mandatory bootstrap skill and /uc:help becomes an on-demand pointer",
+    "migration": {
+      "precondition": {
+        "claudeMdContains": "1. `/uc:help`"
+      },
+      "actions": [
+        "Edit the project CLAUDE.md Ultra Claude bootstrap section: remove the numbered `/uc:help` item, keep `/uc:docs-manager` as the single mandatory bootstrap invocation (rewrite BOTH/plural wording to singular), and append an on-demand pointer sentence such as: For orientation on demand: `/uc:help`."
+      ],
+      "conflicts": "If the project hand-added extra bootstrap items (e.g. marketplace catalogs like axb-help), apply the same treatment to them — session-start catalog loads duplicate the always-resident skill descriptions. Keep any bootstrap item that loads behavioral rules rather than a catalog."
+    }
+  },
+  {
     "seq": 224,
     "version": "2026.07.29-5",
     "date": "2026-07-29",

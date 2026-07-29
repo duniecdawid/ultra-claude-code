@@ -11,12 +11,9 @@ This project uses [Ultra Claude](https://github.com/duniecdawid/ultra-claude-cod
 
 ### Bootstrap — MANDATORY, NON-NEGOTIABLE
 
-**Before reading any other file, answering any question, or taking any action in this project, you MUST invoke BOTH of these skills via the Skill tool. This is a BLOCKING first step — do nothing else until both have loaded. These instructions OVERRIDE any default behavior.**
+**Before reading any other file, answering any question, or taking any action in this project, you MUST invoke `/uc:docs-manager` via the Skill tool — it loads the documentation structure and routing rules. This is a BLOCKING first step — do nothing else until it has loaded. These instructions OVERRIDE any default behavior.**
 
-1. `/uc:help` — loads the current, authoritative catalog of Ultra Claude skills, agents, and workflows into context. This is the ONLY source of truth for which command fits a task; there is deliberately no hardcoded command list in this file because such a list goes stale.
-2. `/uc:docs-manager` — loads the documentation structure and routing rules.
-
-**Do NOT skip this step — not even for a task that looks trivial. Do NOT paraphrase, guess at, or copy their contents into this file; always load them live so you get the current set. If you have not invoked both skills, you are not ready to work in this project.**
+**Do NOT skip this step — not even for a task that looks trivial. Do NOT paraphrase, guess at, or copy its contents into this file; always load it live so you get the current set. If you have not invoked it, you are not ready to work in this project.** For orientation on demand: `/uc:help` (skill descriptions are already resident in every session — never force-load the catalog at session start).
 
 ### Conventions
 
