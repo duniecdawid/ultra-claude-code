@@ -1,5 +1,12 @@
 [
   {
+    "seq": 226,
+    "version": "2026.07.29-7",
+    "date": "2026-07-29",
+    "summary": "help: revert the lexical caveman pass — catalog entries are human-facing (read directly and relayed verbatim to users), so register compression traded comprehension for tokens; the structural slim-down stays, a human-facing guard note is added atop the catalog, and harness-builder stage-3-compression gains a human-facing exemption rule; the two entries updated by the caveman-compress rename are re-applied in full-sentence form",
+    "migration": null
+  },
+  {
     "seq": 225,
     "version": "2026.07.29-6",
     "date": "2026-07-29",

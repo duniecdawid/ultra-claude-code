@@ -4,6 +4,8 @@ Scope: stage 3 of the build workflow — mechanical engine compression of body a
 
 Applies to body artifacts only — `prompt-body` | `doc-section` | `protocol-format`. Descriptions were finished at stage 2 and never reach the engine.
 
+**Human-facing exemption.** Artifacts whose text humans read directly or that is relayed to users verbatim — the `skills/help` catalog entries, README prose, onboarding/getting-started text — skip this stage entirely: structural cuts (stage 1) apply, register compression does not. Caveman register in human-facing prose reads as broken English and pays back its token savings in comprehension. [JUDGMENT, user directive 2026-07-29 — the help SKILL.md engine pass was reverted for this reason.]
+
 ## Spawn
 
 One spawn per artifact; several artifacts → all spawns in one message, concurrently. The agent writes only to scratch, so this is legal inside plan mode.

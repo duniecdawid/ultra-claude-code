@@ -6,9 +6,11 @@ argument-hint: "question about Ultra Claude (optional)"
 
 # Help
 
+> **Human-facing text.** The catalog entries below are read by users directly and relayed to them verbatim. Keep full sentences and plain prose — structural trims are fine, register compression (caveman/engine passes) is not.
+
 ## Startup
 
-Read current version + recent changes from CHANGELOG.json:
+Read the current version and recent changes from CHANGELOG.json:
 
 ```bash
 VERSION=$(jq -r '.[0].version' "${CLAUDE_PLUGIN_ROOT}/CHANGELOG.json")
@@ -18,144 +20,144 @@ echo "Recent changes:"
 jq -r '.[0:5] | .[] | "  \(.version) — \(.summary)"' "${CLAUDE_PLUGIN_ROOT}/CHANGELOG.json"
 ```
 
-Format output as readable table. Then answer user question. No argument? Follow changelog with brief system overview + common workflows, each pointing to right skill.
+Format the output as a readable table. Then answer the user's question. If invoked with no argument, follow the changelog with a brief system overview and list common workflows pointing to the right skill.
 
 ## System Architecture
 
-Ultra Claude = spec-driven development platform, three layers:
+Ultra Claude is a spec-driven development platform built from three layers:
 
-- **Skills** — user-invocable workflows (trigger via `/uc:{name}`). Orchestrate multi-step tasks: plan features, debug, manage docs
-- **Agents** — specialized subagents skills spawn for focused work (code survey, testing, reviewing, execution)
-- **References & Templates** — reusable doc templates + guides in `skills/docs-manager/references/` and `templates/`. Standardize output across all skills
+- **Skills** — user-invocable workflows (triggered via `/uc:{name}`) that orchestrate multi-step tasks like planning features, debugging, or managing docs
+- **Agents** — specialized subagents spawned by skills to do focused work (code survey, testing, reviewing, execution)
+- **References & Templates** — reusable document templates and guides in `skills/docs-manager/references/` and `templates/` that standardize output across all skills
 
-Skills read codebase + docs, spawn agents for parallel work, produce plans or docs. Plans live in `documentation/plans/{NNN}-{name}/` — each = README plus per-task `tasks/task-N/task.md` files. Agent teams execute them via `/uc:plan-execution`.
+Skills read the codebase and documentation, spawn agents for parallel work, and produce plans or documentation as output. Plans live in `documentation/plans/{NNN}-{name}/` — each a README plus per-task `tasks/task-N/task.md` files — and are executed by agent teams via `/uc:plan-execution`.
 
 ## Skills
 
 ### Setup & Onboarding
 
 **Dashboard** (`/uc:dashboard`)
-Connect projects to Ultra Claude Dashboard at `dashboard.ultra-claude.dev` for real-time visibility, manage many dashboard accounts with per-project routing, transfer project ownership between accounts. Use for: dashboard sync setup, agent connectivity trouble, sync status check, control which account project sync to, move project to other account. Guide agent install, document non-interactive account CLI (`assign`/`default`/`auto-assign`/`move`) plus interactive REPL, verify connectivity with self-contained debug checks.
+Connects projects to the Ultra Claude Dashboard at `dashboard.ultra-claude.dev` for real-time visibility, manages multiple dashboard accounts with per-project routing, and transfers project ownership between accounts. Use when setting up dashboard sync, troubleshooting agent connectivity, checking sync status, controlling which account a project syncs to, or moving a project to another account. Guides agent installation, documents the non-interactive account CLI (`assign`/`default`/`auto-assign`/`move`) plus the interactive REPL, and verifies connectivity with self-contained debug checks.
 
 **Setup** (`/uc:setup`)
-One-time machine config — install prerequisites (Node.js, optional tmux), configure shell + settings.json for 1M context, agent teams, tmux teammate panes, offer fullscreen renderer + VS Code settings, optional scaffold of user-level `machine-context` skill via interactive interview, install + start machine-global limit sentinel. Use after plugin install, on new machine, to change tmux mode, fix screen tearing/flicker, add machine-context later, configure VS Code, update `ultraclaude-agent` package, refresh outdated model pins. Idempotent — write version marker, never clobber user-written machine-context files without explicit confirmation.
+One-time machine configuration — installs prerequisites (Node.js, optionally tmux), configures the shell and settings.json for 1M context, agent teams, and tmux teammate panes, offers the fullscreen renderer and VS Code settings, optionally scaffolds the user-level `machine-context` skill through an interactive interview, and installs and starts the machine-global limit sentinel. Use after plugin installation, on a new machine, to change tmux mode, fix screen tearing/flicker, add machine-context later, configure VS Code, update the `ultraclaude-agent` package, or refresh outdated model pins. Idempotent — writes a version marker and never clobbers user-written machine-context files without explicit confirmation.
 
 **Migrate** (`/uc:migrate`)
-Bring projects into Ultra Claude, keep them current — fresh init, legacy project detection, version-aware incremental upgrades via structured migrations in CHANGELOG.json. Use when onboard new project, after `/uc:update`, or upgrade existing project to latest Ultra structure. Produce scaffolded docs, `.claude/ultra/` config, coding standards, version marker for future upgrades, small Ultra Claude promo footer in project README.
+Brings projects into Ultra Claude and keeps them current — handles fresh initialization, legacy project detection, and version-aware incremental upgrades via structured migrations in CHANGELOG.json. Use when onboarding a new project, after running `/uc:update`, or when upgrading an existing project to the latest Ultra structure. Produces scaffolded documentation, `.claude/ultra/` configuration, coding standards, a version marker for future upgrades, and a small Ultra Claude promo footer in the project README.
 
 ### Planning & Research
 
 **Discovery Mode** (`/uc:discovery-mode`)
-Lead product research as Head of Product persona — spawn internal Explore subagent parallel with `/uc:research --mode=market` call for external competitor/trend analysis, then synthesize findings into product docs. Use for product vision, requirements, user personas, competitive analysis, technology landscape assessment. Produce documentation artifacts (product description, research report, requirements, personas) — never code.
+Leads product research as a Head of Product persona, spawning an internal Explore subagent in parallel with a `/uc:research --mode=market` call for external competitor/trend analysis, then synthesizing findings into product documentation. Use for product vision, requirements, user personas, competitive analysis, or technology landscape assessment. Produces documentation artifacts (product description, research report, requirements, personas) — never code.
 
 **Roadmap** (`/uc:roadmap`)
-Decompose product into sequenced plan stubs: analyze product/architecture docs, build dependency graph, topologically sort build phases. Use after discovery/migrate when product too big for single plan. Produce `ROADMAP.md` with execution order + numbered stub plans ready for `/uc:feature-mode` to detail.
+Decomposes a product into sequenced plan stubs by analyzing product/architecture docs, building a dependency graph, and topologically sorting build phases. Use after discovery/migrate when the product is too large for a single plan. Produces `ROADMAP.md` with execution order and numbered stub plans ready for `/uc:feature-mode` to detail.
 
 **Feature Mode** (`/uc:feature-mode`)
-Plan new features via 4-stage process: challenge scope, research architecture/code/dependencies (track research-to-task mapping for durable per-task pointers), discuss approach with user, write plan. Use when start new feature, add functionality, plan significant changes. Produce plan README with flat task heading index + per-task files (description, files, patterns, Research pointers, success criteria, dependencies) ready for execution.
+Plans new features through a 4-stage process: challenge scope, research architecture/code/dependencies (tracking research-to-task mapping for durable per-task pointers), discuss approach with user, and write the plan. Use when starting a new feature, adding functionality, or planning significant changes. Produces the plan README with a flat task heading index and per-task files (description, files, patterns, Research pointers, success criteria, dependencies) ready for execution.
 
 **Debug Mode** (`/uc:debug-mode`)
-Investigate bugs via structured hypothesis generation, parallel evidence gathering via Explore + System Tester agents, root cause analysis. Use when debug issues, fix regressions, investigate mysterious failures. Produce fix plan — task files extend base template with `**Regression criteria:**` and `**Failing test first:**` sections.
+Investigates bugs through structured hypothesis generation, parallel evidence gathering via Explore and System Tester agents, and root cause analysis. Use when debugging issues, fixing regressions, or investigating mysterious failures. Produces a fix plan whose task files extend the base template with `**Regression criteria:**` and `**Failing test first:**` sections.
 
 **Critical Brainstorm** (`/uc:critical-brainstorm`)
-Interactive devil's advocate mode — stress-test solutions via research-backed challenge, tradeoff analysis, risk identification, future problem prediction. Use when want opinions challenged, need debate approaches, or think critically about any decision. Stay in dialogue mode through many exchanges until you signal satisfaction — no implementation.
+Interactive devil's advocate mode that stress-tests solutions through research-backed challenge, tradeoff analysis, risk identification, and future problem prediction. Use when you want opinions challenged, need to debate approaches, or think critically about any decision. Stays in dialogue mode through multiple exchanges until you signal satisfaction — no implementation.
 
 **Research** (`/uc:research`)
-Cache-first external research: library/API docs, architectural patterns, market/competitor analysis via single auto-classified interface — fresh cache hits read straight from disk; cache misses dispatch stateless `researcher` subagent in background — conversation continue, findings relayed on completion. Use when add libraries, investigate patterns or best practices, run competitor analysis, ask how Claude Code / Claude Agent SDK / Anthropic API features work, or any "how does X work / what changed in X / best practice for X" question — Claude/Anthropic topics auto-classify as `library` mode. Produce committed research files in two indexed scopes — product/domain research under `documentation/technology/research/` + `documentation/product/research/`, Claude harness research under `.claude/ultra/research/` — frontmatter-driven per-entry staleness.
+Cache-first external research covering library/API documentation, architectural patterns, and market/competitor analysis via a single auto-classified interface — fresh cache hits read directly from disk while cache misses dispatch the stateless `researcher` subagent in the background, so the conversation continues and findings are relayed on completion. Use when adding libraries, investigating patterns or best practices, running competitor analysis, asking how Claude Code / Claude Agent SDK / Anthropic API features work, or any "how does X work / what changed in X / best practice for X" question — Claude/Anthropic topics auto-classify as `library` mode. Produces committed research files in two indexed scopes — product/domain research under `documentation/technology/research/` and `documentation/product/research/`, Claude harness research under `.claude/ultra/research/` — with frontmatter-driven per-entry staleness.
 
 ### Execution
 
 **Plan Execution** (`/uc:plan-execution`)
-Orchestrate multi-task plan execution via per-task Executor + Reviewer + Tester teams that self-coordinate from file-based context via shared task-team-startup protocol; Lead brokers mid-execution `ADVICE` and `QUERY` (external docs via /uc:research). Use after plan approval: run `/uc:plan-execution {number}`. Produce per-task `plan.md`, `impl.md`, `test-strategy.md` artifacts, review + test verdicts, Project Manager operational report — user decisions ride non-blocking escalation queue (`shared/escalations.md`) so unattended run never stall on question.
+Orchestrates multi-task plan execution through per-task Executor + Reviewer + Tester teams that self-coordinate from file-based context via the shared task-team-startup protocol, while Lead brokers mid-execution `ADVICE` and `QUERY` (external docs via /uc:research). Use after plan approval by running `/uc:plan-execution {number}`. Produces per-task `plan.md`, `impl.md`, and `test-strategy.md` artifacts, review and test verdicts, and a Project Manager operational report — user decisions ride a non-blocking escalation queue (`shared/escalations.md`) so an unattended run never stalls on a question.
 
 **Checkpoint** (`/uc:checkpoint`)
-Save execution state (task pipeline stages, active teams, decisions, blockers) to timestamped file for session recovery. Use periodically during long executions, before session shutdown, before risky changes. Produce checkpoint Lead can read on resume — reconstruct state, continue execution.
+Saves execution state (task pipeline stages, active teams, decisions, blockers) to a timestamped file for session recovery. Use periodically during long executions, before session shutdown, or before risky changes. Produces a checkpoint that the Lead can read on resume to reconstruct state and continue execution.
 
 ### Documentation & Verification
 
 **Docs Manager** (`/uc:docs-manager`)
-Guard canonical documentation structure — route documents to correct directories, enforce single canonical home per fact (drift-prone content live in one place, linked with standardized anchored cross-links, not duplicated), maintain navigable index. Always enabled — use proactively whenever any skill or agent create documentation. Redirect violations, keep decision residue in RFCs + settled state in design docs, update `documentation/README.md` as source of truth.
+Guards the canonical documentation structure — routing documents to correct directories, enforcing a single canonical home per fact (drift-prone content lives in one place, linked with standardized anchored cross-links rather than duplicated), and maintaining a navigable index. Always enabled — use proactively whenever any skill or agent creates documentation. Redirects violations, keeps decision residue in RFCs and settled state in design docs, and updates `documentation/README.md` as the source of truth.
 
 **Doc-Code Verification** (`/uc:doc-code-verification-mode`)
-Compare documentation claims against code reality with parallel Checker agents; also detect drift-prone content duplicated across documents + broken cross-reference anchors. Use to find doc-code gaps, deduplicate docs, verify cross-link integrity, sync docs with implementation. Produce structured plan distinguishing "docs are wrong" vs "code is wrong" with evidence, consolidation tasks merging duplicated content into one canonical home, structural-fix tasks carrying `**Docs-manager reference:**` field pointing at relevant docs-manager guide.
+Compares documentation claims against code reality using parallel Checker agents, and additionally detects drift-prone content duplicated across documents and broken cross-reference anchors. Use to find doc-code gaps, deduplicate docs, verify cross-link integrity, or sync docs with implementation. Produces a structured plan distinguishing "docs are wrong" vs "code is wrong" with evidence, consolidation tasks that merge duplicated content into one canonical home, and structural-fix tasks carrying a `**Docs-manager reference:**` field pointing at the relevant docs-manager guide.
 
 **Context Management** (`/uc:context-management`)
-Manage `context/` directory as structured knowledge base for external systems (APIs, SDKs, protocols) with git submodule support. Use when add external API docs, SDK references, or system context that informs specs. Produce `context/README.md` index + organized `{system}/docs/` and `{system}/code/` layout.
+Manages the `context/` directory as a structured knowledge base for external systems (APIs, SDKs, protocols) with git submodule support. Use when adding external API documentation, SDK references, or system context that informs specs. Produces a `context/README.md` index and organized `{system}/docs/` and `{system}/code/` layout.
 
 ### Project Management
 
 **Backlog** (`/uc:backlog`)
-Lightweight backlog split across four category files in `documentation/backlog/` — bugs (B-NNN), questions (Q-NNN), ideas (I-NNN), debt (D-NNN) — with priorities, labels, blocking relationships, documentation references. Use to note something for later, log bug, record question or blocker, flag tech debt, label items with `#tag` syntax, filter by label, ask "what should we work on". Provide list/add/update/done/label/link/block operations with priority sorting + `#tag` filtering — skills never auto-add items, they triage backlog-worthy findings with user first.
+Lightweight backlog split across four category files in `documentation/backlog/` — bugs (B-NNN), questions (Q-NNN), ideas (I-NNN), and debt (D-NNN) — with priorities, labels, blocking relationships, and documentation references. Use to note something for later, log a bug, record a question or blocker, flag tech debt, label items with `#tag` syntax, filter by label, or ask "what should we work on". Provides list/add/update/done/label/link/block operations with priority sorting and `#tag` filtering — skills never auto-add items, they triage backlog-worthy findings with the user first.
 
 **Plan Status Sync** (`/uc:plan-status-sync`)
-Scan all plans, infer actual status from execution artifacts (operational reports, checkpoints, task completion), reconcile README statuses with `plan.json` at plan root — preserve `planning` + `cancelled` statuses and plan-level `stage` field for plans still being shaped or abandoned. Use to fix stale statuses after crashed executions, create missing plan.json for legacy plans, audit plan state. Produce corrected status files — consolidated plan+task state in single file.
+Scans all plans, infers actual status from execution artifacts (operational reports, checkpoints, task completion), and reconciles README statuses with `plan.json` at plan root — preserving `planning` and `cancelled` statuses and the plan-level `stage` field for plans still being shaped or abandoned. Use to fix stale statuses after crashed executions, create missing plan.json for legacy plans, or audit plan state. Produces corrected status files with consolidated plan+task state in a single file.
 
 ### Infrastructure
 
 **Harness Builder** (`/uc:harness-builder`)
-Knowledge base for building harness components — skills, agents, hooks, protocols — plus a mandatory staged build workflow. Use when create or refactor skill or agent, write descriptions or prompts, audit session context cost (`scripts/context_audit.py`), optimise resident text. Build tasks enter Claude Code native plan mode and walk structural → lexical → compression (`uc:caveman-compress`) → plan-presentation stages with per-stage discussion gates; non-negotiables include Opus floor, always-invoke `/skill-creator:skill-creator`, description budgets, before/after refactor testing.
+Knowledge base for building harness components — skills, agents, hooks, protocols — plus a mandatory staged build workflow. Use when creating or refactoring a skill or agent, writing descriptions or prompts, auditing session context cost (`scripts/context_audit.py`), or optimising resident text. Build tasks enter Claude Code's native plan mode and walk structural → lexical → compression (`uc:caveman-compress`) → plan-presentation stages with per-stage discussion gates; non-negotiables include the Opus floor, always invoking `/skill-creator:skill-creator`, description budgets, and before/after refactor testing.
 
 **Rename Window** (`/uc:rename-window`)
-Rename current tmux window via shared `scripts/tmux-window-name.sh` primitive (sanitize, truncate for status bar, disable tmux automatic-rename so name stick). Use to label window by what it work on, or apply Ultra Claude `UC::P-NNN::<plan>` / `UC::<Mode>::<subject>` convention by hand — planning modes + plan-execution apply automatically, plan ID take priority. Produce renamed window that survive shell-prompt redraws; no-op outside tmux.
+Renames the current tmux window via the shared `scripts/tmux-window-name.sh` primitive (sanitizes, truncates for the status bar, and disables tmux automatic-rename so the name sticks). Use to label a window by what it is working on, or to apply Ultra Claude's `UC::P-NNN::<plan>` / `UC::<Mode>::<subject>` convention by hand — planning modes and plan-execution apply it automatically, with the plan ID taking priority. Produces a renamed window that survives shell-prompt redraws; no-ops outside tmux.
 
 **Railway** (`/uc:railway`)
-Manage Railway.com deployments via CLI with environment variable-based multi-account token switching — deployments, logs, variables, config-as-code. Use for Railway deployment workflows, account switching, debugging failed deployments (surface newest deployment via `--latest` and `deployment list`), service configuration. Provide command wrappers that resolve correct token per project directory.
+Manages Railway.com deployments via CLI with environment variable-based multi-account token switching, handling deployments, logs, variables, and config-as-code. Use for Railway deployment workflows, account switching, debugging failed deployments (surfaces newest deployment via `--latest` and `deployment list`), or service configuration. Provides command wrappers that resolve the correct token per project directory.
 
 **Tailscale Setup** (`/uc:tailscale-setup`)
-Configure Tailscale to expose local services securely within tailnet via `tailscale serve` or publicly via `tailscale funnel`. Use when expose dashboards, dev servers, or prep services for remote access. Validate full prerequisite chain, enable HTTPS-wrapped local services.
+Configures Tailscale to expose local services securely within the tailnet via `tailscale serve` or publicly via `tailscale funnel`. Use when exposing dashboards, dev servers, or preparing services for remote access. Validates the full prerequisite chain and enables HTTPS-wrapped local services.
 
 **Update** (`/uc:update`)
-Update Ultra Claude to latest version via Claude Code plugin marketplace using `claude plugin update`. Use after hear about new features or want latest version. Show changelog since last update, run post-update housekeeping (file migration, tmux daemon restart when tmux mode active, setup verification), recommend `/uc:migrate` in each project if structural changes happened.
+Updates Ultra Claude to the latest version via the Claude Code plugin marketplace using `claude plugin update`. Use after hearing about new features or when wanting the latest version. Shows changelog since last update, runs post-update housekeeping (file migration, tmux daemon restart when tmux mode is active, setup verification), and recommends `/uc:migrate` in each project if structural changes occurred.
 
 ## Reference Libraries
 
-Reference libraries = shared instruction sets — not skills. Planning modes inherit them, extend per-stage via files in own `references/` directories.
+Reference libraries are shared instruction sets — not skills. Planning modes inherit them and extend them per-stage via files in their own `references/` directories.
 
 **Planning Framework** (`references/planning-framework/`)
-Define 4-stage planning flow (Understand → Research → Discuss → Write), conversational rules, existing-plan handling, approval gates, post-approval hard stop. Inherited by feature-mode, debug-mode, doc-code-verification-mode through per-stage extensions in each mode's `references/stage-N.md`. Discovery-mode does not use it — produce docs, not plans.
+Defines the 4-stage planning flow (Understand → Research → Discuss → Write), conversational rules, existing-plan handling, approval gates, and post-approval hard stop. Inherited by feature-mode, debug-mode, and doc-code-verification-mode through per-stage extensions in each mode's `references/stage-N.md`. Discovery-mode does not use it because it produces docs, not plans.
 
 ## Agents
 
-Skills spawn agents as subagents. Agents don't run independently — skills orchestrate. Execution-team agents (Code Reviewer, Project Manager, Task Executor, Task Tester) coordinate via execution communication protocol (`skills/plan-execution/references/execution-communication-protocol.md`): SendMessage = primary channel, `signals.jsonl` = durable log + delivery backstop, each agent run one persistent inbox monitor, Executor own unit/integration tests, Tester own acceptance tests.
+Agents are spawned as subagents by skills. They don't run independently — skills orchestrate them. Execution-team agents (Code Reviewer, Project Manager, Task Executor, Task Tester) coordinate through the execution communication protocol (`skills/plan-execution/references/execution-communication-protocol.md`): SendMessage is the primary channel with `signals.jsonl` the durable log and delivery backstop, each agent runs one persistent inbox monitor, and the Executor owns unit/integration tests while the Tester owns acceptance tests.
 
 **Caveman Compress**
-Compression engine wrapper — run caveman-compress CLI on scratch copy of body artifact (`prompt-body` | `doc-section` | `protocol-format`; never descriptions — engine preserve frontmatter verbatim), return compressed version plus cut list tagged clean / fixable-with-repaired-wording / harmful; proposition-only, never edit outside scratch. Spawned at stage 3 of `/uc:harness-builder` build workflow, one spawn per artifact, concurrent when several. Parent adopt cuts item by item — no wholesale accept/reject, yield percentage diagnostic only.
+Compression-engine wrapper — runs the caveman-compress CLI on a scratch copy of a body artifact (`prompt-body` | `doc-section` | `protocol-format`; never descriptions — the engine preserves frontmatter verbatim) and returns the compressed version plus a cut list tagged clean / fixable-with-repaired-wording / harmful; proposition-only, never edits outside scratch. Spawned at stage 3 of `/uc:harness-builder`'s build workflow, one spawn per artifact, concurrently when several. Parent adopts cuts item by item — no wholesale accept/reject; yield percentage is diagnostic only.
 
 **Checker**
-Compare specific code against documentation claims for single topic, returning discrepancies with severity levels + exact file:line references. Spawned by doc-code verification to verify isolated aspects of system. Produce structured verification reports — factual differences between docs and implementation.
+Compares specific code against documentation claims for a single topic, returning discrepancies with severity levels and exact file:line references. Spawned by doc-code verification to verify isolated aspects of the system. Produces structured verification reports identifying factual differences between docs and implementation.
 
 **Code Reviewer**
-Send standards-aware `REVIEWER TAKE` (persisted as `take.md`) immediately after spawn, before Executor write `plan.md`, then review completed code against standards, architecture, patterns as read-only quality gate. Scope = Executor work including its unit/integration tests held to test-strategy contract — tester-owned acceptance tests sit outside formal gate. Produce persistent take + feedback files alongside PASS/FAIL verdicts.
+Sends a standards-aware `REVIEWER TAKE` (persisted as `take.md`) immediately after spawn, before the Executor writes `plan.md`, then reviews completed code against standards, architecture, and patterns as a read-only quality gate. Scope is the Executor's work including its unit/integration tests held to the test-strategy contract — tester-owned acceptance tests sit outside the formal gate. Produces persistent take and feedback files alongside PASS/FAIL verdicts.
 
 **Code Surveyor**
-Fast structural scans of code packages — catalog files, components, data structures, dependencies, architectural patterns. Spawned by migrate + verification orchestrators to quickly understand what implemented. Return concise structured overviews with file-line references for mapping code to requirements.
+Performs fast structural scans of code packages to catalog files, components, data structures, dependencies, and architectural patterns. Spawned by migrate and verification orchestrators to quickly understand what's implemented. Returns concise structured overviews with file-line references for mapping code to requirements.
 
 **Doc Surveyor**
-Explore documentation sections — identify content type, key topics, specifications, implementation references. Spawned by migrate + verification orchestrators to understand what documented. Return structured overviews for mapping documentation claims to implementations + finding gaps.
+Explores documentation sections to identify content type, key topics, specifications, and implementation references. Spawned by migrate and verification orchestrators to understand what's documented. Returns structured overviews for mapping documentation claims to implementations and identifying gaps.
 
 **Project Manager**
-Operational coordinator for plan execution — derive per-task stage state from signals, own background liveness monitor, verify its `NUDGE` candidates (ping executor, escalate to Lead only on confirmed non-response), track per-task budget data from limit sentinel's passively-written usage events. Spawned once per plan execution; event-driven — wake on messages + monitor emits, do no usage-limit monitoring itself. Produce operational reports: token efficiency, budget utilization, communication health, repeated work, system improvement recommendations.
+Operational coordinator for plan execution — derives per-task stage state from signals, owns the background liveness monitor and verifies its `NUDGE` candidates (pinging the executor, escalating to Lead only on confirmed non-response), and tracks per-task budget data from the limit sentinel's passively-written usage events. Spawned once per plan execution; event-driven, waking on messages and monitor emits — it performs no usage-limit monitoring of its own. Produces operational reports analyzing token efficiency, budget utilization, communication health, repeated work, and system improvement recommendations.
 
 **System Tester**
-Reproduce reported bugs scientifically — follow exact steps, observe outputs, try variations to understand boundary conditions — never fix code. Spawned by Debug Mode to validate bug reports + test proposed fixes. Produce structured reproduction reports with evidence + observations that inform fix strategies.
+Reproduces reported bugs scientifically following exact steps, observing outputs and trying variations to understand boundary conditions — never fixes code. Spawned by Debug Mode to validate bug reports and test proposed fixes. Produces structured reproduction reports with evidence and observations informing fix strategies.
 
 **Task Executor**
-Hub of each task team — receive Reviewer + Tester TAKEs, write `plan.md` (execution delta), implement code plus own unit/integration tests covering `TESTER TAKE` unit-layer contract, drive parallel review/test cycles to verdicts. Never edit tester-owned acceptance test files — commit them verbatim at task end; broker external docs via `QUERY:` to Lead, judgment calls via `ADVICE REQUEST`. Produce `plan.md` + `impl.md` (implementation delta with INTEGRATION and GOTCHA notes).
+Hub of each task team — receives the Reviewer's and Tester's TAKEs, writes `plan.md` (execution delta), implements code plus its own unit/integration tests covering the `TESTER TAKE`'s unit-layer contract, and drives parallel review/test cycles to verdicts. Never edits tester-owned acceptance test files — commits them verbatim at task end; brokers external docs via `QUERY:` to Lead and judgment calls via `ADVICE REQUEST`. Produces `plan.md` and `impl.md` (implementation delta with INTEGRATION and GOTCHA notes).
 
 **Task Tester**
-Send upfront `TESTER TAKE` at task start (acceptance-case list plus unit-layer cases Executor tests must cover, persisted as `test-strategy.md`), then author black-box acceptance tests from `task.md` success criteria + product docs — never from `impl.md`. Spawned automatically with each task team in `/uc:plan-execution`; verify code by running tests, launch frontend work in browser to visually confirm UI, demand missing unit coverage via `TEST_FAIL` naming exact cases — never patch it itself. Produce `test-strategy.md` + persistent feedback files alongside pass/fail verdicts with evidence.
+Sends an upfront `TESTER TAKE` at task start (acceptance-case list plus the unit-layer cases the Executor's tests must cover, persisted as `test-strategy.md`), then authors black-box acceptance tests from `task.md`'s success criteria and product docs — never from `impl.md`. Spawned automatically with each task team in `/uc:plan-execution`; verifies code by running tests and launching frontend work in a browser to visually confirm the UI, demanding missing unit coverage via `TEST_FAIL` naming the exact cases rather than patching it. Produces `test-strategy.md` and persistent feedback files alongside pass/fail verdicts with evidence.
 
 **Researcher**
-Stateless one-shot researcher spawned by `/uc:research` skill on cache miss, dispatched in background by default. Fetch external documentation via Ref.tools or web search in one of three modes (library / patterns / market), merge findings into target research file via targeted Edits (large files never force full rewrite), atomically upsert research index (Bash mv). Never read project source code — caller own cross-referencing.
+Stateless one-shot researcher spawned by the `/uc:research` skill on cache miss, dispatched in the background by default. Fetches external documentation via Ref.tools or web search in one of three modes (library / patterns / market), merges findings into the target research file via targeted Edits (large files never force a full rewrite), and atomically upserts the research index (Bash mv). Never reads project source code — caller owns cross-referencing.
 
 ### Scripts (not agents)
 
 **Usage monitor (`scripts/usage-monitor.sh`)**
-Per-plan liveness monitor plus on-demand usage reader — `watch` subcommand (run persistently by Project Manager) emit verified-before-escalation `NUDGE` liveness candidates; `status` subcommand return one-shot, time-authoritative JSON of both usage windows with clear/soft band (soft start at 90%, only gate starting new work). Use `status` for spawn gating + completion bookkeeping; trust NUDGEs as verified candidates, never blanket stall alerts. Usage-limit handling itself — advisories, post-limit wakes, rollover tracing — live entirely in limit sentinel.
+Per-plan liveness monitor plus on-demand usage reader — the `watch` subcommand (run persistently by the Project Manager) emits verified-before-escalation `NUDGE` liveness candidates, and the `status` subcommand returns one-shot, time-authoritative JSON of both usage windows with a clear/soft band (soft starts at 90% and only gates starting new work). Use `status` for spawn gating and completion bookkeeping; trust NUDGEs as verified candidates, never blanket stall alerts. Usage-limit handling itself — advisories, post-limit wakes, rollover tracing — lives entirely in the limit sentinel.
 
 **Limit sentinel (`scripts/limit-sentinel.sh`)**
-One machine-global background process that handles usage limits reactively — detect limit-killed turns via StopFailure hook, track every account's reset time, at reset wake everything that parked: durable `RESUME` signals into each task's `signals.jsonl` plus guarded tmux pane injection, with soft-band advisories + weekly-limit notifications. Installed + started by `/uc:setup`, self-healing via SessionStart + StopFailure hooks, registered per plan. Execution ride each usage window to 100%, park on limit, resume automatically — no usage questions asked at plan start.
+One machine-global background process that handles usage limits reactively — detects limit-killed turns via the StopFailure hook, tracks every account's reset time, and at reset wakes everything that parked: durable `RESUME` signals into each task's `signals.jsonl` plus guarded tmux pane injection, with soft-band advisories and weekly-limit notifications. Installed and started by `/uc:setup`, self-healing via the SessionStart and StopFailure hooks, registered per plan. Execution rides each usage window to 100%, parks on the limit, and resumes automatically — no usage questions asked at plan start.
 
 ## Extending the System
 
-Skills live at `skills/{name}/SKILL.md`, agents at `agents/{name}.md`, plan/task templates in `templates/`, documentation references in `skills/docs-manager/references/`. How to write them — descriptions, prompts, tool grants, mandatory review gate — use `/uc:harness-builder`.
+Skills live at `skills/{name}/SKILL.md`, agents at `agents/{name}.md`, plan/task templates in `templates/`, documentation references in `skills/docs-manager/references/`. For how to write them — descriptions, prompts, tool grants, the mandatory review gate — use `/uc:harness-builder`.
