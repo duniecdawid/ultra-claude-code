@@ -49,6 +49,9 @@ Append to `documentation/plans/$ARGUMENTS/shared/lead.md`:
 ### Amendments
 - {gap}: {what was missing} — {how it was handled: built in task N / escalated to user}
 
+### Escalations
+- ESC-{n} [{class}]: {answered — resolution / still open — standing order in effect}
+
 ### Test Results
 - Per-task tests: X/Y passed
 - Final gate (full suite): PASS/FAIL

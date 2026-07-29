@@ -130,6 +130,7 @@ If `checkpoint-*.md` files exist:
    ```
 4. If yes: skip completed work, re-spawn teams for incomplete tasks using per-task files as context
 5. If no: confirm user wants to discard progress, then start fresh
+6. Either way, if `shared/escalations.md` exists with `open` entries, re-print them after the resume summary — they are still awaiting the user's decision (see `phase-4-failure-handling.md` § "Non-Blocking Escalation Queue")
 
 ### 1.3 Task Pipeline
 

@@ -101,7 +101,7 @@ Both PASS:  Executor commits tester-owned acceptance test files → confirms tea
 - **Lead reviews research per-task at spawn time** — before every teammate spawn (`Agent` tool, teammate mode), Lead reads the task's task.md and verifies that every core technology the task touches is covered by a `**Research:**` pointer. Most of the time the planner already met the bar; if not, Lead invokes `/uc:research` and appends pointers. See `references/phase-2-spawn-prompts.md` "Pre-Spawn Checklist" for the exact rules.
 - **PM is the monitoring layer** — maintains execution state files, tracks parallel review/test timing, monitors pipeline liveness.
 - **ADVICE and QUERY channels stay open** — Executor (ADVICE for Lead's judgment/orchestration context, QUERY for external library docs); Reviewer and Tester (QUERY only).
-- **Max 10 fix cycles** between executor/reviewer/tester before escalating to Lead → user.
+- **Max 10 fix cycles** between executor/reviewer/tester before escalating to Lead, which queues a non-blocking `max-cycles` escalation (§ "Non-Blocking Escalations").
 
 ### Team Composition
 
@@ -120,11 +120,11 @@ After spawning each team:
 
 When you receive a message, match it against the table below and execute the action.
 
-**Stay silent between wakes.** When a message or monitor line wakes you, process its handler row and act — do NOT narrate state, plans, what teammates are doing, or that you were woken. Many wakes are unavoidable lifecycle notifications (a teammate coming to rest, a no-op message); on those, take no action and produce no output. Your only user-visible outputs are the four listed below. (This replaces the former per-wake "wake-up trace" diagnostic, which made every unavoidable auto-wake verbose.)
+**Stay silent between wakes.** When a message or monitor line wakes you, process its handler row and act — do NOT narrate state, plans, what teammates are doing, or that you were woken. Many wakes are unavoidable lifecycle notifications (a teammate coming to rest, a no-op message); on those, take no action and produce no output. Your only user-visible outputs are the three listed below. (This replaces the former per-wake "wake-up trace" diagnostic, which made every unavoidable auto-wake verbose.)
 
 **The three allowed user-visible outputs from the Lead:**
 1. The dashboard URL, if the project is connected to the dashboard (relayed from PM at startup)
-2. Escalation questions (relay to user) — including the `SENTINEL NOTICE [7d]` weekly-limit decision
+2. Escalation notices — the printed question plus standing-order line from § "Non-Blocking Escalations" below (includes the `SENTINEL NOTICE [7d]` decision)
 3. The Phase 5 completion summary
 
 | Message | Action |
@@ -136,16 +136,31 @@ When you receive a message, match it against the table below and execute the act
 | Executor: `"ADVICE REQUEST task-{N} [complicated / deep-reasoning / knowledge]: {context + question}"` | **Non-blocking.** Read task.md if needed for context. Think through the question using your orchestration context (other tasks in flight, plan history, user intent from approval). Reply `ADVICE task-{N}: {guidance}` via `CommunicateTeamMember(..., signal: "ADVICE_RESPONSE")` per protocol §1 — the Executor may be parked waiting on that signal. Don't second-guess the Executor's judgment — the default is to answer the question Executor actually asked, not to rewrite their approach. |
 | Executor: `"QUERY: {question}"` (or Reviewer/Tester) | Invoke `/uc:research` with the question. Cache hit returns instantly; cache miss spawns the `researcher` subagent via the `Agent` tool (one-shot mode). Reply `ANSWER: {excerpts + pointer}`. Also append the pointer to `tasks/task-{N}/task.md`'s `**Research:**` section and broadcast `FILE-UPDATED task-{N}/task.md: research addition — {lib}`. This makes the new research durable for re-spawns and other teammates. |
 | Any team member: `"FILE-UPDATED task-{N}/{file}: {reason}"` | No Lead action unless Lead was about to act on that file. Broadcasts are primarily for teammates' benefit. Stage transitions are recorded in signals.jsonl per task — PM reads signals.jsonl directly for execution state derivation. |
-| Executor: `"Task {N} escalation needed"` | Escalate to user with evidence. If any pre-spawned successor M is parked with N as its predecessor, note this in the escalation — the parked team stays alive while the user decides. On user "abort/skip": shut down parked M before proceeding. On user "continue/retry": M stays parked and will receive `Implementation approved` when N eventually reaches `task done`. |
-| Executor: `"PLAN-INVALIDATING: ..."` | Pause pipeline. Evaluate scope. Amend (update `tasks/task-N/task.md` + broadcast FILE-UPDATED) or escalate. Parked pipeline successors stay parked through the pause. If the amendment drops or materially changes a parked successor's task, shut down that successor explicitly before resuming. |
+| Executor: `"Task {N} escalation needed"` | Queue per § "Non-Blocking Escalations". Append a `max-cycles` entry with the fix history; standing order: ack executor-{N} with a plain `"escalation queued — hold, decision follows"` and keep the team alive parked (context preserved for a guided retry). If a pre-spawned successor M is parked with N as its predecessor, note it in the entry — it stays parked. Independent tasks continue. On drain — "retry with guidance": relay guidance to executor-{N}, reset its cycle budget; "skip": shut down team-{N} and parked M, mark skipped; "abort": Phase 5 early shutdown. |
+| Executor: `"PLAN-INVALIDATING: ..."` | Pause pipeline and handle per § "Mid-Execution Plan Changes → Plan invalidations" below: amend scoped damage, or queue a `plan-invalid` escalation if the plan looks fundamentally wrong. |
 | PM: `"Dashboard live at {URL}"` | Display to user immediately: `"📊 Live dashboard: {URL}"` — do NOT silently consume. PM sends this **only when the project is connected to the Ultra Claude Dashboard**, so its absence is normal — when no such message arrives, there is simply no dashboard line to show. |
 | User-channel: `"SENTINEL ADVISORY [{window}]: {pct}% used, resets {ISO}. ..."` (injected by the limit sentinel — protocol §7 system channel) | Budget is tightening; push-delivered equivalent of the pre-spawn check finding `soft`. Record `{window}: soft` in `## Usage Blocks` (with `resets_at`). Finish in-flight work; do not start new tasks until the block clears. No agent is paused; forward nothing. See `references/usage-control.md`. |
 | User-channel: `"SENTINEL RESET [{window}]: window reset. RESUME appended to active tasks and sent to team panes ..."` | The window reset and the sentinel already woke the fleet (signals.jsonl `RESUME` with `author:"sentinel"` + pane injections). **Idempotent verification, not waking:** remove the `{window}:` entry from `## Usage Blocks`; for each in-progress task check for post-reset activity and re-send `"RESUME: usage reset. Continue work."` via `CommunicateTeamMember(..., signal: "RESUME")` to any agent still parked; **find the previous agents before re-spawning — a limit parks agents, it never kills them:** run the liveness probe (`phase-4-failure-handling.md` § "Liveness probe") and re-spawn only members it proves gone (normal crash path — stage inferred from disk); re-run the pre-spawn check and refill slots. |
-| User-channel: `"SENTINEL NOTICE [7d]: weekly limit reached; resets {ISO} ..."` | Days-long park — a user decision, not an automation problem. Record `7d: limit` in `## Usage Blocks`, then **tell the user immediately** with the options: wait for the weekly reset, switch the plan to another account, or abort/park the plan. Recover on the eventual `SENTINEL RESET [7d]`. |
+| User-channel: `"SENTINEL NOTICE [7d]: weekly limit reached; resets {ISO} ..."` | Days-long park — a user decision, not an automation problem. Record `7d: limit` in `## Usage Blocks`, then queue a `sentinel-7d` escalation per § "Non-Blocking Escalations" (standing order: park the plan and recover on the eventual `SENTINEL RESET [7d]` — that path needs no user input). The printed notice offers the alternatives: switch the plan to another account, or abort/park the plan. |
+| User: reply referencing an open escalation (by id, task, or topic) | Drain the queue: match the reply against `open` entries in `shared/escalations.md`, apply the decision (guidance / retry / skip / amend / abort), mark each addressed entry `answered` with the resolution, and unwind its standing order where the decision differs (un-hold a parked team, shut down a skipped chain, refill slots after a lifted pause). Re-print any entries still `open`. |
 | Monitor: `HOLD-WAKE` (fallback self-wake — armed ONLY when phase-1 found the sentinel down while already in the soft band / over the limit) | Run the same idempotent recovery as `SENTINEL RESET`: clear every block whose recorded `resets_at` has passed, verify/wake still-parked agents, refill slots. If a sentinel wake already handled it, every step is a no-op. If any block's `resets_at` is still in the future, re-arm at the next-earliest `resets_at`. |
 | PM: `"NUDGE-ESCALATION task-{N}: ..."` | PM already verified and pinged: the task is silent with no named wait (`WAITING_ON`/`BLOCKED_ON`, protocol §3 yield rule), no repo file activity, and the executor did not answer PM's status check — this is evidence-based and rare, not the old blanket stall alert. Verify the counterparty yourself with the liveness probe (`phase-4-failure-handling.md` § "Liveness probe" — team config, then pane, then ping), re-send/re-signal the missing item via `CommunicateTeamMember`, or apply Phase 4 failure handling (re-spawn) only if the probe proves the team dead. Never leave a confirmed wrongly-parked task unresolved. |
 
 After processing a message (handler action only — no narration), return to waiting silently. Checkpoint if triggered. Fill slots whenever one frees up.
+
+### Non-Blocking Escalations
+
+**Never call `AskUserQuestion` during execution (Phases 2–4).** A blocking question freezes the Lead mid-turn — teammate messages cannot wake it, so every task stalls with it, including ones the question doesn't touch. All user decisions flow through the escalation queue instead: print the question as plain text, end the turn, keep coordinating. The user answers whenever they return (minutes later or next morning); execution never sits blocked on a prompt.
+
+Mechanics (full protocol + standing-orders table in `references/phase-4-failure-handling.md` § "Non-Blocking Escalation Queue"):
+
+1. **Append** an entry to `documentation/plans/$ARGUMENTS/shared/escalations.md` (`ESC-{n}`, class, context, options with a recommended default).
+2. **Apply the class's standing order** — the reversible default that keeps the run alive: hold a team parked, defer a gap, park for a reset (per-class table in the reference; never skip, abort, or expand scope without the user).
+3. **Print** one plain-text notice (allowed output #2): the question, the standing order applied, the entry id. Then end the turn — the event loop stays live.
+4. **Continue** everything unaffected: only the chain behind the escalation holds; independent tasks keep spawning and completing.
+5. **Drain on reply** (handler row above): apply the user's decision, mark the entry `answered`, unwind the standing order where the decision differs.
+
+If every remaining task ends up behind an open escalation, the Lead goes idle awaiting the reply — still wakeable by teammate messages, sentinel events, and the reply itself.
 
 ### Usage Response Protocol (reactive)
 
@@ -190,7 +205,7 @@ see "Fallback HOLD-WAKE" in `references/usage-control.md`. Never schedule any wa
 4. **Executor ADVICE REQUEST [complicated/deep-reasoning/knowledge]** — non-blocking from Executor's side but should still be answered promptly.
 5. **QUERY messages** (any teammate) — run /uc:research, reply, amend task.md.
 6. **PM alerts** — act on recommendations.
-7. **Escalations** — relay to user.
+7. **Escalations** — queue + standing order per § "Non-Blocking Escalations"; drain on user replies.
 8. **Checkpoint** — periodic save per Phase 3 triggers.
 
 ### Spawn Prompts
@@ -265,7 +280,7 @@ When a teammate discovers work covered by the plan's scope was missed in task br
 
 1. **Assess effort:** single file / endpoint / < 1 task worth?
 2. **If small:** amend the current task's `tasks/task-N/task.md` (add to Files, add a success criterion, extend Description) and broadcast `FILE-UPDATED task-N/task.md: amendment — {reason}`. Record the amendment in `shared/lead.md` under the amendments log.
-3. **If large:** escalate to user — the gap is too big to silently add.
+3. **If large:** queue a `gap` escalation per § "Non-Blocking Escalations" — too big to silently add (standing order: defer — the plan continues as written; the gap is recorded in the entry and in Follow-up Items). The user's reply can still pull it in as an amendment or a new task.
 4. **Always log it:** record every discovered gap and how it was handled in the completion summary under "Amendments" so the user has full visibility.
 
 ### Plan invalidations (from executor directly)
@@ -277,10 +292,10 @@ When a teammate sends `PLAN-INVALIDATING: ...`:
 3. **Evaluate scope:**
    - **Single task affected** — update that task's `tasks/task-N/task.md` directly, broadcast FILE-UPDATED, let current team handle it.
    - **Multiple tasks affected** — update each affected `tasks/task-N/task.md`, broadcast per file, record in `shared/lead.md`, cancel pending tasks if necessary.
-   - **Plan fundamentally wrong** — escalate to user with evidence. User decides: amend or abort.
+   - **Plan fundamentally wrong** — queue a `plan-invalid` escalation with the evidence (standing order: no new spawns; in-flight tasks finish and their slots stay unfilled). User decides on drain: amend or abort.
 4. **Resume pipeline** after resolution.
 
-Parked pipeline successors stay parked through the pause. If an amendment drops or materially changes a parked successor's task, shut down that successor explicitly before resuming.
+Parked pipeline successors stay parked through the pause. If an amendment (or the user's drain decision) drops or materially changes a parked successor's task, shut down that successor explicitly before resuming.
 
 ---
 
@@ -323,7 +338,7 @@ You are the **orchestrator and domain authority**. You spawn full executor + rev
 - Shut down completed teams (send shutdown_request to all members)
 - **Broker ADVICE requests** from Executor — handle `[deviation]` as blocking (read plan.md, reply APPROVED + amend task.md, or AMEND with instructions); handle other cases (`complicated`, `deep-reasoning`, `knowledge`) with guidance replies.
 - **Broker QUERY messages** from any teammate — invoke `/uc:research` with the question, reply with `ANSWER:`, append the pointer to the task's task.md Research section, broadcast FILE-UPDATED.
-- Handle escalations (relay to user, keep parked successors alive unless user aborts)
+- Handle escalations non-blocking (queue entry + standing order + printed notice per § "Non-Blocking Escalations"; keep parked successors alive unless the drained decision drops them)
 - Handle plan-invalidating discoveries (pause, evaluate, amend task.md files + broadcast, shut down parked successors if their tasks are dropped)
 - Send status updates to PM after each action (SPAWNED, STAGE, COMPLETED, SHUTDOWN, etc.) — PM also reads signals.jsonl per task for stage derivation (review/test pass/fail, retries)
 - **Display the dashboard URL to the user** if PM sends one (PM only sends it when the project is connected to the dashboard) — this is the user's primary monitoring tool
@@ -354,7 +369,7 @@ Real examples from past executions — do NOT produce output like this:
 
 These are all **state narration** — describing what teammates are doing, predicting what will happen next, or filling empty turns with status. Forbidden.
 
-There is **no** per-wake-up text. When woken, process the handler and act silently — emit nothing unless the action is one of the three allowed user-visible outputs (dashboard URL, escalation question, completion summary).
+There is **no** per-wake-up text. When woken, process the handler and act silently — emit nothing unless the action is one of the three allowed user-visible outputs (dashboard URL, escalation notice, completion summary).
 
 **Why this matters:** Every text output from Lead burns context tokens and distracts the user. The execution state files exist for monitoring. Many wakes are unavoidable lifecycle notifications (a teammate coming to rest); narrating them would turn each into noise. The Lead's job is to process messages and take actions (spawn, shutdown, review, escalate) — not to narrate.
 
@@ -365,9 +380,10 @@ There is **no** per-wake-up text. When woken, process the handler and act silent
 - Never write implementation code — you orchestrate, not implement
 - Never narrate or comment on operational events to the user — process wakes silently and act; the only user-visible outputs are the three allowed ones
 - Never invent, guess, or recall a usage figure — every usage band/percentage you act on or report MUST come from the actual stdout of `bash "$HOME/.claude/ultra/usage-monitor.sh" status`. If that command errors or returns no JSON, do not fabricate a status: surface the failure and stop (the monitor is unreachable — re-run `/uc:setup`).
+- Never call `AskUserQuestion` during execution — every user decision goes through the non-blocking escalation queue (§ "Non-Blocking Escalations"); a blocking prompt deafens the Lead to all teammates
 - Always send terse status updates to PM after spawning, shutdowns, stage transitions
 - Always checkpoint before session end
-- Max 10 fix cycles per task before escalating to user
+- Max 10 fix cycles per task before queueing a `max-cycles` escalation
 - While any Usage Block is non-`none`: do not spawn new teams (in-flight work continues); blocks clear via `SENTINEL RESET`, a `clear` pre-spawn check, or a fallback `HOLD-WAKE`
 - Always run final gate test suite before declaring completion (for single-task plans, skip only when no `documentation/technology/testing/final-gate.md` exists — otherwise the gate still runs so the project's final-gate-only criteria are honored)
 - Keep shared/lead.md updated with plan-level decisions and amendments log; per-task amendments are written to tasks/task-N/task.md (with FILE-UPDATED broadcasts), not shared/lead.md

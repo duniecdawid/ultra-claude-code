@@ -86,7 +86,7 @@
     <h2>What you see during execution</h2>
     <ul>
       <li><strong>Execution state</strong> &mdash; the PM maintains JSON state files showing task status, active stages, and timing</li>
-      <li><strong>Escalation questions</strong> &mdash; if a task exceeds 10 fix cycles or discovers something plan-invalidating, you'll be asked to decide</li>
+      <li><strong>Escalation notices</strong> &mdash; if a task exceeds 10 fix cycles or discovers something plan-invalidating, the question is queued to <code>shared/escalations.md</code> with a reversible standing order applied in the meantime (hold the team for a guided retry, defer the gap), and unaffected tasks keep running. Answer whenever you're back &mdash; the Lead never blocks on a prompt, so an overnight run survives its own questions</li>
       <li><strong>Completion summary</strong> &mdash; tasks completed, files modified, decisions made, test results, and follow-up items</li>
     </ul>
     <p>Between these, the system runs silently. The Lead doesn't narrate what agents are doing.</p>
@@ -171,9 +171,9 @@
         <p>Failures are handled internally within each task team:</p>
         <ul>
           <li>Reviewer or Tester sends FAIL &rarr; Executor fixes &rarr; re-submits for review/test</li>
-          <li>Up to 10 fix cycles before escalating to the user</li>
+          <li>Up to 10 fix cycles before queueing a non-blocking escalation &mdash; the team is held alive for a guided retry while independent tasks continue</li>
           <li>If a team member crashes, it's re-spawned with full context from task artifacts &mdash; but only after a <strong>liveness probe</strong> (team config &rarr; tmux pane &rarr; ping) proves it actually died. A usage limit parks agents rather than killing them, so a quiet agent is usually alive; re-spawning over one would put two writers on the same task</li>
-          <li>If the Lead discovers a plan-invalidating issue, the pipeline pauses until you decide how to proceed</li>
+          <li>If the Lead discovers a plan-invalidating issue, it stops spawning new tasks, lets in-flight work finish, and queues a non-blocking escalation until you decide how to proceed</li>
         </ul>
       </div>
     </details>

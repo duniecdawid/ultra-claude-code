@@ -1,5 +1,12 @@
 [
   {
+    "seq": 220,
+    "version": "2026.07.29-1",
+    "date": "2026-07-29",
+    "summary": "plan-execution: non-blocking escalation protocol — Lead never calls AskUserQuestion during execution; escalations queue to shared/escalations.md with reversible per-class standing orders (hold team for guided retry, pause spawns, defer gap, park for 7d reset), user replies drain the queue, open entries re-presented on resume and listed in the completion summary",
+    "migration": null
+  },
+  {
     "seq": 219,
     "version": "2026.07.27-4",
     "date": "2026-07-27",

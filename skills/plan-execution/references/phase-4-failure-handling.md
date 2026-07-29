@@ -12,24 +12,54 @@ Failures are handled entirely within the task-team — no Lead involvement:
 
 If 10 cycles exceeded: Executor tells Lead "escalation needed" with history.
 
-## Escalation to User
+## Non-Blocking Escalation Queue
 
-When the Lead receives an escalation:
+**Never `AskUserQuestion` during execution** (rule + rationale in SKILL.md § "Non-Blocking
+Escalations" — that section is the summary; this one is the full protocol). Escalations are
+plain-text notices backed by a queue file; the run continues around them.
+
+**Queue file:** `documentation/plans/{plan}/shared/escalations.md`, created on first escalation.
+Entry format:
+
+```markdown
+## ESC-{n} — {open|answered}
+- ts: {ISO}  task: {N | plan}  class: {max-cycles|plan-invalid|gap|sentinel-7d|other}
+- context: {evidence in one paragraph: what happened, fix-history summary, parked successors}
+- options: {numbered; mark the recommended default}
+- standing-order: {what the Lead did meanwhile}
+- resolution: {filled on answer}
+```
+
+**Standing orders** — the per-class default the Lead applies immediately, so nothing waits blocked.
+Reversible-only: a standing order never skips a task, aborts the plan, or expands scope — those
+require the user's answer.
+
+| Class | Trigger | Standing order |
+|---|---|---|
+| `max-cycles` | 10 fix cycles exhausted | Hold: ack executor with plain `"escalation queued — hold, decision follows"`; team stays alive parked (Executor already yields with a named wait after "escalation needed"), context preserved for a guided retry. Successor chain stays parked; independent tasks continue. |
+| `plan-invalid` | Evidence the plan is fundamentally wrong | Pause: no new spawns; in-flight teams finish their current task (normal shutdown on `task done`) but freed slots are not refilled. |
+| `gap` | Discovered in-scope work too big to silently add | Defer: plan continues as written; gap recorded in the entry and in the completion summary's Follow-up Items. |
+| `sentinel-7d` | Weekly usage limit | Park for reset: the sentinel's `SENTINEL RESET [7d]` recovery path resumes the plan without user input; the reply can instead switch account or abort. |
+| `other` | Any other user-only decision | Pick the least-destructive reversible default, record it in the entry. |
+
+**Printed notice** (one of the Lead's three allowed user-visible outputs) — question, standing
+order, entry id. Example for `max-cycles`:
 
 ```
-Task "{name}" has exceeded 10 fix cycles.
-
-Latest failure:
-  {reviewer/tester feedback summary}
-
-Fix history:
-  {brief summary of each cycle's feedback}
-
-Options:
-1. Provide additional guidance for the executor
-2. Skip this task
-3. Abort execution
+ESC-3 [max-cycles] Task "{name}" exceeded 10 fix cycles.
+Latest failure: {reviewer/tester feedback summary}
+Fix history: {one line per cycle}
+Meanwhile: team held alive, parked; other tasks continue.
+Options: 1. guidance for a retry (recommended)  2. skip this task  3. abort execution
 ```
+
+**Drain:** on any user reply referencing an open entry (by id, task, or topic), apply the
+decision, write `resolution:`, flip the entry to `answered`, and unwind the standing order where
+the decision differs — un-hold a parked team with the guidance, shut down a skipped chain, refill
+slots after a lifted pause. Re-print entries still `open`. (All-tasks-behind-open-escalations idle
+behavior: SKILL.md § "Non-Blocking Escalations".)
+
+**Resume:** Phase 1.2 re-presents all `open` entries after the resume summary.
 
 ## Team Member Crash
 
@@ -93,10 +123,10 @@ Handled automatically by Phase 1.2 (Resume Detection) when user reruns `/uc:plan
 Pipeline mode pre-spawns the next dependent task's team when an Executor signals `code complete`, parking the successor's Executor at a wait gate until its predecessor passes. These failure modes interact with parked successors:
 
 **Predecessor escalation (max retries exceeded):**
-- Parked successor stays alive through the escalation. Its plan is already written, reviewed by its Reviewer, and approved by the Lead — that context is valuable to preserve.
-- Include the parked successor in the escalation message to the user: "Task {N} escalating. Task {M} is pre-spawned and parked awaiting implementation approval from {N}."
-- If user chooses **continue/retry**: successor stays parked; it will receive `Implementation approved` when the predecessor eventually reaches `task done`.
-- If user chooses **skip/abort** the predecessor: Lead shuts down the parked successor (send `shutdown_request` to executor-{M} and reviewer-{M}) before moving on, and clears M from the pipeline-parked list in `shared/lead.md`.
+- Parked successor stays alive through the escalation (which is queued non-blocking per the section above). Its plan is already written, reviewed by its Reviewer, and approved by the Lead — that context is valuable to preserve.
+- Include the parked successor in the escalation entry and notice: "Task {N} escalating. Task {M} is pre-spawned and parked awaiting implementation approval from {N}."
+- If the drained decision is **continue/retry**: successor stays parked; it will receive `Implementation approved` when the predecessor eventually reaches `task done`.
+- If the drained decision is **skip/abort** the predecessor: Lead shuts down the parked successor (send `shutdown_request` to executor-{M} and reviewer-{M}) before moving on, and clears M from the pipeline-parked list in `shared/lead.md`.
 
 **Predecessor plan-invalidating discovery:**
 - Pause the pipeline per existing rules. Parked successor stays parked during the pause.
