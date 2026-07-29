@@ -16,7 +16,7 @@ The caveman plugin (https://github.com/JuliusBrussee/caveman) is the compression
 
 1. **Per-session opt-in** — `/caveman [lite|full|ultra]` when a terse working session is wanted. Level dies with the session.
 2. **File compression** — invoke the `caveman-compress` skill on a resident file (CLAUDE.md section, journal, memory file). The workhorse pattern. It rewrites the file in place, so review the diff before committing and run the key-term check below; the behaviours in "Invoking the engine safely" apply here too — in particular it will not touch frontmatter, and it refuses filenames that look sensitive.
-3. **Per-artifact review** — spawn the `uc:caveman-reviewer` agent (this plugin) on just-written persistent harness text. It returns a proposition; the parent decides. **Not optional:** this is SKILL.md's mandatory gate — every persistent artifact, one spawn each, before the work is reported done. Spawn form and the only sanctioned no-op are in SKILL.md § "Mandatory gate".
+3. **Per-artifact review** — spawn the `uc:caveman-reviewer` agent (this plugin) on persistent harness text, two stages: structural findings first (user confirms the structural work), then the engine pass, consumed item by item. **Not optional:** this is SKILL.md's mandatory gate — batched when the change set settles, not per intermediate revision. Spawn form, stages, and the only sanctioned no-op are in SKILL.md § "Mandatory gate".
 
 ### Invoking the engine safely
 
@@ -31,7 +31,9 @@ It overwrites the file it is given, so the only safe way to use it for review is
 5. **The trailing newline at EOF is dropped.** The validator does not check it. Restore it before adopting any output.
 6. **Model:** with `ANTHROPIC_API_KEY` set it uses the SDK and defaults to `claude-sonnet-4-5` — below the Opus floor (non-negotiable #1); export `CAVEMAN_MODEL=claude-opus-5`. Without the key it shells out to `claude --print`, which runs the machine's configured default model.
 
-Yields, same date: 4.0% on a reference doc that is roughly half URLs/quotes/tables, 6.8% on an agent prompt body. Hand-applying the rules to the identical reference doc yielded 2.4% — the engine route is worth ~1.7×, and its exit code carries a validator pass instead of an eyeballed assertion, so reviewing is copy → invoke → diff with no separate checking step.
+Yields, same date: 4.0% on a reference doc that is roughly half URLs/quotes/tables, 6.8% on an agent prompt body. Hand-applying the rules to the identical reference doc yielded 2.4% — the engine's exit code carries a validator pass instead of an eyeballed assertion, so reviewing is copy → invoke → diff with no separate checking step.
+
+[MEASURED 2026-07-29, docs-manager overhaul] 16 engine runs on harness artifacts yielded 5–12.5% whole-file, while the structural pass on the same directory saved −68% on the SKILL.md and −32% overall. Consequences (supersedes the earlier engine-first framing): the engine is **stage 2** of the review protocol — structural optimisation (`structural-optimization.md`) always runs first — and engine output is consumed **per item** (adopt clean cuts, adopt fixable ones in repaired form, skip harmful ones), never accepted or rejected wholesale on yield percentage.
 
 ### Never
 
@@ -44,6 +46,7 @@ Yields, same date: 4.0% on a reference doc that is roughly half URLs/quotes/tabl
 
 Caveman optimizes for brevity; the harness also needs **routing safety**. Any compression of harness text must additionally satisfy:
 
+0. **Structural review precedes lexical compression, always** — run the `structural-optimization.md` catalogue first; compressing text that should be deleted or merged wastes the pass.
 1. **Discriminating-key-term preservation.** Key terms are the routing surface. Diff the before/after noun+verb set; every dropped discriminator is a risk flag, not a silent cut.
 2. **Budgets from `description-writing.md`** apply to descriptions regardless of engine output.
 3. **Protocol formats stay parseable.** When compressing agent-to-agent message formats, field names and structure are contract — compress the prose around them, never the fields.

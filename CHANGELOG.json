@@ -1,5 +1,12 @@
 [
   {
+    "seq": 222,
+    "version": "2026.07.29-3",
+    "date": "2026-07-29",
+    "summary": "harness-builder: two-stage review protocol from the docs-manager optimisation learnings — new structural-optimization.md reference (10-pattern measured catalogue: table merges, derivable columns, template-comment dedup, restating pitfalls, N-times invariants, cross-file hoisting, format-vs-behaviour ownership, altitude cuts, form rewrites, payload zones); mandatory gate becomes structural review (user-confirmed) then engine pass, batched when the change set settles; caveman-reviewer gains stage input and tags every cut clean/fixable/harmful — the ~15% adoption floor and wholesale accept/reject verdicts are removed, reviews are consumed item by item",
+    "migration": null
+  },
+  {
     "seq": 221,
     "version": "2026.07.29-2",
     "date": "2026-07-29",
