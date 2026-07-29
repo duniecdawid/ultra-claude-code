@@ -1,5 +1,24 @@
 [
   {
+    "seq": 221,
+    "version": "2026.07.29-2",
+    "date": "2026-07-29",
+    "summary": "docs-manager: major slim-down — always enabled (activation gate and .claude/ultra/docs-format check removed), single documentation standard (docsify/markdown/confluence/gitbook format modes removed, no format naming), three tables merged into one Directory Table that is the single source for structure, routing, and category-README payloads; cross-referencing.md folded into SKILL.md § One Canonical Home; format-vs-behaviour split for technology-research.md (TTL policy lives only in the researcher agent); doc-type guides deduplicated against their own templates and SKILL.md rules. SKILL.md 23.2KB to 7.4KB, directory total −32%",
+    "migration": {
+      "precondition": {
+        "exists": ".claude/ultra/docs-format"
+      },
+      "actions": [
+        {
+          "type": "delete",
+          "path": ".claude/ultra/docs-format"
+        },
+        "Documentation management is now always enabled; no marker file is needed. If the file held a non-docsify value (markdown, confluence, gitbook), note that generated documentation now always follows the single standard (category README.md per directory, relative markdown links)."
+      ],
+      "conflicts": "Projects that relied on the absence of docs-format to keep docs-manager inactive no longer have that switch — docs-manager routing applies to every Ultra Claude project. Confluence/GitBook-formatted documentation keeps working as plain files but new documents will not carry format-specific markers (Confluence space/title comments, SUMMARY.md updates)."
+    }
+  },
+  {
     "seq": 220,
     "version": "2026.07.29-1",
     "date": "2026-07-29",

@@ -25,11 +25,9 @@ Here's what good walkthrough prose looks like:
 
 Notice: no tables, no bullet lists. Components, state ownership (PostgreSQL is source of truth), external dependencies (Stripe), and integration (Kafka events) all appear naturally in the story. Bold terms make it scannable without breaking the narrative flow.
 
-**Technology choices should include rationale.** "We use PostgreSQL" is less useful than "We use PostgreSQL because we need transactional consistency across X and Y." If the technology choices are inherited from a parent service doc, don't repeat them — only document choices specific to this component.
+**Technology choices should include rationale.** "We use PostgreSQL" is less useful than "We use PostgreSQL because we need transactional consistency across X and Y."
 
-**Only write about risks that are real.** If there are no security concerns worth noting, don't write a security section. If scaling is straightforward, don't manufacture bottleneck analysis. But when something is genuinely risky — a fragile external dependency, a known performance ceiling, a failure mode with wide blast radius, or a process that depends on a human doing the right thing — call it out explicitly. Manual steps are a common hidden risk: if the system relies on someone remembering to rotate a key, approve a queue, or trigger a reconciliation, that's a failure mode worth documenting.
-
-**For service-level docs**, consider also covering runtime behavior (concurrency model, scaling characteristics, resource limits, batch sizes, timeouts) and observability (what signals the system emits and where to find them when something goes wrong). These are less relevant for component-level docs within a service.
+**Only write about risks that are real.** When something is genuinely risky — a fragile external dependency, a known performance ceiling, a failure mode with wide blast radius, or a process that depends on a human doing the right thing — call it out explicitly. Manual steps are a common hidden risk: if the system relies on someone remembering to rotate a key, approve a queue, or trigger a reconciliation, that's a failure mode worth documenting.
 
 **Component docs should not repeat the parent.** When documenting a component that belongs to a larger service, skip everything already covered in the service-level doc — tech stack, observability setup, inherited dependencies. Only add what's specific to this component.
 

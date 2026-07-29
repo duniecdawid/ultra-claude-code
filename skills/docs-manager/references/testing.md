@@ -13,17 +13,13 @@ A testing document defines how to verify that a system area works correctly — 
 
 ## How to Write One
 
-Start with what this testing document covers — scope it to a specific area or strategy, not "all testing." A testing doc for the auth module is more useful than one for "the whole app."
+Scope to a specific area or strategy, not "all testing" — a testing doc for the auth module beats one for "the whole app."
 
-The test strategy table should map test types to their scope and tooling. Be specific: "integration tests for API endpoints using supertest" not just "integration tests."
-
-Commands are critical — include the exact commands someone would run, with flags and environment setup. A testing doc without runnable commands is incomplete.
-
-Agent rules matter because automated test agents (like the task-tester in plan-execution) read these docs to know how to test. If there are special setup steps, required fixtures, or things to avoid, document them here.
+- Strategy table entries are specific: "integration tests for API endpoints using supertest," not "integration tests."
+- Commands are exact and runnable (flags, environment setup) — a testing doc without runnable commands is incomplete.
+- Agent rules are read by automated test agents (the task-tester in plan-execution): special setup steps, required fixtures, things to avoid.
 
 **Common pitfalls:**
-- Scope too broad — "testing strategy for everything" is too vague to be actionable
-- Missing commands — the reader should be able to copy-paste and run tests
 - Forgetting security testing — it's easy to focus on functional tests and miss security considerations
 - Not updating when test infrastructure changes
 

@@ -159,7 +159,7 @@ Bootstrap depends on which scope your spawn prompt named.
 If `documentation/technology/research/` doesn't exist yet:
 
 1. Create the directory tree: `libraries/`, `patterns/`, and the research root.
-2. Create `documentation/technology/research/README.md` (category index per Docsify convention — see `${CLAUDE_PLUGIN_ROOT}/skills/docs-manager/SKILL.md` Docsify section for the template).
+2. Create `documentation/technology/research/README.md` (category index — see the category README template in `${CLAUDE_PLUGIN_ROOT}/skills/docs-manager/SKILL.md` § "Document Standard").
 3. Create `libraries/README.md` and `patterns/README.md` (same pattern).
 4. Create `index.json` with `{ "version": 1, "updated_at": "{now}", "entries": {} }`.
 5. Proceed with the normal workflow.

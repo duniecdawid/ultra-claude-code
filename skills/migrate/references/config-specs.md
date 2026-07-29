@@ -49,9 +49,9 @@ Derived from CI config, environment files, docker-compose:
 - Required environment variables
 - External service dependencies
 
-## .claude/ultra/docs-format
+## .claude/ultra/docs-format — obsolete
 
-Default to `docsify` unless existing docs suggest otherwise (e.g., Confluence markers found -> `confluence`).
+No longer created. Documentation management is always enabled; the docs-manager skill no longer checks for this file. Delete it if present.
 
 ## Plan Presentation
 

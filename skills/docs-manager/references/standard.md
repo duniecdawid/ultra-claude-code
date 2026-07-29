@@ -13,11 +13,11 @@ A standards document defines how code should be written — conventions, pattern
 
 ## How to Write One
 
-Start with the principle — one paragraph that captures the core belief grounding this standard. Every rule in the document should trace back to this principle. If a rule doesn't connect to the principle, it might not belong here.
+Start with the principle (see template). If a rule doesn't connect to the principle, it might not belong here.
 
 The FORBIDDEN table is the most actionable part. List specific anti-patterns alongside the correct approach. These should be concrete enough for mechanical code review — "don't use `any` type" not "avoid loose typing."
 
-Topic-specific sections should use the project's actual language, framework, and naming conventions. Include real code examples from the codebase when possible. A rule that says "use the repository pattern" is weaker than one that shows how the project's repository pattern actually looks.
+Include real code examples from the codebase when possible. A rule that says "use the repository pattern" is weaker than one that shows how the project's repository pattern actually looks.
 
 **Common pitfalls:**
 - Rules too vague to enforce ("write clean code")

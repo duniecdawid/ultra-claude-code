@@ -38,14 +38,10 @@ sources:
 ```
 
 **`expires` semantics:**
-- **ISO date** → entry is fresh when `now < expires`. Mode defaults: library 10 days, patterns 90 days, market 30 days.
-- **`null`** → **frozen**. Entry never auto-expires. Used for historical / retrospective / version-locked research that can't go out of date (e.g., "Node 14 deprecation notes", "history of microservices before 2018", "pattern evolution timeline").
+- **ISO date** → entry is fresh when `now < expires`.
+- **`null`** → **frozen**. Entry never auto-expires. Used for historical / retrospective / version-locked research that can't go out of date (e.g., "Node 14 deprecation notes", "pattern evolution timeline").
 
-The researcher agent chooses `expires` at write time based on content:
-- Current library docs / patterns / market snapshots → TTL per mode default
-- Historical topics (year references, retrospective phrasing, superseded versions) → `null`
-
-Humans can hand-edit `expires` if the agent's judgment is wrong — e.g., flip a fast-moving library entry to `null` to pin it, or set a past date to force a refresh.
+TTL selection at write time (mode defaults, when to freeze) is the `researcher` agent's behaviour — defined in `agents/researcher.md`, not here. Humans can hand-edit `expires` if the agent's judgment is wrong — flip a fast-moving entry to `null` to pin it, or set a past date to force a refresh.
 
 ## File Naming
 
@@ -104,30 +100,13 @@ Schema:
       "summary": "TypeScript-first schema validation with runtime + static type inference.",
       "sources": ["https://zod.dev/api/object"]
     },
-    "patterns/rate-limiting.md": {
-      "type": "pattern",
-      "subject": "rate limiting",
-      "fetched_at": "2026-04-11",
-      "expires": "2026-07-10",
-      "topics": ["token bucket", "sliding window", "distributed rate limiting"],
-      "summary": "Strategies for API rate limiting — token bucket, sliding window, distributed.",
-      "sources": ["..."]
-    }
   }
 }
 ```
 
-Market-mode entries use repo-root-relative paths like `documentation/product/research/ai-coding-landscape.md` as keys. Frozen entries use `"expires": null`.
+Pattern and market entries use the same shape (`"type": "pattern"` / `"market"`); market-mode keys are repo-root-relative paths like `documentation/product/research/ai-coding-landscape.md`. Frozen entries use `"expires": null`.
 
-If the index gets out of sync with actual files (manual edit, file deletion), the skill falls back to spawning the researcher agent which rebuilds the entry on next call.
-
-## Common Pitfalls
-
-- **Writing synthesized opinion in library files.** Library files are verbatim doc excerpts with sources. Synthesis belongs in pattern files.
-- **Hand-editing `index.json`.** Always corrupts something. If an entry is wrong, delete the file and re-run `/uc:research` — or edit the file's frontmatter and the agent will reconcile on next call.
-- **Creating one file per topic for libraries.** Libraries use one file with multiple H2 sections. `zod.md` holds all zod topics, not `zod-schemas.md` + `zod-parsing.md`.
-- **Omitting the `## Sources` section.** Unsourced research is opinion. Every file has it.
-- **Marking fast-moving library docs as frozen.** Frozen is for historical/retrospective content. Current API docs get TTL, even if the current API feels stable.
+If the index gets out of sync with actual files (manual edit, file deletion), the skill falls back to spawning the researcher agent, which rebuilds the entry on next call. If an entry is wrong, delete the file and re-run `/uc:research` — or edit the file's frontmatter and the agent will reconcile.
 
 ## Cross-References
 

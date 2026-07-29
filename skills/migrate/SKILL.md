@@ -30,8 +30,6 @@ ls .claude/ultra/version.json 2>/dev/null || ls .claude/ultra-version.json 2>/de
 # Check for documentation structure
 ls -d documentation/ 2>/dev/null
 
-# Check for docs-format (current and legacy)
-ls .claude/ultra/docs-format 2>/dev/null || ls .claude/docs-format 2>/dev/null
 ```
 
 Use the results to select a mode:

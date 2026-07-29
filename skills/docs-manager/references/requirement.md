@@ -13,19 +13,18 @@ A requirements document defines what problems to solve and what success looks li
 
 ## How to Write One
 
-Start with the problem statement — who has this problem and why does it matter? Then list requirements with clear IDs (FR-001 for functional, NFR-001 for non-functional) so they can be referenced from plans and tasks.
+Start with the problem statement — who has this problem and why it matters. IDs, priority scheme (Must/Should/Could), and structure come from the template; requirement IDs exist to be referenced from plans and tasks.
 
-Every requirement needs a priority. Use Must/Should/Could — "Must" means the feature doesn't ship without it, "Should" means it's expected but deferrable, "Could" means it's a nice-to-have. Be honest about priorities; if everything is "Must," nothing is prioritized.
+Be honest about priorities — if everything is "Must," nothing is prioritized.
 
-Acceptance criteria are the most important part. Each one should be testable — "Given X, when Y, then Z." If you can't write a test for it, the requirement isn't specific enough.
+Acceptance criteria are the most important part. Each one must be testable — "Given X, when Y, then Z." If you can't write a test for it, the requirement isn't specific enough.
 
-**Relationship with product descriptions:** Requirements and product descriptions are closely connected — they describe the same feature from different angles. The description says *how it works* for the user; requirements say *what it must achieve* with measurable criteria. They should reference each other heavily, but not duplicate. If the description explains the filtering behavior, the requirement defines the performance targets and edge case handling. Don't restate the description's workflows here or restate acceptance criteria there.
+**Relationship with product descriptions:** same feature, different angles — see § One Canonical Home in the docs-manager SKILL.md. Example: the description explains the filtering behavior, the requirement defines the performance targets and edge-case handling. Never restate workflows here.
 
 **Common pitfalls:**
 - Requirements that describe solutions instead of problems ("use Redis for caching" is architecture, not a requirement)
 - Missing acceptance criteria — a requirement without criteria is a wish
 - Not separating functional from non-functional — performance, security, and reliability requirements are easy to forget
-- Duplicating product description content instead of linking to it
 
 ## Template
 

@@ -14,17 +14,13 @@ Not every decision needs an RFC. Write one when:
 
 ## How to Write One
 
-Start with the problem statement — what decision needs to be made and why is it non-trivial? If the answer is obvious, you probably don't need an RFC.
+The alternatives table is the heart of the document. List real pros and cons — not strawman arguments that make your preferred option look good. If you can't articulate genuine advantages of the alternatives, you haven't thought hard enough.
 
-The alternatives table is the heart of the document. For each option, list real pros and cons — not strawman arguments that make your preferred option look good. If you can't articulate genuine advantages of the alternatives, you haven't thought hard enough.
-
-The Outcome section stays empty until the decision is made. Fill it in with the decision, the rationale, and follow-up actions. This is what future readers will look at first.
+The Outcome section (empty until the decision is made — see template) is what future readers look at first.
 
 **Common pitfalls:**
 - Writing the RFC after the decision is already made (it becomes a justification document, not a decision record)
-- Strawman alternatives — listing obviously bad options to make the preferred one look good
 - Missing the "Why Not" column — this is the most valuable part for future readers
-- Forgetting to fill in the Outcome section after the decision
 
 ## Template
 

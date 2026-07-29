@@ -24,7 +24,7 @@ This project uses [Ultra Claude](https://github.com/duniecdawid/ultra-claude-cod
 - **Canonical documentation** lives in `documentation/` — do not create docs outside this structure.
 - **Plans** are stored in `documentation/plans/{NNN}-{name}/` with sequential numbering. Each plan has a `README.md` with a flat task heading index plus per-task content in `tasks/task-N/task.md` files (description, files, patterns, research pointers, success criteria, dependencies).
 - **External system context** (API docs, SDK references) goes in `context/`.
-- **Project configuration** for Ultra Claude is in `.claude/ultra/` (app-context, environments, docs-format, version marker). Testing config lives in `documentation/technology/testing/`.
+- **Project configuration** for Ultra Claude is in `.claude/ultra/` (app-context, environments, version marker). Testing config lives in `documentation/technology/testing/`.
 
 ### Workflow
 

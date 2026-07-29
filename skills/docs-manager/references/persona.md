@@ -13,18 +13,15 @@ A persona document captures who uses the product — their role, goals, frustrat
 
 ## How to Write One
 
-Start with a summary — 2-3 sentences that capture who this person is and their relationship to the product. A reader should be able to skim the summary and know if this persona is relevant to their work.
+The summary passes the skim test: a reader knows within 2–3 sentences whether this persona is relevant to their work.
 
-The confidence level matters. A persona built from 20 user interviews is high-confidence. One synthesized from competitor reviews and assumptions is low-confidence. Be honest — low-confidence personas are still useful, but decisions based on them should be validated.
-
-Goals and pain points should be specific and prioritized. "Wants to save time" is too vague. "Needs to process 50+ orders per hour without switching between 3 different tools" tells you something actionable.
-
-Behaviors should describe what they actually do, not what they should do. If they use spreadsheets as a database, that's a behavior worth capturing — it reveals something about their workflow.
+- Confidence is honest: 20 user interviews = high; synthesized from competitor reviews and assumptions = low. Low-confidence personas are still useful, but decisions based on them need validation.
+- Goals and pain points are specific and prioritized: "wants to save time" is too vague; "needs to process 50+ orders per hour without switching between 3 tools" is actionable.
+- Behaviors describe what they actually do, not what they should do — spreadsheets-as-database is a behavior worth capturing.
 
 **Common pitfalls:**
 - Inventing personas without evidence — if you can't cite a source, mark it as low-confidence
 - Making personas too generic ("busy professional who values efficiency" describes everyone)
-- Duplicating product description content — the persona says who they are, the product description says what they use
 - Forgetting to update personas when new evidence emerges
 
 ## Template
