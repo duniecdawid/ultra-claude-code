@@ -28,10 +28,10 @@ All patterns [MEASURED 2026-07-29, docs-manager overhaul, commit f28833f]: the l
 
 ## Payload zones
 
-10. **Text emitted verbatim into user output is never compressed or reworded** — template code blocks, table columns whose cells become generated README/document content, quoted fallback strings. Identify these zones before any review and declare them in the reviewer spawn prompt (`Payload zones:` field). The engine's validator protects code blocks but has no concept of payload table cells — that protection is the parent's job.
+10. **Text emitted verbatim into user output is never compressed or reworded** — template code blocks, table columns whose cells become generated README/document content, quoted fallback strings. Identify these zones at stage 1 and declare them in the `uc:caveman-compress` spawn prompt (`Payload zones:` field). The engine's validator protects code blocks but has no concept of payload table cells — that protection is the parent's job.
 
 ## Using the catalogue
 
 - Authoring new harness text: check patterns 1–2 and 8–10 before writing (prevention beats review).
-- Stage-1 review: the `uc:caveman-reviewer` agent checks the artifact against every pattern, including cross-file duplication via Grep; findings name the pattern number, locations, fix, and estimated saving.
+- Stage 1 of the build workflow (`stage-1-structural.md`): the main session checks the artifact against every pattern, including cross-file duplication via Grep; findings name the pattern number, locations, fix, and estimated saving.
 - The catalogue grows: a new structural pattern found during any harness work lands here as a numbered entry with its measured instance.

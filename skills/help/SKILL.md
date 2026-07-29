@@ -93,7 +93,7 @@ Scan all plans, infer actual status from execution artifacts (operational report
 ### Infrastructure
 
 **Harness Builder** (`/uc:harness-builder`)
-Knowledge base for building harness components — skills, agents, hooks, protocols. Use when create or refactor skill or agent, write descriptions or prompts, audit session context cost (`scripts/context_audit.py`), optimise resident text. Knowledge, not process: non-negotiables (Opus floor, engines-by-invocation, description budgets, before/after refactor testing), single-topic references including structural-duplication catalogue, mandatory two-stage review gate via `uc:caveman-reviewer`.
+Knowledge base for building harness components — skills, agents, hooks, protocols — plus a mandatory staged build workflow. Use when create or refactor skill or agent, write descriptions or prompts, audit session context cost (`scripts/context_audit.py`), optimise resident text. Build tasks enter Claude Code native plan mode and walk structural → lexical → compression (`uc:caveman-compress`) → plan-presentation stages with per-stage discussion gates; non-negotiables include Opus floor, always-invoke `/skill-creator:skill-creator`, description budgets, before/after refactor testing.
 
 **Rename Window** (`/uc:rename-window`)
 Rename current tmux window via shared `scripts/tmux-window-name.sh` primitive (sanitize, truncate for status bar, disable tmux automatic-rename so name stick). Use to label window by what it work on, or apply Ultra Claude `UC::P-NNN::<plan>` / `UC::<Mode>::<subject>` convention by hand — planning modes + plan-execution apply automatically, plan ID take priority. Produce renamed window that survive shell-prompt redraws; no-op outside tmux.
@@ -118,8 +118,8 @@ Define 4-stage planning flow (Understand → Research → Discuss → Write), co
 
 Skills spawn agents as subagents. Agents don't run independently — skills orchestrate. Execution-team agents (Code Reviewer, Project Manager, Task Executor, Task Tester) coordinate via execution communication protocol (`skills/plan-execution/references/execution-communication-protocol.md`): SendMessage = primary channel, `signals.jsonl` = durable log + delivery backstop, each agent run one persistent inbox monitor, Executor own unit/integration tests, Tester own acceptance tests.
 
-**Caveman Reviewer**
-Two-stage reviewer of persistent harness text (descriptions, agent prompts, protocol formats, CLAUDE.md sections) — proposition-only, never edit; stage 1: check artifact against structural-optimization catalogue (duplication, altitude, form, payload zones, cross-file Grep); stage 2: invoke caveman-compress CLI on scratch copy, return every cut tagged clean / fixable-with-repaired-wording / harmful; descriptions use first-party `description-writing.md` rules — engine preserve frontmatter verbatim. Spawned by `/uc:harness-builder` mandatory gate — batched when change set settle, one spawn per artifact per stage. Parent consume results item by item, no yield threshold (description changes also require before/after trigger test).
+**Caveman Compress**
+Compression engine wrapper — run caveman-compress CLI on scratch copy of body artifact (`prompt-body` | `doc-section` | `protocol-format`; never descriptions — engine preserve frontmatter verbatim), return compressed version plus cut list tagged clean / fixable-with-repaired-wording / harmful; proposition-only, never edit outside scratch. Spawned at stage 3 of `/uc:harness-builder` build workflow, one spawn per artifact, concurrent when several. Parent adopt cuts item by item — no wholesale accept/reject, yield percentage diagnostic only.
 
 **Checker**
 Compare specific code against documentation claims for single topic, returning discrepancies with severity levels + exact file:line references. Spawned by doc-code verification to verify isolated aspects of system. Produce structured verification reports — factual differences between docs and implementation.

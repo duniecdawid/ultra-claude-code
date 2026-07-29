@@ -1,5 +1,12 @@
 [
   {
+    "seq": 224,
+    "version": "2026.07.29-5",
+    "date": "2026-07-29",
+    "summary": "harness-builder: restructured into a staged build workflow running inside Claude Code native plan mode — build tasks (any create/modify of a persistent harness artifact) call EnterPlanMode and walk stage 1 structural (catalogue check + payload-zone inventory, discussion gate) → stage 2 lexical (hand pass, only stage that touches descriptions, discussion gate) → stage 3 compression (uc:caveman-compress spawn per body artifact, cuts adopted item by item) → stage 4 present (final plan + sync steps, ExitPlanMode, execute after approval); caveman-reviewer agent renamed and rescoped to caveman-compress (pure engine wrapper — structural/lexical judgment moved into the skill stage references); new authoring rule: cross-skill delegation must be an explicit imperative (always invoke /skill-creator:skill-creator), never passive phrasing; exemptions: knowledge-only answers, meaning-preserving fixes, work under an already-approved plan; active UC planning modes keep precedence",
+    "migration": null
+  },
+  {
     "seq": 223,
     "version": "2026.07.29-4",
     "date": "2026-07-29",

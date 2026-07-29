@@ -35,6 +35,6 @@ Scope: knowledge specific to building subagents (`agents/*.md`). Description bud
 
 New agent = one file in `agents/`; its description joins every session's roster — budget one sentence. Update the help catalog + docs reference page, CHANGELOG entry, version bump in both `plugin.json` and `marketplace.json`.
 
-Before reporting the agent done, spawn `uc:caveman-reviewer` on both its `description` (kind `agent-description`) and its prompt body (kind `prompt-body`) — two artifacts, two spawns, mandatory gate (SKILL.md § "Mandatory gate").
+An agent's `description` and prompt body are persistent harness artifacts — they go through the build workflow's stages (structural + lexical by hand, `uc:caveman-compress` on the body at stage 3) before the agent ships.
 
 A skill that spawns any agent needs `Agent` in its own `allowed-tools` — an omitted grant is a silent no-spawn, not an error.

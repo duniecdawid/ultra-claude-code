@@ -58,7 +58,7 @@ Why it still routes: the key terms survive ("order flow", "ClickHouse", "schema"
 - [ ] No first/second person, no marketing adjectives
 - [ ] If a sibling skill could be confused: one do/don't boundary clause
 - [ ] Refactoring an existing description? Run the before/after trigger test — `testing-refactors.md`
-- [ ] `uc:caveman-reviewer` spawned on the description and its proposition decided — mandatory gate, SKILL.md § "Mandatory gate"
+- [ ] Description hand-passed at stage 2 of the build workflow (`stage-2-lexical.md`) — descriptions never go through the compression engine
 
 ## Sources
 

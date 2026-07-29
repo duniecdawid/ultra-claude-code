@@ -36,7 +36,7 @@ For body/reference restructuring, use skill-creator's eval loop by invocation: r
 4. Grade both sides with an **independent Opus pass** that sees the rubric but not which output is before/after (label-blind). Gate: no criterion regresses.
 5. Keep prompts + rubric next to the agent definition so the next refactor reuses them.
 
-## Compression propositions (caveman-reviewer output) — minimum bar
+## Compression propositions (caveman-compress output) — minimum bar
 
 Full evals are overkill for a single description trim. Minimum accepted evidence:
 - Trigger-set re-run (identical frozen set), AND

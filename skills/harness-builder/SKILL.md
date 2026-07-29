@@ -12,54 +12,36 @@ allowed-tools:
 
 # Harness Builder
 
-Accumulated knowledge for building the harness — the skills, agents, hooks, and protocols that decide how Claude works. **Knowledge, not process:** there is no universal build workflow here. Each reference holds what we know about one topic; you pull what the task needs.
+Accumulated knowledge for building the harness — the skills, agents, hooks, and protocols that decide how Claude works. Knowledge questions pull the reference they need and answer directly. Build tasks — anything that creates or modifies a persistent harness artifact — walk the staged workflow below inside Claude Code's native plan mode; no edits before plan approval.
 
 ## Non-negotiables
 
-1. **Model floor: Opus.** Any session or agent doing harness-building work — writing or refactoring skills, agents, prompts, protocols — runs on Opus or better. The harness decides every downstream workflow; never build it with a small model. This includes reviewer agents that touch harness text.
-2. **Engines are invoked, never copied.** Skills are built through `/skill-creator:skill-creator` (the official eval-driven engine); text compression goes through the installed caveman plugin. Do not inline either engine's content into other skills, prompts, or docs — invoke them so upstream improvements propagate.
+1. **Model floor: Opus.** Any session or agent doing harness-building work — writing or refactoring skills, agents, prompts, protocols — runs on Opus or better. The harness decides every downstream workflow; never build it with a small model.
+2. **Engines are invoked, never copied — and invocation is commanded, not mentioned.** Building or refactoring a skill: **always invoke `/skill-creator:skill-creator`** (the official eval-driven engine). Compressing text: always through the caveman engine, via the `uc:caveman-compress` agent at stage 3. Never inline an engine's content into other skills, prompts, or docs — invoke it so upstream improvements propagate. This is also an authoring rule for every skill you write: when a skill delegates to another skill, phrase it as an explicit imperative ("always invoke /x:y"), never a passive mention ("built through", "via") — passive phrasing gets skipped.
 3. **Descriptions are routers, not documentation.** Budgets: skill description 1–3 sentences (~20–50 words); agent description 1 sentence (~10–25 words). The body carries detail; the description pays an always-resident price in every session.
 4. **Refactors require before/after evidence.** Never accept a skill/agent refactor that lowers trigger accuracy or eval pass-rate — brevity that breaks routing is a regression, not a win.
-5. **Review is a two-stage gate, not an option.** Structural first, lexical second — see below; it runs on every persistent artifact this skill touches.
+5. **Build tasks run the staged workflow in native plan mode.** No edit to a persistent harness artifact before plan approval — see the workflow below. Exempt: knowledge-only answers (nothing edited); meaning-preserving fixes (typo, formatting, broken path — if you would have to choose between wordings, it is not meaning-preserving: run the workflow); work already covered by a plan the user approved this session (`/uc:plan-execution` runs included — never re-enter plan mode mid-execution). Precedence: if an Ultra Claude planning mode is active, its framework governs and prohibits native plan mode — serve as its knowledge base instead.
 
-## Mandatory gate — two-stage review of every artifact
+## Build workflow — stages
 
-Every persistent harness artifact you write or rewrite while this skill is active goes through both stages **before the work ships**: skill `description`, agent `description`, agent prompt body, protocol message format, CLAUDE.md section, resident reference text.
+Persistent harness artifacts: skill descriptions, agent descriptions, prompt bodies, protocol message formats, CLAUDE.md sections, resident reference text.
 
-**Timing:** never spawn reviews on intermediate revisions while the user is still iterating — early spawns get killed by the next change. Batch when the change set settles (end of the working session / before commit). One spawn per artifact per stage; several artifacts → all spawns in one message, concurrently.
+**Entry:** call `EnterPlanMode` (if the tool is deferred, load it first — `ToolSearch` `select:EnterPlanMode,ExitPlanMode`). If the target is a skill, always invoke `/skill-creator:skill-creator` — its eval-driven flow runs inside this workflow. Read each stage's reference only when entering that stage.
 
-**Stage 1 — structural.** Spawn `uc:caveman-reviewer` with `Stage: structural`. It checks the artifact against the catalogue in `references/structural-optimization.md` (duplication, altitude, form, payload zones — including cross-file duplication). Apply the findings you accept, then **get the user's confirmation that structural work is done** before moving on.
+| Stage | What happens | Reference |
+|---|---|---|
+| 1 — structural | catalogue check + payload-zone inventory; structural proposal; discuss until the user confirms it settled | `references/stage-1-structural.md` |
+| 2 — lexical | hand pass — house style on bodies, descriptions (only here); discuss | `references/stage-2-lexical.md` |
+| 3 — compression | spawn `uc:caveman-compress` per body artifact; adopt cuts item by item | `references/stage-3-compression.md` |
+| 4 — present | assemble final plan + sync steps; ExitPlanMode; discuss; execute after approval | `references/stage-4-present.md` |
 
-**Stage 2 — lexical.** Spawn with `Stage: lexical` on the structurally-settled artifacts. The reviewer runs the compression engine and returns an itemized cut list, each cut tagged `clean` / `fixable` (with the repaired wording) / `harmful`. Work through it item by item: adopt clean cuts, adopt fixable ones in their repaired form, skip harmful ones. **Never accept or reject a review wholesale — yield percentage is diagnostic information, not a decision rule.**
-
-```
-Agent(
-  subagent_type: "uc:caveman-reviewer",
-  run_in_background: false,          # it is a gate — you need the result before shipping
-  description: "review <artifact> (<stage>)",
-  prompt: "Artifact: <absolute path, or the inline text>.
-           Kind: skill-description | agent-description | prompt-body | protocol-format | doc-section.
-           Stage: structural | lexical.
-           Payload zones: <text emitted verbatim into user output — template blocks, payload table columns; or none>.
-           Prior review: <stage-1 findings already applied / earlier rounds; or none>.
-           Siblings it must stay distinguishable from: <paths, or none>."
-)
-```
-
-Rules that make this deterministic:
-
-- **No self-assessment substitutes for the spawn.** "Already terse", "only a small edit", "I applied the rules myself", "the text is short" are not exemptions. A reviewer stage returning no findings is the only sanctioned no-op — it is cheap and it is the escape valve.
-- **Out of scope:** ephemeral text — chat answers, one-off analysis, commit messages, code comments, anything not loaded into future sessions.
-- **You decide, the reviewer proposes.** Item-by-item, both stages; accepted description changes additionally require the before/after trigger test (`references/testing-refactors.md`).
-- **If the agent cannot be spawned** (not installed in this session), say so explicitly, then apply `references/structural-optimization.md` and the house rules in `references/efficient-communication.md` by hand — never silently skip the step.
-
-## Routing
+## Routing — knowledge references
 
 References live at `${CLAUDE_PLUGIN_ROOT}/skills/harness-builder/references/`.
 
 | Need | Where |
 |---|---|
-| Structural/form optimisation — duplication catalogue, altitude cuts, payload zones (stage 1 of the gate) | `references/structural-optimization.md` |
+| Structural/form optimisation — duplication catalogue, altitude cuts, payload zones | `references/structural-optimization.md` |
 | Writing or trimming a skill/agent description | `references/description-writing.md` |
 | Efficient communication style; compressing resident text; caveman usage | `references/efficient-communication.md` |
 | Measuring session startup context cost | `references/context-audit.md` + `scripts/context_audit.py` |
@@ -68,9 +50,9 @@ References live at `${CLAUDE_PLUGIN_ROOT}/skills/harness-builder/references/`.
 
 ## Companion tools
 
-- `/skill-creator:skill-creator` — creation + eval engine for skills (official plugin; includes a description-trigger optimizer).
+- `/skill-creator:skill-creator` — always invoke when creating or refactoring a skill (official plugin; eval-driven, includes a description-trigger optimizer).
 - caveman plugin — compression engine, installed dormant (`defaultMode: off`), enabled selectively; see `references/efficient-communication.md`.
-- `uc:caveman-reviewer` agent (this plugin) — proposition-only two-stage review of persistent harness text (structural findings, then itemized compression cuts); spawned per the mandatory gate above, not at discretion.
+- `uc:caveman-compress` agent (this plugin) — compression engine wrapper: runs the caveman-compress CLI on a scratch copy, returns the compressed version plus a classified cut list. Spawned at stage 3, proposition-only.
 
 ## Accumulating knowledge here
 
