@@ -6,7 +6,7 @@
   <main class="doc-content">
 
     <h1>Plan Execution</h1>
-    <p>Execute approved plans with coordinated agent teams. Each task gets a dedicated Executor, Reviewer, and Tester that work together through a structured pipeline &mdash; planning, implementation, code review, and testing happen automatically.</p>
+    <p>Execute approved plans with coordinated agent teams. Each <strong>code</strong> task gets a dedicated Executor, Reviewer, and Tester that work together through a structured pipeline &mdash; planning, implementation, code review, and testing happen automatically. An <strong>ops</strong> task (deploy, verify, monitor &mdash; classified during planning) runs a solo Executor that operates the system and verifies the success criteria itself; there is no code to review and no suite to run.</p>
 
     <p>Team members run as <strong>tmux panes</strong> &mdash; persistent, separately-running sessions that message each other live. This requires <code>teammateMode: "tmux"</code> in <code>~/.claude/settings.json</code> and launching Claude inside a tmux session (both configured by <code>/uc:setup</code>). Without them, named teammates default to <code>in-process</code> with no panes; plan-execution detects this at startup and <strong>stops with a remediation</strong> rather than silently running a degraded in-process pipeline.</p>
 
@@ -14,7 +14,7 @@
 
     <h2>Running a plan</h2>
     <pre><code>/uc:plan-execution {plan-name}</code></pre>
-    <p>Before spawning any agents, execution presents a cost estimate and asks for confirmation. You'll see the task count, concurrency level, and estimated token usage.</p>
+    <p>Execution reads each task's type and executor model from its <code>task.md</code> (recorded during planning &mdash; tasks without the fields run as code + Opus) and spawns teams accordingly. No upfront cost estimate is shown; the Project Manager's post-run report covers what was actually spent.</p>
 
     <h2>The task pipeline</h2>
     <p>Each task in your plan gets a dedicated mini-team that self-coordinates:</p>
@@ -30,8 +30,8 @@
       <tbody>
         <tr>
           <td><strong>Executor</strong></td>
-          <td>Opus</td>
-          <td>Explores codebase, writes implementation plan, implements code, drives the review/test cycle</td>
+          <td>Per task: Sonnet / Opus (default) / Fable</td>
+          <td>Explores codebase, writes implementation plan, implements code, drives the review/test cycle. On an ops task it runs solo: executes the runbook, verifies criteria, holds any monitoring window</td>
         </tr>
         <tr>
           <td><strong>Reviewer</strong></td>
@@ -56,7 +56,7 @@
     <h2>How a task flows</h2>
     <ol>
       <li>Planning modes have already written <code>tasks/task-N/task.md</code> for every task (authoritative content: description, files, patterns, Research pointers, success criteria, dependencies). The plan README holds a flat task heading index only.</li>
-      <li>Lead runs its <strong>pre-spawn checklist</strong> &mdash; reviews task.md's Research pointers, runs <code>/uc:research</code> for any gap or staleness, then spawns Executor + Reviewer + Tester in parallel (minimal pointer prompts; agents read the task directory on startup).</li>
+      <li>Lead runs its <strong>pre-spawn checklist</strong> &mdash; reviews task.md's Research pointers, runs <code>/uc:research</code> for any gap or staleness, then spawns Executor + Reviewer + Tester in parallel (minimal pointer prompts; agents read the task directory on startup). An ops task spawns its solo Executor here instead and skips the review/test steps below &mdash; it executes its runbook, verifies the success criteria itself, and reports done.</li>
       <li><strong>Reviewer and Tester speak first.</strong> After its startup read, Reviewer synthesizes a <code>REVIEWER TAKE</code> from task.md + standards + architecture + patterns; in parallel, Tester derives a <code>TESTER TAKE</code> from success criteria + product docs (persisted as <code>test-strategy.md</code>) &mdash; the acceptance-case list plus the unit-layer cases the Executor's own tests must cover. Both takes are sent to Executor <em>before</em> it plans.</li>
       <li>Executor reads task.md and explores the codebase while the takes are being built. It <strong>blocks on both takes before writing <code>tasks/task-N/plan.md</code></strong> &mdash; waiting time is productive exploration and mental drafting, not idle. Once they arrive, plan.md is written once, with the takes baked in, as a thin execution delta (approach per file, criterion-to-approach mapping by ID, take incorporation, risks). It does not restate task.md content.</li>
       <li>Executor runs a <strong>deviation self-check</strong> against task.md. If clean (all files in scope, all criteria mapped, no take contradictions) it proceeds directly to implementation &mdash; no Lead gate. If the plan deviates, Executor sends <code>ADVICE REQUEST task-N [deviation]</code> and waits for APPROVED (Lead amends task.md and broadcasts) or AMEND.</li>

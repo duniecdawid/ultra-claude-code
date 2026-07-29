@@ -27,6 +27,8 @@ Re-write the entire file on each update. Keep `events.json` separate at the plan
       "task_name": "Task name from README",
       "status": "completed",
       "goal": "Success criteria summary",
+      "type": "code",
+      "executor_model": "opus",
       "dependencies": [],
       "started_at": "2026-04-04T12:49:52.000Z",
       "ended_at": "2026-04-04T13:10:00.000Z",
@@ -87,6 +89,8 @@ Re-write the entire file on each update. Keep `events.json` separate at the plan
 ## Field Notes
 
 **`name`**: Always use the full plan directory name (`PLAN_NAME`) — the slug that includes the number prefix (e.g., `012-dedicated-plan-page-v2`). Do NOT extract the name from the plan README title or strip the number prefix. The directory name is the canonical identifier.
+
+**`type` / `executor_model`**: from the task.md classification (`references/planning-framework/task-classification.md`); absent = `code` / `opus`. For an `ops` task, `stages.review`/`stages.testing` stay `null` and `members` holds only the executor.
 
 ## Plan-Level `stage` Field (distinct from per-task `stages`)
 

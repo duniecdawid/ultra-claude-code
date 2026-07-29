@@ -1,13 +1,13 @@
 # Planning Framework — Task Sizing
 
-Canonical rules for how many tasks a plan gets and how big each task is. This file is consumed at **two points**:
+Canonical rules for how many tasks a plan gets and how big each task is. Sibling file `task-classification.md` owns the per-task type/model taxonomy; both are read together. This file is consumed at **two points**:
 
 1. **Stage 3 entry** — read before composing the opening synthesis, to build the **Proposed task breakdown** that opens the discussion (see `stage-3.md`).
 2. **Stage 4 sizing gate** — re-applied before plan files are written, to confirm the final task list matches what was agreed in discussion (see `stage-4.md` Step 4).
 
 ## The cost model — why fewer, larger tasks
 
-Every task spins up a **full pipeline team**: Executor + Reviewer + Tester, each a separate agent with its own context, spawn overhead, and coordination traffic. Token cost scales with the **number of teams**, not with task size — a plan of 6 small tasks costs roughly three times the coordination overhead of a plan of 2 large ones for the same code.
+Every `code` task spins up a **full pipeline team**: Executor + Reviewer + Tester, each a separate agent with its own context, spawn overhead, and coordination traffic (`ops` tasks run a solo Executor — see `task-classification.md`). Token cost scales with the **number of teams**, not with task size — a plan of 6 small tasks costs roughly three times the coordination overhead of a plan of 2 large ones for the same code.
 
 All model tiers run with **1M context**. A task can comfortably carry ~40 files of scope; context capacity is not a reason to split. **Fewer, larger tasks is the explicit goal.** When sizing feels ambiguous, err large.
 
@@ -23,24 +23,24 @@ Start from **1 task**. Every split must earn its existence:
 
 ## Size band
 
-- **Minimum ~10 files per task.** Below that, absorb it into a neighboring task — the pipeline overhead isn't justified. No exceptions without written justification in the sizing table.
+- **Minimum ~10 files per task.** Below that, absorb it into a neighboring task — the pipeline overhead isn't justified. No exceptions without written justification in the sizing table. `ops` tasks are exempt — they may touch no repo files at all.
 - **Maximum ~40 files per task.** Above that, consider splitting — but only along independent-feature boundaries, never arbitrary lines or tech layers.
 
 ## Structural rules
 
 - **Split by feature, not by tech layer.** Each task delivers a complete vertical slice (database through API/UI). Never split into "backend task" and "frontend task" for the same feature.
-- **Testing is part of the execution pipeline, not a separate task.** Every task's team includes a Tester.
+- **Testing is part of the execution pipeline, not a separate task.** Every `code` task's team includes a Tester.
 - **Documentation updates are not tasks.** Doc changes happen in Stage 4 Steps 2-3, before the plan is written.
 
 ## Required output — the sizing table
 
-Sizing is not applied silently. Produce a table, one row per task:
+Sizing is not applied silently. Produce a table, one row per task (`Type`/`Model` values and rubrics: `task-classification.md`):
 
-| Task | Est. files | Why it can't merge with a neighbor | Verdict |
-|------|-----------|-----------------------------------|---------|
-| 1. {name} | ~N | {independence justification} | in band / justified exception |
+| Task | Type | Model | Est. files | Why it can't merge with a neighbor | Verdict |
+|------|------|-------|-----------|-----------------------------------|---------|
+| 1. {name} | code/ops | sonnet/opus/fable | ~N | {independence justification} | in band / justified exception |
 
-For a **single-task plan**, replace the table with one line: `1 task — no split needed.`
+For a **single-task plan**, replace the table with one line: `1 task ({type}, {model}) — no split needed.`
 
 The table appears in three places:
 - **Stage 3 opening synthesis** — as the Proposed task breakdown, up for discussion.

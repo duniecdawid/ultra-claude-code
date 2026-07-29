@@ -336,6 +336,7 @@ Derivation rules when new signals are found:
 - `TEST_PASS` → close testing stage (set `ended_at`), append `stage_done` event
 - `REVIEW_FAIL` or `TEST_FAIL` followed by `REREVIEW_REQUESTED` or `RETEST_REQUESTED` → increment `retry_count`, reset both stage timers, append retry event
 - Unknown/future signal names → ignore for stage derivation (the vocabulary may grow)
+- **Ops tasks** (task.md `**Type:** ops`, solo Executor): no review/test stages — expect `PLAN_READY` → `CODE_COMPLETE` → completion; never flag missing REVIEW/TEST signals for them
 - `WAITING_ON`/`BLOCKED_ON`/`PROGRESS` → no stage derivation (state-only appends per protocol §3); they matter to you only as evidence when verifying a `NUDGE`
 - Track which signals you've already processed (by line count or last-seen timestamp) to avoid duplicate state file updates
 
@@ -423,7 +424,7 @@ Every agent burns tokens — your job is to assess whether those tokens produced
 - **Review/test cycles as token cost**: Each retry cycle burns tokens across 3 agents (executor fixes, reviewer re-reviews, tester re-tests). A task with 5 retries might have cost 3x a task that passed first try. Were those retries catching real bugs or were they caused by unclear criteria?
 - **Knowledge agent utilization**: Track how often the knowledge agent was queried, by which executors, and how many NOT FOUND responses occurred. NOT FOUND responses indicate gaps in the Tech Stack section of the plan — topics that should have been listed but weren't.
 - **Verbose artifacts**: Are plan.md files excessively long? Verbose plans burn tokens for everyone who reads them.
-- **Model tier mismatch**: The executor uses Opus (expensive). If a task was trivial (simple config change, minor refactor), Opus was overkill. Note tasks where Sonnet would have sufficed.
+- **Classification calibration**: executor model + task type are picked per task at planning (task.md `**Type:**` / `**Executor model:**`). Note tasks where the pick looked wrong either way — an opus/fable executor on mechanical work, a sonnet executor that struggled, or a code-shaped task really ops (or reverse).
 - **Spawn overhead**: Each team spawn loads the full plan, architecture docs, standards, and lead notes into 3 agents' contexts. For a 3-task plan that's 9 context loads of the same base documents. Note the base context cost.
 
 **Context Efficiency:**
@@ -549,12 +550,11 @@ Assessments: efficient / acceptable / wasteful — with brief reason.
 
 **Retry cost:**
 - Total retry cycles: {N} across all tasks
-- Estimated extra token burn: ~{X}K tokens
 - Avoidable retries: {N} (caused by unclear criteria or missing standards, not real bugs)
 
-**Model tier mismatch:**
-- Tasks where Opus executor was overkill: {list with reasoning}
-- **Saving opportunity:** Use Sonnet for simple tasks. Estimate: ~{X}K tokens saved.
+**Classification calibration:**
+- Per task: planned type/model (task.md) vs what the run showed — {list tasks where the choice looked wrong, with reasoning}
+- Recommendation for future plans of this shape: {which tasks should have been sonnet/fable/ops}
 
 **Verbose artifacts:**
 - Oversized research files: {list, with line count vs what was useful}
@@ -562,10 +562,10 @@ Assessments: efficient / acceptable / wasteful — with brief reason.
 
 ### Cost Reduction Recommendations
 
-{Concrete, actionable suggestions ranked by estimated token savings. Examples:}
-1. **Trim oversized artifacts** (~{X}K tokens/plan): Research, plan.md, and take files that far exceed what teammates actually used inflate every startup read. Flag the specific files and the unused sections.
-2. **Knowledge agent Tech Stack completeness** (~{X}K tokens/plan): Ensure all external technologies are listed in the plan's Tech Stack section. NOT FOUND responses waste executor time and force fallback to slower research methods.
-3. **Task complexity classification** (~{X}K tokens/plan): Simple tasks (config, minor refactor) don't need the full 3-agent team. A lightweight pipeline (executor + tester, Sonnet model) would suffice.
+{Concrete, actionable suggestions ranked by expected impact. Examples:}
+1. **Trim oversized artifacts**: Research, plan.md, and take files that far exceed what teammates actually used inflate every startup read. Flag the specific files and the unused sections.
+2. **Knowledge agent Tech Stack completeness**: Ensure all external technologies are listed in the plan's Tech Stack section. NOT FOUND responses waste executor time and force fallback to slower research methods.
+3. **Classification calibration feedback**: Where the per-task type/model choice was wrong (see Classification calibration above), state the corrected choice so the next plan of this shape starts right.
 
 ## Pipeline Flow Analysis
 

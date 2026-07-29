@@ -69,7 +69,7 @@ If this is a pipeline pre-spawn (Executor's `code complete` on predecessor task 
 
 ### 4. Spawn the team
 
-Spawn the task team using the minimal spawn prompts below — each via the `Agent` tool in teammate mode (`name`, `run_in_background: true`, plus the role's agent file / `model` / `mode`). Executor, Reviewer, and Tester are spawned together **in parallel** (single message with multiple `Agent` calls). Each agent self-labels its pane on startup — no PM intervention needed.
+Spawn the task team using the minimal spawn prompts below — each via the `Agent` tool in teammate mode (`name`, `run_in_background: true`, plus the role's agent file / `model` / `mode`). For a `code` task, Executor, Reviewer, and Tester are spawned together **in parallel** (single message with multiple `Agent` calls). For an `ops` task (task.md `**Type:** ops`), spawn the Executor **alone** — no Reviewer, no Tester — using the ops variant noted in the Executor Spawn section. Each agent self-labels its pane on startup — no PM intervention needed.
 
 After spawning, send to PM:
 
@@ -80,7 +80,7 @@ SendMessage to PM: "SPAWNED task-{N}: {short description from task.md heading}"
 ## Executor Spawn
 
 subagent_type: `uc:Task Executor` (defined in `${CLAUDE_PLUGIN_ROOT}/agents/task-executor.md`)
-Model: `opus` | Mode: `bypassPermissions`
+Model: task.md `**Executor model:**` — `sonnet` / `opus` / `fable`; absent → `opus` | Mode: `bypassPermissions`
 
 ```
 You are the team coordinator for task {N} of the "$ARGUMENTS" plan.
@@ -103,7 +103,11 @@ Then run your agent workflow.
 
 **If pipeline-spawned**, the Pipeline mode block has already been appended to `tasks/task-{N}/task.md` during the pre-spawn checklist. The Executor reads it during startup and behaves accordingly — no change to the spawn prompt above.
 
+**Ops variant** (task.md `**Type:** ops`): same prompt with two changes — add `TASK_TYPE=ops` on the line after SIGNAL_FILE, and drop the Reviewer and Tester lines from the teammates list (they are never spawned). The Executor's agent file defines the ops workflow deltas.
+
 ## Reviewer Spawn
+
+Code tasks only — never spawned for an ops task.
 
 subagent_type: `uc:Code Reviewer` (defined in `${CLAUDE_PLUGIN_ROOT}/agents/code-review.md`)
 Model: `sonnet` | Mode: `bypassPermissions`
@@ -129,6 +133,8 @@ and send a REVIEWER TAKE to the Executor BEFORE it writes plan.md.
 ```
 
 ## Tester Spawn
+
+Code tasks only — never spawned for an ops task.
 
 subagent_type: `uc:Task Tester` (defined in `${CLAUDE_PLUGIN_ROOT}/agents/task-tester.md`)
 Model: `sonnet` | Mode: `bypassPermissions`

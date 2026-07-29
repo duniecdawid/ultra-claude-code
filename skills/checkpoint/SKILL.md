@@ -74,6 +74,8 @@ Write to `documentation/plans/{NNN}-{plan-name}/checkpoint-{YYYY-MM-DD-HHmm}.md`
 | task-1 | R-1, E-1, Rev-1, T-1 | Reviewer active |
 | task-2 | R-2, E-2, Rev-2, T-2 | Awaiting plan feedback |
 
+(An `ops` task lists its solo Executor only.)
+
 ## Task Pipeline Status
 
 | # | Task | Stage | Retry | Notes |

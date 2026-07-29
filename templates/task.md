@@ -2,6 +2,10 @@
 
 **Description:** What needs to be done. One paragraph.
 
+**Type:** `code` | `ops` (absent = `code`) — rubric: `references/planning-framework/task-classification.md`.
+
+**Executor model:** `sonnet` | `opus` | `fable` (absent = `opus`) — same rubric.
+
 **Product context:** Relevant files from `documentation/product/` (description or requirements).
 
 **Files:** Expected files to create or modify.

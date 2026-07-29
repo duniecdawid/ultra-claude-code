@@ -105,7 +105,7 @@ Both PASS:  Executor commits tester-owned acceptance test files → confirms tea
 
 ### Team Composition
 
-Every task gets the same team: **Executor + Reviewer + Tester**. The only plan-wide shared teammate is the **Project Manager** (`pm-{PLAN_NAME}`). There is no persistent knowledge teammate — per-task research lives in each task.md, and Lead brokers gaps via `ADVICE`/`QUERY` → `/uc:research`.
+Every `code` task gets the same team: **Executor + Reviewer + Tester**; an `ops` task gets a solo Executor (per-task type and executor model come from task.md — see `references/phase-1-setup.md` §1.3). The only plan-wide shared teammate is the **Project Manager** (`pm-{PLAN_NAME}`). There is no persistent knowledge teammate — per-task research lives in each task.md, and Lead brokers gaps via `ADVICE`/`QUERY` → `/uc:research`.
 
 ### Phase 2 Startup
 
@@ -385,6 +385,6 @@ There is **no** per-wake-up text. When woken, process the handler and act silent
 - Always checkpoint before session end
 - Max 10 fix cycles per task before queueing a `max-cycles` escalation
 - While any Usage Block is non-`none`: do not spawn new teams (in-flight work continues); blocks clear via `SENTINEL RESET`, a `clear` pre-spawn check, or a fallback `HOLD-WAKE`
-- Always run final gate test suite before declaring completion (for single-task plans, skip only when no `documentation/technology/testing/final-gate.md` exists — otherwise the gate still runs so the project's final-gate-only criteria are honored)
+- Always run final gate test suite before declaring completion (only `code` tasks count: skip when the plan has ≤1 code task and no `documentation/technology/testing/final-gate.md` exists, or when the plan has no code tasks at all — otherwise the gate runs so the project's final-gate-only criteria are honored)
 - Keep shared/lead.md updated with plan-level decisions and amendments log; per-task amendments are written to tasks/task-N/task.md (with FILE-UPDATED broadcasts), not shared/lead.md
 - Never write to tasks/task-N/plan.md or tasks/task-N/impl.md — those are Executor-owned files

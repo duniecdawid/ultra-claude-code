@@ -142,12 +142,13 @@ Reference the documentation updated in Steps 2-3 — do not duplicate content. E
 
 ### Task sizing gate — MANDATORY
 
-Before proceeding to Step 5, run the sizing gate against `${CLAUDE_PLUGIN_ROOT}/references/planning-framework/task-sizing.md` (the canonical sizing rules, already read at Stage 3 entry — re-read it if it is no longer in context):
+Before proceeding to Step 5, run the sizing gate against `${CLAUDE_PLUGIN_ROOT}/references/planning-framework/task-sizing.md` and `${CLAUDE_PLUGIN_ROOT}/references/planning-framework/task-classification.md` (the canonical sizing and type/model rules, already read at Stage 3 entry — re-read them if no longer in context):
 
-1. **Confirm the task list matches the breakdown agreed in Stage 3.** The task division was proposed and discussed there; Stage 4 writes down what was agreed, it does not re-decide.
-2. **If the list diverged** (scope changed during discussion, tasks appeared or split since), re-run the merge-first algorithm from task-sizing.md on the current list.
+1. **Confirm the task list — including each task's type and model — matches the breakdown agreed in Stage 3.** The task division was proposed and discussed there; Stage 4 writes down what was agreed, it does not re-decide.
+2. **If the list diverged** (scope changed during discussion, tasks appeared or split since), re-run the merge-first algorithm from task-sizing.md on the current list and re-classify changed tasks.
 3. **Apply the hard cap:** if the plan now exceeds 4 tasks and that split was NOT explicitly agreed in Stage 3, STOP and confirm via AskUserQuestion ("This plan splits into N tasks — approve the split, or merge?") before writing any files.
-4. **Produce the final sizing table** (format in task-sizing.md) — it is written into the README in Step 5a and shown in the approval summary in Step 6.
+4. **Confirm any new `fable` assignment:** if a task is now `fable` and that was NOT agreed in Stage 3, STOP and confirm via AskUserQuestion (see task-classification.md) before writing any files.
+5. **Produce the final sizing table** (format in task-sizing.md) — it is written into the README in Step 5a and shown in the approval summary in Step 6.
 
 ### Forbidden task patterns
 
@@ -177,6 +178,7 @@ Nothing else goes under the heading in the README. All content lives in `tasks/t
 Each task's `tasks/task-N/task.md` file MUST contain all fields from `templates/task.md`:
 
 - **Description** — clear paragraph of what to build/change
+- **Type** and **Executor model** — the classification confirmed at the sizing gate (values and defaults: task-classification.md)
 - **Product context** — relevant product description or requirements files from Step 2
 - **Files** — expected files to create or modify
 - **Patterns** — relevant architecture/standards files from Step 3, with optional section hints (e.g., `documentation/technology/standards/error-handling.md (API Error Responses section)`). If none apply: `None identified`
@@ -199,6 +201,7 @@ Three write actions, in order:
 1. Parse all `### Task N: {name} <!-- status:pending -->` headings from the README.
 2. For each task, extract the `task_id` and `task_name` from the heading and then read `tasks/task-N/task.md` to pull:
    - `goal`: 1-line summary from the task's Description (first sentence is typically fine)
+   - `type` / `executor_model`: from the task.md's Type and Executor model fields
    - `dependencies`: parse from the task.md's Dependencies field (array of `"task-N"` strings, or `[]` if `none`)
    - `status`: `"pending"`
 3. Read the existing `plan.json` (created in Step 1 with `status: "planning"`).
@@ -227,8 +230,8 @@ bash "${CLAUDE_PLUGIN_ROOT}/scripts/tmux-window-name.sh" "UC::P-{NNN}::${TITLE}"
 
 ```
 Tasks:
-1. {Task name} — {1-line goal} (~N files)
-2. {Task name} — {1-line goal} (~N files)
+1. {Task name} — {1-line goal} ({type}, {model}, ~N files)
+2. {Task name} — {1-line goal} ({type}, {model}, ~N files)
 ...
 ```
 

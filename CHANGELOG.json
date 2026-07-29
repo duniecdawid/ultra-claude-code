@@ -1,5 +1,12 @@
 [
   {
+    "seq": 227,
+    "version": "2026.07.29-8",
+    "date": "2026-07-29",
+    "summary": "planning+execution: reintroduce task classification — every task carries a type (code = Executor+Reviewer+Tester, ops = solo Executor for deploy/verify/monitor work with Monitor-based watch windows) and a per-task executor model (sonnet/opus/fable, default opus; fable proposals flagged as drawing usage credits), defined canonically in references/planning-framework/task-classification.md, decided in Stage 3, confirmed at the Stage 4 sizing gate, recorded in task.md + plan.json, and read at spawn time (absent fields = code+opus, so existing plans run unchanged); the pre-execution token cost estimate (phase-1 §1.5) and the PM report token-guess placeholders are removed — PM now reports classification calibration (planned type/model vs observed) instead",
+    "migration": null
+  },
+  {
     "seq": 226,
     "version": "2026.07.29-7",
     "date": "2026-07-29",

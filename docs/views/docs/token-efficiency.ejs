@@ -8,20 +8,8 @@
     <h1>Token Efficiency</h1>
     <p>Ultra Claude burns more tokens than normal development. That's by design &mdash; dedicated Reviewers, Testers, and a shared Knowledge agent increase quality, but they cost context. The framework is built to make that trade-off worthwhile and keep usage under control.</p>
 
-    <h2>Cost per plan</h2>
-    <p>Before execution starts, you see a cost estimate:</p>
-
-    <table>
-      <thead><tr><th>Component</th><th>Cost</th><th>Details</th></tr></thead>
-      <tbody>
-        <tr><td><strong>Per-task pipeline</strong></td><td>~120K tokens</td><td>Executor ~80K + Reviewer ~30K + Tester ~10K</td></tr>
-        <tr><td><strong>Knowledge Brief synthesis</strong></td><td>~20K tokens amortized</td><td>Lead loops <code>/uc:research</code> over the plan's Tech Stack in Phase 1.8. Cache hits are free; misses spawn a short-lived researcher subagent.</td></tr>
-        <tr><td><strong>Mid-execution knowledge QUERYs</strong></td><td>~1K (hit) / ~15K (miss)</td><td>Teammates send <code>QUERY:</code> to Lead; Lead runs <code>/uc:research</code>. Subsequent queries for the same topic hit the cache.</td></tr>
-        <tr><td><strong>Project Manager</strong></td><td>~50K tokens</td><td>Observational monitoring, entire execution</td></tr>
-      </tbody>
-    </table>
-
-    <p>A 5-task plan costs roughly <strong>670K tokens</strong> (5 &times; 120K + 20K + 50K, plus a few mid-execution QUERY misses). The estimate is shown before any agents spawn &mdash; you confirm before spending. Second and third plans in the same project benefit more from cache hits, driving the per-plan knowledge cost toward zero over time.</p>
+    <h2>Cost model</h2>
+    <p>Token cost scales with the <strong>number of task teams</strong>, not with task size &mdash; every code task spins up an Executor + Reviewer + Tester team, while an ops task runs a solo Executor. That's why planning targets fewer, larger tasks (~10&ndash;40 files each) and caps plans at 4 tasks without your explicit agreement. There is no upfront token estimate &mdash; predicted numbers proved to be guesswork &mdash; so the framework spends its effort on the real levers instead: team count, per-task executor model choice, and the Project Manager's post-run report of what actually happened.</p>
 
     <h2>Why it's worth it</h2>
     <p>Normal Claude Code development is one agent doing everything &mdash; writing code, hoping it follows patterns, and trusting it works. Ultra Claude adds dedicated roles:</p>
@@ -35,7 +23,7 @@
     <h2>How the framework saves tokens</h2>
 
     <h3>Model assignment</h3>
-    <p>Only the Executor runs on Opus (the most capable, most expensive model). Every other role &mdash; Reviewer, Tester, Project Manager &mdash; runs on Sonnet. The researcher subagent (spawned on cache miss) also runs on Sonnet. This concentrates cost where capability matters most: writing code.</p>
+    <p>The Executor's model is chosen <strong>per task during planning</strong> &mdash; Sonnet for mechanical, pattern-following work; Opus as the default for code delivery; Fable for the architectural hard end (proposed with an explicit flag, since Fable draws usage credits). Every other role &mdash; Reviewer, Tester, Project Manager, researcher subagent &mdash; runs on Sonnet. This concentrates cost where capability matters most: writing code.</p>
 
     <h3>Waiting is free &mdash; the full team spawns upfront</h3>
     <p>All three team members spawn together at task start. That's affordable because a parked agent costs nothing: each agent arms one persistent inbox monitor and a "wait" is just yielding its turn &mdash; tokens are spent per <em>wake</em>, not per minute of idling. So instead of deferring the Tester to save imaginary idle burn, the framework puts its idle window to work: the Tester front-loads a <code>TESTER TAKE</code> (the acceptance-case list and unit-layer test contract) before the Executor plans, and drafts black-box acceptance tests while implementation runs. The Executor's "code complete" signal is fire-and-forget &mdash; no spawn handshake blocks the pipeline at its hottest point.</p>
@@ -82,24 +70,6 @@
     <div class="callout callout-purple">
       <p><strong>Plan during the day, execute overnight.</strong> Planning modes (feature, debug, verification) are interactive and use modest tokens. Execution is autonomous and token-heavy &mdash; and it survives limit hits unattended: an overnight run that hits the window limit parks for free and the sentinel resumes it the moment the window resets. Start a plan during the day when you can discuss scope, then kick off execution before bed &mdash; it rides across rate-limit windows on its own.</p>
     </div>
-
-    <details>
-      <summary>Token budget by activity</summary>
-      <div class="details-content">
-        <table>
-          <thead><tr><th>Activity</th><th>Token range</th><th>Interactive?</th></tr></thead>
-          <tbody>
-            <tr><td>Feature planning</td><td>~20&ndash;50K</td><td>Yes &mdash; conversation with user</td></tr>
-            <tr><td>Debug investigation</td><td>~30&ndash;60K</td><td>Yes &mdash; hypothesis discussion</td></tr>
-            <tr><td>Verification scan</td><td>~20&ndash;40K</td><td>Yes &mdash; discrepancy review</td></tr>
-            <tr><td>Tech research query</td><td>~0.5&ndash;5K</td><td>No &mdash; automated retrieval</td></tr>
-            <tr><td>Plan execution (per task)</td><td>~120K</td><td>No &mdash; autonomous</td></tr>
-            <tr><td>Plan execution (overhead)</td><td>~150K</td><td>No &mdash; PM + Knowledge</td></tr>
-          </tbody>
-        </table>
-        <p>Interactive activities are cheap. Execution is expensive but autonomous. This is why the "plan by day, execute by night" workflow works well.</p>
-      </div>
-    </details>
 
   </main>
 </div>

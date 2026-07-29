@@ -36,6 +36,8 @@ Immediately after the startup read, arm the **one persistent inbox monitor** tha
 
 ## 4. Wait rules
 
+For an **ops task** (task.md `**Type:** ops`) the Executor is solo — no Reviewer or Tester exists, no take ever arrives, and the take-blocking rules below don't apply (see the Ops Tasks section in the executor's agent file).
+
 | File | Executor | Reviewer | Tester |
 |---|---|---|---|
 | `task.md` | Must exist at startup (hard error if missing) | Must exist at startup | Must exist at startup |

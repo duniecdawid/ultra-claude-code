@@ -4,7 +4,7 @@ How to decompose a product into plans. Each plan should be independently detaila
 
 ## Target size
 
-A well-sized plan typically produces 1-4 tasks when detailed by feature-mode, touching 20-120 files total. This is roughly one planning + execution cycle. Tasks are large by design (~10-40 files each — see `references/planning-framework/task-sizing.md`): every task spins up a full Executor + Reviewer + Tester team, so fewer, larger tasks is the goal.
+A well-sized plan typically produces 1-4 tasks when detailed by feature-mode, touching 20-120 files total. This is roughly one planning + execution cycle. Tasks are large by design (~10-40 files each — see `references/planning-framework/task-sizing.md`): every code task spins up a full Executor + Reviewer + Tester team, so fewer, larger tasks is the goal.
 
 ## Decomposition heuristics
 

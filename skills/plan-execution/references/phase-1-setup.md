@@ -134,7 +134,7 @@ If `checkpoint-*.md` files exist:
 
 ### 1.3 Task Pipeline
 
-Every task gets the full pipeline team: **Executor + Reviewer + Tester**. There is no classification step. External library knowledge comes from each task's `**Research:**` pointers in `tasks/task-N/task.md`, populated by planning Stage 2 and reviewed per-task by Lead just before spawning (see Phase 2). Mid-execution gaps flow through the `ADVICE` channel; Lead invokes `/uc:research` as needed and appends new pointers to task.md.
+Team shape and executor model are per-task, read from `tasks/task-N/task.md` (`**Type:**`, `**Executor model:**`; missing = `code` + `opus`): a `code` task gets the full pipeline team — **Executor + Reviewer + Tester** — an `ops` task gets a **solo Executor** (rubric: `${CLAUDE_PLUGIN_ROOT}/references/planning-framework/task-classification.md`). External library knowledge comes from each task's `**Research:**` pointers in that same task.md, populated by planning Stage 2 and reviewed per-task by Lead just before spawning (see Phase 2). Mid-execution gaps flow through the `ADVICE` channel; Lead invokes `/uc:research` as needed and appends new pointers to task.md.
 
 ### 1.4 Concurrency Decision
 
@@ -148,7 +148,7 @@ Determine how many task-teams can run concurrently:
 
 Max ceiling: **4 concurrent task-teams**. The only plan-wide teammate is the **Project Manager** (which owns the liveness monitor) — no persistent knowledge teammate exists, and usage limits are handled reactively by the machine-global limit sentinel (a process, not an agent).
 
-Each slot = 1 task-team. Executor, Reviewer, and Tester are all spawned together when a slot opens — the Reviewer and Tester front-load their takes (REVIEWER TAKE, TESTER TAKE) before the Executor plans. All members exit together when the task is done.
+Each slot = 1 task-team. For a `code` task, Executor, Reviewer, and Tester are all spawned together when a slot opens — the Reviewer and Tester front-load their takes (REVIEWER TAKE, TESTER TAKE) before the Executor plans. All members exit together when the task is done. An `ops` task's slot holds its solo Executor.
 
 Tasks normally spawn when their slot is available AND all dependencies are completed. **Exception — pipeline pre-spawn:** when an Executor signals `code complete`, Lead may pre-spawn the next dependent task into a `planning` stage if a concurrency slot is free — see SKILL.md "How a Task-Team Works" and the message handler table for the rules. Pre-spawned successors count toward the concurrency limit and wait at a new gate for `Implementation approved` before writing code. At most one pre-spawn per `code complete` event.
 
@@ -156,7 +156,7 @@ Tasks normally spawn when their slot is available AND all dependencies are compl
 
 | Role | Model | Rationale |
 |------|-------|-----------|
-| **Executor** | **opus** | Code generation, architectural decisions, codebase research — highest capability required |
+| **Executor** | **per task** — task.md `**Executor model:**` (`sonnet` / `opus` / `fable`; absent → opus) | Chosen at planning per the task-classification rubric — the executor is the only role whose model varies |
 | Reviewer | sonnet | Pattern recognition, architecture conformance |
 | Tester | sonnet | Test execution, failure diagnosis |
 | Project Manager | sonnet | Event-driven coordination — dashboard, budget tracking, and owns the liveness monitor (bash does all checking via Monitor; model wakes only on NUDGE candidates) |
@@ -172,23 +172,9 @@ Tasks normally spawn when their slot is available AND all dependencies are compl
 | Project Manager | `bypassPermissions` | Event-driven coordination + liveness monitor, no approval needed |
 | Researcher (subagent) | `bypassPermissions` | Writes to `documentation/technology/research/` and `documentation/product/research/` only, stateless, no approval needed |
 
-### 1.5 Cost Estimate
+### 1.5 Usage Gating & Limit Sentinel
 
-Gating was already recorded in 1.0b (no question asked). Present the cost estimate to the user (informational — no confirmation needed, the user already chose to execute by running the command):
-
-```
-Plan: $ARGUMENTS
-Tasks: N total
-Concurrency: up to M task-teams in parallel
-Estimated cost: ~[N * 120]K tokens
-
-Cost per task pipeline: ~100K tokens (Executor ~70K + Reviewer ~20K + Tester ~10K)
-  (all three spawn together; Reviewer and Tester front-load their takes, then wake per-event — idle waiting costs nothing)
-Pre-spawn knowledge review (per task, at spawn time): ~2K per task for cache hits, up to ~15K if /uc:research fires on a gap — Lead only researches if the planner's Research pointers don't cover the task
-Mid-execution ADVICE + QUERY: ~1K per message (cache hit) or ~15K (cache miss with researcher subagent)
-Project Manager (plan-wide): ~20K tokens (event-driven; owns the liveness monitor, wakes only on messages or NUDGE candidates)
-Liveness monitor (plan-wide): near-zero (bash does all checking inside PM's Monitor; emits only NUDGE candidates)
-```
+Gating was already recorded in 1.0b (no question asked).
 
 Usage limits are handled reactively by the machine-global **limit sentinel** (a process, not an agent — ensured in §1.0). Nothing stops in-flight work: the limit itself is the pause; the sentinel is the resume. It writes `usage_limit_hit` / `usage_reset_wake` / `usage_window_rolled` events into the plan's events.json (agent field `limit-sentinel`), which PM consumes passively for budget bookkeeping.
 - **If `gating: on` (default):** the **soft band is not an interrupt** — the Lead enforces it with a `usage-monitor.sh status` check before each spawn (don't start new work while `soft`). Lead tracks blocks per window in `shared/lead.md` → `## Usage Blocks`, guided by `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/usage-control.md`.
@@ -207,6 +193,7 @@ TaskCreate({
   activeForm: "Processing task 1: {title}",
   metadata: { "stage": "pending", "retry_count": 0 }
   // stage values: "pending" | "planning" | "impl" | "review" | "test" | "done"
+  // ops tasks skip "review" and "test": pending → planning → impl → done
 })
 ```
 
