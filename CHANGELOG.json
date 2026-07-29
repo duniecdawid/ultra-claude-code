@@ -1,5 +1,12 @@
 [
   {
+    "seq": 228,
+    "version": "2026.07.29-9",
+    "date": "2026-07-29",
+    "summary": "Repo hygiene: delete the skill-creator eval workspaces (setup-workspace/ at the repo root, skills/railway/railway-workspace/) and the parked research-token-tracking.md scratch note. Both workspaces were committed eval output — transcripts, grading and timing JSON — that no skill reads; the .gitignore pattern is widened from skills/*-workspace/ to *-workspace/ so eval workspaces at any depth stay untracked from now on.",
+    "migration": null
+  },
+  {
     "seq": 227,
     "version": "2026.07.29-8",
     "date": "2026-07-29",
