@@ -135,6 +135,9 @@ Performs fast structural scans of code packages to catalog files, components, da
 **Doc Surveyor**
 Explores documentation sections to identify content type, key topics, specifications, and implementation references. Spawned by migrate and verification orchestrators to understand what's documented. Returns structured overviews for mapping documentation claims to implementations and identifying gaps.
 
+**Fresh Eyes**
+Reads a body of finished written work — a plan directory, a doc set, any scope it is pointed at — in fresh context with none of the conversation that produced it, and reports where the work is wrong: wrong solution, unforced complexity, an approach out of step with how the field solves this, performance, business requirements not actually satisfied. Offered once at Stage 4 of every planning mode right after the plan files are written, and spawnable ad hoc against any scope; opt-in, because fable burns usage at ~2× opus. Produces findings ordered by how much each should change the work, each with its evidence and what fixing it takes — written to the caller's output path (`shared/plan-review.md` for plans) or returned inline — as propositions the user folds in, never a gate.
+
 **Project Manager**
 Operational coordinator for plan execution — derives per-task stage state from signals, owns the background liveness monitor and verifies its `NUDGE` candidates (pinging the executor, escalating to Lead only on confirmed non-response), and tracks per-task budget data from the limit sentinel's passively-written usage events. Spawned once per plan execution; event-driven, waking on messages and monitor emits — it performs no usage-limit monitoring of its own. Produces operational reports analyzing token efficiency, budget utilization, communication health, repeated work, classification calibration (planned task type/model vs what the run showed), and system improvement recommendations.
 

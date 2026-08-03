@@ -8,7 +8,9 @@ Applies to body artifacts only — `prompt-body` | `doc-section` | `protocol-for
 
 ## Spawn
 
-One spawn per artifact; several artifacts → all spawns in one message, concurrently. The agent writes only to scratch, so this is legal inside plan mode.
+One spawn per artifact; several artifacts → all spawns in one message, concurrently.
+
+**The engine cannot run inside plan mode** [MEASURED 2026-07-30] — it overwrites its target and writes a backup under `~/.local/share/caveman-compress/backups/`, and plan mode blocks writes wherever they land. Hand-compressing instead is forbidden while the CLI is reachable (`efficient-communication.md` § Never). So a build task carries the pass as its **first execution action**: stage 3 spawns the agents anyway (their read-only prep — sibling discriminators, off-limits spans, byte-exact inventory — is what makes the later run one-shot), stage 4 records the stage-2 text as documented compression input, and the run happens against the real files once the plan is approved. Re-message the same agents by `agentId` rather than re-spawning; they resume with their prep intact.
 
 ```
 Agent(

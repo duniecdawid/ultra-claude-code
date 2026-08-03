@@ -1,5 +1,12 @@
 [
   {
+    "seq": 230,
+    "version": "2026.07.30-1",
+    "date": "2026-07-30",
+    "summary": "planning: optional fresh-context review at Stage 4. After the plan files are written and before the approval discussion opens, every planning mode (feature, debug, doc-code-verification — all three inherit the shared stage-4.md) now offers to spawn the new Fresh Eyes agent (fable, agents/fresh-eyes.md): it reads the work in fresh context with none of the planning conversation and reports the substantive holes — wrong solution, unforced complexity, an approach out of step with the field, performance, business requirements not actually satisfied — as propositions written to shared/plan-review.md, never a gate on approval. The agent is scope-shaped rather than plan-shaped (a scope plus an optional output path), so it can be pointed at a doc set, discovery output, or any written work ad hoc; the offer is opt-in because fable burns usage at ~2× opus, and the spawn prompt is a bare pointer so the reviewer is never primed by the plan's author. Also corrects two harness-builder claims this work disproved: the compression engine cannot run inside plan mode (it overwrites its target and writes an out-of-tree backup), so the pass is now carried as a build task's first execution action; and CAVEMAN_MODEL is a no-op on the `claude --print` path, where the Opus floor rests on the machine default instead.",
+    "migration": null
+  },
+  {
     "seq": 229,
     "version": "2026.07.29-10",
     "date": "2026-07-29",

@@ -222,6 +222,19 @@ bash "${CLAUDE_PLUGIN_ROOT}/scripts/tmux-window-name.sh" "UC::P-{NNN}::${TITLE}"
 
 `{NNN}` is the plan number (the directory's 3-digit prefix). The script sanitizes and truncates for the status bar and no-ops outside tmux — never gate it yourself.
 
+## Step 5e: Fresh-Context Review — Optional
+
+The plan is on disk and nothing has read it except the session that wrote it. Offer one fresh pair of eyes before the review discussion opens, via AskUserQuestion:
+
+- **Yes** — spawn `uc:fresh-eyes` (fable). Option text states the cost: fable burns usage at ~2× opus (`task-classification.md`). This spawn is not a plan task, so Step 4's fable gate does not cover it — this question is its own approval.
+- **No** — Step 6 unchanged.
+
+On yes, spawn Mode S (sync — Lead blocks) per `${CLAUDE_PLUGIN_ROOT}/references/agent-spawn-modes.md`, passing `model: "fable"` on the spawn and a two-line pointer prompt: `documentation/plans/{NNN}-{name}/` = scope, `documentation/plans/{NNN}-{name}/shared/plan-review.md` = output path. Nothing else — do not summarize the plan, do not list your own concerns, do not pass any Stage 1-3 conversation. A primed reviewer is the failure this step exists to prevent.
+
+Carry findings into Step 6: present under the plan summary with your take on each — agree, disagree, already covered. They are propositions; fold in what the user accepts via Plan Revision. Blocking on the spawn is flow control only — the findings do not gate approval.
+
+Offer once. Re-review only if the user asks.
+
 ## Step 6: Present Summary and Plan Review Discussion
 
 **Present a concise summary in chat** — NOT the full plan. Include: plan number, plan name, objective, task count, and the file path. The user can read the full plan from the file.

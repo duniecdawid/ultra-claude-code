@@ -28,6 +28,7 @@
 
     <h3>4. Write</h3>
     <p>The plan is written to <code>documentation/plans/{NNN}-{name}/README.md</code> with structured tasks. Each task has a description, file list, success criteria, and dependencies. The written plan is then up for review the same way the approach was in Discuss: ask questions, challenge task boundaries, request changes &mdash; each response ends with the same footer ("say 'approve' to approve the plan, or keep discussing"). Nothing executes until you explicitly say "approve"; casual agreement doesn't count.</p>
+    <p>Before that review opens, you're offered a second pair of eyes: a Fable agent that reads the finished plan in a fresh context &mdash; none of the planning conversation, only the files, plus the docs and code the plan stands on &mdash; and reports where it thinks the plan is wrong. It looks for the things that matter: the wrong solution to the problem, complexity the problem never demanded, an approach out of step with how the field actually solves this, performance it won't reach, business requirements the plan claims but doesn't satisfy. It's opt-in per plan, since Fable burns usage at roughly 2&times; Opus, and its findings are propositions &mdash; you decide which to fold in before you approve.</p>
 
     <details>
       <summary>How scope challenge works</summary>
