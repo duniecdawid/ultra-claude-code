@@ -1,5 +1,12 @@
 [
   {
+    "seq": 231,
+    "version": "2026.08.03-1",
+    "date": "2026-08-03",
+    "summary": "Retire the [1m] model-pin hack — Ultra Claude stops managing model selection entirely. /uc:setup used to write ANTHROPIC_DEFAULT_OPUS_MODEL / ANTHROPIC_DEFAULT_SONNET_MODEL pins with a [1m] suffix to force 1M context onto subagents, and to upgrade those pins in place on re-run. Obsolete on every count: on the Anthropic API Fable 5, Sonnet 5 and Opus 4.7+ always run the 1M window; on Max/Team/Enterprise Opus is auto-upgraded with no configuration; 'sonnet[1m]' is documented as a no-op against Sonnet 5, which has no 200K variant at all. The upstream bug the hack worked around (anthropics/claude-code#45169, subagent model resolution strips the [1m] suffix) is closed as not planned. And a pin rots silently: a tmux server caches its own copy of the environment at start, and panes launched with a direct command never source the shell config, so teammate agents can run an old model for months while the shell config reads current — observed live, agents on Opus 4.8 while ~/.bashrc pinned Opus 5. §3.3 is inverted from 'write/upgrade the canonical pin' to 'detect legacy pins', checking both the shell config AND the running tmux server's global env (a clean ~/.bashrc is not proof the panes are clean). §5.3 goes from in-place sed upgrade to removal: delete the export lines and their comment with a .uc-bak backup, then 'tmux set-environment -gu' both vars so live panes stop inheriting them. Setup never writes a pin under any state, and leaves a non-Anthropic custom pin alone as the user's deliberate choice. Step-4 status row becomes 'Legacy model pins'; marker key checks.context1m becomes checks.modelPins (clean|removed). Also fixes a live statusline bug this uncovered: scripts/statusline.sh derived max context by string-matching display_name for '1M', but Sonnet 5 carries no such marker — verified by spawning probe subagents, which report 'Sonnet 5' with no context tag — so every Sonnet 5 session was weighted at 200K, a 5x under-report in the cost bar. It now reads the authoritative context_window.context_window_size, keeping the display-name heuristic (plus an explicit Sonnet 5 case) as fallback only. Docs site: getting-started, docs/setup, docs/reference. No project-template files change (this only affects what /uc:setup writes to the user's shell config), so migration is null.",
+    "migration": null
+  },
+  {
     "seq": 230,
     "version": "2026.07.30-1",
     "date": "2026-07-30",

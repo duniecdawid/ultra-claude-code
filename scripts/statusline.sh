@@ -183,8 +183,16 @@ model_display="$model"
 weight_bar=""
 w_int=0
 if [ -n "$used" ] && [ -n "$model" ]; then
-  max_ctx=200000
-  case "${model_raw}" in *1[Mm]*|*1,000*|*[Ff]able*) max_ctx=1000000 ;; esac
+  # Authoritative window size from Claude Code (200000, or 1000000 with extended context).
+  # Never infer it from display_name alone: Sonnet 5 runs 1M natively and carries no
+  # "(1M context)" marker, so the name heuristic under-reports it 5x. Heuristic is fallback only.
+  max_ctx=$(echo "$input" | jq -r '.context_window.context_window_size // empty' 2>/dev/null)
+  case "$max_ctx" in
+    ''|*[!0-9]*)
+      max_ctx=200000
+      case "${model_raw}" in *1[Mm]*|*1,000*|*[Ff]able*|*[Ss]onnet\ 5*) max_ctx=1000000 ;; esac
+      ;;
+  esac
 
   case "$model" in
     opus)   mf=5.00 ;;

@@ -22,8 +22,8 @@
     <pre><code>/uc:setup</code></pre>
     <p>Run this once per machine. Setup configures your environment for Ultra Claude's full capabilities:</p>
     <ul>
-      <li><strong>1M context window</strong> &mdash; enables the extended context that agent teams need</li>
       <li><strong>Agent teams</strong> &mdash; enables the experimental agent teams feature for parallel execution</li>
+      <li><strong>Legacy model pins</strong> &mdash; removes the <code>ANTHROPIC_DEFAULT_*_MODEL</code> exports earlier versions wrote to force 1M context. Model and context-window selection belongs to Claude Code and to you; setup no longer manages it, and won't touch a pin it didn't write.</li>
       <li><strong>tmux mode</strong> (optional) &mdash; guides you through four tmux modes: per-project session (recommended), no tmux, per-terminal session (legacy), or custom (user-managed). Installs and configures tmux when needed.</li>
       <li><strong>Node.js</strong> &mdash; required for Ultra Claude scripts (including the tmux layout daemon when tmux is enabled)</li>
       <li><strong>VS Code settings</strong> (optional) &mdash; when VS Code or vscode-server is detected, setup offers recommended client-side settings for the Claude Code extension (printed as merged JSON to paste) and configures mode-aware terminal profiles per the tmux mode. Skipped silently when VS Code isn't installed.</li>

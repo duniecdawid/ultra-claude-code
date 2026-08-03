@@ -1,11 +1,13 @@
 ---
-description: One-time machine setup for Ultra Claude. Checks and configures shell environment (1M context, agent teams, teammate execution mode for tmux-paned plan-execution teams), installs prerequisites (node, optionally tmux), guides tmux mode selection (per-project, per-terminal, none, or custom — see references/tmux-modes.md), configures the statusline for per-account usage tracking, offers the Claude Code fullscreen renderer for flicker-free flat-memory output (opt-out, version-gated), offers recommended client-side VS Code settings for the Claude Code extension when VS Code is detected (opt-in — see references/vscode-settings.md), optionally sets up Tailscale for remote access, and — if the `ultraclaude-agent` npm package is already installed — checks for and offers to update it to the latest published version. Idempotent — safe to re-run. Writes version marker to ~/.claude/ultra/uc-setup.json so other skills can quickly check if setup is current. Use when onboarding a new machine, after Ultra Claude install, when plan-execution reports missing prerequisites, when experiencing screen tearing/flickering in tmux. Triggers on "setup", "machine setup", "environment setup", "configure machine", "setup 1m context", "enable agent teams", "screen tearing", "tmux tearing", "flickering", "fullscreen", "fullscreen renderer", "fullscreen mode", "tui", "flicker-free".
+description: One-time machine setup for Ultra Claude. Checks and configures shell environment (agent teams, teammate execution mode for tmux-paned plan-execution teams), removes legacy model pins earlier versions wrote, installs prerequisites (node, optionally tmux), guides tmux mode selection (per-project, per-terminal, none, or custom — see references/tmux-modes.md), configures the statusline for per-account usage tracking, offers the Claude Code fullscreen renderer for flicker-free flat-memory output (opt-out, version-gated), offers recommended client-side VS Code settings for the Claude Code extension when VS Code is detected (opt-in — see references/vscode-settings.md), optionally sets up Tailscale for remote access, and — if the `ultraclaude-agent` npm package is already installed — checks for and offers to update it to the latest published version. Idempotent — safe to re-run. Writes version marker to ~/.claude/ultra/uc-setup.json so other skills can quickly check if setup is current. Use when onboarding a new machine, after Ultra Claude install, when plan-execution reports missing prerequisites, when experiencing screen tearing/flickering in tmux. Triggers on "setup", "machine setup", "environment setup", "configure machine", "enable agent teams", "screen tearing", "tmux tearing", "flickering", "fullscreen", "fullscreen renderer", "fullscreen mode", "tui", "flicker-free".
 user-invocable: true
 ---
 
 # Ultra Claude Setup
 
-One-time machine setup that configures your environment for Ultra Claude features — especially agent teams and 1M context windows. Idempotent: safe to re-run after updates.
+One-time machine setup that configures your environment for Ultra Claude features — especially agent teams and the tmux panes plan-execution runs them in. Idempotent: safe to re-run after updates.
+
+Setup does **not** choose models or context windows. That is Claude Code's job (see §3.3).
 
 ## Step 1: Read Current State
 
@@ -65,23 +67,25 @@ jq -r '.teammateMode // empty' ~/.claude/settings.json 2>/dev/null
 
 PASS if `teammateMode` is `tmux` (the value plan-execution needs). Report `in-process`, `auto`, or empty as NOT configured for pane-based teams. `auto` is reported as a soft-fail: it silently falls back to `in-process` when no pane backend is reachable, so we prefer an explicit `tmux`.
 
-### 3.3 1M Context env vars
+### 3.3 Legacy model pins (cleanup)
 
-Grep shell config for `ANTHROPIC_DEFAULT_OPUS_MODEL` and `ANTHROPIC_DEFAULT_SONNET_MODEL`, and read the value each one currently pins.
+Ultra Claude **no longer manages model selection**. Earlier versions wrote `ANTHROPIC_DEFAULT_OPUS_MODEL` / `ANTHROPIC_DEFAULT_SONNET_MODEL` pins with a `[1m]` suffix to force 1M context onto subagents. Those pins are obsolete and actively harmful — see "Why the pins are gone" below. This check finds leftovers; §5.3 removes them. **Never write one, under any state.**
 
-**Canonical pins** (single source of truth — keep in sync with §5.3):
+```bash
+grep -nE '^[[:space:]]*export[[:space:]]+ANTHROPIC_DEFAULT_(OPUS|SONNET)_MODEL=' "$SHELL_CONFIG" 2>/dev/null
+tmux show-environment -g 2>/dev/null | grep -E '^ANTHROPIC_DEFAULT_(OPUS|SONNET)_MODEL='
+```
 
-| Var | Canonical value |
-|-----|-----------------|
-| `ANTHROPIC_DEFAULT_OPUS_MODEL` | `claude-opus-5[1m]` |
-| `ANTHROPIC_DEFAULT_SONNET_MODEL` | `claude-sonnet-5[1m]` |
+Check **both** places. A running tmux server hands its own global environment — a snapshot taken when the server started — to every new pane, and panes launched with a direct command never source the shell config. So a clean `~/.bashrc` is not proof the teammate panes are clean; a stale pin can survive there for months.
 
-Classify **each** var independently into one of three states:
-- **current** — the export line exists and its value exactly matches the canonical pin.
-- **outdated** — the export line exists but pins a different/older model or lacks the `[1m]` suffix (e.g. an existing `claude-sonnet-4-6[1m]` while canonical is `claude-sonnet-5[1m]`). Soft-fail: §5.3 upgrades it in place.
-- **missing** — no export line at all.
+Two states:
+- **clean** — neither location has either var. PASS.
+- **legacy pin present** — either location has either var. Soft-fail: §5.3 removes it.
 
-PASS only if **both** vars are **current**. Report `outdated` distinctly from `missing` so the user sees "will upgrade" rather than "will add" — this is what lets a re-run pick up a model bump instead of silently leaving an old pin in place.
+**Why the pins are gone:**
+- 1M context no longer needs opting into. On the Anthropic API, Fable 5, Sonnet 5, and Opus 4.7+ always run with the 1M window; on Max / Team / Enterprise, Opus is auto-upgraded to 1M with no configuration. Sonnet 5 has no 200K variant at all, so `sonnet[1m]` is documented as a no-op.
+- A pinned version rots silently. When a newer model ships, the pin keeps every `model: opus` / `model: sonnet` spawn on the old one — and because a tmux server caches its own copy, the shell config can read "current" while every agent runs something older.
+- Model choice is the user's. If someone wants a specific model or the `[1m]` suffix, they set it themselves; Ultra Claude does not decide it for them.
 
 ### 3.4 Node.js
 
@@ -252,7 +256,7 @@ Ultra Claude Environment Check (plugin v{version})
   tmux mode                 ✓ per-project (recommended)   # or "— none (no tmux)" / "— custom (user-managed)" / "✓ per-terminal (legacy)" / "✗ not configured"
   tmux.conf                 ✓ passthrough enabled          # or "— skipped" if mode is none/custom
   Agent teams env var       ✗ missing
-  1M context env vars       ✗ missing                       # or "✓ current" / "⤴ outdated → will upgrade to claude-opus-5[1m]"
+  Legacy model pins         ✓ none                          # or "⚠ found → will remove (shell config / tmux env)"
   Node.js                   ✓ v22.0.0
   Statusline                ✗ not configured
   Session Hooks             ✗ not configured
@@ -332,32 +336,27 @@ fi
 
 Tell the user: "Teammate mode set to `tmux` — takes effect on your **next Claude Code launch** (it's read at session start, not live). Relaunch inside a tmux session before running `/uc:plan-execution`."
 
-### 5.3 Fix: 1M Context env vars
+### 5.3 Fix: remove legacy model pins
 
-Act on the state each var was classified into in §3.3. Handle the two vars **independently** — a machine can have a current Opus pin but an outdated Sonnet one.
-
-**missing** → append the canonical export line(s) to the shell config (append only the var(s) actually missing — don't duplicate one that's already present):
-
-```bash
-# Ultra Claude: enable 1M context window for all opus/sonnet usage (including subagents)
-export ANTHROPIC_DEFAULT_OPUS_MODEL='claude-opus-5[1m]'
-export ANTHROPIC_DEFAULT_SONNET_MODEL='claude-sonnet-5[1m]'
-```
-
-**outdated** → rewrite the existing line **in place** to the canonical value. This is the path that upgrades an already-set-up machine across a model bump (e.g. Opus 4.8 → Opus 5) — a bare append would create a duplicate export and the last one wins unpredictably, so you MUST edit in place. Back up first, replace the whole `export VAR=…` line, then print the before→after so the change is visible (`$SHELL_CONFIG` = the file detected in Step 2, `~/.bashrc` or `~/.zshrc`):
+Only runs when §3.3 reported **legacy pin present**. Removes both vars from the shell config and from any running tmux server's global environment (`$SHELL_CONFIG` = the file detected in Step 2, `~/.bashrc` or `~/.zshrc`):
 
 ```bash
 config="$SHELL_CONFIG"
-# Opus — repeat the same substitution for ANTHROPIC_DEFAULT_SONNET_MODEL if it too is outdated:
-sed -i.uc-bak -E "s|^([[:space:]]*export[[:space:]]+ANTHROPIC_DEFAULT_OPUS_MODEL=).*|\1'claude-opus-5[1m]'|" "$config"
+cp "$config" "${config}.uc-bak"
+sed -i -E '/^[[:space:]]*export[[:space:]]+ANTHROPIC_DEFAULT_(OPUS|SONNET)_MODEL=/d; /^[[:space:]]*#.*enable 1M context window/d' "$config"
+
+# a running tmux server keeps its own snapshot — new panes inherit it, so clear it too
+if command -v tmux >/dev/null 2>&1 && tmux has-session 2>/dev/null; then
+  tmux set-environment -gu ANTHROPIC_DEFAULT_OPUS_MODEL 2>/dev/null
+  tmux set-environment -gu ANTHROPIC_DEFAULT_SONNET_MODEL 2>/dev/null
+fi
 ```
 
-- Upgrading an Ultra-Claude-written default (any `claude-{opus,sonnet,haiku}-…[1m]` Anthropic pin) is the expected non-destructive path — just do it and report before→after; no need to ask.
-- **Only** if the existing value is an unexpected custom pin (NOT a `claude-…[1m]` Anthropic model — i.e. the user appears to have deliberately chosen something else) do you warn and ask before overwriting.
+- Print the removed line(s) so the change is visible; `${config}.uc-bak` is the undo path.
+- Remove only Ultra-Claude-shaped pins — a value that is an Anthropic `claude-…` model id. If the value is anything else, the user chose it deliberately: report it, leave it, remove nothing.
+- Panes and Claude Code sessions already running keep the old value until they are restarted — say so.
 
-**current** → nothing to do.
-
-After any change, remind the user the new pins take effect on the **next shell / Claude Code launch** (env vars are read at process start, not live).
+Then tell the user: model selection is now plain Claude Code alias resolution (`opus` / `sonnet` resolve to the current version), and takes effect on the **next shell / Claude Code launch**. If they want a specific model or the `[1m]` suffix, that is theirs to set — setup will not add it back and will not touch a pin it did not write.
 
 ### 5.4 Fix: Node.js
 
@@ -671,7 +670,7 @@ After all fixes are applied, write `~/.claude/ultra/uc-setup.json`:
     "tmuxConf": true/false,
     "agentTeams": true/false,
     "teammateMode": true/false,
-    "context1m": true/false,
+    "modelPins": "clean" | "removed",
     "node": true/false,
     "statusline": true/false,
     "sessionHooks": true/false,
