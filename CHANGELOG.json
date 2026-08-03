@@ -1,5 +1,12 @@
 [
   {
+    "seq": 232,
+    "version": "2026.08.03-2",
+    "date": "2026-08-03",
+    "summary": "Plan execution gains a completion-time backlog review (new Phase 5 step 5.6, unconditional — runs for every plan regardless of task types). After shutdown, the Lead reads all items in documentation/backlog/ and re-assesses them against what the plan changed, updating statuses via the uc:backlog skill (closing resolved items, setting related_plan where relevant) and reporting the result to the user. The review runs before the existing follow-up triage and doubles as its dedup pass: a follow-up candidate matching an existing backlog item updates/links that item instead of adding a duplicate. Instruction deliberately minimal — the goal is stated, the executing agent decides what applies. SKILL.md Phase 5 pointer and follow-up-work paragraph updated to sequence review-then-triage; help catalog and docs site (plan-execution page) updated. No project-level file structure change, so migration is null.",
+    "migration": null
+  },
+  {
     "seq": 231,
     "version": "2026.08.03-1",
     "date": "2026-08-03",

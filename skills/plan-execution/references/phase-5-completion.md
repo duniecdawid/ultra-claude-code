@@ -71,3 +71,9 @@ Append to `documentation/plans/$ARGUMENTS/shared/lead.md`:
    ```
 5. Keep plan directory with all artifacts (including `operational-report.md`, `tasks/task-N/task.md`/`plan.md`/`impl.md`, and `shared/lead.md`)
 6. Present summary to user — mention that the operational report is available at `documentation/plans/$ARGUMENTS/operational-report.md`
+
+### 5.6 Backlog Review
+
+Runs for every plan, regardless of task types. Read all backlog items in `documentation/backlog/` and assess each against what this plan changed. Update statuses accordingly via the `uc:backlog` skill — e.g. close items the plan resolved, set `related_plan` where relevant; use your judgment on what applies. Tell the user what changed (or that nothing did).
+
+Do this before the follow-up triage (SKILL.md § Phase 5, "Follow-up work"), and carry your picture of the existing backlog into it: a follow-up item that matches an existing backlog item updates/links the existing one instead of creating a duplicate.

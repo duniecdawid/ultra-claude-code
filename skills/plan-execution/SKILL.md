@@ -265,10 +265,10 @@ Retry flow, escalation, crash recovery, session death.
 
 ## Phase 5: Completion
 
-Final gate, operational report, summary, shutdown.
+Final gate, operational report, summary, shutdown, backlog review.
 → Read `references/phase-5-completion.md`
 
-**Follow-up work:** If execution revealed follow-up work, bugs, ideas, or tech debt not covered by the plan, collect them in the completion summary under "Follow-up Items". After shutdown (step 5.5), triage each item with the user per `${CLAUDE_PLUGIN_ROOT}/references/backlog-triage.md` (3-option variant — execution is complete, so omit "Include in plan").
+**Follow-up work:** If execution revealed follow-up work, bugs, ideas, or tech debt not covered by the plan, collect them in the completion summary under "Follow-up Items". After shutdown (step 5.5), first run the backlog review (step 5.6 — update existing backlog items in light of the completed plan), then triage each follow-up item with the user per `${CLAUDE_PLUGIN_ROOT}/references/backlog-triage.md` (3-option variant — execution is complete, so omit "Include in plan"). Check each candidate against the just-reviewed backlog — matches update/link the existing item instead of adding a duplicate.
 
 ---
 
