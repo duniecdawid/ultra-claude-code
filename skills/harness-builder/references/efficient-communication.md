@@ -6,11 +6,11 @@ Scope: when and how to compress harness text using the caveman engine; the house
 
 Token cost splits into **ephemeral** (one conversation) and **resident** (loaded every session or every turn: descriptions, agent prompt bodies, CLAUDE.md, protocol message formats, journals, memory files). Compressing resident text is a one-time cost that pays every future session. Compressing ephemeral output pays once and can cost clarity. **Default target: resident text only.**
 
-## The engine: caveman, installed dormant
+## The engine: caveman
 
-The caveman plugin (https://github.com/JuliusBrussee/caveman) is the compression engine. It is installed **hooks-off / dormant** — `defaultMode: off` in `~/.config/caveman/config.json`, so the SessionStart hook activates nothing and removes any stale flag. Sessions are normal prose unless explicitly opted in.
+The caveman plugin (https://github.com/JuliusBrussee/caveman) is the compression engine. Its session-wide mode is a machine-owner decision — `defaultMode` in `~/.config/caveman/config.json` may be `off` (dormant; sessions are normal prose unless opted in) or an always-on level. Check the config rather than assuming either state.
 
-[MEASURED, upstream, 2026] ~65% output-token reduction (range 22–87%); `/caveman-compress` cuts ~46% from memory-style files. [COMMUNITY] The always-on variant costs ~1–1.5k input tokens/turn and degrades complex explanation — that is why we never enable it globally. Upstream's own numbers: `docs/HONEST-NUMBERS.md` in the caveman repo.
+[MEASURED, upstream, 2026] ~65% output-token reduction (range 22–87%); `/caveman-compress` cuts ~46% from memory-style files. [COMMUNITY] The always-on variant costs ~1–1.5k input tokens/turn and degrades complex explanation — weigh that before enabling it globally. Upstream's own numbers: `docs/HONEST-NUMBERS.md` in the caveman repo.
 
 ### Three sanctioned enablement patterns
 
@@ -37,7 +37,7 @@ Yields, same date: 4.0% on a reference doc that is roughly half URLs/quotes/tabl
 
 ### Never
 
-- Auto-enable hook / always-on caveman.
+- Silently enabling always-on caveman from a harness component — session-wide mode is a machine-owner decision, made in `~/.config/caveman/config.json`, never as a side effect of a skill or agent.
 - Compressing user-facing prose, teaching material, or complex explanations (measured weakness).
 - Touching code, commands, identifiers, error messages — byte-for-byte exact, always.
 - Copying caveman's ruleset into our files — invoke the installed engine (non-negotiable #2). Re-applying its rules by hand when the CLI is reachable is the same mistake wearing a lazier hat: it forfeits the validator and the retry loop, and drifts as upstream changes. If caveman is absent on a machine, the house rules below stand alone; say so rather than failing.

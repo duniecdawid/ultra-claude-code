@@ -13,6 +13,10 @@ All task-team agents (Executor, Reviewer, Tester, PM) and Lead use this protocol
 
 **Load this file during startup** — it is referenced from `task-team-startup.md` and your agent instructions.
 
+## 0. Output style
+
+If an output-style directive is active in your session context (e.g. a compression mode such as caveman, injected by a SessionStart hook), apply it to everything you say: protocol messages, status updates, takes, and chat output. It does NOT apply to durable artifacts — plan.md, impl.md, test-strategy.md, review-feedback.md, reports, documentation, code, commit messages — or to signal field names/payload structure, which are contract. No directive present → nothing changes.
+
 ## 1. CommunicateTeamMember(to, message, signal?, content_file?)
 
 Send a message to one specific agent. Execute these steps in order:

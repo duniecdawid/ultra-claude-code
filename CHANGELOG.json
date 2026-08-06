@@ -1,5 +1,12 @@
 [
   {
+    "seq": 234,
+    "version": "2026.08.06-2",
+    "date": "2026-08-06",
+    "summary": "Execution communication protocol §0: agents apply any active output-style directive (e.g. caveman) to messages and status text while artifacts, docs, code, and signal structure stay normal — respects such modes without depending on them. Also reworded harness-builder efficient-communication to stop asserting a machine-specific caveman mode.",
+    "migration": null
+  },
+  {
     "seq": 233,
     "version": "2026.08.06-1",
     "date": "2026-08-06",
