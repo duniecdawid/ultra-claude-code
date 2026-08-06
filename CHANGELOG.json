@@ -1,5 +1,12 @@
 [
   {
+    "seq": 235,
+    "version": "2026.08.06-3",
+    "date": "2026-08-06",
+    "summary": "Protocol §0 amendment: tell agents where the output-style hook block sits in context before they conclude none is present — two consecutive test agents skimmed past the SessionStart ruleset and reported it absent.",
+    "migration": null
+  },
+  {
     "seq": 234,
     "version": "2026.08.06-2",
     "date": "2026-08-06",
