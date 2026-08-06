@@ -38,9 +38,9 @@ Persistent harness artifacts: skill descriptions, agent descriptions, prompt bod
 | 4 — compression | spawn `uc:caveman-compress` per body artifact; adopt cuts item by item; discuss | `references/stage-4-compression.md` |
 | 5 — present | present `git diff` + sync steps; explicit approval; sync + commit | `references/stage-5-present.md` |
 
-## Routing — knowledge references
+## Routing — knowledge questions
 
-References live at `${CLAUDE_PLUGIN_ROOT}/skills/harness-builder/references/`.
+For questions outside the build workflow (build tasks get their references through the stage chain). References live at `${CLAUDE_PLUGIN_ROOT}/skills/harness-builder/references/`.
 
 | Need | Where |
 |---|---|
@@ -50,12 +50,6 @@ References live at `${CLAUDE_PLUGIN_ROOT}/skills/harness-builder/references/`.
 | Measuring session startup context cost | `references/context-audit.md` + `scripts/context_audit.py` |
 | Testing a skill/agent before/after a refactor | `references/testing-refactors.md` |
 | Building agents: tools, model choice, addressing, hard limits | `references/agent-building.md` |
-
-## Companion tools
-
-- `/skill-creator:skill-creator` — always invoke when creating or refactoring a skill (official plugin; eval-driven, includes a description-trigger optimizer).
-- caveman plugin — compression engine, installed dormant (`defaultMode: off`), enabled selectively; see `references/efficient-communication.md`.
-- `uc:caveman-compress` agent (this plugin) — compression engine wrapper: runs the caveman-compress CLI on a scratch copy, returns the compressed version plus a classified cut list. Spawned at stage 4, proposition-only.
 
 ## Accumulating knowledge here
 

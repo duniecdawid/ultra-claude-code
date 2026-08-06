@@ -1,5 +1,12 @@
 [
   {
+    "seq": 237,
+    "version": "2026.08.06-5",
+    "date": "2026-08-06",
+    "summary": "harness-builder: removal pass on SKILL.md — Companion tools section deleted (all three bullets duplicated non-negotiable 2, the entry paragraph, efficient-communication.md, and the stage-4 reference); knowledge-routing table kept but scoped explicitly to knowledge questions, since build tasks now get their references through the stage chain.",
+    "migration": null
+  },
+  {
     "seq": 236,
     "version": "2026.08.06-4",
     "date": "2026-08-06",
