@@ -1,5 +1,12 @@
 [
   {
+    "seq": 238,
+    "version": "2026.08.06-6",
+    "date": "2026-08-06",
+    "summary": "refactor(plan-execution): token diet — dead content removed (PM knowledge-agent tracking, stale PAUSE machinery), dedup to canonical copies, caveman engine pass; 15.8% smaller across skill + 4 agents, protocol strings and spawn prompts byte-identical",
+    "migration": null
+  },
+  {
     "seq": 237,
     "version": "2026.08.06-5",
     "date": "2026-08-06",

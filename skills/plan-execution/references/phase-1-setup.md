@@ -2,36 +2,36 @@
 
 ### 1.0 Lead Tooling Preflight
 
-**Do this before anything else.** Plan execution runs on a real persistent **team** — the Lead spawns teammates (Executor, Reviewer, Tester, PM) that stay alive, message each other, and appear on the team graph. The tools that make this work are **deferred** in a fresh session: they are not in your loaded toolset until you load them. If you skip this step, you will (correctly) observe that `SendMessage`/`Monitor` "aren't in my toolset" and may wrongly conclude the team feature is unavailable and degrade to a lossy one-shot path. Don't. Load the tools first.
+**Do this before anything else.** Plan execution run on real persistent **team** — Lead spawn teammates (Executor, Reviewer, Tester, PM) that stay alive, message each other, appear on team graph. Tools that make this work **deferred** in fresh session: not in your loaded toolset until you load them. Skip this step and you (correctly) see `SendMessage`/`Monitor` "aren't in my toolset", then may wrongly conclude team feature unavailable and degrade to lossy one-shot path. Don't. Load tools first.
 
-**1. Load the deferred agent-teams tools in one call:**
+**1. Load deferred agent-teams tools in one call:**
 
 ```
 ToolSearch("select:SendMessage,Monitor,TaskCreate,TaskUpdate,TaskList")
 ```
 
-(The `Agent` tool is already directly available — it does not need loading.)
+(`Agent` tool already available — no loading needed.)
 
-**2. Availability gate.** If `SendMessage` does **not** resolve (ToolSearch reports no match for it), agent teams is not enabled in this environment. **Stop** and tell the user:
+**2. Availability gate.** If `SendMessage` **not** resolve (ToolSearch report no match), agent teams not enabled in this environment. **Stop**, tell user:
 
 > "Plan execution needs agent teams enabled (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`). Run `/uc:setup` to configure it, then re-run `/uc:plan-execution`."
 
-Do **not** improvise a subagent-only fallback — a one-shot pipeline silently drops PM (and its liveness monitor), peer messaging, signal durability, and pipeline pre-spawn. Stopping with a clear instruction is the correct behavior.
+Do **not** improvise subagent-only fallback — one-shot pipeline silently drop PM (and its liveness monitor), peer messaging, signal durability, pipeline pre-spawn. Stop with clear instruction = right move.
 
-**2b. Teammate backend gate (tmux).** Agent-teams being enabled is necessary but not sufficient: *how* a named teammate runs is governed by the `teammateMode` setting (`tmux` | `in-process` | `auto`), resolved per session. When it defaults to `in-process`, teammates spawn inside your process with **no tmux panes** — the pane-based coordination this skill is built on silently breaks. Check both preconditions:
+**2b. Teammate backend gate (tmux).** Agent-teams enabled necessary but not sufficient: *how* named teammate run governed by `teammateMode` setting (`tmux` | `in-process` | `auto`), resolved per session. When default `in-process`, teammates spawn inside your process with **no tmux panes** — pane coordination this skill built on break silently. Check both preconditions:
 
 ```bash
 echo "TMUX=${TMUX:-unset}"
 jq -r '.teammateMode // "unset"' "$HOME/.claude/settings.json" 2>/dev/null
 ```
 
-If `$TMUX` is unset (you are not inside a tmux session) **or** `teammateMode` is not `tmux`, **Stop** and tell the user:
+If `$TMUX` unset (you not inside tmux session) **or** `teammateMode` not `tmux`, **Stop**, tell user:
 
 > "Plan execution needs tmux-backed team members. Run `/uc:setup` to set `teammateMode: tmux`, (re)launch Claude **inside a tmux session**, then re-run `/uc:plan-execution`."
 
-`auto` does not pass this gate — it silently falls back to in-process when no pane backend is reachable, which is the failure mode we refuse to enter. This is a heuristic pre-check; the authoritative confirmation happens after the first spawn (§1.9).
+`auto` not pass gate — it fall back silent to in-process when no pane backend reachable, exact failure mode we refuse. This heuristic pre-check; authoritative confirm come after first spawn (§1.9).
 
-**3. Primitive mapping — how you actually spawn and communicate.** There is **no** `TeamCreate` tool and no `CommunicateTeamMember`/`WaitForTeamMember` tool. Everything is built from these real primitives:
+**3. Primitive mapping — how you actually spawn and communicate.** **No** `TeamCreate` tool, no `CommunicateTeamMember`/`WaitForTeamMember` tool. All built from these real primitives:
 
 | Concept | Real invocation |
 |---------|-----------------|
@@ -40,9 +40,9 @@ If `$TMUX` is unset (you are not inside a tmux session) **or** `teammateMode` is
 | **Lead-side task list** | `TaskCreate(...)` / `TaskUpdate(...)` (this is unrelated to spawning — it tracks task state). |
 | **Send / broadcast / wait** | `CommunicateTeamMember`, `CommunicateTeam`, `WaitForTeamMember` are **procedures**, not tools — fixed sequences of `SendMessage` + an `echo >>` append to `signals.jsonl` + `Monitor`, defined in `references/execution-communication-protocol.md`. Never search for a tool by those names. |
 
-The teammate↔subagent distinction is load-bearing (see SKILL.md) — it is expressed by *which mode of the `Agent` tool* you use, not by different tools.
+Teammate↔subagent split load-bearing (see SKILL.md) — expressed by *which mode of `Agent` tool* you use, not by different tools.
 
-**4. Ensure the usage-monitor and limit-sentinel scripts are reachable at stable paths (self-heal), and the sentinel is running.** All usage checks (this skill and PM) invoke `~/.claude/ultra/usage-monitor.sh` — a stable absolute path that does NOT depend on `$CLAUDE_PLUGIN_ROOT` being present in a Bash shell (it often is not). The machine-global limit sentinel lives at the same kind of stable path. `/uc:setup` creates both symlinks; self-heal them here in case setup wasn't re-run:
+**4. Ensure usage-monitor and limit-sentinel scripts reachable at stable paths (self-heal), and sentinel running.** All usage checks (this skill and PM) invoke `~/.claude/ultra/usage-monitor.sh` — stable absolute path, NOT dependent on `$CLAUDE_PLUGIN_ROOT` existing in Bash shell (often not). Machine-global limit sentinel live at same kind of stable path. `/uc:setup` create both symlinks; self-heal here in case setup not re-run:
 
 ```bash
 mkdir -p ~/.claude/ultra
@@ -55,56 +55,50 @@ bash ~/.claude/ultra/limit-sentinel.sh ensure
 bash ~/.claude/ultra/limit-sentinel.sh status
 ```
 
-The `usage-monitor.sh status` call must print a JSON object with a `band` field. **If it errors or prints no JSON, STOP** — do not proceed into a run where you cannot read usage; tell the user the monitor script is unreachable and to re-run `/uc:setup`. **Never invent or guess a usage status** — every usage figure you act on or report must come from this script's actual stdout.
+`usage-monitor.sh status` call must print JSON object with `band` field. **If error or no JSON, STOP** — no proceed into run where you cannot read usage; tell user monitor script unreachable, re-run `/uc:setup`. **Never invent or guess usage status** — every usage figure you act on or report must come from this script real stdout.
 
-The `limit-sentinel.sh status` call must report `running:true` — the sentinel is the guaranteed post-limit resume for this run. **If it cannot be started** (`ensure` fails or `status` still reports `running:false`): do NOT stop — warn the user that automatic post-limit resume is unavailable this run, and remember the sentinel is down for §1.0b (the fallback HOLD-WAKE applies only if the account is already limited — see usage-control.md "Fallback HOLD-WAKE").
+`limit-sentinel.sh status` call must report `running:true` — sentinel = guaranteed post-limit resume for this run. **If cannot start** (`ensure` fail or `status` still `running:false`): do NOT stop — warn user automatic post-limit resume unavailable this run, remember sentinel down for §1.0b (fallback HOLD-WAKE apply only if account already limited — see usage-control.md "Fallback HOLD-WAKE").
 
 ### 1.0b Usage gating default (no question)
 
-**There is no usage-mode question.** Limit handling is always-on and reactive (see `usage-control.md`); the only knob is spawn gating, and it defaults ON. Record `gating: on` in `## Execution Config` (written to `shared/lead.md` when that file is created in 1.7) — unless the user's plan-execution invocation explicitly asked to ignore limits ("full speed", "ignore limits", "push through"), in which case record `gating: off`. Never ask; never re-decide mid-run.
+**No usage-mode question.** Limit handling always-on and reactive (see `usage-control.md`); only knob = spawn gating, default ON. Record `gating: on` in `## Execution Config` (written to `shared/lead.md` when file created in 1.7) — unless user plan-execution invocation explicitly ask ignore limits ("full speed", "ignore limits", "push through"), then record `gating: off`. Never ask; never re-decide mid-run.
 
-Then run **one** status check (self-resolves the account — no `$ACCOUNT_KEY` needed yet):
+Then run **one** status check (self-resolve account — no `$ACCOUNT_KEY` needed yet):
 
 ```bash
 bash "$HOME/.claude/ultra/usage-monitor.sh" status
 ```
 
 Read `.band`:
-- `clear` → proceed normally.
-- `soft` → record `{window}: soft` in `## Usage Blocks` (once `shared/lead.md` exists) and do not spawn until it clears — this is a spawning gate, not a stop. The pre-spawn check (Phase 2) governs when slot-fill resumes.
-- If the account is **already over the limit** AND the sentinel could not be started in §1.0: arm the fallback HOLD-WAKE per usage-control.md ("Fallback HOLD-WAKE") before parking. With a running sentinel, no self-wake is needed — the sentinel wakes this pane at reset.
+- `clear` → proceed normal.
+- `soft` → record `{window}: soft` in `## Usage Blocks` (once `shared/lead.md` exist), no spawn until clear — this spawning gate, not stop. Pre-spawn check (Phase 2) govern when slot-fill resume.
+- If account **already over limit** AND sentinel not started in §1.0: arm fallback HOLD-WAKE per usage-control.md ("Fallback HOLD-WAKE") before park. With running sentinel, no self-wake needed — sentinel wake this pane at reset.
 
 ### 1.1 Read Entire Plan Directory
 
 Read ALL files in `documentation/plans/$ARGUMENTS/`:
 
 - `README.md` — plan-level overview + flat task heading index
-- `tasks/task-*/task.md` — authoritative per-task content (description, files, patterns, research pointers, success criteria, dependencies). Written by the planning mode in Stage 4.
+- `tasks/task-*/task.md` — authoritative per-task content (description, files, patterns, research pointers, success criteria, dependencies). Written by planning mode in Stage 4.
 - `tasks/task-*/plan.md`, `tasks/task-*/impl.md` — existing per-task pipeline artifacts (if resuming)
 - `shared/lead.md` — Lead-level shared notes (if resuming)
 - `checkpoint-*.md` — checkpoint files (if any)
 
-**Legacy-plan self-heal:** if README contains `### Task N:` headings but `tasks/task-N/task.md` does NOT exist, the plan was written in the pre-split format. Before continuing, extract each task's embedded fields from README into `tasks/task-N/task.md` (following `${CLAUDE_PLUGIN_ROOT}/templates/task.md`), then rewrite README to the flat-index form. For the `**Research:**` section, scan the README's Tech Stack list and map each entry to `documentation/technology/research/libraries/{lib}.md` if that file exists; otherwise write `None applicable` (Lead's pre-spawn knowledge review in Phase 2 will fill the real gaps). If a legacy `shared/knowledge-brief.md` exists, leave it on disk as an inert artifact but don't read it — per-task task.md files are now authoritative. Log the migration in `shared/lead.md`.
-
-You now have the full picture.
+**Legacy-plan self-heal:** if README got `### Task N:` headings but `tasks/task-N/task.md` NOT exist, plan written in pre-split format. Before continue, extract each task embedded fields from README into `tasks/task-N/task.md` (follow `${CLAUDE_PLUGIN_ROOT}/templates/task.md`), then rewrite README to flat-index form. For `**Research:**` section, scan README Tech Stack list, map each entry to `documentation/technology/research/libraries/{lib}.md` if file exist; else write `None applicable` (Lead pre-spawn knowledge review in Phase 2 fill real gaps). If legacy `shared/knowledge-brief.md` exist, leave on disk as inert artifact but no read it — per-task task.md now authoritative. Log migration in `shared/lead.md`.
 
 ### 1.1b Tmux Layout Setup
 
-Run the layout-setup script — **always, unconditionally**. Do not wrap it in a tmux check of your own; the script owns the gate. This keeps the instruction trivial ("run this one script") instead of a conditional you might skip or paraphrase wrong:
+Run layout-setup script — **always, unconditionally**. No wrap in your own tmux check; script own the gate. Keep instruction trivial ("run this one script") instead of conditional you might skip or paraphrase wrong:
 
 ```bash
 bash "${CLAUDE_PLUGIN_ROOT}/scripts/tmux-layout-setup.sh"
 ```
 
-What the script does (so you know what to expect — you don't reproduce it): its single runtime gate is `$TMUX_PANE`. Inside tmux it (1) ensures the layout daemon is running, (2) names this — the Lead/main — pane `@agent-name=main-context`, and (3) turns on the pane-border label display. Outside tmux it no-ops. Per `skills/setup/references/tmux-modes.md`, `$TMUX_PANE` is the runtime signal for tmux commands; the setup-time `tmuxMode` preference does **not** gate runtime behaviour. Every action and skip is logged to `~/.claude/ultra/tmux-layout-setup.log` for debugging.
-
-The layout daemon arranges panes as agents spawn and self-label their panes. **You do NOT run any tmux commands yourself** beyond this one script — agents self-label; PM verifies.
-
-Two layers keep the main pane labelled so the daemon never skips the window: Phase 2's Pre-Spawn Checklist (§2.6) re-runs this same script before every spawn (idempotent), and the daemon itself self-heals — if the Lead pane is ever unlabelled, it infers the Lead from window contents and persists the label (see `scripts/tmux-layout-daemon.js`). The label alone does not hand the window to the daemon: it also requires at least one teammate pane present, so this window stays under your own control until the first spawn and is released again once the team is gone.
+Script single runtime gate = `$TMUX_PANE` (no-op outside tmux). Inside tmux it ensure layout daemon running, name this — Lead/main — pane `@agent-name=main-context`, turn on pane-border labels; actions and skips log to `~/.claude/ultra/tmux-layout-setup.log`. Daemon arrange panes as agents spawn and self-label. **You run NO tmux commands yourself** beyond this one script — agents self-label; PM verify; Pre-Spawn Checklist (§2.6) re-run this script before every spawn, daemon self-heal unlabelled Lead pane.
 
 ### 1.1c Name the Window
 
-Name the tmux window with the plan so it is identifiable in the status bar. The resolved plan is `$ARGUMENTS` (the full `NNN-name`); read its README title and apply the standardized plan form:
+Name tmux window with plan so identifiable in status bar. Resolved plan = `$ARGUMENTS` (full `NNN-name`); read its README title, apply standardized plan form:
 
 ```bash
 NNN=$(printf '%s' "$ARGUMENTS" | cut -d- -f1)
@@ -112,13 +106,13 @@ TITLE=$(sed -n 's/^# Plan: //p' "documentation/plans/$ARGUMENTS/README.md" | hea
 bash "${CLAUDE_PLUGIN_ROOT}/scripts/tmux-window-name.sh" "UC::P-${NNN}::${TITLE}"
 ```
 
-This is the window-name analogue of the pane-label setup above — the script owns the `$TMUX_PANE` gate, sanitizes and truncates for the status bar, disables tmux automatic-rename so the name sticks, and no-ops outside tmux. Window naming is orthogonal to the pane-label/layout-daemon system, so there is no conflict.
+Window-name analogue of pane-label setup above — script own `$TMUX_PANE` gate, sanitize and truncate for status bar, disable tmux automatic-rename so name stick, no-op outside tmux. Window naming orthogonal to pane-label/layout-daemon system, so no conflict.
 
 ### 1.2 Resume Detection
 
 If `checkpoint-*.md` files exist:
 
-1. Read the LATEST checkpoint (highest timestamp)
+1. Read LATEST checkpoint (highest timestamp)
 2. Read `shared/lead.md`
 3. Present to user:
    ```
@@ -129,16 +123,16 @@ If `checkpoint-*.md` files exist:
    Resume from checkpoint? (yes/no)
    ```
 4. If yes: skip completed work, re-spawn teams for incomplete tasks using per-task files as context
-5. If no: confirm user wants to discard progress, then start fresh
-6. Either way, if `shared/escalations.md` exists with `open` entries, re-print them after the resume summary — they are still awaiting the user's decision (see `phase-4-failure-handling.md` § "Non-Blocking Escalation Queue")
+5. If no: confirm user want discard progress, then start fresh
+6. Either way, if `shared/escalations.md` exist with `open` entries, re-print them after resume summary — still awaiting user decision (see `phase-4-failure-handling.md` § "Non-Blocking Escalation Queue")
 
 ### 1.3 Task Pipeline
 
-Team shape and executor model are per-task, read from `tasks/task-N/task.md` (`**Type:**`, `**Executor model:**`; missing = `code` + `opus`): a `code` task gets the full pipeline team — **Executor + Reviewer + Tester** — an `ops` task gets a **solo Executor** (rubric: `${CLAUDE_PLUGIN_ROOT}/references/planning-framework/task-classification.md`). External library knowledge comes from each task's `**Research:**` pointers in that same task.md, populated by planning Stage 2 and reviewed per-task by Lead just before spawning (see Phase 2). Mid-execution gaps flow through the `ADVICE` channel; Lead invokes `/uc:research` as needed and appends new pointers to task.md.
+Team shape and executor model per-task, read from `tasks/task-N/task.md` (`**Type:**`, `**Executor model:**`; missing = `code` + `opus`): `code` task get full pipeline team — **Executor + Reviewer + Tester** — `ops` task get **solo Executor** (rubric: `${CLAUDE_PLUGIN_ROOT}/references/planning-framework/task-classification.md`). External library knowledge come from each task `**Research:**` pointers in same task.md, populated by planning Stage 2, reviewed per-task by Lead just before spawn (see Phase 2). Mid-execution gaps flow through `ADVICE` channel; Lead invoke `/uc:research` as needed, append new pointers to task.md.
 
 ### 1.4 Concurrency Decision
 
-Determine how many task-teams can run concurrently:
+Decide how many task-teams can run concurrent:
 
 | Plan Size | Max Concurrent Task-Teams |
 |-----------|--------------------------|
@@ -146,45 +140,35 @@ Determine how many task-teams can run concurrently:
 | 4-8 tasks | 2-3 |
 | 9+ tasks  | 3-4 |
 
-Max ceiling: **4 concurrent task-teams**. The only plan-wide teammate is the **Project Manager** (which owns the liveness monitor) — no persistent knowledge teammate exists, and usage limits are handled reactively by the machine-global limit sentinel (a process, not an agent).
+Max ceiling: **4 concurrent task-teams**. Only plan-wide teammate = **Project Manager** (own liveness monitor) — no persistent knowledge teammate, usage limits handled reactive by machine-global limit sentinel (process, not agent).
 
-Each slot = 1 task-team. For a `code` task, Executor, Reviewer, and Tester are all spawned together when a slot opens — the Reviewer and Tester front-load their takes (REVIEWER TAKE, TESTER TAKE) before the Executor plans. All members exit together when the task is done. An `ops` task's slot holds its solo Executor.
+Each slot = 1 task-team. For `code` task, Executor, Reviewer, Tester all spawn together when slot open — Reviewer and Tester front-load takes (REVIEWER TAKE, TESTER TAKE) before Executor plan. All members exit together when task done. `ops` task slot hold its solo Executor.
 
-Tasks normally spawn when their slot is available AND all dependencies are completed. **Exception — pipeline pre-spawn:** when an Executor signals `code complete`, Lead may pre-spawn the next dependent task into a `planning` stage if a concurrency slot is free — see SKILL.md "How a Task-Team Works" and the message handler table for the rules. Pre-spawned successors count toward the concurrency limit and wait at a new gate for `Implementation approved` before writing code. At most one pre-spawn per `code complete` event.
+Tasks normally spawn when slot available AND all dependencies completed. **Exception — pipeline pre-spawn:** when Executor signal `code complete`, Lead may pre-spawn next dependent task into `planning` stage if concurrency slot free — see SKILL.md "How a Task-Team Works" and message handler table for rules. Pre-spawned successors count toward concurrency limit, wait at new gate for `Implementation approved` before write code. At most one pre-spawn per `code complete` event.
 
 ### Model Assignment
 
 | Role | Model | Rationale |
 |------|-------|-----------|
-| **Executor** | **per task** — task.md `**Executor model:**` (`sonnet` / `opus` / `fable`; absent → opus) | Chosen at planning per the task-classification rubric — the executor is the only role whose model varies |
+| **Executor** | **per task** — task.md `**Executor model:**` (`sonnet` / `opus` / `fable`; absent → opus) | Chosen at planning per task-classification rubric — executor only role whose model vary |
 | Reviewer | sonnet | Pattern recognition, architecture conformance |
 | Tester | sonnet | Test execution, failure diagnosis |
-| Project Manager | sonnet | Event-driven coordination — dashboard, budget tracking, and owns the liveness monitor (bash does all checking via Monitor; model wakes only on NUDGE candidates) |
+| Project Manager | sonnet | Event-driven coordination — dashboard, budget tracking, own liveness monitor (bash do all checking via Monitor; model wake only on NUDGE candidates) |
 | Researcher (subagent) | sonnet | One-shot external documentation retrieval — spawned by Lead via `/uc:research` on cache miss |
 
 ### Permission Modes
 
-| Role | Mode | Rationale |
-|------|------|-----------|
-| **Executor** | **`bypassPermissions`** | **Writes code autonomously; plan reviewed by teammates before implementation** |
-| Reviewer | `bypassPermissions` | Read-only analysis, no approval needed |
-| Tester | `bypassPermissions` | Runs tests autonomously, no approval needed |
-| Project Manager | `bypassPermissions` | Event-driven coordination + liveness monitor, no approval needed |
-| Researcher (subagent) | `bypassPermissions` | Writes to `documentation/technology/research/` and `documentation/product/research/` only, stateless, no approval needed |
+Every spawned role — Executor, Reviewer, Tester, PM, researcher subagent — run with mode `bypassPermissions`.
 
 ### 1.5 Usage Gating & Limit Sentinel
 
-Gating was already recorded in 1.0b (no question asked).
-
-Usage limits are handled reactively by the machine-global **limit sentinel** (a process, not an agent — ensured in §1.0). Nothing stops in-flight work: the limit itself is the pause; the sentinel is the resume. It writes `usage_limit_hit` / `usage_reset_wake` / `usage_window_rolled` events into the plan's events.json (agent field `limit-sentinel`), which PM consumes passively for budget bookkeeping.
-- **If `gating: on` (default):** the **soft band is not an interrupt** — the Lead enforces it with a `usage-monitor.sh status` check before each spawn (don't start new work while `soft`). Lead tracks blocks per window in `shared/lead.md` → `## Usage Blocks`, guided by `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/usage-control.md`.
-- **If `gating: off` (explicit user opt-out):** the Lead skips the pre-spawn soft checks and the sentinel skips advisories; reset wakes always happen regardless. (In both settings, PM's monitor still emits `NUDGE` liveness candidates and quietly traces >10-min task silence (`silence_observed`) into events.json — traces are post-mortem data, never an emit.)
-
-Proceed directly to 1.6.
+Gating recorded in 1.0b; sentinel ensured in §1.0 — full semantics in `references/usage-control.md`.
+With `gating: on` (default) Lead run pre-spawn soft-band check and track blocks in `shared/lead.md` → `## Usage Blocks`; with `gating: off` it skip those checks and sentinel skip advisories (reset wakes always happen).
+Proceed to 1.6.
 
 ### 1.6 Create Task List
 
-Create ONE Lead-side task per plan task — no role prefixes. Pipeline stage is tracked in metadata. Source the task subject/description from `tasks/task-N/task.md` (it's already on disk from planning Stage 4 — do NOT parse README sections for task content):
+Create ONE Lead-side task per plan task — no role prefixes. Pipeline stage tracked in metadata. Source task subject/description from `tasks/task-N/task.md` (already on disk from planning Stage 4 — do NOT parse README sections for task content):
 
 ```
 TaskCreate({
@@ -197,7 +181,7 @@ TaskCreate({
 })
 ```
 
-Set `addBlockedBy` from each task.md's Dependencies field (sequential ordering). The TaskCreate description is a pointer, not a content duplicate — the authoritative content is task.md itself.
+Set `addBlockedBy` from each task.md Dependencies field (sequential ordering). TaskCreate description = pointer, not content duplicate — authoritative content = task.md itself.
 
 ### 1.7 Set Up Directory Structure
 
@@ -218,29 +202,29 @@ documentation/plans/$ARGUMENTS/
   checkpoint-*.md
 ```
 
-`tasks/task-N/task.md` files already exist from planning Stage 4 — do NOT re-create them. Do create or update `shared/lead.md` with: plan overview, concurrency decision, key architectural constraints, task dependency graph, critical decisions, execution config (`gating: on|off` from 1.0b, `account_key` from 1.8), and the amendments log (initially empty).
+`tasks/task-N/task.md` files already exist from planning Stage 4 — do NOT re-create. Do create or update `shared/lead.md` with: plan overview, concurrency decision, key architectural constraints, task dependency graph, critical decisions, execution config (`gating: on|off` from 1.0b, `account_key` from 1.8), amendments log (initially empty).
 
-`plan.md` and `impl.md` are written later by the Executor during its workflow — do not pre-create them here.
+`plan.md` and `impl.md` written later by Executor during its workflow — no pre-create here.
 
 ### 1.8 Resolve Account Identity
 
-Resolve the active account key so the sentinel registration (§1.9b) and budget checks reference the correct account (the same value `usage-monitor.sh` resolves internally):
+Resolve active account key so sentinel registration (§1.9b) and budget checks reference right account (same value `usage-monitor.sh` resolve internally):
 
 ```bash
 ACCOUNT_KEY=$(source "$HOME/.claude/ultra/lib.sh" && slugifyEmail "$(claude auth status --json 2>/dev/null | jq -r '.email // empty')")
 ```
 
-Persist this in `shared/lead.md` under execution config so it's available if the session is recovered from a checkpoint.
+Persist in `shared/lead.md` under execution config so available if session recovered from checkpoint.
 
 ### 1.9 Project Manager Spawn
 
-Before spawning any task-teams, spawn the plan-wide coordinator: **PM** (PM owns the liveness monitor; usage limits are handled reactively by the machine-global limit sentinel — a process, not an agent).
+Before spawn any task-teams, spawn plan-wide coordinator: **PM** (own liveness monitor).
 
-1. Spawn `pm-{PLAN_NAME}` via the `Agent` tool in teammate mode (`name="pm-{PLAN_NAME}"`, `run_in_background: true`) using the PM spawn prompt in `references/phase-2-spawn-prompts.md`. PM has Bash + Monitor access, self-labels its pane, and starts the liveness monitor (`usage-monitor.sh watch "$PLAN_DIR"` — no account or mode arguments) on startup.
+1. Spawn `pm-{PLAN_NAME}` via `Agent` tool in teammate mode (`name="pm-{PLAN_NAME}"`, `run_in_background: true`) using PM spawn prompt in `references/phase-2-spawn-prompts.md`. PM got Bash + Monitor access, self-label its pane, start liveness monitor (`usage-monitor.sh watch "$PLAN_DIR"` — no account or mode arguments) on startup.
 
-PM self-labels its tmux pane when tmux is available (skipped otherwise). No tmux commands needed from you.
+PM self-label its tmux pane when tmux available (skipped otherwise). No tmux commands needed from you.
 
-2. **Verify the teammate backend is really tmux (cancel if not).** The §1.0 gate is a heuristic; this is the authoritative check, against the backend Claude Code actually recorded. Read the session's team config and confirm PM landed on a tmux pane:
+2. **Verify teammate backend really tmux (cancel if not).** §1.0 gate = heuristic; this = authoritative check, against backend Claude Code actually recorded. Read session team config, confirm PM landed on tmux pane:
 
 ```bash
 TEAM_CFG=$(grep -rl "\"pm-{PLAN_NAME}\"" "$HOME/.claude/teams"/*/config.json 2>/dev/null | head -1)
@@ -248,13 +232,13 @@ TEAM_CFG=$(grep -rl "\"pm-{PLAN_NAME}\"" "$HOME/.claude/teams"/*/config.json 2>/
 jq -r '.members[] | "\(.name) backendType=\(.backendType) pane=\(.tmuxPaneId)"' "$TEAM_CFG" 2>/dev/null
 ```
 
-PM must show `backendType=tmux` with a real pane id (e.g. `%168`), **not** `backendType=in-process` (pane `in-process`/`leader`). If PM is `in-process`, the environment silently downgraded the backend — **abort the run**: send `shutdown_request` to `pm-{PLAN_NAME}` (and `TaskStop` any background tasks), record the abort in `shared/lead.md`, and stop with the same remediation as the §1.0 gate ("Run `/uc:setup` to set `teammateMode: tmux`, relaunch inside tmux, re-run"). Do **not** continue into Phase 2 on an in-process backend — that is the degraded pipeline the user reported.
+PM must show `backendType=tmux` with real pane id (e.g. `%168`), **not** `backendType=in-process` (pane `in-process`/`leader`). If PM `in-process`, environment downgraded backend silent — **abort run**: send `shutdown_request` to `pm-{PLAN_NAME}` (and `TaskStop` any background tasks), record abort in `shared/lead.md`, stop with same remediation as §1.0 gate ("Run `/uc:setup` to set `teammateMode: tmux`, relaunch inside tmux, re-run"). Do **not** continue into Phase 2 on in-process backend — that the degraded pipeline user reported.
 
-There is no Knowledge Brief synthesis step. Research lives per-task in each `tasks/task-N/task.md`'s `**Research:**` section (populated by planning Stage 4), and Lead reviews it per-task at spawn time in Phase 2.
+No Knowledge Brief synthesis step. Research live per-task in each `tasks/task-N/task.md` `**Research:**` section (populated by planning Stage 4), Lead review it per-task at spawn time in Phase 2.
 
 ### 1.9b Sentinel Registration
 
-Write the sentinel registration file so the machine-global limit sentinel knows this plan's panes and account (which pane to inject `SENTINEL` messages into, which tasks to append `RESUME` to at reset, and whether advisories apply). `$GATING` is the `gating` value from 1.0b (`on` or `off`); `$ACCOUNT_KEY` is from 1.8:
+Write sentinel registration file so machine-global limit sentinel know this plan panes and account (which pane to inject `SENTINEL` messages into, which tasks to append `RESUME` to at reset, whether advisories apply). `$GATING` = `gating` value from 1.0b (`on` or `off`); `$ACCOUNT_KEY` from 1.8:
 
 ```bash
 PLAN_ABS=$(cd "$PLAN_DIR" && pwd)
@@ -266,8 +250,8 @@ jq -n --arg pd "$PLAN_ABS" --arg ak "$ACCOUNT_KEY" --arg g "$GATING" \
       > ~/.claude/ultra/sentinel/plans/{PLAN_NAME}.json
 ```
 
-On checkpoint-resume, re-write this file (idempotent) — the Lead pane and tmux session may have changed since the original run. The registration is removed at Phase 5 completion.
+On checkpoint-resume, re-write this file (idempotent) — Lead pane and tmux session may have changed since original run. Registration removed at Phase 5 completion.
 
 ### 1.10 Proceed to Phase 2
 
-Shared setup is done. Gating is recorded (1.0b), PM (with the liveness monitor) is live and confirmed, and the sentinel registration is written (1.9b). There is no first-tick STATUS to wait for — the Lead reads usage on demand via `usage-monitor.sh status` at each spawn decision (Phase 2), and usage limits are handled reactively by the machine-global limit sentinel. Task teams can now be spawned per Phase 2.
+Setup done — gating recorded (1.0b), PM live and confirmed (1.9), sentinel registration written (1.9b). Spawn task teams per Phase 2 (no first-tick STATUS to wait for).

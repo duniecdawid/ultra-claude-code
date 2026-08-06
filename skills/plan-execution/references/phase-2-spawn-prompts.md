@@ -1,77 +1,65 @@
 # Phase 2: Spawn Prompts
 
-All task-team spawn prompts are **minimal pointers**. Per-task content (description, success criteria, patterns, research, files, dependencies) lives in `documentation/plans/$ARGUMENTS/tasks/task-{N}/task.md`. Every agent reads its task directory as its first action after pane labeling — see `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/task-team-startup.md`.
+All task-team spawn prompts = **minimal pointers**. Per-task content live in `tasks/task-{N}/task.md`. Every agent read own task directory first action (see `task-team-startup.md`).
 
-Spawn teammates with the **`Agent` tool in teammate mode** (Mode T per `${CLAUDE_PLUGIN_ROOT}/references/agent-spawn-modes.md`): `run_in_background: true`, `subagent_type` set to the **registered agent type name** (listed per role below — e.g. `uc:Task Executor`, NOT a file path), `model`, and `mode`. Passing a file path as `subagent_type` does not resolve and can fall back to a generic agent. Do **not** pass `team_name` — it is deprecated/ignored (the session has a single implicit team). **MANDATORY naming convention** — the `name` parameter MUST follow exactly `{role}-{N}` where role is one of `executor`, `reviewer`, `tester` and N is the task number:
-
-| Task | Executor | Reviewer | Tester |
-|------|----------|----------|--------|
-| 1 | `executor-1` | `reviewer-1` | `tester-1` |
-| 2 | `executor-2` | `reviewer-2` | `tester-2` |
-| N | `executor-N` | `reviewer-N` | `tester-N` |
-
-**Shared (plan-wide):** `pm-{PLAN_NAME}` — the only plan-wide teammate. Knowledge lives per-task in `task.md`; mid-execution gaps flow through the `ADVICE` and `QUERY` channels Lead brokers.
-
-**NEVER** use alternative formats like `task-1-executor`, `e1`, `Executor_1`, or descriptive names.
+Spawn teammates with **`Agent` tool in teammate mode** (Mode T per `${CLAUDE_PLUGIN_ROOT}/references/agent-spawn-modes.md`): `run_in_background: true`, `subagent_type` = **registered agent type name** (listed per role below — e.g. `uc:Task Executor`, NOT file path; file path silently fall back to generic agent), `model`, `mode`. No `team_name` (deprecated/ignored). **MANDATORY naming** — `name` MUST be exactly `{role}-{N}` (`executor-1`, `reviewer-1`, `tester-1`, ...); plan-wide PM = `pm-{PLAN_NAME}`. **NEVER** use other formats like `task-1-executor`, `e1`, `Executor_1`, or descriptive names.
 
 ## Pre-Spawn Checklist
 
-Run these in order before EVERY teammate spawn (`Agent` tool, teammate mode) for a task team (initial spawn AND pipeline pre-spawn):
+Run in order before EVERY teammate spawn (`Agent` tool, teammate mode) for task team (initial spawn AND pipeline pre-spawn):
 
 ### 1. Ensure `task.md` exists
 
-For new-format plans it already exists from planning Stage 4. If not (legacy plan), run the legacy-plan self-heal from `phase-1-setup.md` §1.1 to extract the task section from README into `tasks/task-{N}/task.md` before proceeding.
+New-format plans: already exist from planning Stage 4. If not (legacy plan), run legacy-plan self-heal from `phase-1-setup.md` §1.1 — pull task section from README into `tasks/task-{N}/task.md` before proceed.
 
 ### 2. Knowledge review — outcome goal: every core technology this task touches has research available before spawning
 
-Scope is the planner's job — Lead never changes scope. Research is **primarily** the planner's job (Stage 2 runs `/uc:research`, Stage 4 records pointers in task.md), but Lead has a final-review mandate: before spawning, every core technology this task will touch must be covered by a pointer in task.md's `**Research:**` section.
+Scope = planner job. Lead never change scope. Research **primarily** planner job (Stage 2 run `/uc:research`, Stage 4 record pointers in task.md), but Lead have final-review mandate: before spawn, every core technology this task touch must have pointer in task.md `**Research:**` section.
 
-Most of the time the planner already met the bar and Lead does nothing. When a gap or staleness exists, Lead fills it.
+Most time planner already meet bar, Lead do nothing. Gap or stale exist → Lead fill.
 
 **Concretely:**
 
-1. **Read `tasks/task-{N}/task.md`** with the task in focus — description, files, success criteria, existing Research pointers.
-2. **Staleness check:** for each referenced research file under `documentation/technology/research/`, check the frontmatter staleness window (rules owned by `/uc:research`). If stale, invoke `/uc:research {lib} --refresh`. The pointer path stays the same; content updates in place.
-3. **Coverage check:** enumerate the core technologies this task will actually touch — external libraries/frameworks in the Files list, APIs referenced in the Description, architectural patterns the task inherently involves (retry, cache invalidation, queue, migration, auth flow, etc.). For each, confirm task.md has a pointer. If something is missing, invoke `/uc:research {missing-tech}` and append the new pointer to task.md's Research section (with a one-line gloss of what matters for this task).
-4. **Depth check:** if an existing pointer covers a topic shallowly (e.g., a library overview, but this task hits a specific API surface that isn't in the research), invoke `/uc:research` with a narrower query and either refresh the existing pointer or append an additional one.
-5. **Bar:** by the time you spawn the team, you should be able to say "every core technology this task depends on has been researched and is referenced from task.md." That's the contract.
+1. **Read `tasks/task-{N}/task.md`** with task in focus — description, files, success criteria, existing Research pointers.
+2. **Staleness check:** for each referenced research file under `documentation/technology/research/`, check frontmatter staleness window (rules owned by `/uc:research`). Stale → invoke `/uc:research {lib} --refresh`. Pointer path stay same; content update in place.
+3. **Coverage check:** list core technologies this task actually touch — external libraries/frameworks in Files list, APIs in Description, architectural patterns task inherently involve (retry, cache invalidation, queue, migration, auth flow, etc.). Each one: confirm task.md have pointer. Missing → invoke `/uc:research {missing-tech}`, append new pointer to task.md Research section (with one-line gloss of what matter for this task).
+4. **Depth check:** existing pointer cover topic shallow (e.g. library overview, but task hit specific API surface not in research) → invoke `/uc:research` with narrower query, refresh existing pointer or append extra one.
+5. **Bar:** by spawn time, you can say "every core technology this task depends on has been researched and is referenced from task.md." That the contract.
 
 **What Lead does NOT do:**
-- Rewrite the task scope or change the planner's Files list.
-- Add speculative research for technologies the task has no real connection to.
-- Replace existing pointers that are fine — research is additive, pointers are cheap, history matters.
+- Rewrite task scope or change planner Files list.
+- Add speculative research for tech task have no real connection to.
+- Replace existing pointers that fine — research additive, pointers cheap, history matter.
 
-No `FILE-UPDATED` broadcast is needed at this stage because no task-team member for task-{N} is alive yet. Lead writes, then spawns. Agents will read the current state of `task.md` as part of their startup read.
+No `FILE-UPDATED` broadcast needed here — no task-team member for task-{N} alive yet. Lead write, then spawn. Agents read current `task.md` state during startup read.
 
 ### 2.5. Initialize signals.jsonl
 
-Create the empty signal file for the task:
+Create empty signal file for task:
 
 ```bash
 touch "$PLAN_DIR/tasks/task-{N}/signals.jsonl"
 ```
 
-This must happen before the teammate spawn so agents can read and append to it from their first action. The file starts empty — signals are appended as pipeline events occur.
+Must happen before teammate spawn so agents can read + append from first action. File start empty — signals appended as pipeline events occur.
 
 ### 2.6. Re-assert the main-context pane label
 
-The layout daemon manages a window only while two things hold: its Lead pane carries `@agent-name=main-context`, **and** the window contains at least one teammate pane (PM, a task pane, or the final gate). A window whose Lead pane is unlabelled is skipped (teammate panes pile up un-gridded); a window with no teammates left is released untouched, so panes you split by hand after execution are never rearranged. Phase 1 §1.1b sets this once, but a one-shot is fragile — if the Lead's controlling pane differs from `$TMUX_PANE` at startup, or `/uc:plan-execution` was invoked mid-session, the label may never land on the pane teammates spawn beside. Re-run the same idempotent setup script here, on every spawn, so the main pane is guaranteed labelled before the first teammate pane appears:
+Phase 1 §1.1b label Lead pane once, but one-shot fragile (controlling pane differ from `$TMUX_PANE`, mid-session invocation). Re-run same idempotent setup script before every spawn so main pane guaranteed labelled before first teammate pane appear:
 
 ```bash
 bash "${CLAUDE_PLUGIN_ROOT}/scripts/tmux-layout-setup.sh"
 ```
 
-Its only runtime gate is `$TMUX_PANE` (no-op outside tmux); re-running it is cheap and self-logs to `~/.claude/ultra/tmux-layout-setup.log`. The daemon also self-heals an unlabelled Lead pane by inference — this script just makes the common case deterministic.
-
 ### 3. Pipeline-mode block (pipeline pre-spawn only)
 
-If this is a pipeline pre-spawn (Executor's `code complete` on predecessor task {P} freed a slot and task-{N} is the next unblocked dependent), append the Pipeline mode block to `tasks/task-{N}/task.md` after the knowledge review — there's a commented-out template inside the task.md template showing the exact format. Fill in `{P}` and uncomment it.
+Pipeline pre-spawn (Executor `code complete` on predecessor task {P} free slot, task-{N} next unblocked dependent) → append Pipeline mode block to `tasks/task-{N}/task.md` after knowledge review. Commented-out template inside task.md template show exact format. Fill `{P}`, uncomment.
 
 ### 4. Spawn the team
 
-Spawn the task team using the minimal spawn prompts below — each via the `Agent` tool in teammate mode (`name`, `run_in_background: true`, plus the role's agent file / `model` / `mode`). For a `code` task, Executor, Reviewer, and Tester are spawned together **in parallel** (single message with multiple `Agent` calls). For an `ops` task (task.md `**Type:** ops`), spawn the Executor **alone** — no Reviewer, no Tester — using the ops variant noted in the Executor Spawn section. Each agent self-labels its pane on startup — no PM intervention needed.
+Spawn task team with minimal spawn prompts below — each via `Agent` tool in teammate mode (`name`, `run_in_background: true`, plus role agent file / `model` / `mode`). `code` task: Executor, Reviewer, Tester spawn together **in parallel** (single message, multiple `Agent` calls). `ops` task (task.md `**Type:** ops`): spawn Executor **alone** — no Reviewer, no Tester — use ops variant in Executor Spawn section. Each agent self-label own pane on startup — no PM intervention.
 
-After spawning, send to PM:
+After spawn, send to PM:
 
 ```
 SendMessage to PM: "SPAWNED task-{N}: {short description from task.md heading}"
@@ -101,13 +89,13 @@ ${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/task-team-startup.md.
 Then run your agent workflow.
 ```
 
-**If pipeline-spawned**, the Pipeline mode block has already been appended to `tasks/task-{N}/task.md` during the pre-spawn checklist. The Executor reads it during startup and behaves accordingly — no change to the spawn prompt above.
+**If pipeline-spawned**, Pipeline mode block already appended to `tasks/task-{N}/task.md` during pre-spawn checklist. Executor read it during startup, behave accordingly — spawn prompt above unchanged.
 
-**Ops variant** (task.md `**Type:** ops`): same prompt with two changes — add `TASK_TYPE=ops` on the line after SIGNAL_FILE, and drop the Reviewer and Tester lines from the teammates list (they are never spawned). The Executor's agent file defines the ops workflow deltas.
+**Ops variant** (task.md `**Type:** ops`): same prompt, two changes — add `TASK_TYPE=ops` on line after SIGNAL_FILE, drop Reviewer + Tester lines from teammates list (never spawned). Executor agent file define ops workflow deltas.
 
 ## Reviewer Spawn
 
-Code tasks only — never spawned for an ops task.
+Code tasks only — never spawn for ops task.
 
 subagent_type: `uc:Code Reviewer` (defined in `${CLAUDE_PLUGIN_ROOT}/agents/code-review.md`)
 Model: `sonnet` | Mode: `bypassPermissions`
@@ -134,7 +122,7 @@ and send a REVIEWER TAKE to the Executor BEFORE it writes plan.md.
 
 ## Tester Spawn
 
-Code tasks only — never spawned for an ops task.
+Code tasks only — never spawn for ops task.
 
 subagent_type: `uc:Task Tester` (defined in `${CLAUDE_PLUGIN_ROOT}/agents/task-tester.md`)
 Model: `sonnet` | Mode: `bypassPermissions`
@@ -169,7 +157,7 @@ against impl.md. You may read impl.md only for the file list.
 subagent_type: `uc:Task Tester` (defined in `${CLAUDE_PLUGIN_ROOT}/agents/task-tester.md`)
 Model: `sonnet` | Mode: `bypassPermissions` | Name: `tester-final-gate`
 
-For the final regression gate after all tasks complete, spawn a fresh team member (teammate mode: `name="tester-final-gate"` + `run_in_background: true`):
+For final regression gate after all tasks complete, spawn fresh team member (teammate mode: `name="tester-final-gate"` + `run_in_background: true`):
 
 ```
 You are running the **final gate** regression test for the "$ARGUMENTS" plan.
@@ -200,7 +188,7 @@ across all completed tasks.
 subagent_type: `uc:Project Manager` (defined in `${CLAUDE_PLUGIN_ROOT}/agents/project-manager.md`)
 Model: `sonnet` | Mode: `bypassPermissions`
 
-Spawn **once** before any task-teams. The Project Manager runs for the entire plan duration — it is NOT per-task. Name it `pm-{PLAN_NAME}` (e.g., `pm-user-auth`).
+Spawn **once** before any task-teams. Project Manager run whole plan duration — NOT per-task. Name it `pm-{PLAN_NAME}` (e.g., `pm-user-auth`).
 
 ```
 You are the Project Manager for the "$ARGUMENTS" plan execution.
@@ -212,9 +200,6 @@ PLAN_DIR=documentation/plans/$ARGUMENTS
 **Lead name:** team-lead
 **Total tasks:** {N}
 **Concurrency limit:** {M} concurrent task-teams
-**Team naming convention:** Task N team name: `task-{N}-team`. Executor-N,
-reviewer-N, and tester-N all spawn together at task start. The only
-plan-wide teammate is yourself (PM) — you own the liveness monitor.
 
 **Task dependency graph:**
 (Read each tasks/task-N/task.md's Dependencies field to build this graph.
@@ -224,50 +209,7 @@ Example:)
 - Task 3: depends on task 1
 - Task 4: depends on task 2, task 3
 
-**Start the liveness monitor (First Action).** Via the Monitor tool:
-  Monitor({
-    command: "bash \"$HOME/.claude/ultra/usage-monitor.sh\" watch \"$PLAN_DIR\"",
-    description: "Liveness monitor for {PLAN_NAME}",
-    persistent: true
-  })
-It is a LIVENESS monitor — silent on clean ticks and emits only `NUDGE`
-candidates (a task silent with no named wait and no repo activity —
-verify, then ping). It also quietly traces >10-min task silence
-(`silence_observed`) straight into events.json — never an emit, never
-your cue to act. Ignore any Monitor line that is not JSON with an
-`"alert"` field. Usage limits are handled by the machine-global limit
-sentinel, which writes `usage_limit_hit` / `usage_reset_wake` /
-`usage_window_rolled` events into events.json — you consume those
-passively for budget/report bookkeeping, never as alerts to forward.
-
-**You are event-driven.** You wake on your monitor's NUDGE emits and on
-messages from Lead (status updates, completions with current_pct) and
-Executors. See your agent instructions for the full NUDGE handling
-protocol.
-
-**Per-task budget tracking:** On SPAWNED, read current usage % and record
-budget.start_pct. On COMPLETED (Lead includes current_pct), compute
-cost_pct = end_pct - start_pct and persist to plan.json.
-
-**Pane verification:** Agents self-label their panes on startup per their
-agent instructions. After each SPAWNED message from Lead, verify labels.
-
-**What Lead sends you (process into dashboard):**
-- `SPAWNED task-{N}: {description}` — create team JSON (all three members), update counts, event, record budget.start_pct
-- `STAGE task-{N} {stage}` — update team status + timestamps, event
-- `COMPLETED task-{N}, current_pct={pct}` — team completed, counts, event, compute budget.cost_pct
-- `SHUTDOWN task-{N}` — member ended_at timestamps, event
-
-**signals.jsonl reading (replaces direct Executor messages):**
-Executors no longer send STAGE-DONE or RETRY. Read `$PLAN_DIR/tasks/task-{N}/signals.jsonl`
-for each active task when you wake to derive stage state:
-- `REVIEW_PASS` / `TEST_PASS` → close stage, append event
-- `REVIEW_FAIL` / `TEST_FAIL` + `REREVIEW_REQUESTED` / `RETEST_REQUESTED` → retry_count++, reset timers, event
-See `${CLAUDE_PLUGIN_ROOT}/skills/plan-execution/references/execution-communication-protocol.md` §6.
-
-**What you send to Lead (actionable events only):**
-- `NUDGE-ESCALATION task-{N}: ...` — only after you verified a NUDGE candidate, pinged the executor, and got no response (see your agent instructions)
-You do NOT forward usage events — the limit sentinel handles limits and injects Lead directly; sentinel-written events in events.json are bookkeeping input, not alerts. NUDGE count:1 is yours to verify and ping, never forwarded.
-
-Follow the workflow in your team member instructions.
+Follow the workflow in your team member instructions — First Action
+(pane label + liveness monitor), status update processing, signals.jsonl
+reading, budget tracking, and NUDGE handling are all defined there.
 ```
