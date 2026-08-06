@@ -22,4 +22,4 @@ The executor must read this reference file before rewriting the document.
 
 ### Missing Features List
 
-Separately, create an additional list of **features described in documentation but not implemented at all**. These are NOT part of the fix plan — they represent product gaps, not doc drift. Present them to the user in the post-plan summary, then triage each with the user per `${CLAUDE_PLUGIN_ROOT}/references/backlog-triage.md` (4-option variant).
+Separately, create an additional list of **features described in documentation but not implemented at all**. These are NOT part of the fix plan — they represent product gaps, not doc drift. Present them to the user in the post-plan summary, then triage each with the user per `${CLAUDE_PLUGIN_ROOT}/references/backlog-triage.md` (plan-context variant).

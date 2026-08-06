@@ -35,7 +35,7 @@ Before any research or planning, challenge the feature request as a Head of Tech
 
 Present your analysis alongside scope questions via AskUserQuestion. Don't just ask "what do you want?" — bring your own informed perspective. The goal is a dialogue where you contribute expertise, not just collect requirements.
 
-**Cut-scope ideas:** When ideas come up during scope discussion that are explicitly cut from scope, triage each with the user per `${CLAUDE_PLUGIN_ROOT}/references/backlog-triage.md` (4-option variant — a plan is being designed).
+**Cut-scope ideas:** When ideas come up during scope discussion that are explicitly cut from scope, triage each with the user per `${CLAUDE_PLUGIN_ROOT}/references/backlog-triage.md` (plan-context variant — a plan is being designed).
 
 ## Stage Transition
 

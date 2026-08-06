@@ -146,7 +146,7 @@ After process message (handler action only — no narration), return to waiting 
 
 ### Non-Blocking Escalations
 
-**Never call `AskUserQuestion` during execution (Phases 2–4).** Blocking question freeze Lead mid-turn — teammate messages cannot wake it, every task stall with it, even tasks question no touch. All user decisions flow through escalation queue instead: print question as plain text, end turn, keep coordinating. User answer whenever they return (minutes later or next morning); execution never sit blocked on prompt.
+**Never call `AskUserQuestion` during execution (Phases 2–4).** Blocking question freeze Lead mid-turn — teammate messages cannot wake it, every task stall with it, even tasks question no touch. All user decisions flow through escalation queue instead: print question as plain text, end turn, keep coordinating. User answer whenever they return (minutes later or next morning); execution never sit blocked on prompt. Ban end with execution — Phase 5 triage use AskUserQuestion normally (nothing left to block).
 
 Mechanics (full protocol + standing-orders table in `references/phase-4-failure-handling.md` § "Non-Blocking Escalation Queue"):
 
@@ -223,7 +223,7 @@ Retry flow, escalation, crash recovery, session death.
 Final gate, operational report, summary, shutdown, backlog review.
 → Read `references/phase-5-completion.md`
 
-**Follow-up work:** Execution reveal follow-up work, bugs, ideas, tech debt not in plan → collect in completion summary under "Follow-up Items". After shutdown (step 5.5), first run backlog review (step 5.6 — update existing backlog items in light of completed plan), then triage each follow-up item with user per `${CLAUDE_PLUGIN_ROOT}/references/backlog-triage.md` (3-option variant — execution complete, so omit "Include in plan"). Check each candidate against just-reviewed backlog — matches update/link existing item, no add duplicate.
+**Follow-up work:** Execution reveal follow-up work, bugs, ideas, tech debt not in plan → collect in completion summary under "Follow-up Items". After requesting PM report (step 5.3, no wait — triage run while PM write it): backlog review (step 5.4) auto-close backlog items + follow-up items plan resolved, show user list of closed items — no questions for those. Then triage each remaining detected issue (step 5.5) per `${CLAUDE_PLUGIN_ROOT}/references/backlog-triage.md` (post-execution variant — execution complete, AskUserQuestion normal again): one question per issue, recommendation marked, batch up to 10. Check each candidate against just-reviewed backlog — matches update/link existing item, no add duplicate.
 
 ---
 
@@ -320,7 +320,7 @@ All = **state narration** — describe teammate activity, predict what happens n
 - Never write implementation code — you orchestrate, not implement
 - Never narrate or comment operational events to user — process wakes silent, act; only user-visible outputs = three allowed
 - Never invent, guess, recall usage figure — every usage band/percentage you act on or report MUST come from actual stdout of `bash "$HOME/.claude/ultra/usage-monitor.sh" status`. Command error or no JSON → no fabricate status: surface failure, stop (monitor unreachable — re-run `/uc:setup`).
-- Never call `AskUserQuestion` during execution — every user decision go through non-blocking escalation queue (§ "Non-Blocking Escalations"); blocking prompt deafen Lead to all teammates
+- Never call `AskUserQuestion` during execution (Phases 2–4) — every user decision go through non-blocking escalation queue (§ "Non-Blocking Escalations"); blocking prompt deafen Lead to all teammates. Phase 5 triage: AskUserQuestion normal again
 - Always send terse status updates to PM after spawns, shutdowns, stage transitions
 - Always checkpoint before session end
 - Max 10 fix cycles per task before queue `max-cycles` escalation

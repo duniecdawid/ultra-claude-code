@@ -1,5 +1,12 @@
 [
   {
+    "seq": 239,
+    "version": "2026.08.06-7",
+    "date": "2026-08-06",
+    "summary": "plan-execution: rework post-execution triage — runs while PM writes operational report; backlog review auto-closes items the plan resolved and lists them; remaining issues triaged one question each (fix now / backlog / ignore / discuss) with a recommendation; AskUserQuestion explicitly resumes in Phase 5; shared backlog-triage protocol gains recommendation rule, Lets-talk option, 10-question batching",
+    "migration": null
+  },
+  {
     "seq": 238,
     "version": "2026.08.06-6",
     "date": "2026-08-06",

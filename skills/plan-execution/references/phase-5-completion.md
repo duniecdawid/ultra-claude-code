@@ -7,10 +7,10 @@ Enter Phase 5 when all tasks hit "done" stage (all task-teams exited). Only `cod
 Spawn one Final Gate Tester (fresh team member) for full regression suite:
 - Final Gate Tester self-labels pane on startup — no labeling from you.
 - Use Final Gate Tester spawn prompt from `references/phase-2-spawn-prompts.md`
-- PASS: go to operational report
+- PASS: go to 5.3
 - FAIL: decide — re-spawn task-teams for specific fixes, or report to user
 
-### 5.3 Collect Operational Report
+### 5.3 Request Operational Report
 
 SendMessage to Project Manager (`pm-{PLAN_NAME}`): "Execution complete — write operational report"
 
@@ -19,11 +19,28 @@ PM will:
 2. Write operational report to `operational-report.md`
 3. Confirm when done
 
-Wait for PM confirm `operational-report.md` saved.
+**Do NOT wait for PM here.** PM works in background; run 5.4 and 5.5 meanwhile. PM confirmation collected in 5.6.
 
-Then send `shutdown_request` to Project Manager.
+### 5.4 Backlog Review + Auto-Close
 
-### 5.4 Produce Summary
+Runs for every plan, regardless of task types. Read all backlog items in `documentation/backlog/` AND the Follow-up Items collected during execution. Scan both against what this plan changed:
+
+- Backlog item the plan resolved → close via `uc:backlog`, no question asked. Set `related_plan` where fits; use judgment.
+- Follow-up item the plan already resolved → drop from triage list, no question asked.
+
+Present user the list of backlog items closed by this plan (or say nothing changed).
+
+### 5.5 Follow-up Triage
+
+Execution complete — nothing blocks on user questions any more, so **AskUserQuestion use resumes normally** here (the Phases 2–4 ban and escalation queue no longer apply).
+
+Triage each remaining detected issue per `${CLAUDE_PLUGIN_ROOT}/references/backlog-triage.md` (post-execution variant): one question per issue with options Fix now / Add to backlog / Ignore / Let's talk about it, recommended option first with "(Recommended)". Batch up to 10 questions per call. "Let's talk about it" → discuss, then act on the agreed disposition.
+
+Carry the 5.4 backlog picture in: follow-up item matching an existing backlog item → update/link existing, never a duplicate. Handle "Fix now" items inline after triage completes.
+
+### 5.6 Collect PM Report, Summary, Shutdown
+
+Wait for PM confirm `operational-report.md` saved (may already have arrived during 5.4–5.5). Then send `shutdown_request` to Project Manager.
 
 Append to `documentation/plans/$ARGUMENTS/shared/lead.md`:
 
@@ -53,10 +70,10 @@ Append to `documentation/plans/$ARGUMENTS/shared/lead.md`:
 - Final gate (full suite): PASS/FAIL
 
 ### Follow-up Items
-- {any recommendations or remaining work}
+- {item} — {triage outcome: fixed now / backlog / ignored}
 ```
 
-### 5.5 Shutdown
+Shutdown:
 
 1. All task-teams already self-exited when tasks passed
 2. Final Gate Tester exits after report
@@ -67,9 +84,3 @@ Append to `documentation/plans/$ARGUMENTS/shared/lead.md`:
    ```
 5. Keep plan directory with all artifacts (including `operational-report.md`, `tasks/task-N/task.md`/`plan.md`/`impl.md`, and `shared/lead.md`)
 6. Present summary to user — mention that the operational report is available at `documentation/plans/$ARGUMENTS/operational-report.md`
-
-### 5.6 Backlog Review
-
-Runs for every plan, regardless of task types. Read all backlog items in `documentation/backlog/` and assess each against what this plan changed. Update statuses accordingly via the `uc:backlog` skill — e.g. close items the plan resolved, set `related_plan` where fits; use judgment. Tell user what changed (or nothing changed).
-
-Do before follow-up triage (SKILL.md § Phase 5, "Follow-up work"), carry backlog picture into it: follow-up item matching existing backlog item → update/link existing, never a duplicate.

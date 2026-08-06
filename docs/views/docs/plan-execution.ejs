@@ -88,7 +88,7 @@
       <li><strong>Execution state</strong> &mdash; the PM maintains JSON state files showing task status, active stages, and timing</li>
       <li><strong>Escalation notices</strong> &mdash; if a task exceeds 10 fix cycles or discovers something plan-invalidating, the question is queued to <code>shared/escalations.md</code> with a reversible standing order applied in the meantime (hold the team for a guided retry, defer the gap), and unaffected tasks keep running. Answer whenever you're back &mdash; the Lead never blocks on a prompt, so an overnight run survives its own questions</li>
       <li><strong>Completion summary</strong> &mdash; tasks completed, files modified, decisions made, test results, and follow-up items</li>
-      <li><strong>Backlog review</strong> &mdash; existing backlog items are re-assessed against what the plan changed (resolved items closed, related plans linked), and new follow-up items are triaged against them so nothing gets duplicated</li>
+      <li><strong>Backlog review &amp; triage</strong> &mdash; while the PM writes the operational report, backlog items and follow-up items the plan resolved are closed automatically and listed for you; each remaining issue detected during execution is then asked about individually (fix now, add to backlog, ignore, or discuss &mdash; with a recommendation), deduplicated against the reviewed backlog</li>
     </ul>
     <p>Between these, the system runs silently. The Lead doesn't narrate what agents are doing.</p>
 
