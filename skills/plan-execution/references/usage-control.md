@@ -52,6 +52,11 @@ Budget is tightening — the pre-spawn `soft` finding, pushed so Lead needn't po
 1. Record `{window}: soft` in `## Usage Blocks` (with `resets_at`).
 2. Finish in-flight work; start nothing new.
 3. Nothing is paused or interrupted. Forward nothing to teammates.
+4. **The moment the last in-flight team shuts down, arm the HOLD-WAKE self-wake** (below) at that
+   window's `resets_at`. A soft-band stop kills nothing, so nothing is parked and no teammate
+   inbox will ever fire — the plan's only remaining wake is one pane injection into you. Arm the
+   backup regardless of sentinel health; a duplicate wake is a no-op, a missed one costs the whole
+   window (observed: plan 050 idled ~4h past its reset).
 
 ### `SENTINEL RESET [{window}]: window reset. RESUME appended to active tasks and sent to team panes…`
 
@@ -93,22 +98,32 @@ This feeds PM's per-task budget tracking. PM also consumes the sentinel-written 
 / `usage_reset_wake` / `usage_window_rolled` events from `events.json` passively — PM performs no
 usage monitoring of its own.
 
-## Fallback HOLD-WAKE (sentinel-down only)
+## Fallback HOLD-WAKE
 
-**Governing principle: Lead may go idle, but only while a guaranteed wake exists.** Normally that
-guarantee IS the sentinel (verified at phase-1 preflight via `limit-sentinel.sh status` +
-`ensure`). The legacy self-wake survives for one edge case: Phase 1 finds the account already in
-the `soft` band or over the limit, AND `limit-sentinel.sh ensure` fails to produce a running
-sentinel (`status` still reports `running:false`). Then — and only then — Lead arms the one-shot
-self-wake before going idle:
+**Governing principle: Lead may go idle, but only while a guaranteed wake exists.** The sentinel
+is the primary guarantee (verified at phase-1 preflight via `limit-sentinel.sh status` + `ensure`),
+but a sentinel wake is a single tmux injection into one pane — it is skipped when the pane is gone,
+renamed, or misread as busy. Arm the one-shot self-wake whenever Lead goes idle without a live
+teammate that would wake it:
+
+- **Soft-band idle** — a block is recorded and no task team is in flight (ADVISORY step 4 /
+  pre-spawn gating stopped the fleet). Arm at that window's `resets_at`, sentinel up or not.
+  Nothing is parked in this state, so no `RESUME` will ever land in any `signals.jsonl`.
+- **Sentinel down at Phase 1** — the account is already `soft` or over the limit AND
+  `limit-sentinel.sh ensure` fails to produce a running sentinel (`status` still reports
+  `running:false`).
 
 ```
 Monitor({
-  command: "bash -c 't=<resets_epoch>; while [ \"$(date +%s)\" -lt \"$t\" ]; do sleep 30; done; echo HOLD-WAKE'",
+  command: "bash -c 't=<resets_epoch + 120>; while [ \"$(date +%s)\" -lt \"$t\" ]; do sleep 30; done; echo HOLD-WAKE'",
   description: "Fallback hold-state self-wake for <PLAN_NAME>",
   persistent: false
 })
 ```
+
+`resets_at + 120` — never earlier. It must land *after* the reset (early wakes burn failed turns
+into the still-active limit) and after the sentinel's own `+90s` fire, so the sentinel wins the
+race in the normal case and this only covers the miss.
 
 On `HOLD-WAKE`: run the same idempotent recovery as `SENTINEL RESET` (clear passed blocks,
 verify/wake, refill). If both wakes fire, whichever arrives second finds the work done and no-ops.

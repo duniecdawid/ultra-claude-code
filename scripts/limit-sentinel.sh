@@ -384,6 +384,10 @@ check_account() { # account
     set_state '.accounts[$a].win5h = {resets_at: ($r|tonumber), pct: ($p|tonumber)}' \
       --arg a "$acct" --arg r "$res5" --arg p "$pct5"
   fi
+  if [ "$res7" -gt 0 ] 2>/dev/null && [ "$now" -lt "$res7" ] 2>/dev/null; then
+    set_state '.accounts[$a].win7d = {resets_at: ($r|tonumber), pct: ($p|tonumber)}' \
+      --arg a "$acct" --arg r "$res7" --arg p "$pct7"
+  fi
 
   # -- ADVISORY (soft band, once per window, only while the window is still running) ----------
   local adv_latch; adv_latch=$(get_state ".accounts[\"$acct\"].advisory_latch // 0")
@@ -420,21 +424,56 @@ check_account() { # account
     local parked_n woke=0 reg
     parked_n=$(jq -r --arg a "$acct" '[.parked | to_entries[] | select(.value.account_id==$a and .value.status=="parked")] | length' "$STATE_FILE" 2>/dev/null)
     # Wake only when there was something to recover from: parked sessions, or a plan registered
-    # on this account whose window ended >= soft (an unhooked death is still worth a check-in).
+    # on this account whose window ended >= soft (a fleet that gated itself to a stop, or an
+    # unhooked death, is still worth a check-in).
     local had_limit=false
     [ "${parked_n:-0}" -gt 0 ] 2>/dev/null && had_limit=true
+    # Ending-window usage. `win5h` is the live snapshot OF THE WINDOW wake_at describes, and is
+    # the load-bearing source here: `last_window` is only written at the NEXT observed rollover,
+    # which needs usage-status.json to refresh, which needs a session to render a statusline —
+    # precisely what a fleet that stopped in the soft band no longer does. Gating on last_window
+    # alone therefore made every soft-band stop unwakeable: the pct describing the window being
+    # woken from does not exist yet at wake time. (Observed 2026-08-04, plan 050: advisory at 90%,
+    # then "reset handled … woke=0 parked=0" at the reset, fleet idle ~4h until a human intervened.)
+    local endw_pct=0
+    [ "$(get_state ".accounts[\"$acct\"].win5h.resets_at // 0")" = "$wake_at" ] \
+      && endw_pct=$(get_state ".accounts[\"$acct\"].win5h.pct // 0")
     local lastw_pct; lastw_pct=$(get_state ".accounts[\"$acct\"].last_window.pct // 0")
+    local soft_end=false
+    { [ "${endw_pct:-0}" -ge "$SOFT_5H" ] 2>/dev/null \
+      || [ "${lastw_pct:-0}" -ge "$SOFT_5H" ] 2>/dev/null; } && soft_end=true
     for reg in "$PLANS_DIR"/*.json; do
       [ -f "$reg" ] || continue
       [ "$(jq -r '.account_key // ""' "$reg")" = "$acct" ] || continue
-      if [ "$had_limit" = true ] || [ "$lastw_pct" -ge "$SOFT_5H" ] 2>/dev/null; then
+      if [ "$had_limit" = true ] || [ "$soft_end" = true ]; then
         wake_plan "$reg" "$acct" 5h >/dev/null; woke=$((woke+1))
       fi
     done
     [ "$had_limit" = true ] && { local sw; sw=$(wake_standalone "$acct" 5h); woke=$((woke+sw)); }
     # Nothing to pre-open here: the window heartbeat owns that, on its own cadence.
     set_state '.accounts[$a].wake_done = ($w|tonumber)' --arg a "$acct" --arg w "$wake_at"
-    log "reset handled $acct: wake_at=$wake_at woke=$woke parked=$parked_n"
+    log "reset handled $acct: wake_at=$wake_at woke=$woke parked=$parked_n end_pct=$endw_pct"
+  fi
+
+  # -- 7d RESET WAKE (weekly window, once per window) ------------------------------------------
+  # usage-control.md tells Lead to recover "on the eventual SENTINEL RESET [7d]" — nothing emitted
+  # one, so a `7d: limit` block in shared/lead.md never cleared and the plan waited indefinitely.
+  # Same ending-window snapshot rule as the 5h path.
+  local wake7_latch; wake7_latch=$(get_state ".accounts[\"$acct\"].wake7_done // 0")
+  if [ "$res7" -gt 0 ] 2>/dev/null && [ "$now" -ge $((res7 + WAKE_MARGIN)) ] 2>/dev/null \
+     && [ "$wake7_latch" != "$res7" ]; then
+    local endw7_pct=0 woke7=0 reg7
+    [ "$(get_state ".accounts[\"$acct\"].win7d.resets_at // 0")" = "$res7" ] \
+      && endw7_pct=$(get_state ".accounts[\"$acct\"].win7d.pct // 0")
+    if [ "${endw7_pct:-0}" -ge "$SOFT_7D" ] 2>/dev/null; then
+      for reg7 in "$PLANS_DIR"/*.json; do
+        [ -f "$reg7" ] || continue
+        [ "$(jq -r '.account_key // ""' "$reg7")" = "$acct" ] || continue
+        wake_plan "$reg7" "$acct" 7d >/dev/null; woke7=$((woke7+1))
+      done
+    fi
+    set_state '.accounts[$a].wake7_done = ($w|tonumber)' --arg a "$acct" --arg w "$res7"
+    log "reset handled(7d) $acct: res7=$res7 woke=$woke7 end_pct=$endw7_pct"
   fi
 }
 

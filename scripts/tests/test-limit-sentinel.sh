@@ -172,6 +172,48 @@ check_account acct-b
 ck "busy pane skipped"           '! grep -q -- "-t %S -l" "$CALLS"'
 rm -f "$TEST_DIR/tmux-screen-%S"
 
+# ------------------------------------------------- 4b. soft-band stop wake + 7d wake (regression)
+# Plan 050, 2026-08-04: the fleet gated ITSELF to a stop at 90% — nothing hit the limit, so nothing
+# was parked. The wake gate consulted last_window.pct, which is written only at the NEXT observed
+# rollover, which needs a usage-status.json refresh, which needs a statusline an idle fleet no
+# longer renders. The ending window's own pct therefore did not exist at wake time: "reset handled
+# … woke=0 parked=0", Lead never woken, ~4h lost. The ending-window snapshot must be the gate.
+SOFT_PLAN="$REPO/documentation/plans/softplan"
+mkdir -p "$SOFT_PLAN/tasks/task-1"; echo '{"events":[]}' > "$SOFT_PLAN/events.json"
+jq -nc '{tasks:[{task_id:"task-1", status:"in_progress"}]}' > "$SOFT_PLAN/plan.json"
+jq -nc --arg pd "$SOFT_PLAN" '{plan_dir:$pd, account_key:"acct-f", gating:"on", lead_pane:"%F", tmux_session:"s"}' \
+  > "$PLANS_DIR/softplan.json"
+write_usage "$(usage_entry acct-f 91 $((NOW - 200)) 40 $((NOW + 86400)) "$(iso $((NOW - 3600)))")"
+set_state '.accounts["acct-f"].win5h = {resets_at: '"$((NOW - 200))"', pct: 91}'
+: > "$CALLS"
+check_account acct-f
+ck "soft-band stop wakes lead"      'grep -q "%F -l SENTINEL RESET \[5h\]" "$CALLS"'
+ck "woken with no last_window"      '[ "$(get_state ".accounts[\"acct-f\"].last_window.pct // 0")" = "0" ]'
+
+# a window that ended below the soft band, with nothing parked, is not a recovery case
+jq -nc --arg pd "$SOFT_PLAN" '{plan_dir:$pd, account_key:"acct-i", gating:"on", lead_pane:"%I"}' \
+  > "$PLANS_DIR/clearplan.json"
+write_usage "$(usage_entry acct-i 20 $((NOW - 200)) 10 $((NOW + 86400)) "$(iso $((NOW - 3600)))")"
+set_state '.accounts["acct-i"].win5h = {resets_at: '"$((NOW - 200))"', pct: 20}'
+: > "$CALLS"
+check_account acct-i
+ck "clear-band end does not wake"   '! grep -q -- "-t %I" "$CALLS"'
+rm -f "$PLANS_DIR/clearplan.json"
+
+# 7d: usage-control tells Lead to recover on SENTINEL RESET [7d] — nothing used to emit one
+jq -nc --arg pd "$SOFT_PLAN" '{plan_dir:$pd, account_key:"acct-j", gating:"on", lead_pane:"%J"}' \
+  > "$PLANS_DIR/weekplan.json"
+write_usage "$(usage_entry acct-j 5 $((NOW + 3000)) 100 $((NOW - 200)) "$(iso $((NOW - 3600)))")"
+set_state '.accounts["acct-j"].win7d = {resets_at: '"$((NOW - 200))"', pct: 100}'
+: > "$CALLS"
+check_account acct-j
+ck "7d reset wakes lead"            'grep -q "%J -l SENTINEL RESET \[7d\]" "$CALLS"'
+ck "7d wake latched"                '[ "$(get_state ".accounts[\"acct-j\"].wake7_done")" = "$((NOW - 200))" ]'
+: > "$CALLS"
+check_account acct-j
+ck "7d wake fires once per window"  '! grep -q -- "-t %J" "$CALLS"'
+rm -f "$PLANS_DIR/weekplan.json" "$PLANS_DIR/softplan.json"
+
 # ---------------------------------------------------------------- 5. window heartbeat
 # The heartbeat is deliberately blind to usage data: it must fire on cadence alone, for accounts
 # that usage-status.json has never heard of, and it must NOT fire from the reset-wake path.

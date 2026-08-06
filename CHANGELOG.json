@@ -1,5 +1,12 @@
 [
   {
+    "seq": 233,
+    "version": "2026.08.06-1",
+    "date": "2026-08-06",
+    "summary": "limit-sentinel: wake a fleet that stopped itself in the soft band, and emit the 7d reset wake that was documented but never implemented. Observed live on plan 050 (mma-3): the sentinel injected the 90% advisory at 22:05, the Lead correctly stopped spawning, and at the reset the tick logged 'reset handled dawid-duniec-at-axb-co: wake_at=1785802800 woke=0 parked=0' — the fleet sat idle roughly four hours until a human intervened. Cause: the wake gate required either a parked session or last_window.pct >= soft, but a soft-band stop kills nothing (so parked=0), and last_window is written only when a rollover is OBSERVED, which needs usage-status.json to refresh, which only a rendering statusline does — exactly what a stopped fleet no longer has. The pct describing the window being woken from therefore does not exist at wake time; it appeared in state four hours later, at 04:22, when a session finally rendered again. The gate now reads the ending window's own live snapshot (win5h, kept current while the window runs and matched against wake_at) and falls back to last_window, so a window that ended at or above the soft band wakes its registered plans whether or not anything was limit-killed. Second gap closed in the same pass: usage-control.md told Lead to recover 'on the eventual SENTINEL RESET [7d]' and nothing ever emitted one — a 7d block in shared/lead.md was therefore permanent. A 7d wake now mirrors the 5h path with its own win7d snapshot and wake7_done latch. Lead-side belt: HOLD-WAKE was armed only in the phase-1 sentinel-down edge case, which left the sentinel's single tmux injection as the sole wake for an idle Lead — skipped if the pane is gone, renamed, or misread as busy. Lead now arms it at resets_at + 120 (after the reset and after the sentinel's own +90s fire, so the sentinel still wins the normal race) whenever it goes idle under a soft block with nothing in flight. Regression tests added to scripts/tests/test-limit-sentinel.sh — soft-band-stop wake, clear-band non-wake, 7d wake plus its latch — verified to fail against the pre-fix script and pass after. Docs site plan-execution + reference pages and the help catalog updated.",
+    "migration": null
+  },
+  {
     "seq": 232,
     "version": "2026.08.03-2",
     "date": "2026-08-03",
