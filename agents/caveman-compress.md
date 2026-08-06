@@ -1,6 +1,6 @@
 ---
 name: caveman-compress
-description: Compression engine wrapper — runs the caveman-compress CLI on a body artifact in scratch, returns the compressed version plus a classified cut list. Proposition-only, never edits; spawned at harness-builder stage 3.
+description: Compression engine wrapper — runs the caveman-compress CLI on a body artifact in scratch, returns the compressed version plus a classified cut list. Proposition-only, never edits; spawned at harness-builder stage 4.
 model: opus
 tools:
   - Read

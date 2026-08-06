@@ -1,5 +1,12 @@
 [
   {
+    "seq": 236,
+    "version": "2026.08.06-4",
+    "date": "2026-08-06",
+    "summary": "harness-builder: build workflow leaves native plan mode — it was self-contradictory (the compression engine cannot write inside plan mode, so stage 3 deferred the run past approval against files lacking stage-1/2 edits). Now edits in place on a clean git state: working tree is the draft, stage-5 git diff presentation with an explicit approval gate before commit, rejection = git restore (non-git targets: scratchpad backup). Stages renumbered to five with a new dedicated stage 3 for description & name writing after the body is confirmed (stage-3-description.md; compression → stage 4, present → stage 5); stage references are chained — each stage file names the next, SKILL.md entry points only at stage 1. Two new non-negotiables: caveman house style applies from first draft during harness building (engine pass is mechanical finish), and optimize-by-removing-instructions (delete before add, no verification/scaffolding rules, removal pass first on edits, minimal new components). caveman-compress agent, help catalog, and docs reference page updated for the stage-4 spawn point.",
+    "migration": null
+  },
+  {
     "seq": 235,
     "version": "2026.08.06-3",
     "date": "2026-08-06",

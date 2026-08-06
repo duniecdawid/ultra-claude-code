@@ -20,7 +20,7 @@ python3 "${CLAUDE_PLUGIN_ROOT}/skills/harness-builder/scripts/context_audit.py" 
    - **Controllable-static** — skill/agent descriptions, CLAUDE.md files, MCP server selection. Trim or detach.
    - **Recurring-dynamic** — mandatory bootstrap skill invocations, hooks emitting context every session. Often the largest *controllable* cost; question every "invoke X at every session start" rule.
 4. Hunt duplication: identical MCP instruction blocks across server instances (e.g. a dev+prod pair), description sentences duplicated from bodies, the same fact in global + project CLAUDE.md.
-5. Rank offenders by `tokens × sessions-per-week`; trim from the top using `description-writing.md` budgets and the build workflow's compression stage (`stage-3-compression.md`).
+5. Rank offenders by `tokens × sessions-per-week`; trim from the top using `description-writing.md` budgets and the build workflow's compression stage (`stage-4-compression.md`).
 6. Re-run script + `/context` after trimming; record before/after totals with dates.
 
 ## When to run

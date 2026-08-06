@@ -16,7 +16,7 @@ The caveman plugin (https://github.com/JuliusBrussee/caveman) is the compression
 
 1. **Per-session opt-in** — `/caveman [lite|full|ultra]` when a terse working session is wanted. Level dies with the session.
 2. **File compression** — invoke the `caveman-compress` skill on a resident file (CLAUDE.md section, journal, memory file). The workhorse pattern. It rewrites the file in place, so review the diff before committing and run the key-term check below; the behaviours in "Invoking the engine safely" apply here too — in particular it will not touch frontmatter, and it refuses filenames that look sensitive.
-3. **Build-workflow compression** — spawn the `uc:caveman-compress` agent (this plugin) on body artifacts at stage 3 of the build workflow; it runs the engine on a scratch copy and returns a classified cut list, consumed item by item. **Not optional** for build tasks: spawn form and adoption rules are in `stage-3-compression.md`.
+3. **Build-workflow compression** — spawn the `uc:caveman-compress` agent (this plugin) on body artifacts at stage 4 of the build workflow; it runs the engine on a scratch copy and returns a classified cut list, consumed item by item. **Not optional** for build tasks: spawn form and adoption rules are in `stage-4-compression.md`.
 
 ### Invoking the engine safely
 
