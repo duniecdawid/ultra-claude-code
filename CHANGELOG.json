@@ -1,5 +1,12 @@
 [
   {
+    "seq": 240,
+    "version": "2026.08.20-1",
+    "date": "2026-08-20",
+    "summary": "new skill explain-like-iam-idiot: re-explains the current conversation in plain language for decision-making — toolbox of 13 explanation devices (bottom-line-first, analogy, concrete numbers, comparison/weighted grids, pros-cons, ASCII flow/sequence/tree/timeline, risk, jargon gloss, decision block), each with the fit and the trap, no fixed output template; limits cover 72-column diagrams, grid-beats-boxes for choices, marking assumptions, cost-with-every-benefit; registered in help catalog and docs reference page",
+    "migration": null
+  },
+  {
     "seq": 239,
     "version": "2026.08.06-7",
     "date": "2026-08-06",
