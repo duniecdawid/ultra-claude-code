@@ -1,5 +1,12 @@
 [
   {
+    "seq": 241,
+    "version": "2026.08.20-2",
+    "date": "2026-08-20",
+    "summary": "gitignore: widen session-file pattern from .claude/ultra/sessions/ to **/.claude/ultra/sessions/ so runtime session files created in nested directories (e.g. agents/.claude/ultra/sessions/) stay untracked",
+    "migration": null
+  },
+  {
     "seq": 240,
     "version": "2026.08.20-1",
     "date": "2026-08-20",
